@@ -1,0 +1,78 @@
+{
+	"name": "@langflower/tools",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./create-project-harness": {
+			"types": "./dist/create-project-harness.d.ts",
+			"import": "./dist/create-project-harness.js"
+		},
+		"./permission": {
+			"types": "./dist/permission.d.ts",
+			"import": "./dist/permission.js"
+		},
+		"./create-web-fetch": {
+			"types": "./dist/create-web-fetch.d.ts",
+			"import": "./dist/create-web-fetch.js"
+		},
+		"./create-crawl-context": {
+			"types": "./dist/create-crawl-context.d.ts",
+			"import": "./dist/create-crawl-context.js"
+		},
+		"./create-project-files-context": {
+			"types": "./dist/create-project-files-context.d.ts",
+			"import": "./dist/create-project-files-context.js"
+		},
+		"./domain-tool-configs": {
+			"types": "./dist/domain/domain-tool-configs.d.ts",
+			"import": "./dist/domain/domain-tool-configs.js"
+		},
+		"./create-memory-store": {
+			"types": "./dist/memory/create-memory-store.d.ts",
+			"import": "./dist/memory/create-memory-store.js"
+		},
+		"./html": {
+			"types": "./dist/domain/html.d.ts",
+			"import": "./dist/domain/html.js"
+		},
+		"./run-bfs-crawl": {
+			"types": "./dist/domain/run-bfs-crawl.d.ts",
+			"import": "./dist/domain/run-bfs-crawl.js"
+		},
+		"./mcp-stdio-client": {
+			"types": "./dist/mcp/mcp-stdio-client.d.ts",
+			"import": "./dist/mcp/mcp-stdio-client.js"
+		},
+		"./mcp-http-client": {
+			"types": "./dist/mcp/mcp-http-client.d.ts",
+			"import": "./dist/mcp/mcp-http-client.js"
+		},
+		"./mcp-tool-id": {
+			"types": "./dist/mcp/mcp-tool-id.d.ts",
+			"import": "./dist/mcp/mcp-tool-id.js"
+		},
+		"./build-mcp-handle": {
+			"types": "./dist/mcp/build-mcp-handle.d.ts",
+			"import": "./dist/mcp/build-mcp-handle.js"
+		},
+		"./format-mcp-connect-error": {
+			"types": "./dist/mcp/format-mcp-connect-error.d.ts",
+			"import": "./dist/mcp/format-mcp-connect-error.js"
+		},
+		"./create-system-mcp-handles": {
+			"types": "./dist/mcp/create-system-mcp-handles.d.ts",
+			"import": "./dist/mcp/create-system-mcp-handles.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"typecheck": "tsc -p tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"undici": "^7.28.0"
+	},
+	"files": [
+		"dist"
+	]
+}

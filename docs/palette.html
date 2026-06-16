@@ -1,0 +1,7359 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Langflower palette</title>
+		<style>
+			/* Page-local layout only — specimen colors use inline styles. */
+			:root {
+				--page-bg: #fafafa;
+				--page-fg: #09090b;
+				--page-muted: #71717a;
+				--page-border: #e4e4e7;
+				--page-card: #ffffff;
+				--mono:
+					'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+				--sans: Inter, ui-sans-serif, system-ui, sans-serif;
+				/* Shared text + round icon control height (Tailwind h-8). */
+				--lf-control-h: 2rem;
+				/*
+					Text pill side pad: ≥ half height so labels clear the
+					half-circle caps (CSS pad equal to vertical free space
+					looks tighter once radius eats the corners).
+				*/
+				--lf-btn-pad: calc(var(--lf-control-h) / 2);
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				padding: 2rem 1.5rem 4rem;
+				font-family: var(--sans);
+				font-size: 14px;
+				line-height: 1.5;
+				color: var(--page-fg);
+				background: var(--page-bg);
+			}
+
+			.wrap {
+				max-width: 1100px;
+				margin: 0 auto;
+			}
+
+			h1 {
+				margin: 0 0 0.5rem;
+				font-size: 1rem;
+				font-weight: 600;
+				letter-spacing: -0.025em;
+			}
+
+			.lead {
+				margin: 0 0 0.75rem;
+				color: var(--page-muted);
+				font-size: 0.875rem;
+				line-height: 1.5;
+				max-width: 48rem;
+			}
+
+			.note {
+				margin: 0 0 2rem;
+				padding: 0.75rem 1rem;
+				border: 1px solid var(--page-border);
+				border-radius: 0.5rem;
+				background: var(--page-card);
+				font-size: 0.75rem;
+				line-height: 1.5;
+				color: #3f3f46;
+			}
+
+			.note code {
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+			}
+
+			section {
+				margin-bottom: 2.5rem;
+			}
+
+			h2 {
+				margin: 0 0 0.75rem;
+				font-size: 0.875rem;
+				font-weight: 600;
+			}
+
+			h3 {
+				margin: 0 0 0.5rem;
+				font-size: 0.75rem;
+				font-weight: 600;
+				text-transform: uppercase;
+				letter-spacing: 0.05em;
+				color: var(--page-muted);
+			}
+
+			.cols {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 1rem;
+			}
+
+			@media (max-width: 800px) {
+				.cols {
+					grid-template-columns: 1fr;
+				}
+			}
+
+			.col-label {
+				margin: 0 0 0.5rem;
+				font-size: 0.625rem;
+				font-weight: 600;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+				color: var(--page-muted);
+			}
+
+			.panel {
+				border: 1px solid var(--page-border);
+				border-radius: 0.5rem;
+				padding: 1rem;
+				background: var(--page-card);
+			}
+
+			.panel--dark {
+				background: #09090b;
+				border-color: #27272a;
+				color: #f4f4f5;
+			}
+
+			.table {
+				width: 100%;
+				border-collapse: collapse;
+				font-size: 0.75rem;
+			}
+
+			.table th,
+			.table td {
+				text-align: left;
+				padding: 0.5rem 0.6rem;
+				border-bottom: 1px solid var(--page-border);
+				vertical-align: top;
+			}
+
+			.table th {
+				font-weight: 600;
+				color: #3f3f46;
+			}
+
+			.table code {
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+			}
+
+			.swatch-row {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.4rem;
+			}
+
+			.swatch {
+				width: 4.5rem;
+			}
+
+			.swatch__chip {
+				height: 2.25rem;
+				border-radius: 0.375rem;
+				border: 1px solid rgba(0, 0, 0, 0.08);
+			}
+
+			.swatch__label {
+				margin-top: 0.25rem;
+				font-family: var(--mono);
+				font-size: 0.5625rem;
+				line-height: 1.3;
+				color: var(--page-muted);
+			}
+
+			.panel--dark .swatch__label {
+				color: #a1a1aa;
+			}
+
+			.stack {
+				display: flex;
+				flex-direction: column;
+				gap: 0.75rem;
+			}
+
+			.row {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 0.5rem;
+			}
+
+			.specimen-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+				gap: 0.75rem;
+			}
+
+			.deviations {
+				margin-top: 0.75rem;
+				padding: 0.75rem 1rem;
+				border-radius: 0.5rem;
+				border: 1px dashed #fcd34d;
+				background: #fffbeb;
+				font-size: 0.75rem;
+				color: #92400e;
+			}
+
+			.deviations code {
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+			}
+
+			/* Sample nodes-with-ports — mirrors canvas chrome padding + absolute anchors. */
+			.sample-nodes {
+				display: flex;
+				flex-direction: column;
+				gap: 0.85rem;
+				overflow: visible;
+			}
+
+			.sample-nodes.panel {
+				overflow: visible;
+			}
+
+			.sample-node {
+				--sample-pad-x: 20px;
+				position: relative;
+				min-width: 14rem;
+				max-width: 20rem;
+				border-radius: 0.5rem;
+				border: 1px solid #d4d4d8;
+				background: #ffffff;
+				padding: 0.65rem var(--sample-pad-x);
+				box-sizing: border-box;
+				overflow: visible;
+			}
+
+			.sample-node--dark {
+				border-color: #3f3f46;
+				background: #18181b;
+			}
+
+			.sample-node--value {
+				border-color: #10b981;
+			}
+
+			.sample-node--dark.sample-node--value {
+				border-color: #34d399;
+			}
+
+			.sample-node--hitl {
+				border-color: #0ea5e9;
+			}
+
+			.sample-node--dark.sample-node--hitl {
+				border-color: #38bdf8;
+			}
+
+			.sample-node__title {
+				margin: 0 0 0.5rem;
+				text-align: center;
+				font-size: 0.75rem;
+				font-weight: 600;
+				color: #18181b;
+			}
+
+			.sample-node--dark .sample-node__title {
+				color: #f4f4f5;
+			}
+
+			.sample-node__caption {
+				margin: 0.45rem 0 0;
+				text-align: center;
+				font-family: var(--mono);
+				font-size: 0.5625rem;
+				color: #71717a;
+			}
+
+			.sample-node--dark .sample-node__caption {
+				color: #a1a1aa;
+			}
+
+			.sample-port-row {
+				position: relative;
+				display: flex;
+				align-items: center;
+				min-height: 1.25rem;
+				padding: 0.2rem 0.25rem;
+				gap: 0.5rem;
+			}
+
+			.sample-port-dot {
+				position: absolute;
+				top: 50%;
+				box-sizing: border-box;
+				width: 10px;
+				height: 10px;
+				border-radius: 9999px;
+				border: 2px solid #a1a1aa;
+				background: #ffffff;
+				pointer-events: none;
+			}
+
+			/* Sit on the node border (canvas: left/right = -chrome-padding-x). */
+			.sample-port-dot--in {
+				left: calc(-1 * var(--sample-pad-x));
+				transform: translate(-50%, -50%);
+			}
+
+			.sample-port-dot--out {
+				right: calc(-1 * var(--sample-pad-x));
+				transform: translate(50%, -50%);
+			}
+
+			.sample-node--dark .sample-port-dot {
+				border-color: #71717a;
+				background: #18181b;
+			}
+
+			.sample-port-dot--pulse {
+				border-color: #10b981;
+				background: #a7f3d0;
+				box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.35);
+			}
+
+			.sample-node--dark .sample-port-dot--pulse {
+				border-color: #34d399;
+				background: #064e3b;
+				box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.35);
+			}
+
+			.sample-port-label {
+				flex: 1 1 0;
+				min-width: 0;
+				font-size: 0.625rem;
+				line-height: 1rem;
+				color: #52525b;
+			}
+
+			.sample-node--dark .sample-port-label {
+				color: #d4d4d8;
+			}
+
+			.sample-port-label__type {
+				color: #a1a1aa;
+			}
+
+			.sample-node--dark .sample-port-label__type {
+				color: #71717a;
+			}
+
+			.sample-port-label--right {
+				text-align: right;
+			}
+
+			.sample-inline {
+				display: block;
+				margin: 0.15rem 0 0.25rem;
+				width: 100%;
+				box-sizing: border-box;
+				border-radius: 0.375rem;
+				border: 1px solid #d4d4d8;
+				background: #fafafa;
+				padding: 0.3rem 0.4rem;
+				font-size: 0.625rem;
+				line-height: 1rem;
+				color: #3f3f46;
+				font-family: inherit;
+			}
+
+			.sample-node--dark .sample-inline {
+				border-color: #3f3f46;
+				background: #09090b;
+				color: #d4d4d8;
+			}
+
+			.sample-inline--disabled {
+				opacity: 0.7;
+			}
+
+			.sample-badge {
+				display: block;
+				margin-top: 0.15rem;
+				font-size: 0.625rem;
+				color: #a1a1aa;
+			}
+
+			.sample-node--dark .sample-badge {
+				color: #71717a;
+			}
+
+			.sample-bypass {
+				flex: 1 1 0;
+				min-width: 0;
+				margin: 0;
+				text-align: center;
+				font-size: 0.625rem;
+				line-height: 1rem;
+				color: #71717a;
+			}
+
+			.sample-node--dark .sample-bypass {
+				color: #a1a1aa;
+			}
+
+			/* Palette sidebar specimens (lf-palette-sidebar). */
+			.pal-shell {
+				width: 100%;
+				max-width: 16.5rem;
+				box-sizing: border-box;
+				border-radius: 0.5rem;
+				border: 1px solid #e4e4e7;
+				background: #ffffff;
+				padding: 1rem;
+			}
+
+			.pal-shell--dark {
+				border-color: #27272a;
+				background: #18181b;
+			}
+
+			.pal-title {
+				margin: 0;
+				font-size: 0.875rem;
+				font-weight: 600;
+				color: #18181b;
+			}
+
+			.pal-shell--dark .pal-title {
+				color: #f4f4f5;
+			}
+
+			.pal-search {
+				display: block;
+				box-sizing: border-box;
+				margin-top: 0.75rem;
+				width: 100%;
+				border-radius: 0.375rem;
+				border: 1px solid #e4e4e7;
+				background: #fafafa;
+				padding: 0.375rem 0.5rem;
+				font-size: 0.6875rem;
+				color: #27272a;
+				outline: none;
+			}
+
+			.pal-shell--dark .pal-search {
+				border-color: #3f3f46;
+				background: #09090b;
+				color: #f4f4f5;
+			}
+
+			.pal-list {
+				margin-top: 0.75rem;
+				max-height: 22rem;
+				overflow: auto;
+				padding-right: 0.25rem;
+			}
+
+			.pal-section {
+				margin-bottom: 0.5rem;
+			}
+
+			.pal-source {
+				display: flex;
+				width: 100%;
+				align-items: center;
+				justify-content: space-between;
+				gap: 0.5rem;
+				border: 0;
+				border-radius: 0.375rem;
+				background: transparent;
+				padding: 0.375rem 0.5rem;
+				text-align: left;
+				font-size: 0.75rem;
+				font-weight: 600;
+				color: #27272a;
+				cursor: default;
+			}
+
+			.pal-shell--dark .pal-source {
+				color: #f4f4f5;
+			}
+
+			.pal-chevron {
+				width: 0.875rem;
+				height: 0.875rem;
+				flex-shrink: 0;
+				fill: currentColor;
+			}
+
+			.pal-chevron--open {
+				transform: rotate(180deg);
+			}
+
+			.pal-chevron--sm {
+				width: 0.625rem;
+				height: 0.625rem;
+			}
+
+			.pal-custom-bar {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 0.5rem;
+				padding: 0.25rem 0.5rem 0.25rem 1rem;
+			}
+
+			.pal-status {
+				font-size: 0.625rem;
+				font-weight: 500;
+				letter-spacing: 0.05em;
+				text-transform: uppercase;
+				color: #71717a;
+			}
+
+			.pal-shell--dark .pal-status {
+				color: #a1a1aa;
+			}
+
+			.pal-status--error {
+				color: #be123c;
+			}
+
+			.pal-shell--dark .pal-status--error {
+				color: #fda4af;
+			}
+
+			.pal-update {
+				border: 0;
+				border-radius: 0.25rem;
+				background: transparent;
+				padding: 0.125rem 0.375rem;
+				font-size: 0.625rem;
+				font-weight: 500;
+				color: #3f3f46;
+				cursor: default;
+			}
+
+			.pal-shell--dark .pal-update {
+				color: #e4e4e7;
+			}
+
+			.pal-errors {
+				margin: 0 0 0.25rem;
+				padding: 0.25rem 0.5rem 0.25rem 1rem;
+				list-style: none;
+				font-size: 0.6875rem;
+				color: #be123c;
+			}
+
+			.pal-shell--dark .pal-errors {
+				color: #fda4af;
+			}
+
+			.pal-errors pre {
+				margin: 0.125rem 0 0;
+				font-family: inherit;
+				white-space: pre-wrap;
+			}
+
+			.pal-empty {
+				margin: 0;
+				padding: 0.25rem 0.5rem 0.25rem 1rem;
+				font-size: 0.6875rem;
+				color: #71717a;
+			}
+
+			.pal-shell--dark .pal-empty {
+				color: #a1a1aa;
+			}
+
+			.pal-cat-wrap {
+				margin-top: 0.375rem;
+				padding-left: 1rem;
+			}
+
+			.pal-cat {
+				display: flex;
+				width: 100%;
+				align-items: center;
+				justify-content: space-between;
+				gap: 0.5rem;
+				border: 0;
+				border-radius: 0.25rem;
+				background: transparent;
+				padding: 0.125rem 0.375rem;
+				text-align: left;
+				font-size: 0.625rem;
+				font-weight: 500;
+				letter-spacing: 0.05em;
+				text-transform: uppercase;
+				color: #71717a;
+				cursor: default;
+			}
+
+			.pal-shell--dark .pal-cat {
+				color: #a1a1aa;
+			}
+
+			.pal-nodes {
+				margin: 0.25rem 0 0;
+				padding: 0 0 0 1rem;
+				list-style: none;
+			}
+
+			.pal-nodes > li + li {
+				margin-top: 0.25rem;
+			}
+
+			.pal-node {
+				display: block;
+				width: 100%;
+				box-sizing: border-box;
+				border-radius: 0.5rem;
+				border: 1px solid #d4d4d8;
+				background: #ffffff;
+				padding: 0.375rem 0.5rem;
+				text-align: left;
+				font-size: 0.6875rem;
+				color: #27272a;
+				box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+				cursor: grab;
+			}
+
+			.pal-shell--dark .pal-node {
+				border-color: #3f3f46;
+				background: #18181b;
+				color: #f4f4f5;
+			}
+
+			.pal-node--hover {
+				border-color: #a1a1aa;
+				background: #fafafa;
+			}
+
+			.pal-shell--dark .pal-node--hover {
+				border-color: #71717a;
+				background: #27272a;
+			}
+
+			.pal-sub {
+				margin-top: 0.25rem;
+				padding-left: 1rem;
+			}
+
+			/* Work log / feed specimens (lf-work-log-panel). */
+			.feed-shell {
+				position: relative;
+				width: 100%;
+				max-width: 22rem;
+				box-sizing: border-box;
+				border-radius: 0.5rem;
+				border: 1px solid #e4e4e7;
+				background: #fafafa;
+				padding: 0.5rem 0.25rem 0.75rem;
+			}
+
+			.feed-shell--dark {
+				border-color: #27272a;
+				background: #09090b;
+			}
+
+			.feed-header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 0.25rem 0.5rem 0.5rem;
+			}
+
+			.feed-header__title {
+				margin: 0;
+				font-size: 0.6875rem;
+				font-weight: 600;
+				color: #3f3f46;
+			}
+
+			.feed-shell--dark .feed-header__title {
+				color: #e4e4e7;
+			}
+
+			.feed-scroll {
+				display: flex;
+				flex-direction: column;
+				max-height: 28rem;
+				overflow: auto;
+				padding: 0 0.15rem;
+			}
+
+			.feed-row {
+				padding: 0.375rem 0.5rem;
+				border-radius: 0.5rem;
+			}
+
+			.feed-row--hover {
+				background-color: rgba(139, 92, 246, 0.1);
+			}
+
+			.feed-shell--dark .feed-row--hover {
+				background-color: rgba(167, 139, 250, 0.12);
+			}
+
+			.feed-row--user {
+				display: flex;
+				justify-content: flex-end;
+			}
+
+			.feed-row--agent {
+				display: flex;
+				justify-content: flex-start;
+			}
+
+			.feed-bubble {
+				max-width: 92%;
+				box-sizing: border-box;
+				padding: 0.5rem 0.75rem;
+				font-size: 0.75rem;
+				line-height: 1.25rem;
+			}
+
+			.feed-bubble pre {
+				margin: 0;
+				font-family: inherit;
+				white-space: pre-wrap;
+				word-break: break-word;
+			}
+
+			.feed-bubble--user {
+				border-radius: 1rem 1rem 0.375rem 1rem;
+				border: 1px solid #d4d4d8;
+				background: #e4e4e7;
+				color: #18181b;
+			}
+
+			.feed-shell--dark .feed-bubble--user {
+				border-color: #52525b;
+				background: #27272a;
+				color: #f4f4f5;
+			}
+
+			.feed-bubble--result {
+				border-radius: 1rem 1rem 1rem 0.375rem;
+				border: 1px solid #e4e4e7;
+				background: #ffffff;
+				color: #27272a;
+			}
+
+			.feed-shell--dark .feed-bubble--result {
+				border-color: #3f3f46;
+				background: #18181b;
+				color: #f4f4f5;
+			}
+
+			.feed-bubble--nested-result {
+				border-radius: 1rem 0.375rem 1rem 1rem;
+				border: 1px solid #e4e4e7;
+				background: #ffffff;
+				color: #27272a;
+			}
+
+			.feed-shell--dark .feed-bubble--nested-result {
+				border-color: #52525b;
+				background: #09090b;
+				color: #f4f4f5;
+			}
+
+			.feed-bubble--nested-user {
+				border-radius: 0.375rem 1rem 1rem 1rem;
+				border: 1px solid #d4d4d8;
+				background: #e4e4e7;
+				color: #18181b;
+				padding: 0.375rem 0.75rem;
+			}
+
+			.feed-shell--dark .feed-bubble--nested-user {
+				border-color: #52525b;
+				background: #27272a;
+				color: #f4f4f5;
+			}
+
+			/* Draft streams as a chat bubble + markdown ASAP (not a peek line). */
+			.feed-bubble--draft {
+				position: relative;
+				border-radius: 1rem 1rem 1rem 0.375rem;
+				border: 1px solid #e4e4e7;
+				background: #ffffff;
+				color: #27272a;
+			}
+
+			.feed-shell--dark .feed-bubble--draft {
+				border-color: #3f3f46;
+				background: #18181b;
+				color: #f4f4f5;
+			}
+
+			.feed-bubble--draft.feed-bubble--live {
+				border-color: #fbbf24;
+				box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25);
+			}
+
+			.feed-shell--dark .feed-bubble--draft.feed-bubble--live {
+				border-color: #d97706;
+				box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.35);
+			}
+
+			/* Closed = tool/subagent interrupted this draft segment. */
+			.feed-bubble--draft.feed-bubble--closed {
+				opacity: 0.92;
+			}
+
+			.feed-md {
+				font-size: 0.75rem;
+				line-height: 1.35rem;
+			}
+
+			.feed-md > :first-child {
+				margin-top: 0;
+			}
+
+			.feed-md > :last-child {
+				margin-bottom: 0;
+			}
+
+			.feed-md p {
+				margin: 0 0 0.45rem;
+			}
+
+			.feed-md ul {
+				margin: 0 0 0.45rem;
+				padding-left: 1.1rem;
+			}
+
+			.feed-md li + li {
+				margin-top: 0.15rem;
+			}
+
+			.feed-md strong {
+				font-weight: 600;
+			}
+
+			.feed-md code {
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+				border-radius: 0.25rem;
+				background: #f4f4f5;
+				padding: 0.05rem 0.25rem;
+			}
+
+			.feed-shell--dark .feed-md code {
+				background: #27272a;
+			}
+
+			.feed-md pre {
+				margin: 0 0 0.45rem;
+				overflow-x: auto;
+				border-radius: 0.375rem;
+				background: #f4f4f5;
+				padding: 0.4rem 0.5rem;
+				font-family: var(--mono);
+				font-size: 0.6875rem;
+				line-height: 1.15rem;
+			}
+
+			.feed-shell--dark .feed-md pre {
+				background: #09090b;
+			}
+
+			.feed-bubble__meta {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 0.5rem;
+				margin-bottom: 0.35rem;
+				font-size: 0.5625rem;
+				font-weight: 500;
+				letter-spacing: 0.05em;
+				text-transform: uppercase;
+				color: #a1a1aa;
+			}
+
+			.feed-shell--dark .feed-bubble__meta {
+				color: #71717a;
+			}
+
+			.feed-bubble__meta .feed-streaming {
+				margin-left: 0;
+			}
+
+			/*
+			 * Tool / subagent log — no own border; collapsed <details> by default.
+			 * Sits between a closed draft segment and the next draft bubble.
+			 */
+			.feed-tool-log {
+				width: 100%;
+				min-width: 0;
+				margin: 0.05rem 0;
+				padding: 0;
+				border: 0;
+				background: transparent;
+				font-size: 0.6875rem;
+				line-height: 1rem;
+				color: #52525b;
+			}
+
+			.feed-shell--dark .feed-tool-log {
+				color: #d4d4d8;
+			}
+
+			.feed-tool-log > summary {
+				display: flex;
+				align-items: baseline;
+				gap: 0.35rem;
+				cursor: default;
+				list-style: none;
+				user-select: none;
+				font-size: 0.5625rem;
+				font-weight: 600;
+				letter-spacing: 0.05em;
+				text-transform: uppercase;
+				color: #71717a;
+			}
+
+			.feed-tool-log > summary::-webkit-details-marker {
+				display: none;
+			}
+
+			.feed-tool-log > summary::before {
+				content: '▸';
+				display: inline-block;
+				width: 0.75rem;
+				font-weight: 500;
+				color: #a1a1aa;
+			}
+
+			.feed-tool-log[open] > summary::before {
+				content: '▾';
+			}
+
+			.feed-shell--dark .feed-tool-log > summary {
+				color: #a1a1aa;
+			}
+
+			.feed-shell--dark .feed-tool-log > summary::before {
+				color: #71717a;
+			}
+
+			.feed-tool-log__kind {
+				color: #d97706;
+			}
+
+			.feed-shell--dark .feed-tool-log__kind {
+				color: #fbbf24;
+			}
+
+			.feed-tool-log__body {
+				margin: 0.2rem 0 0 0.75rem;
+				font-family: var(--mono);
+				font-size: 0.625rem;
+				line-height: 0.95rem;
+				white-space: pre-wrap;
+				word-break: break-word;
+				color: #52525b;
+			}
+
+			.feed-shell--dark .feed-tool-log__body {
+				color: #a1a1aa;
+			}
+
+			/* Completed draft → plain content bubble: no "draft" / no streaming… */
+			.feed-note {
+				margin: 0.35rem 0 0;
+				max-width: 92%;
+				font-size: 0.5625rem;
+				line-height: 0.9rem;
+				color: #a1a1aa;
+			}
+
+			.feed-shell--dark .feed-note {
+				color: #71717a;
+			}
+
+			.feed-note code {
+				font-family: var(--mono);
+				font-size: 0.5625rem;
+			}
+
+			.feed-stack {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 0.35rem;
+				width: 100%;
+			}
+
+			/* Composer / HITL — one full-bleed surface; chrome floats (no inner borders). */
+			.cmp-shell {
+				position: relative;
+				display: block;
+				width: 100%;
+				max-width: 26rem;
+				height: 16.5rem;
+				box-sizing: border-box;
+				overflow: hidden;
+				border-radius: 0.5rem;
+				border: 1px solid #e4e4e7;
+				background: #ffffff;
+			}
+
+			.cmp-shell--dark {
+				border-color: #27272a;
+				background: #18181b;
+			}
+
+			/* Textarea stage is the entire shell — no reserved header/footer bands. */
+			.cmp-shell > .cmp-stage {
+				position: absolute;
+				inset: 0;
+				z-index: 0;
+			}
+
+			.cmp-shell > .cmp-tabs {
+				position: absolute;
+				top: 0;
+				right: 0;
+				left: 0;
+				z-index: 3;
+				display: flex;
+				align-items: center;
+				gap: 0.25rem;
+				overflow-x: auto;
+				border: 0;
+				padding: 0.45rem 0.55rem;
+				background: linear-gradient(
+					to bottom,
+					#ffffff 40%,
+					rgba(255, 255, 255, 0)
+				);
+			}
+
+			.cmp-shell--dark > .cmp-tabs {
+				background: linear-gradient(
+					to bottom,
+					#18181b 40%,
+					rgba(24, 24, 27, 0)
+				);
+			}
+
+			.cmp-tab {
+				border: 0;
+				border-radius: 0.375rem;
+				background: transparent;
+				padding: 0.25rem 0.625rem;
+				font-size: 0.6875rem;
+				font-weight: 500;
+				color: #52525b;
+				cursor: default;
+				white-space: nowrap;
+			}
+
+			.cmp-shell--dark .cmp-tab {
+				color: #d4d4d8;
+			}
+
+			.cmp-tab--active {
+				background: #18181b;
+				color: #ffffff;
+			}
+
+			.cmp-shell--dark .cmp-tab--active {
+				background: #f4f4f5;
+				color: #18181b;
+			}
+
+			.cmp-textarea {
+				display: block;
+				box-sizing: border-box;
+				width: 100%;
+				height: 100%;
+				resize: none;
+				border: 0;
+				border-radius: 0;
+				background: transparent;
+				padding: 0.75rem 0.75rem 3.35rem;
+				font-family: inherit;
+				font-size: 0.75rem;
+				line-height: 1.25rem;
+				color: #18181b;
+				outline: none;
+			}
+
+			.cmp-shell--dark .cmp-textarea {
+				color: #f4f4f5;
+			}
+
+			/* Tabs only when 2+ HITL gates — reserve top inset. */
+			.cmp-shell:has(> .cmp-tabs) .cmp-textarea {
+				padding-top: 2.75rem;
+			}
+
+			.cmp-shell:has(> .cmp-steer-strip) .cmp-textarea {
+				padding-top: 2.85rem;
+			}
+
+			.cmp-shell:has(> .cmp-tabs):has(> .cmp-steer-strip) .cmp-textarea {
+				padding-top: 4.75rem;
+			}
+
+			.cmp-shell > .cmp-footer {
+				position: absolute;
+				right: 0;
+				bottom: 0;
+				left: 0;
+				z-index: 3;
+				display: flex;
+				flex-wrap: nowrap;
+				align-items: center;
+				justify-content: flex-end;
+				gap: 0.5rem;
+				border: 0;
+				padding: 0.55rem 0.75rem;
+				background: linear-gradient(
+					to top,
+					#ffffff 45%,
+					rgba(255, 255, 255, 0)
+				);
+			}
+
+			.cmp-shell--dark > .cmp-footer {
+				background: linear-gradient(
+					to top,
+					#18181b 45%,
+					rgba(24, 24, 27, 0)
+				);
+			}
+
+			/* Round Stop anchors the left; Send / Resume / Start stay right. */
+			.cmp-shell > .cmp-footer > .cmp-icon-btn--danger:first-child,
+			.cmp-shell > .cmp-footer > .cmp-tip-wrap:first-child {
+				margin-right: auto;
+				flex-shrink: 0;
+			}
+
+			.cmp-shell > .cmp-footer > .cmp-btn,
+			.cmp-shell > .cmp-footer > .cmp-icon-btn {
+				flex-shrink: 0;
+				height: var(--lf-control-h);
+			}
+
+			/* Centered neutral status while the agent runs. */
+			.cmp-working {
+				position: absolute;
+				inset: 0;
+				z-index: 1;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				margin: 0;
+				padding: 0 0.75rem;
+				font-size: 0.75rem;
+				font-weight: 500;
+				letter-spacing: 0.06em;
+				color: #71717a;
+				pointer-events: none;
+			}
+
+			.cmp-shell--dark .cmp-working {
+				color: #a1a1aa;
+			}
+
+			/*
+				Running footer: buttons at corners; lf-hover-tip style chips
+				(same as §5 Panels tooltip) float above — Stop top-left,
+				Pause top-right (tips grow inward, not clipped).
+			*/
+			.cmp-tip-wrap {
+				position: relative;
+				display: inline-flex;
+				flex-shrink: 0;
+			}
+
+			.cmp-tip {
+				pointer-events: none;
+				position: absolute;
+				bottom: 100%;
+				z-index: 4;
+				margin-bottom: 0.5rem;
+				border-radius: 0.375rem;
+				border: 1px solid #e4e4e7;
+				background: #ffffff;
+				padding: 0.25rem 0.5rem;
+				font-size: 0.75rem;
+				font-weight: 500;
+				line-height: 1;
+				color: #3f3f46;
+				box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+				white-space: nowrap;
+			}
+
+			.cmp-shell--dark .cmp-tip {
+				border-color: #52525b;
+				background: #27272a;
+				color: #f4f4f5;
+			}
+
+			/* side=top align=start — Stop (left corner), tip grows inward */
+			.cmp-tip--tl {
+				left: 0;
+			}
+
+			/* side=top align=end — Pause (right corner), tip grows inward */
+			.cmp-tip--tr {
+				right: 0;
+			}
+
+			/* Soft chip over the surface — not a bordered band. */
+			.cmp-shell > .cmp-steer-strip {
+				position: absolute;
+				top: 0.55rem;
+				right: 0.55rem;
+				left: 0.55rem;
+				z-index: 3;
+				display: flex;
+				align-items: center;
+				gap: 0.4rem;
+				border-radius: 0.375rem;
+				border: 0;
+				padding: 0.3rem 0.55rem;
+				background: #fffbeb;
+				font-size: 0.625rem;
+				line-height: 1rem;
+				color: #92400e;
+			}
+
+			.cmp-shell--dark > .cmp-steer-strip {
+				background: rgba(69, 26, 3, 0.55);
+				color: #fcd34d;
+			}
+
+			.cmp-shell:has(> .cmp-tabs) > .cmp-steer-strip {
+				top: 2.2rem;
+			}
+
+			.cmp-steer-strip strong {
+				font-weight: 600;
+			}
+
+			.cmp-btn {
+				box-sizing: border-box;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				gap: 0.35rem;
+				height: var(--lf-control-h);
+				border-radius: 9999px;
+				border: 1px solid #e4e4e7;
+				background: transparent;
+				padding: 0 var(--lf-btn-pad);
+				font-size: 0.75rem;
+				font-weight: 500;
+				line-height: 1;
+				color: #3f3f46;
+				cursor: default;
+			}
+
+			.cmp-shell--dark .cmp-btn {
+				border-color: #3f3f46;
+				color: #e4e4e7;
+			}
+
+			.cmp-btn--primary {
+				border-color: #18181b;
+				background: #18181b;
+				color: #ffffff;
+			}
+
+			.cmp-shell--dark .cmp-btn--primary {
+				border-color: #f4f4f5;
+				background: #f4f4f5;
+				color: #18181b;
+			}
+
+			.cmp-btn--success {
+				border-color: #34d399;
+				background: #ecfdf5;
+				color: #047857;
+			}
+
+			.cmp-shell--dark .cmp-btn--success {
+				border-color: #10b981;
+				background: rgba(2, 44, 34, 0.4);
+				color: #6ee7b7;
+			}
+
+			.cmp-btn--danger {
+				border-color: #fda4af;
+				background: #fff1f2;
+				color: #be123c;
+			}
+
+			.cmp-shell--dark .cmp-btn--danger {
+				border-color: #9f1239;
+				background: rgba(76, 5, 25, 0.4);
+				color: #fda4af;
+			}
+
+			.cmp-btn--warn {
+				border-color: #fbbf24;
+				background: #fffbeb;
+				color: #92400e;
+			}
+
+			.cmp-shell--dark .cmp-btn--warn {
+				border-color: #f59e0b;
+				background: rgba(69, 26, 3, 0.4);
+				color: #fcd34d;
+			}
+
+			.cmp-btn--info {
+				border-color: #38bdf8;
+				background: #f0f9ff;
+				color: #0369a1;
+			}
+
+			.cmp-shell--dark .cmp-btn--info {
+				border-color: #0ea5e9;
+				background: rgba(8, 47, 73, 0.4);
+				color: #7dd3fc;
+			}
+
+			.cmp-icon-btn {
+				box-sizing: border-box;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: var(--lf-control-h);
+				height: var(--lf-control-h);
+				border-radius: 9999px;
+				border: 1px solid #34d399;
+				background: #ecfdf5;
+				color: #047857;
+				padding: 0;
+				cursor: default;
+			}
+
+			.cmp-shell--dark .cmp-icon-btn {
+				border-color: #10b981;
+				background: rgba(2, 44, 34, 0.4);
+				color: #6ee7b7;
+			}
+
+			.cmp-icon-btn--warn {
+				border-color: #fbbf24;
+				background: #fffbeb;
+				color: #92400e;
+			}
+
+			.cmp-shell--dark .cmp-icon-btn--warn {
+				border-color: #f59e0b;
+				background: rgba(69, 26, 3, 0.4);
+				color: #fcd34d;
+			}
+
+			.cmp-icon-btn--danger {
+				border-color: #fb7185;
+				background: #fff1f2;
+				color: #be123c;
+			}
+
+			.cmp-shell--dark .cmp-icon-btn--danger {
+				border-color: #f43f5e;
+				background: rgba(76, 5, 25, 0.4);
+				color: #fda4af;
+			}
+
+			.cmp-icon-btn svg {
+				display: block;
+				width: 1rem;
+				height: 1rem;
+				fill: currentColor;
+			}
+
+			.cmp-icon-btn--run svg {
+				margin-left: 3px;
+			}
+
+			.cmp-banner {
+				display: flex;
+				align-items: flex-start;
+				gap: 0.5rem;
+				margin: 0.5rem 0.5rem 0;
+				padding: 0.45rem 0.6rem;
+				border-radius: 0.375rem;
+				background: #fffbeb;
+				font-size: 0.6875rem;
+				line-height: 1.1rem;
+				color: #92400e;
+			}
+
+			.cmp-shell--dark .cmp-banner {
+				background: rgba(69, 26, 3, 0.45);
+				color: #fcd34d;
+			}
+
+			.cmp-banner strong {
+				font-weight: 600;
+			}
+
+			.cmp-empty {
+				margin: 0;
+				padding: 1rem;
+				font-size: 0.6875rem;
+				line-height: 1rem;
+				color: #a1a1aa;
+			}
+
+			.cmp-shell--dark .cmp-empty {
+				color: #71717a;
+			}
+
+			.cmp-caption {
+				margin: 0.85rem 0 0.35rem;
+				font-size: 0.625rem;
+				font-weight: 600;
+				letter-spacing: 0.05em;
+				text-transform: uppercase;
+				color: #71717a;
+			}
+
+			.feed-permission {
+				margin: 0;
+				max-width: 92%;
+				font-size: 0.6875rem;
+				line-height: 1rem;
+				color: #b45309;
+			}
+
+			.feed-shell--dark .feed-permission {
+				color: #fcd34d;
+			}
+
+			.feed-tech {
+				display: flex;
+				flex-direction: column;
+				gap: 0.25rem;
+				width: 100%;
+				min-width: 0;
+				font-size: 0.6875rem;
+				color: #71717a;
+			}
+
+			.feed-shell--dark .feed-tech {
+				color: #a1a1aa;
+			}
+
+			.feed-tech--hitl {
+				align-items: flex-end;
+			}
+
+			.feed-tech__label {
+				width: 100%;
+				font-size: 0.6875rem;
+				font-weight: 500;
+				line-height: 1rem;
+				color: #52525b;
+			}
+
+			.feed-shell--dark .feed-tech__label {
+				color: #d4d4d8;
+			}
+
+			.feed-tech--hitl .feed-tech__label {
+				text-align: right;
+			}
+
+			.feed-waiting,
+			.feed-streaming {
+				margin-left: 0.25rem;
+				font-size: 0.5625rem;
+				font-weight: 500;
+				text-transform: none;
+				letter-spacing: normal;
+				color: #d97706;
+			}
+
+			.feed-shell--dark .feed-waiting,
+			.feed-shell--dark .feed-streaming {
+				color: #fbbf24;
+			}
+
+			.feed-role {
+				display: flex;
+				align-items: baseline;
+				gap: 0.25rem;
+				margin-top: 0.125rem;
+				font-size: 0.5625rem;
+				font-weight: 500;
+				letter-spacing: 0.05em;
+				text-transform: uppercase;
+				color: #a1a1aa;
+			}
+
+			.feed-shell--dark .feed-role {
+				color: #71717a;
+			}
+
+			.feed-tech--hitl .feed-role {
+				justify-content: flex-end;
+				width: 100%;
+			}
+
+			.feed-peek {
+				margin: 0;
+				width: 100%;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				font-size: 0.6875rem;
+				line-height: 1rem;
+				color: #52525b;
+			}
+
+			.feed-shell--dark .feed-peek {
+				color: #d4d4d8;
+			}
+
+			.feed-tech--hitl .feed-peek {
+				text-align: right;
+			}
+
+			.feed-stream {
+				height: 4lh;
+				width: 100%;
+				min-width: 0;
+				overflow-x: hidden;
+				overflow-y: auto;
+				font-size: 0.6875rem;
+				line-height: 1rem;
+				color: #52525b;
+			}
+
+			.feed-shell--dark .feed-stream {
+				color: #d4d4d8;
+			}
+
+			.feed-stream pre {
+				margin: 0;
+				font-family: inherit;
+				white-space: pre-wrap;
+				word-break: break-word;
+			}
+
+			.feed-details {
+				margin-top: 0.125rem;
+				width: 100%;
+				min-width: 0;
+			}
+
+			.feed-details > summary {
+				cursor: default;
+				list-style: none;
+				overflow: hidden;
+				font-size: 0.6875rem;
+				line-height: 1rem;
+				color: #a1a1aa;
+				user-select: none;
+			}
+
+			.feed-details > summary::-webkit-details-marker {
+				display: none;
+			}
+
+			.feed-shell--dark .feed-details > summary {
+				color: #71717a;
+			}
+
+			.feed-details__body {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5rem;
+				margin-top: 0.375rem;
+				padding-left: 0.125rem;
+				text-align: left;
+			}
+
+			.feed-block__role {
+				display: block;
+				font-size: 0.5625rem;
+				font-weight: 500;
+				letter-spacing: 0.05em;
+				text-transform: uppercase;
+				color: #a1a1aa;
+			}
+
+			.feed-shell--dark .feed-block__role {
+				color: #71717a;
+			}
+
+			.feed-block__line {
+				margin: 0.125rem 0 0;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				font-size: 0.6875rem;
+				line-height: 1rem;
+				color: #52525b;
+			}
+
+			.feed-shell--dark .feed-block__line {
+				color: #d4d4d8;
+			}
+
+			.feed-block__body {
+				margin: 0.125rem 0 0;
+				font-family: inherit;
+				font-size: 0.6875rem;
+				line-height: 1rem;
+				white-space: pre-wrap;
+				word-break: break-word;
+				color: #52525b;
+			}
+
+			.feed-shell--dark .feed-block__body {
+				color: #d4d4d8;
+			}
+
+			.feed-input-row {
+				display: flex;
+				min-width: 0;
+				gap: 0.25rem;
+				font-size: 0.625rem;
+			}
+
+			.feed-input-row__key {
+				flex-shrink: 0;
+				font-weight: 500;
+			}
+
+			.feed-input-row__val {
+				min-width: 0;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				color: #52525b;
+			}
+
+			.feed-shell--dark .feed-input-row__val {
+				color: #d4d4d8;
+			}
+
+			.feed-nested {
+				display: flex;
+				width: 100%;
+			}
+
+			.feed-nested--start {
+				justify-content: flex-start;
+			}
+
+			.feed-nested--end {
+				justify-content: flex-end;
+			}
+
+			.feed-jump {
+				position: absolute;
+				right: 0.75rem;
+				bottom: 0.5rem;
+				border-radius: 9999px;
+				border: 1px solid #e4e4e7;
+				background: #ffffff;
+				padding: 0.25rem 0.625rem;
+				font-size: 0.625rem;
+				font-weight: 500;
+				color: #3f3f46;
+				box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+			}
+
+			.feed-shell--dark .feed-jump {
+				border-color: #3f3f46;
+				background: #18181b;
+				color: #e4e4e7;
+			}
+
+			.feed-caption {
+				margin: 0.75rem 0 0.35rem;
+				font-size: 0.625rem;
+				font-weight: 600;
+				letter-spacing: 0.05em;
+				text-transform: uppercase;
+				color: #71717a;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="wrap">
+			<!--
+				Tailwind (page chrome in app):
+				bg-zinc-50 font-sans text-sm text-zinc-950 antialiased
+				dark:bg-zinc-950 dark:text-zinc-100
+				font-sans → Inter, ui-sans-serif, system-ui, sans-serif
+				font-mono → 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace
+			-->
+			<header>
+				<h1>Langflower palette</h1>
+				<p class="lead">
+					Normalized color schema and typography reference for the
+					editor UI. Specimens use inline styles that imitate Tailwind
+					default palette values. Copy the Tailwind classes from the
+					HTML comments above each block into Angular templates.
+				</p>
+				<p class="note">
+					Standalone file — no Tailwind CDN/build. Dark mode in the
+					app is
+					<code>html[data-theme='dark']</code>
+					with
+					<code>dark:*</code>
+					utilities (see
+					<code>packages/ui/docs/THEMES.md</code>). This page shows
+					light and dark side-by-side.
+				</p>
+			</header>
+
+			<!-- ============================================================ -->
+			<!-- 1. Encoding legend -->
+			<!-- ============================================================ -->
+			<section id="encoding">
+				<h2>1. Semantic encoding</h2>
+				<!--
+					Tailwind families by encode (normalize target):
+					neutral  → zinc-*
+					success  → emerald-*   (forbid green-*)
+					error    → rose-*      (forbid red-* for product chrome)
+					warning  → amber-*
+					info     → sky-*       (HITL / continue; not cyan/blue)
+					selection→ blue-*
+					hover    → violet-*    (feed↔canvas linkage only)
+
+					Intensity recipe for tinted controls:
+					text:   *-700 / dark:*-300
+					border: *-400 / dark:*-500
+					fill:   *-50  / dark:*-950/40
+					hover:  *-100 / dark:*-950/60
+				-->
+				<div class="panel">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Encode</th>
+								<th>Role</th>
+								<th>Family</th>
+								<th>Signal hex</th>
+								<th>Forbidden</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><code>neutral</code></td>
+								<td>
+									Surfaces, default text, borders, default /
+									ghost buttons, dividers
+								</td>
+								<td><code>zinc</code></td>
+								<td>
+									<span
+										style="
+											display: inline-block;
+											width: 0.75rem;
+											height: 0.75rem;
+											border-radius: 9999px;
+											background: #71717a;
+											vertical-align: -1px;
+											margin-right: 0.35rem;
+										"
+									></span>
+									<code>zinc-500</code> #71717a
+								</td>
+								<td>gray / slate / neutral mixes</td>
+							</tr>
+							<tr>
+								<td><code>success</code></td>
+								<td>
+									Run OK, affirmative actions, node/edge
+									<strong>value</strong>
+								</td>
+								<td><code>emerald</code></td>
+								<td>
+									<span
+										style="
+											display: inline-block;
+											width: 0.75rem;
+											height: 0.75rem;
+											border-radius: 9999px;
+											background: #10b981;
+											vertical-align: -1px;
+											margin-right: 0.35rem;
+										"
+									></span>
+									<code>emerald-500</code> #10b981
+								</td>
+								<td><code>green-*</code></td>
+							</tr>
+							<tr>
+								<td><code>error</code></td>
+								<td>
+									Failures, destructive confirm, node/edge
+									<strong>error</strong>, error text
+								</td>
+								<td><code>rose</code></td>
+								<td>
+									<span
+										style="
+											display: inline-block;
+											width: 0.75rem;
+											height: 0.75rem;
+											border-radius: 9999px;
+											background: #f43f5e;
+											vertical-align: -1px;
+											margin-right: 0.35rem;
+										"
+									></span>
+									<code>rose-500</code> #f43f5e
+								</td>
+								<td><code>red-*</code> for chrome</td>
+							</tr>
+							<tr>
+								<td><code>warning</code></td>
+								<td>
+									Pending / stop / interrupt, caution
+									metadata, node <strong>pending</strong>
+								</td>
+								<td><code>amber</code></td>
+								<td>
+									<span
+										style="
+											display: inline-block;
+											width: 0.75rem;
+											height: 0.75rem;
+											border-radius: 9999px;
+											background: #d97706;
+											vertical-align: -1px;
+											margin-right: 0.35rem;
+										"
+									></span>
+									<code>amber-600</code> #d97706
+								</td>
+								<td>yellow for chrome fills</td>
+							</tr>
+							<tr>
+								<td><code>info</code></td>
+								<td>
+									HITL / continue / resume, node
+									<strong>hitl</strong>
+								</td>
+								<td><code>sky</code></td>
+								<td>
+									<span
+										style="
+											display: inline-block;
+											width: 0.75rem;
+											height: 0.75rem;
+											border-radius: 9999px;
+											background: #0ea5e9;
+											vertical-align: -1px;
+											margin-right: 0.35rem;
+										"
+									></span>
+									<code>sky-500</code> #0ea5e9
+								</td>
+								<td>cyan / blue for HITL</td>
+							</tr>
+							<tr>
+								<td><code>selection</code></td>
+								<td>Selected node chrome / selection ring</td>
+								<td><code>blue</code></td>
+								<td>
+									<span
+										style="
+											display: inline-block;
+											width: 0.75rem;
+											height: 0.75rem;
+											border-radius: 9999px;
+											background: #3b82f6;
+											vertical-align: -1px;
+											margin-right: 0.35rem;
+										"
+									></span>
+									<code>blue-500</code> #3b82f6
+								</td>
+								<td>violet for selection</td>
+							</tr>
+							<tr>
+								<td><code>hover</code></td>
+								<td>Feed ↔ canvas hover linkage only</td>
+								<td><code>violet</code></td>
+								<td>
+									<span
+										style="
+											display: inline-block;
+											width: 0.75rem;
+											height: 0.75rem;
+											border-radius: 9999px;
+											background: #8b5cf6;
+											vertical-align: -1px;
+											margin-right: 0.35rem;
+										"
+									></span>
+									<code>violet-500</code> #8b5cf6
+								</td>
+								<td>violet for error/success</td>
+							</tr>
+						</tbody>
+					</table>
+					<div class="deviations">
+						<strong>Deviations to retire in app code:</strong>
+						<code>text-red-700</code> /
+						<code>dark:text-red-300</code> (use <code>rose</code>);
+						leftover class names <code>lf-btn</code> /
+						<code>lf-text-caption</code> without CSS definitions —
+						prefer Tailwind utilities from this file.
+					</div>
+				</div>
+			</section>
+
+			<!-- ============================================================ -->
+			<!-- 2. Neutral zinc scale -->
+			<!-- ============================================================ -->
+			<section id="neutrals">
+				<h2>2. Neutral scale (zinc)</h2>
+				<!--
+					Tailwind: bg-zinc-{50|100|200|300|400|500|600|700|800|900|950}
+					          text-zinc-*  border-zinc-*
+				-->
+				<div class="cols">
+					<div>
+						<p class="col-label">Light context</p>
+						<div class="panel">
+							<div class="swatch-row">
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #fafafa"
+									></div>
+									<div class="swatch__label">50 #fafafa</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #f4f4f5"
+									></div>
+									<div class="swatch__label">100 #f4f4f5</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #e4e4e7"
+									></div>
+									<div class="swatch__label">200 #e4e4e7</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #d4d4d8"
+									></div>
+									<div class="swatch__label">300 #d4d4d8</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #a1a1aa"
+									></div>
+									<div class="swatch__label">400 #a1a1aa</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #71717a"
+									></div>
+									<div class="swatch__label">500 #71717a</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #52525b"
+									></div>
+									<div class="swatch__label">600 #52525b</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #3f3f46"
+									></div>
+									<div class="swatch__label">700 #3f3f46</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #27272a"
+									></div>
+									<div class="swatch__label">800 #27272a</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #18181b"
+									></div>
+									<div class="swatch__label">900 #18181b</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #09090b"
+									></div>
+									<div class="swatch__label">950 #09090b</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div>
+						<p class="col-label">Dark context</p>
+						<div class="panel panel--dark">
+							<div class="swatch-row">
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="
+											background: #fafafa;
+											border-color: rgba(
+												255,
+												255,
+												255,
+												0.12
+											);
+										"
+									></div>
+									<div class="swatch__label">50 #fafafa</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="
+											background: #f4f4f5;
+											border-color: rgba(
+												255,
+												255,
+												255,
+												0.12
+											);
+										"
+									></div>
+									<div class="swatch__label">100 #f4f4f5</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="
+											background: #e4e4e7;
+											border-color: rgba(
+												255,
+												255,
+												255,
+												0.12
+											);
+										"
+									></div>
+									<div class="swatch__label">200 #e4e4e7</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="
+											background: #d4d4d8;
+											border-color: rgba(
+												255,
+												255,
+												255,
+												0.12
+											);
+										"
+									></div>
+									<div class="swatch__label">300 #d4d4d8</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="
+											background: #a1a1aa;
+											border-color: rgba(
+												255,
+												255,
+												255,
+												0.12
+											);
+										"
+									></div>
+									<div class="swatch__label">400 #a1a1aa</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="
+											background: #71717a;
+											border-color: rgba(
+												255,
+												255,
+												255,
+												0.12
+											);
+										"
+									></div>
+									<div class="swatch__label">500 #71717a</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="
+											background: #52525b;
+											border-color: rgba(
+												255,
+												255,
+												255,
+												0.12
+											);
+										"
+									></div>
+									<div class="swatch__label">600 #52525b</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="
+											background: #3f3f46;
+											border-color: rgba(
+												255,
+												255,
+												255,
+												0.12
+											);
+										"
+									></div>
+									<div class="swatch__label">700 #3f3f46</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="
+											background: #27272a;
+											border-color: rgba(
+												255,
+												255,
+												255,
+												0.12
+											);
+										"
+									></div>
+									<div class="swatch__label">800 #27272a</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="
+											background: #18181b;
+											border-color: rgba(
+												255,
+												255,
+												255,
+												0.12
+											);
+										"
+									></div>
+									<div class="swatch__label">900 #18181b</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="
+											background: #09090b;
+											border-color: rgba(
+												255,
+												255,
+												255,
+												0.12
+											);
+										"
+									></div>
+									<div class="swatch__label">950 #09090b</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- ============================================================ -->
+			<!-- 3. Semantic family swatches -->
+			<!-- ============================================================ -->
+			<section id="semantic">
+				<h2>3. Semantic family swatches</h2>
+				<!--
+					Tailwind key shades used by chrome recipes:
+					emerald-50/100/300/400/500/700/950
+					rose-50/100/300/400/500/700/800/950
+					amber-50/100/300/400/500/600/700/800/950
+					sky-50/100/300/400/500/700/950
+					blue-400/500
+					violet-400/500
+				-->
+				<div class="stack">
+					<div>
+						<h3>success · emerald</h3>
+						<div class="panel">
+							<div class="swatch-row">
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #ecfdf5"
+									></div>
+									<div class="swatch__label">50 #ecfdf5</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #d1fae5"
+									></div>
+									<div class="swatch__label">100 #d1fae5</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #6ee7b7"
+									></div>
+									<div class="swatch__label">300 #6ee7b7</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #34d399"
+									></div>
+									<div class="swatch__label">400 #34d399</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #10b981"
+									></div>
+									<div class="swatch__label">500 #10b981</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #047857"
+									></div>
+									<div class="swatch__label">700 #047857</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #022c22"
+									></div>
+									<div class="swatch__label">950 #022c22</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div>
+						<h3>error · rose</h3>
+						<div class="panel">
+							<div class="swatch-row">
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #fff1f2"
+									></div>
+									<div class="swatch__label">50 #fff1f2</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #ffe4e6"
+									></div>
+									<div class="swatch__label">100 #ffe4e6</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #fda4af"
+									></div>
+									<div class="swatch__label">300 #fda4af</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #fb7185"
+									></div>
+									<div class="swatch__label">400 #fb7185</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #f43f5e"
+									></div>
+									<div class="swatch__label">500 #f43f5e</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #be123c"
+									></div>
+									<div class="swatch__label">700 #be123c</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #4c0519"
+									></div>
+									<div class="swatch__label">950 #4c0519</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div>
+						<h3>warning · amber</h3>
+						<div class="panel">
+							<div class="swatch-row">
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #fffbeb"
+									></div>
+									<div class="swatch__label">50 #fffbeb</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #fef3c7"
+									></div>
+									<div class="swatch__label">100 #fef3c7</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #fcd34d"
+									></div>
+									<div class="swatch__label">300 #fcd34d</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #fbbf24"
+									></div>
+									<div class="swatch__label">400 #fbbf24</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #f59e0b"
+									></div>
+									<div class="swatch__label">500 #f59e0b</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #d97706"
+									></div>
+									<div class="swatch__label">600 #d97706</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #b45309"
+									></div>
+									<div class="swatch__label">700 #b45309</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #451a03"
+									></div>
+									<div class="swatch__label">950 #451a03</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div>
+						<h3>info · sky</h3>
+						<div class="panel">
+							<div class="swatch-row">
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #f0f9ff"
+									></div>
+									<div class="swatch__label">50 #f0f9ff</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #e0f2fe"
+									></div>
+									<div class="swatch__label">100 #e0f2fe</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #7dd3fc"
+									></div>
+									<div class="swatch__label">300 #7dd3fc</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #38bdf8"
+									></div>
+									<div class="swatch__label">400 #38bdf8</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #0ea5e9"
+									></div>
+									<div class="swatch__label">500 #0ea5e9</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #0369a1"
+									></div>
+									<div class="swatch__label">700 #0369a1</div>
+								</div>
+								<div class="swatch">
+									<div
+										class="swatch__chip"
+										style="background: #082f49"
+									></div>
+									<div class="swatch__label">950 #082f49</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="cols">
+						<div>
+							<h3>selection · blue</h3>
+							<div class="panel">
+								<div class="swatch-row">
+									<div class="swatch">
+										<div
+											class="swatch__chip"
+											style="background: #60a5fa"
+										></div>
+										<div class="swatch__label">
+											400 #60a5fa
+										</div>
+									</div>
+									<div class="swatch">
+										<div
+											class="swatch__chip"
+											style="background: #3b82f6"
+										></div>
+										<div class="swatch__label">
+											500 #3b82f6
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div>
+							<h3>hover · violet</h3>
+							<div class="panel">
+								<div class="swatch-row">
+									<div class="swatch">
+										<div
+											class="swatch__chip"
+											style="background: #a78bfa"
+										></div>
+										<div class="swatch__label">
+											400 #a78bfa
+										</div>
+									</div>
+									<div class="swatch">
+										<div
+											class="swatch__chip"
+											style="background: #8b5cf6"
+										></div>
+										<div class="swatch__label">
+											500 #8b5cf6
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- ============================================================ -->
+			<!-- 4. Typography -->
+			<!-- ============================================================ -->
+			<section id="typography">
+				<h2>4. Typography</h2>
+				<!--
+					Tailwind (from packages/ui/docs/TYPOGRAPHY.md):
+					App title:   text-base font-semibold tracking-tight
+					Panel title: text-sm font-semibold text-zinc-900 dark:text-zinc-100
+					Body:        text-sm leading-6 text-zinc-800 dark:text-zinc-100
+					Caption:     text-xs text-zinc-500 dark:text-zinc-400
+					Empty/meta:  text-[11px] leading-4 text-zinc-400 dark:text-zinc-500
+					Inline code: font-mono text-xs
+				-->
+				<div class="cols">
+					<div>
+						<p class="col-label">Light</p>
+						<div
+							class="panel"
+							style="
+								background: #ffffff;
+								border: 1px solid #e4e4e7;
+								color: #09090b;
+							"
+						>
+							<div class="stack">
+								<div
+									style="
+										font-size: 1rem;
+										font-weight: 600;
+										letter-spacing: -0.025em;
+										color: #09090b;
+									"
+								>
+									App title — Langflower
+								</div>
+								<div
+									style="
+										font-size: 0.875rem;
+										font-weight: 600;
+										color: #18181b;
+									"
+								>
+									Panel title — Palette
+								</div>
+								<div
+									style="
+										font-size: 0.875rem;
+										line-height: 1.5rem;
+										color: #27272a;
+									"
+								>
+									Body copy — Node catalog is projected from
+									the bridge.
+								</div>
+								<div
+									style="
+										font-size: 0.75rem;
+										line-height: 1.25rem;
+										color: #71717a;
+									"
+								>
+									Caption — muted helper text under a control.
+								</div>
+								<div
+									style="
+										font-size: 0.6875rem;
+										line-height: 1rem;
+										color: #a1a1aa;
+									"
+								>
+									Empty / metadata — No items yet.
+								</div>
+								<div
+									style="
+										font-family: var(--mono);
+										font-size: 0.75rem;
+										color: #3f3f46;
+									"
+								>
+									font-mono — common-string
+								</div>
+							</div>
+						</div>
+					</div>
+					<div>
+						<p class="col-label">Dark</p>
+						<div
+							class="panel"
+							style="
+								background: #18181b;
+								border: 1px solid #3f3f46;
+								color: #f4f4f5;
+							"
+						>
+							<div class="stack">
+								<div
+									style="
+										font-size: 1rem;
+										font-weight: 600;
+										letter-spacing: -0.025em;
+										color: #f4f4f5;
+									"
+								>
+									App title — Langflower
+								</div>
+								<div
+									style="
+										font-size: 0.875rem;
+										font-weight: 600;
+										color: #f4f4f5;
+									"
+								>
+									Panel title — Palette
+								</div>
+								<div
+									style="
+										font-size: 0.875rem;
+										line-height: 1.5rem;
+										color: #f4f4f5;
+									"
+								>
+									Body copy — Node catalog is projected from
+									the bridge.
+								</div>
+								<div
+									style="
+										font-size: 0.75rem;
+										line-height: 1.25rem;
+										color: #a1a1aa;
+									"
+								>
+									Caption — muted helper text under a control.
+								</div>
+								<div
+									style="
+										font-size: 0.6875rem;
+										line-height: 1rem;
+										color: #71717a;
+									"
+								>
+									Empty / metadata — No items yet.
+								</div>
+								<div
+									style="
+										font-family: var(--mono);
+										font-size: 0.75rem;
+										color: #d4d4d8;
+									"
+								>
+									font-mono — common-string
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- ============================================================ -->
+			<!-- 5. Chrome elements -->
+			<!-- ============================================================ -->
+			<section id="elements">
+				<h2>5. Standard elements</h2>
+
+				<!-- Buttons -->
+				<h3>Buttons</h3>
+				<p class="lead" style="margin-bottom: 0.75rem">
+					Text controls are pills (<code
+						style="font-family: var(--mono); font-size: 0.6875rem"
+						>rounded-full</code
+					>). Side pad is
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>--lf-btn-pad = h/2</code
+					>
+					so labels clear the half-circle ends.
+				</p>
+				<div class="cols">
+					<div>
+						<p class="col-label">Light</p>
+						<div
+							class="panel stack"
+							style="
+								background: #ffffff;
+								border: 1px solid #e4e4e7;
+							"
+						>
+							<!--
+								Tailwind default/ghost:
+								rounded-full border border-zinc-200 h-8 px-[--lf-btn-pad] text-xs font-medium
+								text-zinc-700 transition hover:bg-zinc-100
+								dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800
+							-->
+							<div class="row">
+								<button
+									type="button"
+									style="
+										border-radius: 9999px;
+										border: 1px solid #e4e4e7;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #3f3f46;
+										background: transparent;
+										cursor: pointer;
+									"
+								>
+									Default
+								</button>
+								<!--
+									Tailwind primary solid:
+									rounded-full border border-zinc-900 bg-zinc-900 h-8 px-[--lf-btn-pad]
+									text-xs font-medium text-white hover:bg-zinc-800
+									dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900
+									dark:hover:bg-zinc-200
+								-->
+								<button
+									type="button"
+									style="
+										border-radius: 9999px;
+										border: 1px solid #18181b;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #ffffff;
+										background: #18181b;
+										cursor: pointer;
+									"
+								>
+									Primary
+								</button>
+								<!--
+									Tailwind success (Run):
+									rounded-full border border-emerald-400 bg-emerald-50 h-8 px-[--lf-btn-pad]
+									text-xs font-medium text-emerald-700 hover:bg-emerald-100
+									dark:border-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-300
+									dark:hover:bg-emerald-950/60
+								-->
+								<button
+									type="button"
+									style="
+										border-radius: 9999px;
+										border: 1px solid #34d399;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #047857;
+										background: #ecfdf5;
+										cursor: pointer;
+									"
+								>
+									Run
+								</button>
+								<!--
+									Tailwind warning (Pause / interrupt):
+									rounded-full border border-amber-400 bg-amber-50 h-8 px-[--lf-btn-pad]
+									text-xs font-medium text-amber-800 hover:bg-amber-100
+									dark:border-amber-500 dark:bg-amber-950/40 dark:text-amber-300
+									dark:hover:bg-amber-950/60
+									Stop (hard cancel) uses error · rose — see icon buttons.
+								-->
+								<button
+									type="button"
+									style="
+										border-radius: 9999px;
+										border: 1px solid #fbbf24;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #92400e;
+										background: #fffbeb;
+										cursor: pointer;
+									"
+								>
+									Pause
+								</button>
+								<!--
+									Tailwind destructive:
+									rounded-full border border-rose-300 bg-rose-50 h-8 px-[--lf-btn-pad]
+									text-xs font-medium text-rose-700 hover:bg-rose-100
+									dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300
+									dark:hover:bg-rose-950/60
+								-->
+								<button
+									type="button"
+									style="
+										border-radius: 9999px;
+										border: 1px solid #fda4af;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #be123c;
+										background: #fff1f2;
+										cursor: pointer;
+									"
+								>
+									Delete
+								</button>
+								<!--
+									Tailwind info (Continue / HITL):
+									rounded-full border border-sky-400 bg-sky-50 h-8 px-[--lf-btn-pad]
+									text-xs font-medium text-sky-700 hover:bg-sky-100
+									dark:border-sky-500 dark:bg-sky-950/40 dark:text-sky-300
+									dark:hover:bg-sky-950/60
+								-->
+								<button
+									type="button"
+									style="
+										border-radius: 9999px;
+										border: 1px solid #38bdf8;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #0369a1;
+										background: #f0f9ff;
+										cursor: pointer;
+									"
+								>
+									Continue
+								</button>
+								<!--
+									Tailwind disabled:
+									… disabled:opacity-50  (+ cursor-not-allowed from base)
+								-->
+								<button
+									type="button"
+									disabled
+									style="
+										border-radius: 9999px;
+										border: 1px solid #e4e4e7;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #3f3f46;
+										background: transparent;
+										opacity: 0.5;
+										cursor: not-allowed;
+									"
+								>
+									Disabled
+								</button>
+							</div>
+						</div>
+					</div>
+					<div>
+						<p class="col-label">Dark</p>
+						<div
+							class="panel stack"
+							style="
+								background: #18181b;
+								border: 1px solid #3f3f46;
+							"
+						>
+							<div class="row">
+								<button
+									type="button"
+									style="
+										border-radius: 9999px;
+										border: 1px solid #3f3f46;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #e4e4e7;
+										background: transparent;
+										cursor: pointer;
+									"
+								>
+									Default
+								</button>
+								<button
+									type="button"
+									style="
+										border-radius: 9999px;
+										border: 1px solid #f4f4f5;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #18181b;
+										background: #f4f4f5;
+										cursor: pointer;
+									"
+								>
+									Primary
+								</button>
+								<button
+									type="button"
+									style="
+										border-radius: 9999px;
+										border: 1px solid #10b981;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #6ee7b7;
+										background: rgba(2, 44, 34, 0.4);
+										cursor: pointer;
+									"
+								>
+									Run
+								</button>
+								<button
+									type="button"
+									style="
+										border-radius: 9999px;
+										border: 1px solid #f59e0b;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #fcd34d;
+										background: rgba(69, 26, 3, 0.4);
+										cursor: pointer;
+									"
+								>
+									Pause
+								</button>
+								<button
+									type="button"
+									style="
+										border-radius: 9999px;
+										border: 1px solid #9f1239;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #fda4af;
+										background: rgba(76, 5, 25, 0.4);
+										cursor: pointer;
+									"
+								>
+									Delete
+								</button>
+								<button
+									type="button"
+									style="
+										border-radius: 9999px;
+										border: 1px solid #0ea5e9;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #7dd3fc;
+										background: rgba(8, 47, 73, 0.4);
+										cursor: pointer;
+									"
+								>
+									Continue
+								</button>
+								<button
+									type="button"
+									disabled
+									style="
+										border-radius: 9999px;
+										border: 1px solid #3f3f46;
+										display: inline-flex;
+										align-items: center;
+										justify-content: center;
+										height: var(--lf-control-h);
+										padding: 0 var(--lf-btn-pad);
+										font-size: 0.75rem;
+										font-weight: 500;
+										line-height: 1;
+										color: #e4e4e7;
+										background: transparent;
+										opacity: 0.5;
+										cursor: not-allowed;
+									"
+								>
+									Disabled
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Icon action buttons -->
+				<h3 style="margin-top: 1.25rem">
+					Icon buttons — run / pause (interrupt) / stop
+				</h3>
+				<p class="lead" style="margin-bottom: 0.75rem">
+					Same height as text buttons (<code
+						style="font-family: var(--mono); font-size: 0.6875rem"
+						>--lf-control-h / h-8</code
+					>). Color encoding:
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>success · emerald</code
+					>
+					= Run,
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>warning · amber</code
+					>
+					= Pause / interrupt,
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>error · rose</code
+					>
+					= Stop (hard cancel). Icon-only controls should pair with
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>lf-hover-tip</code
+					>.
+				</p>
+				<div class="cols">
+					<div>
+						<p class="col-label">Light</p>
+						<div
+							class="panel"
+							style="
+								background: #ffffff;
+								border: 1px solid #e4e4e7;
+							"
+						>
+							<div class="row">
+								<!--
+									Tailwind icon Run (success):
+									rounded-full h-8 w-8 border border-emerald-400 bg-emerald-50
+									text-emerald-700 transition hover:bg-emerald-100
+									dark:border-emerald-500 dark:bg-emerald-950/40
+									dark:text-emerald-300 dark:hover:bg-emerald-950/60
+									svg: h-4 w-4 fill-current
+								-->
+								<div
+									style="
+										display: flex;
+										flex-direction: column;
+										align-items: center;
+										gap: 0.35rem;
+									"
+								>
+									<button
+										type="button"
+										aria-label="Run"
+										style="
+											display: inline-flex;
+											align-items: center;
+											justify-content: center;
+											width: var(--lf-control-h);
+											height: var(--lf-control-h);
+											border-radius: 9999px;
+											border: 1px solid #34d399;
+											padding: 0;
+											color: #047857;
+											background: #ecfdf5;
+											cursor: pointer;
+										"
+									>
+										<svg
+											viewBox="0 0 20 20"
+											width="16"
+											height="16"
+											fill="currentColor"
+											aria-hidden="true"
+											style="
+												display: block;
+												margin-left: 3px;
+											"
+										>
+											<path
+												d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.34-5.89a1.5 1.5 0 0 0 0-2.54L6.3 2.84Z"
+											/>
+										</svg>
+									</button>
+									<span
+										style="
+											font-size: 0.625rem;
+											font-family: var(--mono);
+											color: #71717a;
+										"
+										>run · success</span
+									>
+								</div>
+								<!--
+									Tailwind icon Pause / interrupt (warning):
+									rounded-full h-8 w-8 border border-amber-400 bg-amber-50
+									text-amber-800 transition hover:bg-amber-100
+									dark:border-amber-500 dark:bg-amber-950/40
+									dark:text-amber-300 dark:hover:bg-amber-950/60
+									Maps to runner.interrupt.requested (soft cancel / pause).
+								-->
+								<div
+									style="
+										display: flex;
+										flex-direction: column;
+										align-items: center;
+										gap: 0.35rem;
+									"
+								>
+									<button
+										type="button"
+										aria-label="Pause / interrupt"
+										style="
+											display: inline-flex;
+											align-items: center;
+											justify-content: center;
+											width: var(--lf-control-h);
+											height: var(--lf-control-h);
+											border-radius: 9999px;
+											border: 1px solid #fbbf24;
+											padding: 0;
+											color: #92400e;
+											background: #fffbeb;
+											cursor: pointer;
+										"
+									>
+										<svg
+											viewBox="0 0 20 20"
+											width="16"
+											height="16"
+											fill="currentColor"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.75 3A1.75 1.75 0 0 0 4 4.75v10.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 9 15.25V4.75A1.75 1.75 0 0 0 7.25 3h-1.5ZM12.75 3A1.75 1.75 0 0 0 11 4.75v10.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 16 15.25V4.75A1.75 1.75 0 0 0 14.25 3h-1.5Z"
+											/>
+										</svg>
+									</button>
+									<span
+										style="
+											font-size: 0.625rem;
+											font-family: var(--mono);
+											color: #71717a;
+										"
+										>pause · warning</span
+									>
+								</div>
+								<!--
+									Tailwind icon Stop (error / hard cancel):
+									rounded-full h-8 w-8 border border-rose-400 bg-rose-50
+									text-rose-700 transition hover:bg-rose-100
+									dark:border-rose-500 dark:bg-rose-950/40
+									dark:text-rose-300 dark:hover:bg-rose-950/60
+									Do not reuse amber for Stop — amber is interrupt.
+								-->
+								<div
+									style="
+										display: flex;
+										flex-direction: column;
+										align-items: center;
+										gap: 0.35rem;
+									"
+								>
+									<button
+										type="button"
+										aria-label="Stop"
+										style="
+											display: inline-flex;
+											align-items: center;
+											justify-content: center;
+											width: var(--lf-control-h);
+											height: var(--lf-control-h);
+											border-radius: 9999px;
+											border: 1px solid #fb7185;
+											padding: 0;
+											color: #be123c;
+											background: #fff1f2;
+											cursor: pointer;
+										"
+									>
+										<svg
+											viewBox="0 0 20 20"
+											width="16"
+											height="16"
+											fill="currentColor"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z"
+											/>
+										</svg>
+									</button>
+									<span
+										style="
+											font-size: 0.625rem;
+											font-family: var(--mono);
+											color: #71717a;
+										"
+										>stop · error</span
+									>
+								</div>
+								<!--
+									Tailwind icon disabled:
+									… disabled:opacity-50 (+ cursor-not-allowed)
+								-->
+								<div
+									style="
+										display: flex;
+										flex-direction: column;
+										align-items: center;
+										gap: 0.35rem;
+									"
+								>
+									<button
+										type="button"
+										aria-label="Run disabled"
+										disabled
+										style="
+											display: inline-flex;
+											align-items: center;
+											justify-content: center;
+											width: var(--lf-control-h);
+											height: var(--lf-control-h);
+											border-radius: 9999px;
+											border: 1px solid #34d399;
+											padding: 0;
+											color: #047857;
+											background: #ecfdf5;
+											opacity: 0.5;
+											cursor: not-allowed;
+										"
+									>
+										<svg
+											viewBox="0 0 20 20"
+											width="16"
+											height="16"
+											fill="currentColor"
+											aria-hidden="true"
+											style="
+												display: block;
+												margin-left: 3px;
+											"
+										>
+											<path
+												d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.34-5.89a1.5 1.5 0 0 0 0-2.54L6.3 2.84Z"
+											/>
+										</svg>
+									</button>
+									<span
+										style="
+											font-size: 0.625rem;
+											font-family: var(--mono);
+											color: #71717a;
+										"
+										>disabled</span
+									>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div>
+						<p class="col-label">Dark</p>
+						<div
+							class="panel"
+							style="
+								background: #18181b;
+								border: 1px solid #3f3f46;
+							"
+						>
+							<div class="row">
+								<div
+									style="
+										display: flex;
+										flex-direction: column;
+										align-items: center;
+										gap: 0.35rem;
+									"
+								>
+									<button
+										type="button"
+										aria-label="Run"
+										style="
+											display: inline-flex;
+											align-items: center;
+											justify-content: center;
+											width: var(--lf-control-h);
+											height: var(--lf-control-h);
+											border-radius: 9999px;
+											border: 1px solid #10b981;
+											padding: 0;
+											color: #6ee7b7;
+											background: rgba(2, 44, 34, 0.4);
+											cursor: pointer;
+										"
+									>
+										<svg
+											viewBox="0 0 20 20"
+											width="16"
+											height="16"
+											fill="currentColor"
+											aria-hidden="true"
+											style="
+												display: block;
+												margin-left: 3px;
+											"
+										>
+											<path
+												d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.34-5.89a1.5 1.5 0 0 0 0-2.54L6.3 2.84Z"
+											/>
+										</svg>
+									</button>
+									<span
+										style="
+											font-size: 0.625rem;
+											font-family: var(--mono);
+											color: #a1a1aa;
+										"
+										>run · success</span
+									>
+								</div>
+								<div
+									style="
+										display: flex;
+										flex-direction: column;
+										align-items: center;
+										gap: 0.35rem;
+									"
+								>
+									<button
+										type="button"
+										aria-label="Pause / interrupt"
+										style="
+											display: inline-flex;
+											align-items: center;
+											justify-content: center;
+											width: var(--lf-control-h);
+											height: var(--lf-control-h);
+											border-radius: 9999px;
+											border: 1px solid #f59e0b;
+											padding: 0;
+											color: #fcd34d;
+											background: rgba(69, 26, 3, 0.4);
+											cursor: pointer;
+										"
+									>
+										<svg
+											viewBox="0 0 20 20"
+											width="16"
+											height="16"
+											fill="currentColor"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.75 3A1.75 1.75 0 0 0 4 4.75v10.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 9 15.25V4.75A1.75 1.75 0 0 0 7.25 3h-1.5ZM12.75 3A1.75 1.75 0 0 0 11 4.75v10.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 16 15.25V4.75A1.75 1.75 0 0 0 14.25 3h-1.5Z"
+											/>
+										</svg>
+									</button>
+									<span
+										style="
+											font-size: 0.625rem;
+											font-family: var(--mono);
+											color: #a1a1aa;
+										"
+										>pause · warning</span
+									>
+								</div>
+								<div
+									style="
+										display: flex;
+										flex-direction: column;
+										align-items: center;
+										gap: 0.35rem;
+									"
+								>
+									<button
+										type="button"
+										aria-label="Stop"
+										style="
+											display: inline-flex;
+											align-items: center;
+											justify-content: center;
+											width: var(--lf-control-h);
+											height: var(--lf-control-h);
+											border-radius: 9999px;
+											border: 1px solid #f43f5e;
+											padding: 0;
+											color: #fda4af;
+											background: rgba(76, 5, 25, 0.4);
+											cursor: pointer;
+										"
+									>
+										<svg
+											viewBox="0 0 20 20"
+											width="16"
+											height="16"
+											fill="currentColor"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z"
+											/>
+										</svg>
+									</button>
+									<span
+										style="
+											font-size: 0.625rem;
+											font-family: var(--mono);
+											color: #a1a1aa;
+										"
+										>stop · error</span
+									>
+								</div>
+								<div
+									style="
+										display: flex;
+										flex-direction: column;
+										align-items: center;
+										gap: 0.35rem;
+									"
+								>
+									<button
+										type="button"
+										aria-label="Run disabled"
+										disabled
+										style="
+											display: inline-flex;
+											align-items: center;
+											justify-content: center;
+											width: var(--lf-control-h);
+											height: var(--lf-control-h);
+											border-radius: 9999px;
+											border: 1px solid #10b981;
+											padding: 0;
+											color: #6ee7b7;
+											background: rgba(2, 44, 34, 0.4);
+											opacity: 0.5;
+											cursor: not-allowed;
+										"
+									>
+										<svg
+											viewBox="0 0 20 20"
+											width="16"
+											height="16"
+											fill="currentColor"
+											aria-hidden="true"
+											style="
+												display: block;
+												margin-left: 3px;
+											"
+										>
+											<path
+												d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.34-5.89a1.5 1.5 0 0 0 0-2.54L6.3 2.84Z"
+											/>
+										</svg>
+									</button>
+									<span
+										style="
+											font-size: 0.625rem;
+											font-family: var(--mono);
+											color: #a1a1aa;
+										"
+										>disabled</span
+									>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Inputs -->
+				<h3 style="margin-top: 1.25rem">Inputs</h3>
+				<div class="cols">
+					<div>
+						<p class="col-label">Light</p>
+						<div
+							class="panel stack"
+							style="
+								background: #ffffff;
+								border: 1px solid #e4e4e7;
+							"
+						>
+							<!--
+								Tailwind text input:
+								w-full rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5
+								text-[11px] text-zinc-800 outline-none
+								placeholder:text-zinc-400 focus:border-zinc-400
+								dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100
+								dark:placeholder:text-zinc-500 dark:focus:border-zinc-500
+							-->
+							<input
+								type="text"
+								value="Search nodes…"
+								readonly
+								style="
+									width: 100%;
+									border-radius: 0.375rem;
+									border: 1px solid #e4e4e7;
+									background: #fafafa;
+									padding: 0.375rem 0.5rem;
+									font-size: 0.6875rem;
+									color: #27272a;
+									outline: none;
+								"
+							/>
+							<!--
+								Tailwind textarea (HITL-style):
+								w-full resize-none rounded-md border border-zinc-300 bg-white
+								px-2 py-2 text-[11px] text-zinc-900
+								focus:border-zinc-500 focus:outline-none
+								dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100
+							-->
+							<textarea
+								readonly
+								rows="3"
+								style="
+									width: 100%;
+									resize: none;
+									border-radius: 0.375rem;
+									border: 1px solid #d4d4d8;
+									background: #ffffff;
+									padding: 0.5rem;
+									font-size: 0.6875rem;
+									color: #18181b;
+									font-family: inherit;
+								"
+							>
+Reply to the agent…</textarea>
+							<!--
+								Tailwind focus ring (rename / strong input):
+								rounded-md border border-zinc-400 bg-white px-2 py-1 text-sm
+								text-zinc-950 outline-none ring-2 ring-zinc-400/20
+								dark:border-zinc-500 dark:bg-zinc-950 dark:text-zinc-100
+							-->
+							<input
+								type="text"
+								value="workflow-name"
+								readonly
+								style="
+									width: 100%;
+									border-radius: 0.375rem;
+									border: 1px solid #a1a1aa;
+									background: #ffffff;
+									padding: 0.25rem 0.5rem;
+									font-size: 0.875rem;
+									color: #09090b;
+									outline: none;
+									box-shadow: 0 0 0 2px
+										rgba(161, 161, 170, 0.2);
+								"
+							/>
+						</div>
+					</div>
+					<div>
+						<p class="col-label">Dark</p>
+						<div
+							class="panel stack"
+							style="
+								background: #18181b;
+								border: 1px solid #3f3f46;
+							"
+						>
+							<input
+								type="text"
+								value="Search nodes…"
+								readonly
+								style="
+									width: 100%;
+									border-radius: 0.375rem;
+									border: 1px solid #3f3f46;
+									background: #09090b;
+									padding: 0.375rem 0.5rem;
+									font-size: 0.6875rem;
+									color: #f4f4f5;
+									outline: none;
+								"
+							/>
+							<textarea
+								readonly
+								rows="3"
+								style="
+									width: 100%;
+									resize: none;
+									border-radius: 0.375rem;
+									border: 1px solid #3f3f46;
+									background: #18181b;
+									padding: 0.5rem;
+									font-size: 0.6875rem;
+									color: #f4f4f5;
+									font-family: inherit;
+								"
+							>
+Reply to the agent…</textarea>
+							<input
+								type="text"
+								value="workflow-name"
+								readonly
+								style="
+									width: 100%;
+									border-radius: 0.375rem;
+									border: 1px solid #71717a;
+									background: #09090b;
+									padding: 0.25rem 0.5rem;
+									font-size: 0.875rem;
+									color: #f4f4f5;
+									outline: none;
+									box-shadow: 0 0 0 2px
+										rgba(113, 113, 122, 0.25);
+								"
+							/>
+						</div>
+					</div>
+				</div>
+
+				<!-- Panels / borders / tooltip / pills -->
+				<h3 style="margin-top: 1.25rem">
+					Panels, borders, tooltip, status pills
+				</h3>
+				<div class="cols">
+					<div>
+						<p class="col-label">Light</p>
+						<div
+							class="panel stack"
+							style="
+								background: #fafafa;
+								border: 1px solid #e4e4e7;
+							"
+						>
+							<!--
+								Tailwind panel / card:
+								rounded-lg border border-zinc-200 bg-white shadow-sm
+								dark:border-zinc-700 dark:bg-zinc-900
+							-->
+							<div
+								style="
+									border-radius: 0.5rem;
+									border: 1px solid #e4e4e7;
+									background: #ffffff;
+									padding: 0.75rem;
+									box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+									font-size: 0.75rem;
+									color: #18181b;
+								"
+							>
+								Panel / card surface
+							</div>
+							<!--
+								Tailwind divider:
+								border-t border-zinc-200 dark:border-zinc-700
+							-->
+							<div
+								style="
+									border-top: 1px solid #e4e4e7;
+									padding-top: 0.5rem;
+									font-size: 0.6875rem;
+									color: #71717a;
+								"
+							>
+								Divider above this caption
+							</div>
+							<!--
+								Tailwind tooltip chip (lf-hover-tip):
+								rounded-md border border-zinc-200 bg-white px-2 py-1
+								text-xs font-medium text-zinc-700 shadow-sm
+								dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100
+							-->
+							<div
+								style="
+									align-self: flex-start;
+									border-radius: 0.375rem;
+									border: 1px solid #e4e4e7;
+									background: #ffffff;
+									padding: 0.25rem 0.5rem;
+									font-size: 0.75rem;
+									font-weight: 500;
+									color: #3f3f46;
+									box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+								"
+							>
+								Tooltip tip
+							</div>
+							<div class="row">
+								<!--
+									Tailwind status pills (encode):
+									success: bg-emerald-400
+									warning: bg-amber-400
+									error:   bg-rose-400
+									+ ring text-zinc-600 on chrome
+								-->
+								<span
+									style="
+										display: inline-flex;
+										align-items: center;
+										gap: 0.35rem;
+										border-radius: 9999px;
+										border: 1px solid #e4e4e7;
+										padding: 0.15rem 0.55rem;
+										font-size: 0.625rem;
+										font-weight: 500;
+										color: #52525b;
+										background: #ffffff;
+									"
+								>
+									<span
+										style="
+											width: 0.5rem;
+											height: 0.5rem;
+											border-radius: 9999px;
+											background: #34d399;
+										"
+									></span>
+									success
+								</span>
+								<span
+									style="
+										display: inline-flex;
+										align-items: center;
+										gap: 0.35rem;
+										border-radius: 9999px;
+										border: 1px solid #e4e4e7;
+										padding: 0.15rem 0.55rem;
+										font-size: 0.625rem;
+										font-weight: 500;
+										color: #52525b;
+										background: #ffffff;
+									"
+								>
+									<span
+										style="
+											width: 0.5rem;
+											height: 0.5rem;
+											border-radius: 9999px;
+											background: #fbbf24;
+										"
+									></span>
+									warning
+								</span>
+								<span
+									style="
+										display: inline-flex;
+										align-items: center;
+										gap: 0.35rem;
+										border-radius: 9999px;
+										border: 1px solid #e4e4e7;
+										padding: 0.15rem 0.55rem;
+										font-size: 0.625rem;
+										font-weight: 500;
+										color: #52525b;
+										background: #ffffff;
+									"
+								>
+									<span
+										style="
+											width: 0.5rem;
+											height: 0.5rem;
+											border-radius: 9999px;
+											background: #fb7185;
+										"
+									></span>
+									error
+								</span>
+							</div>
+						</div>
+					</div>
+					<div>
+						<p class="col-label">Dark</p>
+						<div
+							class="panel stack"
+							style="
+								background: #09090b;
+								border: 1px solid #27272a;
+							"
+						>
+							<div
+								style="
+									border-radius: 0.5rem;
+									border: 1px solid #3f3f46;
+									background: #18181b;
+									padding: 0.75rem;
+									box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+									font-size: 0.75rem;
+									color: #f4f4f5;
+								"
+							>
+								Panel / card surface
+							</div>
+							<div
+								style="
+									border-top: 1px solid #3f3f46;
+									padding-top: 0.5rem;
+									font-size: 0.6875rem;
+									color: #a1a1aa;
+								"
+							>
+								Divider above this caption
+							</div>
+							<div
+								style="
+									align-self: flex-start;
+									border-radius: 0.375rem;
+									border: 1px solid #52525b;
+									background: #27272a;
+									padding: 0.25rem 0.5rem;
+									font-size: 0.75rem;
+									font-weight: 500;
+									color: #f4f4f5;
+									box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+								"
+							>
+								Tooltip tip
+							</div>
+							<div class="row">
+								<span
+									style="
+										display: inline-flex;
+										align-items: center;
+										gap: 0.35rem;
+										border-radius: 9999px;
+										border: 1px solid #3f3f46;
+										padding: 0.15rem 0.55rem;
+										font-size: 0.625rem;
+										font-weight: 500;
+										color: #d4d4d8;
+										background: #18181b;
+									"
+								>
+									<span
+										style="
+											width: 0.5rem;
+											height: 0.5rem;
+											border-radius: 9999px;
+											background: #34d399;
+										"
+									></span>
+									success
+								</span>
+								<span
+									style="
+										display: inline-flex;
+										align-items: center;
+										gap: 0.35rem;
+										border-radius: 9999px;
+										border: 1px solid #3f3f46;
+										padding: 0.15rem 0.55rem;
+										font-size: 0.625rem;
+										font-weight: 500;
+										color: #d4d4d8;
+										background: #18181b;
+									"
+								>
+									<span
+										style="
+											width: 0.5rem;
+											height: 0.5rem;
+											border-radius: 9999px;
+											background: #fbbf24;
+										"
+									></span>
+									warning
+								</span>
+								<span
+									style="
+										display: inline-flex;
+										align-items: center;
+										gap: 0.35rem;
+										border-radius: 9999px;
+										border: 1px solid #3f3f46;
+										padding: 0.15rem 0.55rem;
+										font-size: 0.625rem;
+										font-weight: 500;
+										color: #d4d4d8;
+										background: #18181b;
+									"
+								>
+									<span
+										style="
+											width: 0.5rem;
+											height: 0.5rem;
+											border-radius: 9999px;
+											background: #fb7185;
+										"
+									></span>
+									error
+								</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Popovers -->
+				<h3 style="margin-top: 1.25rem">Popovers</h3>
+				<p class="lead" style="margin-bottom: 0.75rem">
+					Menu list (workflow catalog) and confirm dialog (destructive
+					delete). Shell is neutral zinc; destructive actions use
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>error · rose</code
+					>.
+				</p>
+				<div class="cols">
+					<div>
+						<p class="col-label">Light</p>
+						<div
+							class="stack"
+							style="
+								background: #fafafa;
+								border: 1px solid #e4e4e7;
+								border-radius: 0.5rem;
+								padding: 1rem;
+							"
+						>
+							<!--
+								Tailwind menu popover (workflow dropdown):
+								lf-scroll absolute … z-20 mt-2 max-h-72 w-80 overflow-auto
+								rounded-lg border border-zinc-200 bg-white py-1 shadow-lg
+								dark:border-zinc-700 dark:bg-zinc-900
+
+								Row:
+								flex w-full items-center px-3 py-2 text-left text-sm
+								font-medium text-zinc-900 transition hover:bg-zinc-100
+								dark:text-zinc-100 dark:hover:bg-zinc-800
+
+								Selected row shell:
+								bg-zinc-100 dark:bg-zinc-800
+
+								Divider:
+								my-1 border-t border-zinc-200 dark:border-zinc-700
+
+								Secondary meta:
+								text-xs text-zinc-500 dark:text-zinc-400
+							-->
+							<div>
+								<div
+									style="
+										font-size: 0.625rem;
+										font-weight: 600;
+										text-transform: uppercase;
+										letter-spacing: 0.06em;
+										color: #71717a;
+										margin-bottom: 0.4rem;
+									"
+								>
+									Menu popover
+								</div>
+								<div
+									style="
+										width: 18rem;
+										max-height: 16rem;
+										overflow: auto;
+										border-radius: 0.5rem;
+										border: 1px solid #e4e4e7;
+										background: #ffffff;
+										padding: 0.25rem 0;
+										box-shadow:
+											0 10px 15px -3px rgba(0, 0, 0, 0.1),
+											0 4px 6px -4px rgba(0, 0, 0, 0.1);
+									"
+									role="listbox"
+									aria-label="Workflows"
+								>
+									<button
+										type="button"
+										style="
+											display: flex;
+											width: 100%;
+											align-items: center;
+											padding: 0.5rem 0.75rem;
+											text-align: left;
+											font-size: 0.875rem;
+											font-weight: 500;
+											color: #18181b;
+											background: transparent;
+											border: 0;
+											cursor: pointer;
+										"
+									>
+										New
+									</button>
+									<div
+										style="
+											margin: 0.25rem 0;
+											border-top: 1px solid #e4e4e7;
+										"
+										role="separator"
+									></div>
+									<div
+										style="
+											display: flex;
+											align-items: stretch;
+											gap: 0.25rem;
+											padding: 0.125rem 0.25rem;
+											background: #f4f4f5;
+										"
+									>
+										<button
+											type="button"
+											style="
+												display: flex;
+												min-width: 0;
+												flex: 1;
+												flex-direction: column;
+												align-items: flex-start;
+												border-radius: 0.375rem;
+												padding: 0.5rem;
+												text-align: left;
+												font-size: 0.875rem;
+												border: 0;
+												background: transparent;
+												cursor: pointer;
+											"
+										>
+											<span
+												style="
+													font-weight: 500;
+													color: #18181b;
+												"
+												>starter</span
+											>
+											<span
+												style="
+													font-size: 0.75rem;
+													color: #71717a;
+												"
+												>starter</span
+											>
+										</button>
+										<button
+											type="button"
+											style="
+												align-self: center;
+												flex-shrink: 0;
+												border-radius: 0.375rem;
+												border: 1px solid #e4e4e7;
+												padding: 0.25rem 0.5rem;
+												font-size: 0.75rem;
+												font-weight: 500;
+												color: #3f3f46;
+												background: #ffffff;
+												cursor: pointer;
+											"
+										>
+											Copy
+										</button>
+									</div>
+									<button
+										type="button"
+										style="
+											display: flex;
+											width: 100%;
+											flex-direction: column;
+											align-items: flex-start;
+											padding: 0.5rem 0.75rem;
+											text-align: left;
+											font-size: 0.875rem;
+											border: 0;
+											background: transparent;
+											cursor: pointer;
+										"
+									>
+										<span
+											style="
+												font-weight: 500;
+												color: #18181b;
+											"
+											>agents-dialog</span
+										>
+										<span
+											style="
+												font-size: 0.75rem;
+												color: #71717a;
+											"
+											>agents-dialog</span
+										>
+									</button>
+								</div>
+							</div>
+
+							<!--
+								Tailwind confirm popover (delete workflow):
+								absolute … z-20 mt-2 w-72 rounded-lg border border-zinc-200
+								bg-white p-4 shadow-lg
+								dark:border-zinc-700 dark:bg-zinc-900
+
+								Title:
+								text-sm font-semibold text-zinc-900 dark:text-zinc-100
+
+								Body:
+								mt-2 text-xs leading-5 text-zinc-500 dark:text-zinc-400
+
+								Cancel:
+								rounded-md border border-zinc-200 px-3 py-1 text-xs
+								font-medium text-zinc-700 hover:bg-zinc-100
+								dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800
+
+								Confirm (error · rose):
+								rounded-full border border-rose-300 bg-rose-50 h-8 px-[--lf-btn-pad]
+								text-xs font-medium text-rose-700 hover:bg-rose-100
+								dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300
+								dark:hover:bg-rose-950/60
+							-->
+							<div>
+								<div
+									style="
+										font-size: 0.625rem;
+										font-weight: 600;
+										text-transform: uppercase;
+										letter-spacing: 0.06em;
+										color: #71717a;
+										margin-bottom: 0.4rem;
+									"
+								>
+									Confirm popover
+								</div>
+								<div
+									style="
+										width: 18rem;
+										border-radius: 0.5rem;
+										border: 1px solid #e4e4e7;
+										background: #ffffff;
+										padding: 1rem;
+										box-shadow:
+											0 10px 15px -3px rgba(0, 0, 0, 0.1),
+											0 4px 6px -4px rgba(0, 0, 0, 0.1);
+									"
+									role="alertdialog"
+								>
+									<div
+										style="
+											font-size: 0.875rem;
+											font-weight: 600;
+											color: #18181b;
+										"
+									>
+										Delete workflow?
+									</div>
+									<p
+										style="
+											margin: 0.5rem 0 0;
+											font-size: 0.75rem;
+											line-height: 1.25rem;
+											color: #71717a;
+										"
+									>
+										This removes
+										<strong style="color: #3f3f46"
+											>starter</strong
+										>
+										from disk.
+									</p>
+									<div
+										style="
+											margin-top: 1rem;
+											display: flex;
+											justify-content: flex-end;
+											gap: 0.5rem;
+										"
+									>
+										<button
+											type="button"
+											style="
+												border-radius: 0.375rem;
+												border: 1px solid #e4e4e7;
+												padding: 0.25rem 0.75rem;
+												font-size: 0.75rem;
+												font-weight: 500;
+												color: #3f3f46;
+												background: transparent;
+												cursor: pointer;
+											"
+										>
+											Cancel
+										</button>
+										<button
+											type="button"
+											style="
+												border-radius: 0.375rem;
+												border: 1px solid #fda4af;
+												padding: 0.25rem 0.75rem;
+												font-size: 0.75rem;
+												font-weight: 500;
+												color: #be123c;
+												background: #fff1f2;
+												cursor: pointer;
+											"
+										>
+											Delete
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div>
+						<p class="col-label">Dark</p>
+						<div
+							class="stack"
+							style="
+								background: #09090b;
+								border: 1px solid #27272a;
+								border-radius: 0.5rem;
+								padding: 1rem;
+							"
+						>
+							<div>
+								<div
+									style="
+										font-size: 0.625rem;
+										font-weight: 600;
+										text-transform: uppercase;
+										letter-spacing: 0.06em;
+										color: #a1a1aa;
+										margin-bottom: 0.4rem;
+									"
+								>
+									Menu popover
+								</div>
+								<div
+									style="
+										width: 18rem;
+										max-height: 16rem;
+										overflow: auto;
+										border-radius: 0.5rem;
+										border: 1px solid #3f3f46;
+										background: #18181b;
+										padding: 0.25rem 0;
+										box-shadow:
+											0 10px 15px -3px rgba(0, 0, 0, 0.4),
+											0 4px 6px -4px rgba(0, 0, 0, 0.3);
+									"
+									role="listbox"
+									aria-label="Workflows"
+								>
+									<button
+										type="button"
+										style="
+											display: flex;
+											width: 100%;
+											align-items: center;
+											padding: 0.5rem 0.75rem;
+											text-align: left;
+											font-size: 0.875rem;
+											font-weight: 500;
+											color: #f4f4f5;
+											background: transparent;
+											border: 0;
+											cursor: pointer;
+										"
+									>
+										New
+									</button>
+									<div
+										style="
+											margin: 0.25rem 0;
+											border-top: 1px solid #3f3f46;
+										"
+										role="separator"
+									></div>
+									<div
+										style="
+											display: flex;
+											align-items: stretch;
+											gap: 0.25rem;
+											padding: 0.125rem 0.25rem;
+											background: #27272a;
+										"
+									>
+										<button
+											type="button"
+											style="
+												display: flex;
+												min-width: 0;
+												flex: 1;
+												flex-direction: column;
+												align-items: flex-start;
+												border-radius: 0.375rem;
+												padding: 0.5rem;
+												text-align: left;
+												font-size: 0.875rem;
+												border: 0;
+												background: transparent;
+												cursor: pointer;
+											"
+										>
+											<span
+												style="
+													font-weight: 500;
+													color: #f4f4f5;
+												"
+												>starter</span
+											>
+											<span
+												style="
+													font-size: 0.75rem;
+													color: #a1a1aa;
+												"
+												>starter</span
+											>
+										</button>
+										<button
+											type="button"
+											style="
+												align-self: center;
+												flex-shrink: 0;
+												border-radius: 0.375rem;
+												border: 1px solid #52525b;
+												padding: 0.25rem 0.5rem;
+												font-size: 0.75rem;
+												font-weight: 500;
+												color: #e4e4e7;
+												background: #18181b;
+												cursor: pointer;
+											"
+										>
+											Copy
+										</button>
+									</div>
+									<button
+										type="button"
+										style="
+											display: flex;
+											width: 100%;
+											flex-direction: column;
+											align-items: flex-start;
+											padding: 0.5rem 0.75rem;
+											text-align: left;
+											font-size: 0.875rem;
+											border: 0;
+											background: transparent;
+											cursor: pointer;
+										"
+									>
+										<span
+											style="
+												font-weight: 500;
+												color: #f4f4f5;
+											"
+											>agents-dialog</span
+										>
+										<span
+											style="
+												font-size: 0.75rem;
+												color: #a1a1aa;
+											"
+											>agents-dialog</span
+										>
+									</button>
+								</div>
+							</div>
+
+							<div>
+								<div
+									style="
+										font-size: 0.625rem;
+										font-weight: 600;
+										text-transform: uppercase;
+										letter-spacing: 0.06em;
+										color: #a1a1aa;
+										margin-bottom: 0.4rem;
+									"
+								>
+									Confirm popover
+								</div>
+								<div
+									style="
+										width: 18rem;
+										border-radius: 0.5rem;
+										border: 1px solid #3f3f46;
+										background: #18181b;
+										padding: 1rem;
+										box-shadow:
+											0 10px 15px -3px rgba(0, 0, 0, 0.4),
+											0 4px 6px -4px rgba(0, 0, 0, 0.3);
+									"
+									role="alertdialog"
+								>
+									<div
+										style="
+											font-size: 0.875rem;
+											font-weight: 600;
+											color: #f4f4f5;
+										"
+									>
+										Delete workflow?
+									</div>
+									<p
+										style="
+											margin: 0.5rem 0 0;
+											font-size: 0.75rem;
+											line-height: 1.25rem;
+											color: #a1a1aa;
+										"
+									>
+										This removes
+										<strong style="color: #d4d4d8"
+											>starter</strong
+										>
+										from disk.
+									</p>
+									<div
+										style="
+											margin-top: 1rem;
+											display: flex;
+											justify-content: flex-end;
+											gap: 0.5rem;
+										"
+									>
+										<button
+											type="button"
+											style="
+												border-radius: 0.375rem;
+												border: 1px solid #3f3f46;
+												padding: 0.25rem 0.75rem;
+												font-size: 0.75rem;
+												font-weight: 500;
+												color: #e4e4e7;
+												background: transparent;
+												cursor: pointer;
+											"
+										>
+											Cancel
+										</button>
+										<button
+											type="button"
+											style="
+												border-radius: 0.375rem;
+												border: 1px solid #9f1239;
+												padding: 0.25rem 0.75rem;
+												font-size: 0.75rem;
+												font-weight: 500;
+												color: #fda4af;
+												background: rgba(
+													76,
+													5,
+													25,
+													0.4
+												);
+												cursor: pointer;
+											"
+										>
+											Delete
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- ============================================================ -->
+			<!-- 6. Palette sidebar -->
+			<!-- ============================================================ -->
+			<section id="palette-ui">
+				<h2>6. Palette sidebar</h2>
+				<!--
+					Source: packages/ui/src/app/features/palette/components/palette-sidebar.component.ts
+
+					Shell (editor aside):
+					border-r border-zinc-200 bg-white p-4
+					dark:border-zinc-800 dark:bg-zinc-900
+
+					Title:
+					text-sm font-semibold text-zinc-900 dark:text-zinc-100
+
+					Filter:
+					mt-3 w-full rounded-md border border-zinc-200 bg-zinc-50
+					px-2 py-1.5 text-[11px] text-zinc-800 outline-none
+					placeholder:text-zinc-400 focus:border-zinc-400
+					dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100
+					dark:placeholder:text-zinc-500 dark:focus:border-zinc-500
+
+					Source header (Built-in / Custom):
+					flex w-full items-center justify-between gap-2 rounded-md
+					px-2 py-1.5 text-left text-xs font-semibold text-zinc-800
+					hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800
+
+					Category header:
+					flex w-full items-center justify-between gap-2 rounded
+					px-1.5 py-0.5 text-left text-[10px] font-medium uppercase
+					tracking-wide text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700
+					dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200
+
+					Node row (draggable):
+					w-full cursor-grab rounded-lg border border-zinc-300 bg-white
+					px-2 py-1.5 text-left text-[11px] text-zinc-800 shadow-sm
+					hover:border-zinc-400 hover:bg-zinc-50 active:cursor-grabbing
+					dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100
+					dark:hover:border-zinc-500 dark:hover:bg-zinc-800
+
+					Custom status + Update:
+					text-[10px] uppercase tracking-wide text-zinc-500
+					dark:text-zinc-400
+					Update: rounded px-1.5 py-0.5 text-[10px] font-medium
+					text-zinc-700 hover:bg-zinc-100
+					dark:text-zinc-200 dark:hover:bg-zinc-800
+
+					Compile errors (normalize → rose, not red):
+					text-[11px] text-rose-700 dark:text-rose-300
+
+					Empty custom:
+					text-[11px] text-zinc-500 dark:text-zinc-400
+				-->
+				<p class="lead" style="margin-bottom: 0.75rem">
+					Left-rail catalog from
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>lf-palette-sidebar</code
+					>: filter, Built-in / Custom sources, category chevrons,
+					grab rows, custom compile status. Error text uses
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>error · rose</code
+					>
+					(normalize target; app still has
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>text-red-*</code
+					>
+					in places).
+				</p>
+				<div class="cols">
+					<div>
+						<p class="col-label">Light</p>
+						<div
+							class="pal-shell"
+							aria-label="Palette sidebar light"
+						>
+							<h2 class="pal-title">Palette</h2>
+							<input
+								class="pal-search"
+								type="search"
+								value=""
+								placeholder="Filter nodes…"
+								readonly
+								tabindex="-1"
+							/>
+							<div class="pal-list lf-scroll">
+								<div class="pal-section">
+									<button type="button" class="pal-source">
+										<span>Built-in</span>
+										<svg
+											class="pal-chevron pal-chevron--open"
+											viewBox="0 0 20 20"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+											/>
+										</svg>
+									</button>
+									<div class="pal-cat-wrap">
+										<button type="button" class="pal-cat">
+											<span>LLM</span>
+											<svg
+												class="pal-chevron pal-chevron--sm pal-chevron--open"
+												viewBox="0 0 20 20"
+												aria-hidden="true"
+											>
+												<path
+													d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+												/>
+											</svg>
+										</button>
+										<ul class="pal-nodes">
+											<li>
+												<button
+													type="button"
+													class="pal-node pal-node--hover"
+												>
+													OpenAI LLM
+												</button>
+											</li>
+											<li>
+												<button
+													type="button"
+													class="pal-node"
+												>
+													Fake LLM
+												</button>
+											</li>
+										</ul>
+									</div>
+									<div class="pal-cat-wrap">
+										<button type="button" class="pal-cat">
+											<span>Control</span>
+											<svg
+												class="pal-chevron pal-chevron--sm pal-chevron--open"
+												viewBox="0 0 20 20"
+												aria-hidden="true"
+											>
+												<path
+													d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+												/>
+											</svg>
+										</button>
+										<ul class="pal-nodes">
+											<li>
+												<button
+													type="button"
+													class="pal-node"
+												>
+													If
+												</button>
+											</li>
+											<li>
+												<button
+													type="button"
+													class="pal-node"
+												>
+													Merge
+												</button>
+											</li>
+										</ul>
+									</div>
+									<div class="pal-cat-wrap">
+										<button type="button" class="pal-cat">
+											<span>Advanced</span>
+											<svg
+												class="pal-chevron pal-chevron--sm"
+												viewBox="0 0 20 20"
+												aria-hidden="true"
+											>
+												<path
+													d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+												/>
+											</svg>
+										</button>
+										<!-- collapsed Advanced (paletteSecondary) -->
+									</div>
+								</div>
+
+								<div class="pal-section">
+									<button type="button" class="pal-source">
+										<span>Custom</span>
+										<svg
+											class="pal-chevron pal-chevron--open"
+											viewBox="0 0 20 20"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+											/>
+										</svg>
+									</button>
+									<div class="pal-custom-bar">
+										<span
+											class="pal-status pal-status--error"
+											>Compile error</span
+										>
+										<button
+											type="button"
+											class="pal-update"
+										>
+											Update
+										</button>
+									</div>
+									<ul class="pal-errors">
+										<li>
+											<strong>my-nodes</strong>
+											<pre>
+Cannot find module '@langflower/node-sdk'</pre>
+										</li>
+									</ul>
+									<div class="pal-cat-wrap">
+										<button type="button" class="pal-cat">
+											<span>My nodes</span>
+											<svg
+												class="pal-chevron pal-chevron--sm pal-chevron--open"
+												viewBox="0 0 20 20"
+												aria-hidden="true"
+											>
+												<path
+													d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+												/>
+											</svg>
+										</button>
+										<ul class="pal-nodes">
+											<li>
+												<button
+													type="button"
+													class="pal-node"
+												>
+													Review gate
+												</button>
+											</li>
+											<li>
+												<button
+													type="button"
+													class="pal-node"
+												>
+													Git diff
+												</button>
+											</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<p
+							class="lead"
+							style="margin: 0.85rem 0 0.4rem; font-size: 0.75rem"
+						>
+							Empty custom source
+						</p>
+						<div
+							class="pal-shell"
+							aria-label="Palette empty custom light"
+						>
+							<h2 class="pal-title">Palette</h2>
+							<input
+								class="pal-search"
+								type="search"
+								placeholder="Filter nodes…"
+								readonly
+								tabindex="-1"
+							/>
+							<div class="pal-list">
+								<div class="pal-section">
+									<button type="button" class="pal-source">
+										<span>Custom</span>
+										<svg
+											class="pal-chevron pal-chevron--open"
+											viewBox="0 0 20 20"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+											/>
+										</svg>
+									</button>
+									<div class="pal-custom-bar">
+										<span class="pal-status">Ready</span>
+										<button
+											type="button"
+											class="pal-update"
+										>
+											Update
+										</button>
+									</div>
+									<p class="pal-empty">No custom nodes yet</p>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div>
+						<p class="col-label">Dark</p>
+						<div
+							class="pal-shell pal-shell--dark"
+							aria-label="Palette sidebar dark"
+						>
+							<h2 class="pal-title">Palette</h2>
+							<input
+								class="pal-search"
+								type="search"
+								value="llm"
+								placeholder="Filter nodes…"
+								readonly
+								tabindex="-1"
+							/>
+							<div class="pal-list lf-scroll">
+								<div class="pal-section">
+									<button type="button" class="pal-source">
+										<span>Built-in</span>
+										<svg
+											class="pal-chevron pal-chevron--open"
+											viewBox="0 0 20 20"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+											/>
+										</svg>
+									</button>
+									<div class="pal-cat-wrap">
+										<button type="button" class="pal-cat">
+											<span>LLM</span>
+											<svg
+												class="pal-chevron pal-chevron--sm pal-chevron--open"
+												viewBox="0 0 20 20"
+												aria-hidden="true"
+											>
+												<path
+													d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+												/>
+											</svg>
+										</button>
+										<ul class="pal-nodes">
+											<li>
+												<button
+													type="button"
+													class="pal-node pal-node--hover"
+												>
+													OpenAI LLM
+												</button>
+											</li>
+											<li>
+												<button
+													type="button"
+													class="pal-node"
+												>
+													Fake LLM
+												</button>
+											</li>
+										</ul>
+									</div>
+									<div class="pal-cat-wrap">
+										<button type="button" class="pal-cat">
+											<span>Advanced</span>
+											<svg
+												class="pal-chevron pal-chevron--sm pal-chevron--open"
+												viewBox="0 0 20 20"
+												aria-hidden="true"
+											>
+												<path
+													d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+												/>
+											</svg>
+										</button>
+										<div class="pal-sub">
+											<button
+												type="button"
+												class="pal-cat"
+											>
+												<span>Loop</span>
+												<svg
+													class="pal-chevron pal-chevron--sm pal-chevron--open"
+													viewBox="0 0 20 20"
+													aria-hidden="true"
+												>
+													<path
+														d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+													/>
+												</svg>
+											</button>
+											<ul class="pal-nodes">
+												<li>
+													<button
+														type="button"
+														class="pal-node"
+													>
+														Loop
+													</button>
+												</li>
+												<li>
+													<button
+														type="button"
+														class="pal-node"
+													>
+														Checkpoint
+													</button>
+												</li>
+											</ul>
+										</div>
+									</div>
+								</div>
+
+								<div class="pal-section">
+									<button type="button" class="pal-source">
+										<span>Custom</span>
+										<svg
+											class="pal-chevron pal-chevron--open"
+											viewBox="0 0 20 20"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+											/>
+										</svg>
+									</button>
+									<div class="pal-custom-bar">
+										<span class="pal-status">Ready</span>
+										<button
+											type="button"
+											class="pal-update"
+										>
+											Update
+										</button>
+									</div>
+									<div class="pal-cat-wrap">
+										<button type="button" class="pal-cat">
+											<span>My nodes</span>
+											<svg
+												class="pal-chevron pal-chevron--sm pal-chevron--open"
+												viewBox="0 0 20 20"
+												aria-hidden="true"
+											>
+												<path
+													d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+												/>
+											</svg>
+										</button>
+										<ul class="pal-nodes">
+											<li>
+												<button
+													type="button"
+													class="pal-node"
+												>
+													Review gate
+												</button>
+											</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<p
+							class="lead"
+							style="margin: 0.85rem 0 0.4rem; font-size: 0.75rem"
+						>
+							Empty custom source
+						</p>
+						<div
+							class="pal-shell pal-shell--dark"
+							aria-label="Palette empty custom dark"
+						>
+							<h2 class="pal-title">Palette</h2>
+							<input
+								class="pal-search"
+								type="search"
+								placeholder="Filter nodes…"
+								readonly
+								tabindex="-1"
+							/>
+							<div class="pal-list">
+								<div class="pal-section">
+									<button type="button" class="pal-source">
+										<span>Custom</span>
+										<svg
+											class="pal-chevron pal-chevron--open"
+											viewBox="0 0 20 20"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+											/>
+										</svg>
+									</button>
+									<div class="pal-custom-bar">
+										<span class="pal-status">Ready</span>
+										<button
+											type="button"
+											class="pal-update"
+										>
+											Update
+										</button>
+									</div>
+									<p class="pal-empty">No custom nodes yet</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- ============================================================ -->
+			<!-- 7. Work log / feed -->
+			<!-- ============================================================ -->
+			<section id="feed">
+				<h2>7. Work log / feed</h2>
+				<!--
+					Source: lf-work-log-panel.component.ts + docs/features/feed-panel.md
+
+					User bubble (right):
+					max-w-[92%] rounded-2xl rounded-br-md border border-zinc-300
+					bg-zinc-200 px-3 py-2 text-[12px] leading-5 text-zinc-900
+					dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100
+
+					Result bubble (left / nested under node):
+					max-w-[92%] rounded-2xl rounded-bl-md|rounded-tl-md
+					border border-zinc-200 bg-white px-3 py-2 text-[12px]
+					text-zinc-800
+					dark:border-zinc-700|600 dark:bg-zinc-900|950 dark:text-zinc-100
+
+					HITL nested user reply (right):
+					rounded-2xl rounded-tr-md border-zinc-300 bg-zinc-200 …
+
+					Permission cue (warning · amber):
+					text-[11px] text-amber-700 dark:text-amber-300
+
+					Technical node container:
+					text-[11px] text-zinc-500 dark:text-zinc-400
+					label: font-medium text-zinc-600 dark:text-zinc-300
+					waiting… / streaming…: text-[9px] text-amber-600 dark:text-amber-400
+
+					Draft (normalize target — bubble + markdown ASAP):
+					same shell as result bubble (rounded-2xl rounded-bl/tl-md …)
+					inner .feed-md (p / ul / code / pre) — render markdown while
+					streaming, do not wait for final.
+					Live draft: amber border cue + streaming…
+					Closed draft: opacity settle when a tool/subagent starts.
+
+					Tool / subagent interrupt sequence:
+					1) close current draft bubble (stop streaming on that segment)
+					2) tool/subagent log — NO own border; <details> collapsed by default
+					3) open a NEW draft bubble for continued markdown
+
+					On completion (final):
+					"draft" chip + "streaming…" MUST disappear — bubble becomes
+					plain result/content (no draft meta row).
+
+					Hover linkage (hover · violet):
+					.lf-feed-row--hovered → rgba(139,92,246,0.1)
+					dark: rgba(167,139,250,0.12)
+
+					Jump pill:
+					rounded-full border border-zinc-200 bg-white px-2.5 py-1
+					text-[10px] font-medium text-zinc-700 shadow-sm
+					dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200
+				-->
+				<p class="lead" style="margin-bottom: 0.75rem">
+					<strong>Draft</strong> is a left chat bubble with markdown
+					as soon as tokens arrive. On
+					<strong>tool / subagent</strong> the open draft closes, a
+					borderless collapsed log appears, then a
+					<strong>new</strong> draft bubble continues. When the turn
+					<strong>completes</strong>,
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>draft</code
+					>
+					and
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>streaming…</code
+					>
+					disappear — only the content bubble remains. Hover =
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>hover · violet</code
+					>; live cues =
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>warning · amber</code
+					>. Docs lock:
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>features/feed-panel.md</code
+					>
+					· epic 34.
+				</p>
+				<div class="cols">
+					<div>
+						<p class="col-label">Light</p>
+
+						<p class="feed-caption">Bubbles + permission</p>
+						<div class="feed-shell" aria-label="Feed bubbles light">
+							<div class="feed-header">
+								<p class="feed-header__title">Work log</p>
+							</div>
+							<div class="feed-scroll">
+								<div class="feed-row feed-row--user">
+									<div class="feed-bubble feed-bubble--user">
+										<pre>
+Ship a fix for the port layout.</pre>
+									</div>
+								</div>
+								<div
+									class="feed-row feed-row--agent feed-row--hover"
+								>
+									<div
+										class="feed-bubble feed-bubble--result"
+									>
+										<pre>
+Done — ports sit on the node border.</pre>
+									</div>
+								</div>
+								<div class="feed-row feed-row--agent">
+									<p class="feed-permission">
+										Permission: bash · write package.json
+									</p>
+								</div>
+							</div>
+							<button type="button" class="feed-jump">
+								↓ New events
+							</button>
+						</div>
+
+						<p class="feed-caption">Draft markdown bubble (live)</p>
+						<div
+							class="feed-shell"
+							aria-label="Feed draft markdown light"
+						>
+							<div class="feed-scroll">
+								<div class="feed-row">
+									<div class="feed-stack">
+										<div class="feed-tech__label">
+											OpenAI LLM
+										</div>
+										<div
+											class="feed-bubble feed-bubble--draft feed-bubble--live"
+										>
+											<div class="feed-bubble__meta">
+												<span>draft</span>
+												<span class="feed-streaming"
+													>streaming…</span
+												>
+											</div>
+											<div class="feed-md">
+												<p>
+													I'll align port dots on the
+													<strong>node border</strong>
+													next.
+												</p>
+												<ul>
+													<li>
+														Absolute
+														<code
+															>lf-port-anchor</code
+														>
+													</li>
+													<li>
+														<code
+															>translate(-50%,
+															-50%)</code
+														>
+														centering
+													</li>
+												</ul>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<p class="feed-caption">
+							Tool / subagent interrupt → new draft → complete
+						</p>
+						<div
+							class="feed-shell"
+							aria-label="Feed draft tool interrupt light"
+						>
+							<div class="feed-scroll">
+								<div class="feed-row">
+									<div class="feed-stack">
+										<div class="feed-tech__label">
+											OpenAI LLM
+										</div>
+										<!-- 1) draft closed when tool starts (no streaming) -->
+										<div
+											class="feed-bubble feed-bubble--draft feed-bubble--closed"
+										>
+											<div class="feed-md">
+												<p>
+													Checking the canvas chrome
+													next…
+												</p>
+											</div>
+										</div>
+										<!-- 2) tool log — no border, collapsed by default -->
+										<details class="feed-tool-log">
+											<summary>
+												<span
+													class="feed-tool-log__kind"
+													>tool</span
+												>
+												<span>read_file</span>
+											</summary>
+											<pre class="feed-tool-log__body">
+path: packages/ui/.../node-port-layout.css
+ok: true
+.lf-port-anchor--in { left: calc(-1 * var(--lf-node-chrome-padding-x)); }</pre>
+										</details>
+										<!-- 2b) subagent — no border, collapsed by default -->
+										<details class="feed-tool-log">
+											<summary>
+												<span
+													class="feed-tool-log__kind"
+													>subagent</span
+												>
+												<span>port-layout-review</span>
+											</summary>
+											<pre class="feed-tool-log__body">
+status: done
+summary: Prefer absolute anchors on chrome padding edge.</pre>
+										</details>
+										<!-- 3) NEW live draft -->
+										<div
+											class="feed-bubble feed-bubble--draft feed-bubble--live"
+										>
+											<div class="feed-bubble__meta">
+												<span>draft</span>
+												<span class="feed-streaming"
+													>streaming…</span
+												>
+											</div>
+											<div class="feed-md">
+												<p>
+													Anchors match canvas. Next
+													I'll patch the specimens:
+												</p>
+												<pre><code>.sample-port-dot--in {
+  left: calc(-1 * var(--sample-pad-x));
+  transform: translate(-50%, -50%);
+}</code></pre>
+											</div>
+										</div>
+										<!-- 4) completion: draft + streaming… gone -->
+										<div
+											class="feed-bubble feed-bubble--result"
+										>
+											<div class="feed-md">
+												<p>
+													Ports now align with labels;
+													dots sit on borders.
+												</p>
+											</div>
+										</div>
+										<p class="feed-note">
+											On completion:
+											<code>draft</code> chip and
+											<code>streaming…</code> disappear —
+											only the content bubble remains.
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<p class="feed-caption">HITL gate (right layout)</p>
+						<div class="feed-shell" aria-label="Feed HITL light">
+							<div class="feed-scroll">
+								<div class="feed-row">
+									<div class="feed-tech feed-tech--hitl">
+										<div class="feed-tech__label">
+											Review gate
+										</div>
+										<div class="feed-role">
+											<span>hitl</span>
+										</div>
+										<p class="feed-peek">
+											Approve the CSS change?
+										</p>
+										<details class="feed-details">
+											<summary>details</summary>
+										</details>
+										<div
+											class="feed-nested feed-nested--end"
+										>
+											<div
+												class="feed-bubble feed-bubble--nested-user"
+											>
+												<pre>LGTM — ship it.</pre>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div>
+						<p class="col-label">Dark</p>
+
+						<p class="feed-caption">Bubbles + permission</p>
+						<div
+							class="feed-shell feed-shell--dark"
+							aria-label="Feed bubbles dark"
+						>
+							<div class="feed-header">
+								<p class="feed-header__title">Work log</p>
+							</div>
+							<div class="feed-scroll">
+								<div class="feed-row feed-row--user">
+									<div class="feed-bubble feed-bubble--user">
+										<pre>
+Ship a fix for the port layout.</pre>
+									</div>
+								</div>
+								<div
+									class="feed-row feed-row--agent feed-row--hover"
+								>
+									<div
+										class="feed-bubble feed-bubble--result"
+									>
+										<pre>
+Done — ports sit on the node border.</pre>
+									</div>
+								</div>
+								<div class="feed-row feed-row--agent">
+									<p class="feed-permission">
+										Permission: bash · write package.json
+									</p>
+								</div>
+							</div>
+							<button type="button" class="feed-jump">
+								↓ New events
+							</button>
+						</div>
+
+						<p class="feed-caption">Draft markdown bubble (live)</p>
+						<div
+							class="feed-shell feed-shell--dark"
+							aria-label="Feed draft markdown dark"
+						>
+							<div class="feed-scroll">
+								<div class="feed-row">
+									<div class="feed-stack">
+										<div class="feed-tech__label">
+											OpenAI LLM
+										</div>
+										<div
+											class="feed-bubble feed-bubble--draft feed-bubble--live"
+										>
+											<div class="feed-bubble__meta">
+												<span>draft</span>
+												<span class="feed-streaming"
+													>streaming…</span
+												>
+											</div>
+											<div class="feed-md">
+												<p>
+													I'll align port dots on the
+													<strong>node border</strong>
+													next.
+												</p>
+												<ul>
+													<li>
+														Absolute
+														<code
+															>lf-port-anchor</code
+														>
+													</li>
+													<li>
+														<code
+															>translate(-50%,
+															-50%)</code
+														>
+														centering
+													</li>
+												</ul>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<p class="feed-caption">
+							Tool / subagent interrupt → new draft → complete
+						</p>
+						<div
+							class="feed-shell feed-shell--dark"
+							aria-label="Feed draft tool interrupt dark"
+						>
+							<div class="feed-scroll">
+								<div class="feed-row">
+									<div class="feed-stack">
+										<div class="feed-tech__label">
+											OpenAI LLM
+										</div>
+										<div
+											class="feed-bubble feed-bubble--draft feed-bubble--closed"
+										>
+											<div class="feed-md">
+												<p>
+													Checking the canvas chrome
+													next…
+												</p>
+											</div>
+										</div>
+										<details class="feed-tool-log">
+											<summary>
+												<span
+													class="feed-tool-log__kind"
+													>tool</span
+												>
+												<span>read_file</span>
+											</summary>
+											<pre class="feed-tool-log__body">
+path: packages/ui/.../node-port-layout.css
+ok: true
+.lf-port-anchor--in { left: calc(-1 * var(--lf-node-chrome-padding-x)); }</pre>
+										</details>
+										<details class="feed-tool-log">
+											<summary>
+												<span
+													class="feed-tool-log__kind"
+													>subagent</span
+												>
+												<span>port-layout-review</span>
+											</summary>
+											<pre class="feed-tool-log__body">
+status: done
+summary: Prefer absolute anchors on chrome padding edge.</pre>
+										</details>
+										<div
+											class="feed-bubble feed-bubble--draft feed-bubble--live"
+										>
+											<div class="feed-bubble__meta">
+												<span>draft</span>
+												<span class="feed-streaming"
+													>streaming…</span
+												>
+											</div>
+											<div class="feed-md">
+												<p>
+													Anchors match canvas. Next
+													I'll patch the specimens:
+												</p>
+												<pre><code>.sample-port-dot--in {
+  left: calc(-1 * var(--sample-pad-x));
+  transform: translate(-50%, -50%);
+}</code></pre>
+											</div>
+										</div>
+										<div
+											class="feed-bubble feed-bubble--result"
+										>
+											<div class="feed-md">
+												<p>
+													Ports now align with labels;
+													dots sit on borders.
+												</p>
+											</div>
+										</div>
+										<p class="feed-note">
+											On completion:
+											<code>draft</code> chip and
+											<code>streaming…</code> disappear —
+											only the content bubble remains.
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<p class="feed-caption">HITL gate (right layout)</p>
+						<div
+							class="feed-shell feed-shell--dark"
+							aria-label="Feed HITL dark"
+						>
+							<div class="feed-scroll">
+								<div class="feed-row">
+									<div class="feed-tech feed-tech--hitl">
+										<div class="feed-tech__label">
+											Review gate
+										</div>
+										<div class="feed-role">
+											<span>hitl</span>
+										</div>
+										<p class="feed-peek">
+											Approve the CSS change?
+										</p>
+										<details class="feed-details">
+											<summary>details</summary>
+										</details>
+										<div
+											class="feed-nested feed-nested--end"
+										>
+											<div
+												class="feed-bubble feed-bubble--nested-user"
+											>
+												<pre>LGTM — ship it.</pre>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- ============================================================ -->
+			<!-- 8. Composer / HITL panel -->
+			<!-- ============================================================ -->
+			<section id="composer">
+				<h2>8. Composer / HITL panel</h2>
+				<!--
+					Layout (normalize):
+					1) ONE surface = entire shell (textarea absolute inset-0)
+					2) NO field labels — destination = pressed footer button
+					3) Tab strip ONLY when 2+ HITL gates await (hide for single)
+					4) footer one line: Stop left · choices / Send / Pause right
+
+					Tabs (multi only):
+					absolute top-0; rounded-md px-2.5 py-1 text-[11px]
+
+					Footer:
+					Start = emerald · Stop = rose · Pause = amber
+				-->
+				<p class="lead" style="margin-bottom: 0.75rem">
+					No port/field labels — which button you press decides where
+					the text goes. Hide the tab strip when only one HITL gate is
+					active; show tabs only for multiple awaiting nodes. During a
+					run: <strong>Stop</strong> (rose) left,
+					<strong>Pause</strong> (amber) right. Docs lock:
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>use-cases/run-interruption.md</code
+					>
+					· ADR-031 · epics 35–36.
+				</p>
+
+				<div class="cols">
+					<div>
+						<p class="col-label">Light</p>
+
+						<p class="cmp-caption">
+							1 · Start — single entry (no tabs)
+						</p>
+						<div
+							class="cmp-shell"
+							aria-label="Composer chat start light"
+						>
+							<div class="cmp-stage">
+								<textarea
+									class="cmp-textarea"
+									readonly
+									tabindex="-1"
+								>
+Ship a fix for port dots sitting on node borders.</textarea>
+							</div>
+							<div class="cmp-footer">
+								<button
+									type="button"
+									class="cmp-icon-btn cmp-icon-btn--run"
+									aria-label="Start"
+									title="Start the chat run"
+								>
+									<svg viewBox="0 0 20 20" aria-hidden="true">
+										<path
+											d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.34-5.89a1.5 1.5 0 0 0 0-2.54L6.3 2.84Z"
+										/>
+									</svg>
+								</button>
+							</div>
+						</div>
+
+						<p class="cmp-caption">
+							2 · Single HITL — no tab strip
+						</p>
+						<div
+							class="cmp-shell"
+							aria-label="Composer single review gate light"
+						>
+							<div class="cmp-stage">
+								<textarea
+									class="cmp-textarea"
+									readonly
+									tabindex="-1"
+								>
+Looks good — please merge after tests pass.</textarea>
+							</div>
+							<div class="cmp-footer">
+								<button
+									type="button"
+									class="cmp-icon-btn cmp-icon-btn--danger"
+									aria-label="Stop"
+									title="Hard stop"
+								>
+									<svg viewBox="0 0 20 20" aria-hidden="true">
+										<path
+											d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z"
+										/>
+									</svg>
+								</button>
+								<button
+									type="button"
+									class="cmp-btn cmp-btn--danger"
+								>
+									Reject
+								</button>
+								<button type="button" class="cmp-btn">
+									Request changes
+								</button>
+								<button
+									type="button"
+									class="cmp-btn cmp-btn--success"
+								>
+									Approve
+								</button>
+								<button
+									type="button"
+									class="cmp-btn"
+									disabled
+									style="opacity: 0.45"
+								>
+									Send
+								</button>
+							</div>
+						</div>
+
+						<p class="cmp-caption">3 · Multiple HITL — tab strip</p>
+						<div
+							class="cmp-shell"
+							aria-label="Composer multi HITL light"
+						>
+							<div class="cmp-tabs">
+								<button
+									type="button"
+									class="cmp-tab cmp-tab--active"
+								>
+									Review gate
+								</button>
+								<button type="button" class="cmp-tab">
+									Chat Input
+								</button>
+							</div>
+							<div class="cmp-stage">
+								<textarea
+									class="cmp-textarea"
+									readonly
+									tabindex="-1"
+								>
+Looks good — please merge after tests pass.</textarea>
+							</div>
+							<div class="cmp-footer">
+								<button
+									type="button"
+									class="cmp-icon-btn cmp-icon-btn--danger"
+									aria-label="Stop"
+									title="Hard stop"
+								>
+									<svg viewBox="0 0 20 20" aria-hidden="true">
+										<path
+											d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z"
+										/>
+									</svg>
+								</button>
+								<button
+									type="button"
+									class="cmp-btn cmp-btn--danger"
+								>
+									Reject
+								</button>
+								<button type="button" class="cmp-btn">
+									Request changes
+								</button>
+								<button
+									type="button"
+									class="cmp-btn cmp-btn--success"
+								>
+									Approve
+								</button>
+								<button
+									type="button"
+									class="cmp-btn"
+									disabled
+									style="opacity: 0.45"
+								>
+									Send
+								</button>
+							</div>
+						</div>
+
+						<p class="cmp-caption">
+							4 · Chat answer — single (no tabs)
+						</p>
+						<div
+							class="cmp-shell"
+							aria-label="Composer chat answer light"
+						>
+							<div class="cmp-stage">
+								<textarea
+									class="cmp-textarea"
+									readonly
+									tabindex="-1"
+								>
+Also cover the dark theme specimens.</textarea>
+							</div>
+							<div class="cmp-footer">
+								<button
+									type="button"
+									class="cmp-icon-btn cmp-icon-btn--danger"
+									aria-label="Stop"
+									title="Hard stop"
+								>
+									<svg viewBox="0 0 20 20" aria-hidden="true">
+										<path
+											d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z"
+										/>
+									</svg>
+								</button>
+								<button
+									type="button"
+									class="cmp-btn cmp-btn--primary"
+								>
+									Send
+								</button>
+							</div>
+						</div>
+
+						<p class="cmp-caption">
+							5 · Steer (soft pause + feedback)
+						</p>
+						<div
+							class="cmp-shell"
+							aria-label="Composer steer light"
+						>
+							<div class="cmp-steer-strip">
+								<svg
+									viewBox="0 0 20 20"
+									width="12"
+									height="12"
+									fill="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										d="M5.75 3A1.75 1.75 0 0 0 4 4.75v10.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 9 15.25V4.75A1.75 1.75 0 0 0 7.25 3h-1.5ZM12.75 3A1.75 1.75 0 0 0 11 4.75v10.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 16 15.25V4.75A1.75 1.75 0 0 0 14.25 3h-1.5Z"
+									/>
+								</svg>
+								<span
+									><strong>Steering</strong> — turn paused;
+									workflow still alive</span
+								>
+							</div>
+							<div class="cmp-stage">
+								<textarea
+									class="cmp-textarea"
+									readonly
+									tabindex="-1"
+								>
+Stop editing package.json — only change the port CSS specimens.</textarea>
+							</div>
+							<div class="cmp-footer">
+								<button
+									type="button"
+									class="cmp-icon-btn cmp-icon-btn--danger"
+									aria-label="Stop workflow"
+									title="Hard stop — cancel entire run"
+								>
+									<svg viewBox="0 0 20 20" aria-hidden="true">
+										<path
+											d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z"
+										/>
+									</svg>
+								</button>
+								<button type="button" class="cmp-btn">
+									Resume
+								</button>
+								<button
+									type="button"
+									class="cmp-btn cmp-btn--success"
+								>
+									Send feedback
+								</button>
+							</div>
+						</div>
+
+						<p class="cmp-caption">
+							6 · During execution (Stop + Pause)
+						</p>
+						<div
+							class="cmp-shell"
+							aria-label="Composer running light"
+						>
+							<div class="cmp-stage">
+								<p class="cmp-working">working . . .</p>
+							</div>
+							<div class="cmp-footer">
+								<div class="cmp-tip-wrap">
+									<span class="cmp-tip cmp-tip--tl"
+										>Stop — cancel run</span
+									>
+									<button
+										type="button"
+										class="cmp-icon-btn cmp-icon-btn--danger"
+										aria-label="Stop"
+										title="Stop — cancel run"
+									>
+										<svg
+											viewBox="0 0 20 20"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z"
+											/>
+										</svg>
+									</button>
+								</div>
+								<div class="cmp-tip-wrap">
+									<span class="cmp-tip cmp-tip--tr"
+										>Pause — soft interrupt</span
+									>
+									<button
+										type="button"
+										class="cmp-icon-btn cmp-icon-btn--warn"
+										aria-label="Pause"
+										title="Pause — soft interrupt"
+									>
+										<svg
+											viewBox="0 0 20 20"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.75 3A1.75 1.75 0 0 0 4 4.75v10.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 9 15.25V4.75A1.75 1.75 0 0 0 7.25 3h-1.5ZM12.75 3A1.75 1.75 0 0 0 11 4.75v10.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 16 15.25V4.75A1.75 1.75 0 0 0 14.25 3h-1.5Z"
+											/>
+										</svg>
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div>
+						<p class="col-label">Dark</p>
+
+						<p class="cmp-caption">
+							1 · Start — single entry (no tabs)
+						</p>
+						<div
+							class="cmp-shell cmp-shell--dark"
+							aria-label="Composer chat start dark"
+						>
+							<div class="cmp-stage">
+								<textarea
+									class="cmp-textarea"
+									readonly
+									tabindex="-1"
+								>
+Ship a fix for port dots sitting on node borders.</textarea>
+							</div>
+							<div class="cmp-footer">
+								<button
+									type="button"
+									class="cmp-icon-btn cmp-icon-btn--run"
+									aria-label="Start"
+								>
+									<svg viewBox="0 0 20 20" aria-hidden="true">
+										<path
+											d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.34-5.89a1.5 1.5 0 0 0 0-2.54L6.3 2.84Z"
+										/>
+									</svg>
+								</button>
+							</div>
+						</div>
+
+						<p class="cmp-caption">
+							2 · Single HITL — no tab strip
+						</p>
+						<div
+							class="cmp-shell cmp-shell--dark"
+							aria-label="Composer single review gate dark"
+						>
+							<div class="cmp-stage">
+								<textarea
+									class="cmp-textarea"
+									readonly
+									tabindex="-1"
+								>
+Looks good — please merge after tests pass.</textarea>
+							</div>
+							<div class="cmp-footer">
+								<button
+									type="button"
+									class="cmp-icon-btn cmp-icon-btn--danger"
+									aria-label="Stop"
+								>
+									<svg viewBox="0 0 20 20" aria-hidden="true">
+										<path
+											d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z"
+										/>
+									</svg>
+								</button>
+								<button
+									type="button"
+									class="cmp-btn cmp-btn--danger"
+								>
+									Reject
+								</button>
+								<button type="button" class="cmp-btn">
+									Request changes
+								</button>
+								<button
+									type="button"
+									class="cmp-btn cmp-btn--success"
+								>
+									Approve
+								</button>
+								<button
+									type="button"
+									class="cmp-btn"
+									disabled
+									style="opacity: 0.45"
+								>
+									Send
+								</button>
+							</div>
+						</div>
+
+						<p class="cmp-caption">3 · Multiple HITL — tab strip</p>
+						<div
+							class="cmp-shell cmp-shell--dark"
+							aria-label="Composer multi HITL dark"
+						>
+							<div class="cmp-tabs">
+								<button
+									type="button"
+									class="cmp-tab cmp-tab--active"
+								>
+									Review gate
+								</button>
+								<button type="button" class="cmp-tab">
+									Chat Input
+								</button>
+							</div>
+							<div class="cmp-stage">
+								<textarea
+									class="cmp-textarea"
+									readonly
+									tabindex="-1"
+								>
+Looks good — please merge after tests pass.</textarea>
+							</div>
+							<div class="cmp-footer">
+								<button
+									type="button"
+									class="cmp-icon-btn cmp-icon-btn--danger"
+									aria-label="Stop"
+								>
+									<svg viewBox="0 0 20 20" aria-hidden="true">
+										<path
+											d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z"
+										/>
+									</svg>
+								</button>
+								<button
+									type="button"
+									class="cmp-btn cmp-btn--danger"
+								>
+									Reject
+								</button>
+								<button type="button" class="cmp-btn">
+									Request changes
+								</button>
+								<button
+									type="button"
+									class="cmp-btn cmp-btn--success"
+								>
+									Approve
+								</button>
+								<button
+									type="button"
+									class="cmp-btn"
+									disabled
+									style="opacity: 0.45"
+								>
+									Send
+								</button>
+							</div>
+						</div>
+
+						<p class="cmp-caption">
+							4 · Chat answer — single (no tabs)
+						</p>
+						<div
+							class="cmp-shell cmp-shell--dark"
+							aria-label="Composer chat answer dark"
+						>
+							<div class="cmp-stage">
+								<textarea
+									class="cmp-textarea"
+									readonly
+									tabindex="-1"
+								>
+Also cover the dark theme specimens.</textarea>
+							</div>
+							<div class="cmp-footer">
+								<button
+									type="button"
+									class="cmp-icon-btn cmp-icon-btn--danger"
+									aria-label="Stop"
+								>
+									<svg viewBox="0 0 20 20" aria-hidden="true">
+										<path
+											d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z"
+										/>
+									</svg>
+								</button>
+								<button
+									type="button"
+									class="cmp-btn cmp-btn--primary"
+								>
+									Send
+								</button>
+							</div>
+						</div>
+
+						<p class="cmp-caption">
+							5 · Steer (soft pause + feedback)
+						</p>
+						<div
+							class="cmp-shell cmp-shell--dark"
+							aria-label="Composer steer dark"
+						>
+							<div class="cmp-steer-strip">
+								<svg
+									viewBox="0 0 20 20"
+									width="12"
+									height="12"
+									fill="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										d="M5.75 3A1.75 1.75 0 0 0 4 4.75v10.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 9 15.25V4.75A1.75 1.75 0 0 0 7.25 3h-1.5ZM12.75 3A1.75 1.75 0 0 0 11 4.75v10.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 16 15.25V4.75A1.75 1.75 0 0 0 14.25 3h-1.5Z"
+									/>
+								</svg>
+								<span
+									><strong>Steering</strong> — turn paused;
+									workflow still alive</span
+								>
+							</div>
+							<div class="cmp-stage">
+								<textarea
+									class="cmp-textarea"
+									readonly
+									tabindex="-1"
+								>
+Stop editing package.json — only change the port CSS specimens.</textarea>
+							</div>
+							<div class="cmp-footer">
+								<button
+									type="button"
+									class="cmp-icon-btn cmp-icon-btn--danger"
+									aria-label="Stop workflow"
+									title="Hard stop — cancel entire run"
+								>
+									<svg viewBox="0 0 20 20" aria-hidden="true">
+										<path
+											d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z"
+										/>
+									</svg>
+								</button>
+								<button type="button" class="cmp-btn">
+									Resume
+								</button>
+								<button
+									type="button"
+									class="cmp-btn cmp-btn--success"
+								>
+									Send feedback
+								</button>
+							</div>
+						</div>
+
+						<p class="cmp-caption">
+							6 · During execution (Stop + Pause)
+						</p>
+						<div
+							class="cmp-shell cmp-shell--dark"
+							aria-label="Composer running dark"
+						>
+							<div class="cmp-stage">
+								<p class="cmp-working">working . . .</p>
+							</div>
+							<div class="cmp-footer">
+								<div class="cmp-tip-wrap">
+									<span class="cmp-tip cmp-tip--tl"
+										>Stop — cancel run</span
+									>
+									<button
+										type="button"
+										class="cmp-icon-btn cmp-icon-btn--danger"
+										aria-label="Stop"
+										title="Stop — cancel run"
+									>
+										<svg
+											viewBox="0 0 20 20"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z"
+											/>
+										</svg>
+									</button>
+								</div>
+								<div class="cmp-tip-wrap">
+									<span class="cmp-tip cmp-tip--tr"
+										>Pause — soft interrupt</span
+									>
+									<button
+										type="button"
+										class="cmp-icon-btn cmp-icon-btn--warn"
+										aria-label="Pause"
+										title="Pause — soft interrupt"
+									>
+										<svg
+											viewBox="0 0 20 20"
+											aria-hidden="true"
+										>
+											<path
+												d="M5.75 3A1.75 1.75 0 0 0 4 4.75v10.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 9 15.25V4.75A1.75 1.75 0 0 0 7.25 3h-1.5ZM12.75 3A1.75 1.75 0 0 0 11 4.75v10.5c0 .966.784 1.75 1.75 1.75h1.5A1.75 1.75 0 0 0 16 15.25V4.75A1.75 1.75 0 0 0 14.25 3h-1.5Z"
+											/>
+										</svg>
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- ============================================================ -->
+			<!-- 9. Node chrome + edge strokes -->
+			<!-- ============================================================ -->
+			<section id="nodes">
+				<h2>9. Node chrome &amp; edge strokes</h2>
+				<p class="lead" style="margin-bottom: 1rem">
+					Normalize: every chrome edge and edge-stroke chip is a
+					single
+					<strong>1px border</strong> — no outer
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>box-shadow</code
+					>
+					ring (border + ring reads as a thick edge). Closest to
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>node-port-layout.css</code
+					>
+					/
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>styles.scss</code
+					>
+					— comments list utilities + canvas class names.
+				</p>
+
+				<h3>Node states</h3>
+				<!--
+					Canvas classes (actual):
+					.lf-node-chrome
+					.lf-node-chrome--selected  → border blue-500 (1px border)
+					.lf-node-chrome--pending   → border amber-600
+					.lf-node-chrome--value     → border emerald-500
+					.lf-node-chrome--error     → border rose-500 (1px border)
+					.lf-node-chrome--hitl      → border sky-500 (1px border)
+					.lf-node-chrome--hovered   → border violet-500 (1px border)
+					.lf-node-chrome--pulse     → emerald ring flash
+
+					Closest Tailwind for new chrome (normalize):
+					idle:     border border-zinc-300 bg-white dark:border-zinc-700 dark:bg-zinc-900
+					selected: border border-blue-500 dark:border-blue-400
+					pending:  border-amber-600 dark:border-amber-600 (#ca8a04 in dark CSS)
+					value:    border-emerald-500 dark:border-emerald-400
+					error:    border border-rose-500 dark:border-rose-400
+					hitl:     border border-sky-500 dark:border-sky-400
+					hovered:  border border-violet-500 dark:border-violet-400
+
+					Port dots:
+					h-2.5 w-2.5 rounded-full border-2 border-zinc-400 bg-white
+					dark:border-zinc-500 dark:bg-zinc-900
+				-->
+				<div class="cols">
+					<div>
+						<p class="col-label">Light</p>
+						<div
+							class="panel"
+							style="
+								background: #f4f4f5;
+								border: 1px solid #e4e4e7;
+							"
+						>
+							<div class="specimen-grid">
+								<!-- idle -->
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #d4d4d8;
+										background: #ffffff;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #18181b;
+											text-align: center;
+											margin-bottom: 0.4rem;
+										"
+									>
+										idle
+									</div>
+									<div
+										style="
+											display: flex;
+											justify-content: space-between;
+											align-items: center;
+											font-size: 0.625rem;
+											color: #52525b;
+										"
+									>
+										<span
+											style="
+												display: flex;
+												align-items: center;
+												gap: 0.25rem;
+											"
+										>
+											<span
+												style="
+													width: 0.625rem;
+													height: 0.625rem;
+													border-radius: 9999px;
+													border: 2px solid #a1a1aa;
+													background: #ffffff;
+												"
+											></span>
+											in
+										</span>
+										<span
+											style="
+												display: flex;
+												align-items: center;
+												gap: 0.25rem;
+											"
+										>
+											out
+											<span
+												style="
+													width: 0.625rem;
+													height: 0.625rem;
+													border-radius: 9999px;
+													border: 2px solid #a1a1aa;
+													background: #ffffff;
+												"
+											></span>
+										</span>
+									</div>
+								</div>
+								<!-- selected -->
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #3b82f6;
+										background: #ffffff;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #18181b;
+											text-align: center;
+										"
+									>
+										selected
+									</div>
+									<div
+										style="
+											margin-top: 0.35rem;
+											font-size: 0.5625rem;
+											text-align: center;
+											color: #71717a;
+											font-family: var(--mono);
+										"
+									>
+										selection · blue
+									</div>
+								</div>
+								<!-- pending -->
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #d97706;
+										background: #ffffff;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #18181b;
+											text-align: center;
+										"
+									>
+										pending
+									</div>
+									<div
+										style="
+											margin-top: 0.35rem;
+											font-size: 0.5625rem;
+											text-align: center;
+											color: #71717a;
+											font-family: var(--mono);
+										"
+									>
+										warning · amber
+									</div>
+								</div>
+								<!-- value -->
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #10b981;
+										background: #ffffff;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #18181b;
+											text-align: center;
+										"
+									>
+										value
+									</div>
+									<div
+										style="
+											margin-top: 0.35rem;
+											font-size: 0.5625rem;
+											text-align: center;
+											color: #71717a;
+											font-family: var(--mono);
+										"
+									>
+										success · emerald
+									</div>
+								</div>
+								<!-- error -->
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #f43f5e;
+										background: #ffffff;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #18181b;
+											text-align: center;
+										"
+									>
+										error
+									</div>
+									<div
+										style="
+											margin-top: 0.35rem;
+											font-size: 0.5625rem;
+											text-align: center;
+											color: #71717a;
+											font-family: var(--mono);
+										"
+									>
+										error · rose
+									</div>
+								</div>
+								<!-- hitl -->
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #0ea5e9;
+										background: #ffffff;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #18181b;
+											text-align: center;
+										"
+									>
+										hitl
+									</div>
+									<div
+										style="
+											margin-top: 0.35rem;
+											font-size: 0.5625rem;
+											text-align: center;
+											color: #71717a;
+											font-family: var(--mono);
+										"
+									>
+										info · sky
+									</div>
+								</div>
+								<!-- hovered -->
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #8b5cf6;
+										background: #ffffff;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #18181b;
+											text-align: center;
+										"
+									>
+										hovered
+									</div>
+									<div
+										style="
+											margin-top: 0.35rem;
+											font-size: 0.5625rem;
+											text-align: center;
+											color: #71717a;
+											font-family: var(--mono);
+										"
+									>
+										hover · violet
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div>
+						<p class="col-label">Dark</p>
+						<div
+							class="panel"
+							style="
+								background: #09090b;
+								border: 1px solid #27272a;
+							"
+						>
+							<div class="specimen-grid">
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #3f3f46;
+										background: #18181b;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #f4f4f5;
+											text-align: center;
+											margin-bottom: 0.4rem;
+										"
+									>
+										idle
+									</div>
+									<div
+										style="
+											display: flex;
+											justify-content: space-between;
+											align-items: center;
+											font-size: 0.625rem;
+											color: #d4d4d8;
+										"
+									>
+										<span
+											style="
+												display: flex;
+												align-items: center;
+												gap: 0.25rem;
+											"
+										>
+											<span
+												style="
+													width: 0.625rem;
+													height: 0.625rem;
+													border-radius: 9999px;
+													border: 2px solid #71717a;
+													background: #18181b;
+												"
+											></span>
+											in
+										</span>
+										<span
+											style="
+												display: flex;
+												align-items: center;
+												gap: 0.25rem;
+											"
+										>
+											out
+											<span
+												style="
+													width: 0.625rem;
+													height: 0.625rem;
+													border-radius: 9999px;
+													border: 2px solid #71717a;
+													background: #18181b;
+												"
+											></span>
+										</span>
+									</div>
+								</div>
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #60a5fa;
+										background: #18181b;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #f4f4f5;
+											text-align: center;
+										"
+									>
+										selected
+									</div>
+									<div
+										style="
+											margin-top: 0.35rem;
+											font-size: 0.5625rem;
+											text-align: center;
+											color: #a1a1aa;
+											font-family: var(--mono);
+										"
+									>
+										selection · blue
+									</div>
+								</div>
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #ca8a04;
+										background: #18181b;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #f4f4f5;
+											text-align: center;
+										"
+									>
+										pending
+									</div>
+									<div
+										style="
+											margin-top: 0.35rem;
+											font-size: 0.5625rem;
+											text-align: center;
+											color: #a1a1aa;
+											font-family: var(--mono);
+										"
+									>
+										warning · amber
+									</div>
+								</div>
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #34d399;
+										background: #18181b;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #f4f4f5;
+											text-align: center;
+										"
+									>
+										value
+									</div>
+									<div
+										style="
+											margin-top: 0.35rem;
+											font-size: 0.5625rem;
+											text-align: center;
+											color: #a1a1aa;
+											font-family: var(--mono);
+										"
+									>
+										success · emerald
+									</div>
+								</div>
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #fb7185;
+										background: #18181b;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #f4f4f5;
+											text-align: center;
+										"
+									>
+										error
+									</div>
+									<div
+										style="
+											margin-top: 0.35rem;
+											font-size: 0.5625rem;
+											text-align: center;
+											color: #a1a1aa;
+											font-family: var(--mono);
+										"
+									>
+										error · rose
+									</div>
+								</div>
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #38bdf8;
+										background: #18181b;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #f4f4f5;
+											text-align: center;
+										"
+									>
+										hitl
+									</div>
+									<div
+										style="
+											margin-top: 0.35rem;
+											font-size: 0.5625rem;
+											text-align: center;
+											color: #a1a1aa;
+											font-family: var(--mono);
+										"
+									>
+										info · sky
+									</div>
+								</div>
+								<div
+									style="
+										border-radius: 0.5rem;
+										border: 1px solid #a78bfa;
+										background: #18181b;
+										padding: 0.65rem 0.75rem;
+										min-height: 4.5rem;
+									"
+								>
+									<div
+										style="
+											font-size: 0.75rem;
+											font-weight: 600;
+											color: #f4f4f5;
+											text-align: center;
+										"
+									>
+										hovered
+									</div>
+									<div
+										style="
+											margin-top: 0.35rem;
+											font-size: 0.5625rem;
+											text-align: center;
+											color: #a1a1aa;
+											font-family: var(--mono);
+										"
+									>
+										hover · violet
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<h3 style="margin-top: 1.25rem">Nodes with ports</h3>
+				<!--
+					Mirrors lf-palette-node-preview / canvas port rows:
+
+					Title:
+					mb-2 truncate text-center text-xs font-semibold
+					text-zinc-900 dark:text-zinc-100
+
+					Port row:
+					flex items-start gap-2 py-1
+
+					Port row (canvas):
+					.lf-port-row position relative; align-items center
+					.lf-port-anchor absolute top-1/2 -translate-y-1/2
+					.in:  left: calc(-1 * --lf-node-chrome-padding-x)  /* 20px */
+					.out: right: calc(-1 * --lf-node-chrome-padding-x)
+					Dot centered on border via translateX(±50%).
+
+					Port dot:
+					h-[10px] w-[10px] rounded-full border-2
+					border-zinc-400 bg-white
+					dark:border-zinc-500 dark:bg-zinc-900
+
+					Port label:
+					text-[10px] leading-4 text-zinc-600 dark:text-zinc-300
+					wireType: text-zinc-400 dark:text-zinc-500
+
+					Inline under input (disabled in palette preview):
+					rounded-md border border-zinc-300 bg-zinc-50 px-1.5 py-1
+					text-[10px] text-zinc-700
+					dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300
+
+					multi badge:
+					mt-1 block text-[10px] text-zinc-400 dark:text-zinc-500
+
+					Bypass stub center:
+					text-center text-[10px] text-zinc-500 dark:text-zinc-400
+
+					Port pulse (emit):
+					.lf-port-anchor--pulse → emerald border/fill (+ dark variants)
+				-->
+				<p class="lead" style="margin-bottom: 0.75rem">
+					Palette/canvas body layout: left = inputs, right = outputs,
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>name · wireType</code
+					>, optional inline under an input, optional
+					<code style="font-family: var(--mono); font-size: 0.6875rem"
+						>multi</code
+					>
+					badge.
+				</p>
+				<div class="cols">
+					<div>
+						<p class="col-label">Light</p>
+						<div
+							class="panel sample-nodes"
+							style="
+								background: #f4f4f5;
+								border: 1px solid #e4e4e7;
+							"
+						>
+							<article
+								class="sample-node"
+								aria-label="Prompt node"
+							>
+								<p class="sample-node__title">Prompt</p>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-dot sample-port-dot--in"
+										aria-hidden="true"
+									></span>
+									<span class="sample-port-label">
+										value
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+								</div>
+								<input
+									class="sample-inline sample-inline--disabled"
+									type="text"
+									value="Write a short summary…"
+									readonly
+									tabindex="-1"
+								/>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-label sample-port-label--right"
+									>
+										text
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<span
+										class="sample-port-dot sample-port-dot--out"
+										aria-hidden="true"
+									></span>
+								</div>
+								<p class="sample-node__caption">
+									1 in · 1 out + inline
+								</p>
+							</article>
+
+							<article
+								class="sample-node"
+								aria-label="OpenAI LLM node"
+							>
+								<p class="sample-node__title">OpenAI LLM</p>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-dot sample-port-dot--in"
+										aria-hidden="true"
+									></span>
+									<span class="sample-port-label">
+										system
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<span
+										class="sample-port-label sample-port-label--right"
+									>
+										response
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<span
+										class="sample-port-dot sample-port-dot--out sample-port-dot--pulse"
+										aria-label="output pulse"
+									></span>
+								</div>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-dot sample-port-dot--in"
+										aria-hidden="true"
+									></span>
+									<span class="sample-port-label">
+										prompt
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<span
+										class="sample-port-label sample-port-label--right"
+									>
+										reasoning
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<span
+										class="sample-port-dot sample-port-dot--out"
+										aria-hidden="true"
+									></span>
+								</div>
+								<textarea
+									class="sample-inline sample-inline--disabled"
+									rows="2"
+									readonly
+									tabindex="-1"
+								>
+You are a careful coding assistant.</textarea>
+								<span class="sample-badge">multi</span>
+								<p class="sample-node__caption">
+									multi-port · pulse on response
+								</p>
+							</article>
+
+							<article
+								class="sample-node sample-node--value"
+								aria-label="Map node value state"
+							>
+								<p class="sample-node__title">Map</p>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-dot sample-port-dot--in"
+										aria-hidden="true"
+									></span>
+									<span class="sample-port-label">
+										items
+										<span class="sample-port-label__type"
+											>· json</span
+										>
+									</span>
+									<span
+										class="sample-port-label sample-port-label--right"
+									>
+										mapped
+										<span class="sample-port-label__type"
+											>· json</span
+										>
+									</span>
+									<span
+										class="sample-port-dot sample-port-dot--out"
+										aria-hidden="true"
+									></span>
+								</div>
+								<p class="sample-node__caption">
+									value chrome · success · emerald
+								</p>
+							</article>
+
+							<article
+								class="sample-node sample-node--hitl"
+								aria-label="Review gate HITL node"
+							>
+								<p class="sample-node__title">Review gate</p>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-dot sample-port-dot--in"
+										aria-hidden="true"
+									></span>
+									<span class="sample-port-label">
+										draft
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<p class="sample-bypass">
+										Dynamic channels
+									</p>
+									<span
+										class="sample-port-label sample-port-label--right"
+									>
+										approved
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<span
+										class="sample-port-dot sample-port-dot--out"
+										aria-hidden="true"
+									></span>
+								</div>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-dot sample-port-dot--in"
+										aria-hidden="true"
+									></span>
+									<span class="sample-port-label">
+										userReply
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+								</div>
+								<p class="sample-node__caption">
+									hitl chrome · info · sky
+								</p>
+							</article>
+						</div>
+					</div>
+					<div>
+						<p class="col-label">Dark</p>
+						<div
+							class="panel sample-nodes"
+							style="
+								background: #09090b;
+								border: 1px solid #27272a;
+							"
+						>
+							<article
+								class="sample-node sample-node--dark"
+								aria-label="Prompt node dark"
+							>
+								<p class="sample-node__title">Prompt</p>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-dot sample-port-dot--in"
+										aria-hidden="true"
+									></span>
+									<span class="sample-port-label">
+										value
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+								</div>
+								<input
+									class="sample-inline sample-inline--disabled"
+									type="text"
+									value="Write a short summary…"
+									readonly
+									tabindex="-1"
+								/>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-label sample-port-label--right"
+									>
+										text
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<span
+										class="sample-port-dot sample-port-dot--out"
+										aria-hidden="true"
+									></span>
+								</div>
+								<p class="sample-node__caption">
+									1 in · 1 out + inline
+								</p>
+							</article>
+
+							<article
+								class="sample-node sample-node--dark"
+								aria-label="OpenAI LLM node dark"
+							>
+								<p class="sample-node__title">OpenAI LLM</p>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-dot sample-port-dot--in"
+										aria-hidden="true"
+									></span>
+									<span class="sample-port-label">
+										system
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<span
+										class="sample-port-label sample-port-label--right"
+									>
+										response
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<span
+										class="sample-port-dot sample-port-dot--out sample-port-dot--pulse"
+										aria-label="output pulse"
+									></span>
+								</div>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-dot sample-port-dot--in"
+										aria-hidden="true"
+									></span>
+									<span class="sample-port-label">
+										prompt
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<span
+										class="sample-port-label sample-port-label--right"
+									>
+										reasoning
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<span
+										class="sample-port-dot sample-port-dot--out"
+										aria-hidden="true"
+									></span>
+								</div>
+								<textarea
+									class="sample-inline sample-inline--disabled"
+									rows="2"
+									readonly
+									tabindex="-1"
+								>
+You are a careful coding assistant.</textarea>
+								<span class="sample-badge">multi</span>
+								<p class="sample-node__caption">
+									multi-port · pulse on response
+								</p>
+							</article>
+
+							<article
+								class="sample-node sample-node--dark sample-node--value"
+								aria-label="Map node value state dark"
+							>
+								<p class="sample-node__title">Map</p>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-dot sample-port-dot--in"
+										aria-hidden="true"
+									></span>
+									<span class="sample-port-label">
+										items
+										<span class="sample-port-label__type"
+											>· json</span
+										>
+									</span>
+									<span
+										class="sample-port-label sample-port-label--right"
+									>
+										mapped
+										<span class="sample-port-label__type"
+											>· json</span
+										>
+									</span>
+									<span
+										class="sample-port-dot sample-port-dot--out"
+										aria-hidden="true"
+									></span>
+								</div>
+								<p class="sample-node__caption">
+									value chrome · success · emerald
+								</p>
+							</article>
+
+							<article
+								class="sample-node sample-node--dark sample-node--hitl"
+								aria-label="Review gate HITL node dark"
+							>
+								<p class="sample-node__title">Review gate</p>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-dot sample-port-dot--in"
+										aria-hidden="true"
+									></span>
+									<span class="sample-port-label">
+										draft
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<p class="sample-bypass">
+										Dynamic channels
+									</p>
+									<span
+										class="sample-port-label sample-port-label--right"
+									>
+										approved
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+									<span
+										class="sample-port-dot sample-port-dot--out"
+										aria-hidden="true"
+									></span>
+								</div>
+								<div class="sample-port-row">
+									<span
+										class="sample-port-dot sample-port-dot--in"
+										aria-hidden="true"
+									></span>
+									<span class="sample-port-label">
+										userReply
+										<span class="sample-port-label__type"
+											>· string</span
+										>
+									</span>
+								</div>
+								<p class="sample-node__caption">
+									hitl chrome · info · sky
+								</p>
+							</article>
+						</div>
+					</div>
+				</div>
+
+				<h3 style="margin-top: 1.25rem">Edge stroke chips</h3>
+				<!--
+					styles.scss edge execution chrome:
+					lf-edge--pending → stroke rgb(202 138 4) / dark rgb(250 204 21)
+					lf-edge--error   → stroke rgb(244 63 94) / dark rgb(251 113 133)
+					lf-edge--value   → stroke rgb(16 185 129) / dark rgb(52 211 153)
+					idle hover       → rgb(74 108 182) / dark rgb(120 160 220)
+
+					Closest Tailwind:
+					pending: stroke / text-amber-600 dark:text-yellow-400
+					error:   text-rose-500 dark:text-rose-400
+					value:   text-emerald-500 dark:text-emerald-400
+				-->
+				<div class="cols">
+					<div>
+						<p class="col-label">Light</p>
+						<div
+							class="panel row"
+							style="
+								background: #ffffff;
+								border: 1px solid #e4e4e7;
+							"
+						>
+							<span
+								style="
+									display: inline-flex;
+									align-items: center;
+									gap: 0.4rem;
+									font-size: 0.6875rem;
+									color: #3f3f46;
+								"
+							>
+								<span
+									style="
+										width: 2.5rem;
+										height: 1px;
+										border-radius: 9999px;
+										background: #ca8a04;
+									"
+								></span>
+								pending
+							</span>
+							<span
+								style="
+									display: inline-flex;
+									align-items: center;
+									gap: 0.4rem;
+									font-size: 0.6875rem;
+									color: #3f3f46;
+								"
+							>
+								<span
+									style="
+										width: 2.5rem;
+										height: 1px;
+										border-radius: 9999px;
+										background: #10b981;
+									"
+								></span>
+								value
+							</span>
+							<span
+								style="
+									display: inline-flex;
+									align-items: center;
+									gap: 0.4rem;
+									font-size: 0.6875rem;
+									color: #3f3f46;
+								"
+							>
+								<span
+									style="
+										width: 2.5rem;
+										height: 1px;
+										border-radius: 9999px;
+										background: #f43f5e;
+									"
+								></span>
+								error
+							</span>
+							<span
+								style="
+									display: inline-flex;
+									align-items: center;
+									gap: 0.4rem;
+									font-size: 0.6875rem;
+									color: #3f3f46;
+								"
+							>
+								<span
+									style="
+										width: 2.5rem;
+										height: 1px;
+										border-radius: 9999px;
+										background: rgb(74, 108, 182);
+									"
+								></span>
+								idle hover
+							</span>
+						</div>
+					</div>
+					<div>
+						<p class="col-label">Dark</p>
+						<div
+							class="panel row"
+							style="
+								background: #18181b;
+								border: 1px solid #3f3f46;
+							"
+						>
+							<span
+								style="
+									display: inline-flex;
+									align-items: center;
+									gap: 0.4rem;
+									font-size: 0.6875rem;
+									color: #d4d4d8;
+								"
+							>
+								<span
+									style="
+										width: 2.5rem;
+										height: 1px;
+										border-radius: 9999px;
+										background: #facc15;
+									"
+								></span>
+								pending
+							</span>
+							<span
+								style="
+									display: inline-flex;
+									align-items: center;
+									gap: 0.4rem;
+									font-size: 0.6875rem;
+									color: #d4d4d8;
+								"
+							>
+								<span
+									style="
+										width: 2.5rem;
+										height: 1px;
+										border-radius: 9999px;
+										background: #34d399;
+									"
+								></span>
+								value
+							</span>
+							<span
+								style="
+									display: inline-flex;
+									align-items: center;
+									gap: 0.4rem;
+									font-size: 0.6875rem;
+									color: #d4d4d8;
+								"
+							>
+								<span
+									style="
+										width: 2.5rem;
+										height: 1px;
+										border-radius: 9999px;
+										background: #fb7185;
+									"
+								></span>
+								error
+							</span>
+							<span
+								style="
+									display: inline-flex;
+									align-items: center;
+									gap: 0.4rem;
+									font-size: 0.6875rem;
+									color: #d4d4d8;
+								"
+							>
+								<span
+									style="
+										width: 2.5rem;
+										height: 1px;
+										border-radius: 9999px;
+										background: rgb(120, 160, 220);
+									"
+								></span>
+								idle hover
+							</span>
+						</div>
+					</div>
+				</div>
+			</section>
+		</div>
+	</body>
+</html>

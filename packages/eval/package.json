@@ -1,0 +1,26 @@
+{
+	"name": "@langflower/eval",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./load-pack": {
+			"types": "./dist/load-pack.d.ts",
+			"import": "./dist/load-pack.js"
+		},
+		"./run-eval-suite": {
+			"types": "./dist/run-eval-suite.d.ts",
+			"import": "./dist/run-eval-suite.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"typecheck": "tsc -p tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"@langflower/tools": "0.1.0"
+	},
+	"files": [
+		"dist"
+	]
+}

@@ -1,0 +1,164 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "langflower-config.schema.json",
+	"title": "Langflower project config",
+	"description": "Shape of `.langflower/langflower.jsonc`. Unknown top-level keys are preserved on disk.",
+	"type": "object",
+	"additionalProperties": true,
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "JSON Schema reference for IDE autocomplete."
+		},
+		"currentWorkflowId": {
+			"type": "string",
+			"description": "Stem of the last opened workflow under `.langflower/workflows/{id}.json`."
+		},
+		"model": {
+			"type": "string",
+			"description": "Optional default model id (provider/model or bare id)."
+		},
+		"serverLogs": {
+			"type": "boolean",
+			"description": "Bridge diagnostic JSONL logging under `.langflower/logs/`. Omit to inherit; true enables; false disables."
+		},
+		"provider": {
+			"type": "object",
+			"additionalProperties": {
+				"type": "object",
+				"required": ["name"],
+				"additionalProperties": true,
+				"properties": {
+					"name": { "type": "string" },
+					"models": {
+						"oneOf": [
+							{
+								"type": "array",
+								"items": { "type": "string" }
+							},
+							{
+								"type": "object",
+								"additionalProperties": {
+									"oneOf": [
+										{ "type": "string" },
+										{
+											"type": "object",
+											"additionalProperties": true,
+											"properties": {
+												"name": { "type": "string" }
+											}
+										}
+									]
+								}
+							}
+						]
+					},
+					"options": {
+						"type": "object",
+						"additionalProperties": true
+					}
+				}
+			}
+		},
+		"tools": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"required": ["id", "name"],
+				"additionalProperties": true,
+				"properties": {
+					"id": { "type": "string" },
+					"name": { "type": "string" }
+				}
+			}
+		},
+		"dividerPositions": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"leftWidth": { "type": "number" },
+				"rightWidth": { "type": "number" },
+				"composerHeight": { "type": "number" }
+			}
+		},
+		"permission": {
+			"type": "object",
+			"description": "Runtime allow/ask/deny for harness tools (≠ Inspector enabledToolIds).",
+			"additionalProperties": {
+				"$ref": "#/$defs/permissionToolConfig"
+			}
+		},
+		"harness": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"denyPaths": {
+					"type": "array",
+					"items": { "type": "string" }
+				},
+				"allowedRoots": {
+					"type": "array",
+					"items": { "type": "string" }
+				},
+				"allowedHosts": {
+					"type": "array",
+					"items": { "type": "string" }
+				}
+			}
+		},
+		"mcp": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"servers": {
+					"type": "object",
+					"additionalProperties": {
+						"oneOf": [
+							{ "$ref": "#/$defs/mcpStdio" },
+							{ "$ref": "#/$defs/mcpHttp" }
+						]
+					}
+				}
+			}
+		}
+	},
+	"$defs": {
+		"permissionDecision": {
+			"type": "string",
+			"enum": ["allow", "ask", "deny"]
+		},
+		"permissionToolConfig": {
+			"oneOf": [
+				{ "$ref": "#/$defs/permissionDecision" },
+				{
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/$defs/permissionDecision"
+					},
+					"description": "Pattern → decision map (`*`, `docs/**`, `git diff*`, …)."
+				}
+			]
+		},
+		"mcpStdio": {
+			"type": "object",
+			"required": ["kind", "command"],
+			"additionalProperties": false,
+			"properties": {
+				"kind": { "const": "stdio" },
+				"command": { "type": "string" },
+				"toolNames": { "type": "string" }
+			}
+		},
+		"mcpHttp": {
+			"type": "object",
+			"required": ["kind", "url"],
+			"additionalProperties": false,
+			"properties": {
+				"kind": { "const": "http" },
+				"url": { "type": "string" },
+				"command": { "type": "string" },
+				"toolNames": { "type": "string" }
+			}
+		}
+	}
+}

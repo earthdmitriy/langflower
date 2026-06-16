@@ -1,0 +1,157 @@
+{
+	"metadata": {
+		"name": "Simple coder",
+		"description": "Plan → coder → HITL loop. Product coding smoke spine (successor intent to basic-coder). Configure a provider before running.",
+		"createdAt": "2026-07-24T00:00:00.000Z",
+		"updatedAt": "2026-07-24T00:00:00.000Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": -117.39587175846478,
+			"y": 91.64430031530618,
+			"scale": 0.5197751407121728,
+			"width": 756.1875,
+			"height": 1009.0625
+		},
+		"nodes": [
+			{
+				"id": "goal",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 40,
+						"y": 220
+					},
+					"label": "Goal"
+				}
+			},
+			{
+				"id": "plan",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "plan",
+					"providerId": "",
+					"model": "",
+					"maxIterations": 8
+				},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 320,
+						"y": 120
+					},
+					"label": "Plan"
+				}
+			},
+			{
+				"id": "coder",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "coder",
+					"providerId": "",
+					"model": "",
+					"maxIterations": 8
+				},
+				"inputs": {
+					"systemPrompt": "You receive a Plan agent summary as the user prompt. Implement the plan with harness tools. Prefer minimal edits. Summarize files changed in your final response."
+				},
+				"ui": {
+					"position": {
+						"x": 1080,
+						"y": 160
+					},
+					"label": "Coder"
+				}
+			},
+			{
+				"id": "f67ee3a6-c8ea-4bad-bb7d-d0c1c3e90521",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 620,
+						"y": 780
+					}
+				}
+			},
+			{
+				"id": "dcf00a52-7d55-4242-8dac-3896414e5d88",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 1094.219576990285,
+						"y": 782.6495614795315
+					}
+				}
+			},
+			{
+				"id": "f9df4410-fa4a-459f-8d89-603f9fb29198",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 1462.316578408799,
+						"y": 804.9460874158642
+					}
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-goal-plan",
+				"fromNodeId": "goal",
+				"fromPort": ["message", 0],
+				"toNodeId": "plan",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "0001374a-48f7-4251-8760-535f0ee8060b",
+				"fromNodeId": "plan",
+				"fromPort": ["response", 0],
+				"toNodeId": "f67ee3a6-c8ea-4bad-bb7d-d0c1c3e90521",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "5f54bf6b-82eb-4d1c-bdf3-df6d302f285c",
+				"fromNodeId": "f67ee3a6-c8ea-4bad-bb7d-d0c1c3e90521",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "plan",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "410d744d-ed76-4f46-82be-d76dfb561e8c",
+				"fromNodeId": "f67ee3a6-c8ea-4bad-bb7d-d0c1c3e90521",
+				"fromPort": ["response", 0],
+				"toNodeId": "coder",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "5647d587-512e-4c04-968c-c0f2c866163a",
+				"fromNodeId": "coder",
+				"fromPort": ["response", 0],
+				"toNodeId": "dcf00a52-7d55-4242-8dac-3896414e5d88",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "cdb627b9-60ba-4c59-9f7c-6e8828ae907c",
+				"fromNodeId": "dcf00a52-7d55-4242-8dac-3896414e5d88",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "coder",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "fe17cdd0-c337-4ea5-bc83-be960e3532f1",
+				"fromNodeId": "dcf00a52-7d55-4242-8dac-3896414e5d88",
+				"fromPort": ["response", 0],
+				"toNodeId": "f9df4410-fa4a-459f-8d89-603f9fb29198",
+				"toPort": ["value", 0]
+			}
+		]
+	}
+}

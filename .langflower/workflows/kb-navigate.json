@@ -1,0 +1,149 @@
+{
+	"metadata": {
+		"name": "Memory navigate",
+		"description": "Chat loop: Navigator LLM + Searcher Sub-Agent answer questions grounded in `.langflower/memory/` via common-memory-tools. Configure a provider; build memory with kb-create (Memory create) first when empty.",
+		"createdAt": "2026-07-27T00:00:00.000Z",
+		"updatedAt": "2026-07-27T00:00:00.000Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 0,
+			"y": 0,
+			"scale": 0.75,
+			"width": 1200,
+			"height": 800
+		},
+		"nodes": [
+			{
+				"id": "chat",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 40, "y": 240 },
+					"label": "Ask"
+				}
+			},
+			{
+				"id": "memory-tools",
+				"type": "common-memory-tools",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 40, "y": 40 },
+					"label": "Memory Tools"
+				}
+			},
+			{
+				"id": "navigator",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "custom",
+					"providerId": "",
+					"model": "",
+					"enabledToolIds": ["read", "glob", "grep"],
+					"maxIterations": 12,
+					"maxFeedbackTurns": 6
+				},
+				"inputs": {
+					"systemPrompt": "You answer questions about this project grounded in project memory.\n\nConvention: markdown under `.langflower/memory/` (built by the kb-create / Memory create workflow). Memory is also readable with harness file tools on `.langflower/memory/…`.\n\nBefore answering, use get_memory_tree / search_memory_grep / read_memory_section (yourself or via spawn_subagent Searcher). Prefer memory hits over guessing. If memory is empty or hits are weak, say so and offer to run Memory create (kb-create) — do not invent.\n\nWhen HITL feedback arrives, revise the answer — do not ignore it. Keep answers short and cite memory file paths / headings when available."
+				},
+				"ui": {
+					"position": { "x": 300, "y": 200 },
+					"label": "Navigator"
+				}
+			},
+			{
+				"id": "searcher",
+				"type": "common-sub-agent",
+				"params": {
+					"name": "Searcher",
+					"description": "Runs memory tree / grep / section read and returns grounded hits",
+					"skillIds": [],
+					"rolePreset": "custom",
+					"providerId": "",
+					"model": "",
+					"enabledToolIds": ["read"],
+					"maxIterations": 8,
+					"contextSize": 32768,
+					"compactOnError": false
+				},
+				"inputs": {
+					"systemPrompt": "You are Searcher. Use get_memory_tree, search_memory_grep, and read_memory_section for the task query. Return top hits with file paths and heading context. If memory is missing or empty, say so clearly. Do not invent content."
+				},
+				"ui": {
+					"position": { "x": 580, "y": 40 },
+					"label": "Searcher"
+				}
+			},
+			{
+				"id": "review",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 580, "y": 280 },
+					"label": "Review"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-chat-nav",
+				"fromNodeId": "chat",
+				"fromPort": ["message", 0],
+				"toNodeId": "navigator",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-mem-nav",
+				"fromNodeId": "memory-tools",
+				"fromPort": ["tools", 0],
+				"toNodeId": "navigator",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "e-mem-searcher",
+				"fromNodeId": "memory-tools",
+				"fromPort": ["tools", 0],
+				"toNodeId": "searcher",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "e-reg-searcher",
+				"fromNodeId": "searcher",
+				"fromPort": ["registration", 0],
+				"toNodeId": "navigator",
+				"toPort": ["subagentRegistration", 0]
+			},
+			{
+				"edgeId": "e-spawn-searcher",
+				"fromNodeId": "navigator",
+				"fromPort": ["subagent", 0],
+				"toNodeId": "searcher",
+				"toPort": ["task", 0]
+			},
+			{
+				"edgeId": "e-result-searcher",
+				"fromNodeId": "searcher",
+				"fromPort": ["result", 0],
+				"toNodeId": "navigator",
+				"toPort": ["subagentResult", 0]
+			},
+			{
+				"edgeId": "e-nav-review",
+				"fromNodeId": "navigator",
+				"fromPort": ["response", 0],
+				"toNodeId": "review",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-review-feedback",
+				"fromNodeId": "review",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "navigator",
+				"toPort": ["feedback", 0]
+			}
+		]
+	}
+}

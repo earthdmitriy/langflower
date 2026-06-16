@@ -1,0 +1,53 @@
+{
+	"name": "@langflower/common-nodes",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"main": "./dist/catalog.js",
+	"types": "./dist/catalog.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/catalog.d.ts",
+			"import": "./dist/catalog.js"
+		},
+		"./test": {
+			"types": "./dist/test-nodes/test-index.d.ts",
+			"import": "./dist/test-nodes/test-index.js"
+		},
+		"./ai/llm-role-preset": {
+			"types": "./dist/ai/llm-role-preset.d.ts",
+			"import": "./dist/ai/llm-role-preset.js"
+		},
+		"./ai/sub-agent-protocol": {
+			"types": "./dist/ai/sub-agent-protocol.d.ts",
+			"import": "./dist/ai/sub-agent-protocol.js"
+		},
+		"./ai/run-host-services": {
+			"types": "./dist/ai/run-host-services.d.ts",
+			"import": "./dist/ai/run-host-services.js"
+		},
+		"./ai/openai/create-chat-completion-stream": {
+			"types": "./dist/ai/openai/create-chat-completion-stream.d.ts",
+			"import": "./dist/ai/openai/create-chat-completion-stream.js"
+		},
+		"./ai/openai/list-provider-models": {
+			"types": "./dist/ai/openai/list-provider-models.d.ts",
+			"import": "./dist/ai/openai/list-provider-models.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"typecheck": "tsc -p tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"@langflower/node-sdk": "0.1.0",
+		"@langflower/runtime": "0.1.0",
+		"@langflower/tools": "0.1.0",
+		"@rx-evo/stateful-observable": "^0.5.2",
+		"openai": "^4.104.0",
+		"rxjs": "^7.8.1"
+	},
+	"files": [
+		"dist"
+	]
+}

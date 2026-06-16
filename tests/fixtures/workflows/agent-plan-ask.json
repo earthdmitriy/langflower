@@ -1,0 +1,48 @@
+{
+	"id": "agent-plan-ask",
+	"createdAt": "2026-06-17T00:00:00.000Z",
+	"updatedAt": "2026-06-17T00:00:00.000Z",
+	"nodes": [
+		{
+			"id": "prompt-1",
+			"type": "common-string",
+			"position": {
+				"x": 0,
+				"y": 0
+			},
+			"data": {
+				"label": "Goal",
+				"params": {},
+				"inputs": {
+					"value": "Clarify scope before planning"
+				}
+			}
+		},
+		{
+			"id": "plan-1",
+			"type": "common-agent-plan",
+			"position": {
+				"x": 280,
+				"y": 0
+			},
+			"data": {
+				"label": "Plan Agent",
+				"params": {
+					"providerId": "mock",
+					"model": "test-model",
+					"maxIterations": 5
+				},
+				"inputs": {}
+			}
+		}
+	],
+	"edges": [
+		{
+			"edgeId": "e1",
+			"fromNodeId": "prompt-1",
+			"fromPort": ["value", 0],
+			"toNodeId": "plan-1",
+			"toPort": ["userPrompt", 0]
+		}
+	]
+}

@@ -1,0 +1,95 @@
+{
+	"name": "langflower",
+	"version": "0.0.6",
+	"description": "Visual LLM-chain builder",
+	"type": "module",
+	"bin": {
+		"langflower": "./bin/langflower.js"
+	},
+	"main": "./dist/index.js",
+	"files": [
+		"dist",
+		"bin",
+		"ui-dist",
+		"vendor",
+		"docs/public"
+	],
+	"workspaces": [
+		"packages/*"
+	],
+	"engines": {
+		"node": ">=22.22.3"
+	},
+	"overrides": {
+		"@angular/core": "22.0.1",
+		"@angular/common": "22.0.1",
+		"@angular/compiler": "22.0.1",
+		"ng-diagram": {
+			"@angular/core": "22.0.1",
+			"@angular/common": "22.0.1"
+		}
+	},
+	"scripts": {
+		"build": "bash build/build-all.sh",
+		"build:shared": "bash build/build-shared.sh",
+		"build:server": "bash build/build-server.sh",
+		"build:ui": "bash build/build-ui.sh",
+		"build:cli": "bash build/build-cli.sh",
+		"typecheck": "bash build/typecheck-all.sh",
+		"clean": "bash build/clean.sh",
+		"cleanup": "bash build/cleanup.sh",
+		"cleanup:install": "bash build/cleanup.sh --install",
+		"install:deps": "bash build/install.sh",
+		"install-local": "node build/install-local.mjs",
+		"format": "node build/format.mjs",
+		"format:check": "node build/format.mjs --check",
+		"lint": "node build/lint.mjs",
+		"lint:fix": "node build/lint.mjs --fix",
+		"test": "node build/test.mjs",
+		"test:details": "node build/test.mjs --details",
+		"test:unit": "node build/test.mjs --unit",
+		"test:integration": "node build/test.mjs --integration",
+		"test:watch": "node build/test.mjs --watch",
+		"verify": "node build/verify.mjs",
+		"verify:quick": "node build/verify.mjs --quick",
+		"check:exports": "node build/check-exports.mjs",
+		"check:exports:fix": "node build/check-exports.mjs --fix",
+		"check:dead-code": "node build/dead-code.mjs",
+		"check:dead-code:json": "node build/dead-code.mjs --json",
+		"fix-exports": "node build/fix-single-use.mjs",
+		"clean-orphans": "node build/clean-orphans.mjs",
+		"pack-release": "node build/pack-release.mjs",
+		"pre-release": "node build/pre-release.mjs",
+		"start": "npm run start -w @langflower/cli",
+		"dev": "node build/dev.mjs"
+	},
+	"dependencies": {
+		"commander": "^12.1.0",
+		"open": "^10.1.0"
+	},
+	"devDependencies": {
+		"@analogjs/vite-plugin-angular": "^2.6.3",
+		"@angular/build": "^22.0.5",
+		"@angular/common": "22.0.1",
+		"@angular/core": "22.0.1",
+		"@eslint/js": "^9.17.0",
+		"@types/node": "^22.10.0",
+		"angular-eslint": "^22.0.0",
+		"concurrently": "^10.0.3",
+		"eslint": "^9.17.0",
+		"eslint-config-prettier": "^10.0.1",
+		"globals": "^15.14.0",
+		"jsdom": "^29.1.1",
+		"knip": "^6.17.1",
+		"prettier": "^3.4.2",
+		"typescript": "~6.0.0",
+		"typescript-eslint": "^8.18.0",
+		"vitest": "^4.0.8"
+	},
+	"keywords": [
+		"llm",
+		"workflow",
+		"visual-editor"
+	],
+	"license": "MIT"
+}

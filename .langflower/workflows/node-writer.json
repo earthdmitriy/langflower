@@ -1,0 +1,81 @@
+{
+	"metadata": {
+		"name": "Node writer",
+		"description": "Chat loop with an agent that has skill langflower-node-writer — draft defineNode / defineReactiveNode packs under .langflower/nodes.",
+		"createdAt": "2026-07-24T00:00:00.000Z",
+		"updatedAt": "2026-07-24T00:00:00.000Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 0,
+			"y": 0,
+			"scale": 1,
+			"width": 900,
+			"height": 700
+		},
+		"nodes": [
+			{
+				"id": "chat",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 40, "y": 220 },
+					"label": "Ask"
+				}
+			},
+			{
+				"id": "writer",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "custom",
+					"skillId": "langflower-node-writer",
+					"providerId": "",
+					"model": "",
+					"maxIterations": 8,
+					"maxFeedbackTurns": 4
+				},
+				"inputs": {
+					"systemPrompt": "You help the user write Langflower custom nodes. Follow the langflower-node-writer skill and ADR-030 pack layout. Prefer defineNode; use defineReactiveNode only when exclusive branches are required."
+				},
+				"ui": {
+					"position": { "x": 320, "y": 180 },
+					"label": "Node writer"
+				}
+			},
+			{
+				"id": "review",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 620, "y": 220 },
+					"label": "Review"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-chat-writer",
+				"fromNodeId": "chat",
+				"fromPort": ["message", 0],
+				"toNodeId": "writer",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-writer-review",
+				"fromNodeId": "writer",
+				"fromPort": ["response", 0],
+				"toNodeId": "review",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-review-feedback",
+				"fromNodeId": "review",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "writer",
+				"toPort": ["feedback", 0]
+			}
+		]
+	}
+}

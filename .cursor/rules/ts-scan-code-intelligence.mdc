@@ -1,0 +1,71 @@
+---
+description: >-
+  Prefer the ts-scan MCP for TypeScript code intelligence. Do not grep or
+  multi-file explore to find symbol definitions, types, callers, or references.
+alwaysApply: true
+---
+
+# Prefer ts-scan MCP for code intelligence
+
+When the question is about a **TypeScript symbol** (type, function, class,
+export), use the **ts-scan** MCP
+(`project-0-langflower-ts-scan`) **before** Grep, Glob, or reading many files.
+
+## First move: name known → `resolve_symbol`
+
+If you know or guess a symbol name (`StatefulObservable`, `RuntimeFacade`,
+`defineReactiveNode`, …):
+
+1. Call `resolve_symbol` with `symbol` + absolute `relativeTo` (any nearby
+   `.ts` file as anchor, e.g. the file you are editing).
+2. Use the returned import path, signature, and JSDoc.
+3. Only then open the definition file if you still need implementation body.
+
+**Do not** ripgrep the name across the repo to “find where it lives.”
+
+## Tool map (use instead of grep/explore)
+
+| Need | ts-scan tool |
+| ---- | ------------ |
+| Where is / what is symbol X? | `resolve_symbol` |
+| Type / hover at a line | `inspect` |
+| Jump to declaration | `go_to_definition` |
+| All real references / rename impact | `find_references` |
+| Who calls this function? | `find_callers` |
+| Paths from exports/tests to target | `reachability` |
+| Module public API | `list_exports` |
+| Imports of a file | `list_imports` |
+| Call-site parameter hints | `signature_help` |
+| Errors after an edit | `get_diagnostics` / `check_type_errors` |
+
+Discover schemas via `GetMcpTools` on that server before calling if unsure.
+**Paths must be absolute.**
+
+## If ts-scan is unavailable
+
+Cursor sometimes deactivates the ts-scan MCP on its own. Treat these as
+“unavailable”:
+
+- Server missing from the MCP catalog, or `serverStatus` is not `ready`
+  (`error`, `needsAuth`, `loading`, disabled)
+- Tool calls fail with auth / connection / “server not found” errors
+
+**Do not** silently fall back to Grep / multi-file explore for symbol
+intelligence. **Stop and ask the user** to re-enable the ts-scan MCP in Cursor
+settings (MCP panel → `ts-scan` / `project-0-langflower-ts-scan`), then retry.
+
+Only after the user confirms it stays off (or cannot enable it) may you use
+Grep as a degraded fallback — and say so explicitly.
+
+## When Grep / explore is still OK
+
+- Non-symbol text: docs, JSON, CSS, error message strings, commit messages
+- Unknown substring / pattern with no symbol name
+- Project-wide proof: full `verify` / `npm run test` (ts-scan is not a build gate)
+
+## Anti-pattern
+
+```text
+❌ Grep "StatefulObservable" → open 8 files → guess the type
+✅ resolve_symbol({ symbol: "StatefulObservable", relativeTo: "<abs>.ts" })
+```

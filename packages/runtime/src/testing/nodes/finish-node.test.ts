@@ -1,0 +1,42 @@
+import { filter, firstValueFrom } from 'rxjs';
+import { describe, expect, it } from 'vitest';
+import { createConstantTestNode } from './constant-node.js';
+import { createFinishTestNode } from './finish-node.js';
+import {
+	type RuntimeHarness,
+	createRuntimeHarness,
+	wireEdge,
+} from '../workflows/workflow-events.js';
+
+describe('finish test node', () => {
+	it('ends the run with done when value reaches finish node', async () => {
+		const runtime = createRuntimeHarness();
+
+		runtime.editor.addNode(
+			createConstantTestNode({ nodeId: 'A', value: 'hello' }),
+		);
+		runtime.editor.addNode(createFinishTestNode({ nodeId: 'finish' }));
+
+		wireEdge(runtime.editor, {
+			fromNodeId: 'A',
+			fromPort: ['value', 0],
+			toNodeId: 'finish',
+			toPort: ['value', 0],
+		});
+
+		const donePromise = firstValueFrom(
+			runtime.runner.events$.pipe(
+				filter(
+					(event): event is { kind: 'done'; runId: string } =>
+						event.kind === 'done',
+				),
+			),
+		);
+
+		const runId = runtime.runner.start();
+		const done = await donePromise;
+
+		expect(done.runId).toBe(runId);
+		expect(await firstValueFrom(runtime.runner.status$)).toBe('idle');
+	});
+});

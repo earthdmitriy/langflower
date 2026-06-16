@@ -1,0 +1,5 @@
+# Runtime temporary project directories for integration tests.
+# See docs/TESTING.md — never commit contents.
+
+*
+!.gitignore

@@ -1,0 +1,55 @@
+{
+	"metadata": {
+		"id": "example",
+		"name": "Example",
+		"description": "String literal workflow",
+		"createdAt": "2026-06-17T00:00:00.000Z",
+		"updatedAt": "2026-06-17T00:00:00.000Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 0,
+			"y": 0,
+			"scale": 1
+		},
+		"nodes": [
+			{
+				"id": "string-1",
+				"type": "common-string",
+				"params": {},
+				"inputs": {
+					"value": "Hello Langflower"
+				},
+				"ui": {
+					"position": {
+						"x": 0,
+						"y": 0
+					},
+					"label": "String"
+				}
+			},
+			{
+				"id": "preview-1",
+				"type": "common-preview",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 240,
+						"y": 0
+					},
+					"label": "Preview"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e1",
+				"fromNodeId": "string-1",
+				"fromPort": ["value", 0],
+				"toNodeId": "preview-1",
+				"toPort": ["text", 0]
+			}
+		]
+	}
+}

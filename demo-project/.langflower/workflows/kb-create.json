@@ -1,0 +1,287 @@
+{
+	"$schema": "../schemas/workflow.schema.json",
+	"metadata": {
+		"name": "Memory create",
+		"description": "Index-then-serial Memory create: Orchestrator builds a work queue via glob/read, then spawns Explorer→Composer one unit at a time into `.langflower/memory/`. common-review blocks exit until the bar is met. Configure a provider before running.",
+		"createdAt": "2026-07-27T00:00:00.000Z",
+		"updatedAt": "2026-07-27T13:00:00.000Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 0,
+			"y": 0,
+			"scale": 0.55,
+			"width": 1600,
+			"height": 900
+		},
+		"nodes": [
+			{
+				"id": "brief",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 40,
+						"y": 280
+					},
+					"label": "Brief"
+				}
+			},
+			{
+				"id": "memory-tools",
+				"type": "common-memory-tools",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 40,
+						"y": 40
+					},
+					"label": "Memory Tools"
+				}
+			},
+			{
+				"id": "orchestrator",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "custom",
+					"providerId": "",
+					"model": "",
+					"enabledToolIds": [
+						"read",
+						"glob",
+						"grep",
+						"write",
+						"edit",
+						"create"
+					],
+					"maxIterations": 24,
+					"maxFeedbackTurns": 8
+				},
+				"inputs": {
+					"systemPrompt": "You are the Orchestrator for building a DETAILED project memory map (project wiki) under `.langflower/memory/`.\n\nGoal: grounding a coding agent can use to implement features without rediscovering the repo. A thin whole-repo skim is NOT enough.\n\n## Required memory layout (all under `.langflower/memory/`)\n\n1) `core/overview.md` — purpose, primary user, ships vs not, how to run\n2) `core/layout.md` — directory / package map with ownership\n3) `core/architecture.md` — runtime flow, boundaries, key ADRs / invariants\n4) `core/build-test.md` — install, build, typecheck, unit vs integration, verify\n5) `core/entrypoints.md` — CLI / server / UI / MCP paths and ports\n6) `core/conventions.md` — coding rules agents must follow\n7) `modules/<area>.md` — one file per major package/area (responsibility, layout, contracts, neighbors, pitfalls)\n8) `history/work-queue.md` — indexed work units (Pending / In progress / Done)\n9) `history/build-log.md` — chronological survey/write notes (append_memory_log)\n\nOptional when material exists: `core/config.md`, `core/workflows-skills.md`.\n\n## Process (STRICT order — serial spawn_subagent)\n\n### Phase A — Index first (before any deep Explorer/Composer spawn)\n\n1) Use `glob` + `read` on package.json workspaces, top-level dirs, README*, AGENTS.md, docs/** (or equivalents). List every workspace package / major area and each mandatory `core/*` topic.\n2) Persist `.langflower/memory/history/work-queue.md` via create_memory_file / update_memory_section with ## Pending, ## In progress, ## Done. Each Pending item: id, path(s) to survey, target memory file (`modules/<area>.md` or `core/<name>.md`), status.\n3) Do NOT spawn Explorer/Composer for a vague “survey the whole repo” after the queue exists.\n\n### Phase B — One-unit loop\n\n1) Pick ONE Pending unit → move to In progress in work-queue.md.\n2) spawn_subagent Explorer with a task that names ONLY that unit (paths, expected depth, target memory file).\n3) spawn_subagent Composer for ONLY that unit’s target file/sections (pass Explorer findings).\n4) Mark the unit Done; append_memory_log on history/build-log.md.\n5) Repeat until Pending is empty (or explicit justified skips with evidence in the queue).\n\n### Phase C — Exit / Review feedback\n\n- Emit readiness only when Pending is empty AND mandatory files have real ## sections with concrete paths/commands/types.\n- Module pages MUST cover every indexed package/area from the queue.\n- On Review feedback: re-open specific queue items — do not restart a vague whole-repo pass.\n- Cite evidence (paths + section headings) in the readiness report."
+				},
+				"ui": {
+					"position": {
+						"x": 300,
+						"y": 240
+					},
+					"label": "Orchestrator"
+				}
+			},
+			{
+				"id": "explorer",
+				"type": "common-sub-agent",
+				"params": {
+					"name": "Explorer",
+					"description": "Surveys one queued repo unit for the coding-agent memory corpus",
+					"skillIds": [],
+					"rolePreset": "explorer",
+					"providerId": "",
+					"model": "",
+					"maxIterations": 20,
+					"contextSize": 32768,
+					"compactOnError": false
+				},
+				"inputs": {
+					"systemPrompt": "You are Explorer. You survey ONE scoped unit named in the spawn task — not the whole monorepo.\n\n## Scope\n\nThe Orchestrator task names: unit id, path(s)/package to read, expected depth, and target memory file. Stay inside that scope. Use glob / read / grep aggressively inside those paths. Cross-links to neighbors only when needed for contracts.\n\nIf the task is ambiguous, return a short gap list for Orchestrator — do NOT expand into a full-repo skim.\n\n## Finding report (return this structure for the assigned unit)\n\n1. Unit id + paths surveyed\n2. Ownership / responsibility (one paragraph)\n3. Layout (key folders + what lives where)\n4. Public contracts / exports / entrypoints (with paths)\n5. Neighbors (how it talks to other packages)\n6. Pitfalls / STATUS honesty for this unit\n7. Evidence paths (files actually read)\n8. Suggested ## sections for the target `.langflower/memory/` file\n\nRules: Prefer facts with file paths. Do not invent APIs. Check get_memory_tree / read_memory_section only to avoid duplicating what is already deep enough for THIS unit."
+				},
+				"ui": {
+					"position": {
+						"x": 620,
+						"y": 40
+					},
+					"label": "Explorer"
+				}
+			},
+			{
+				"id": "composer",
+				"type": "common-sub-agent",
+				"params": {
+					"name": "Composer",
+					"description": "Writes one queued memory file/section into `.langflower/memory/`",
+					"skillIds": [],
+					"rolePreset": "custom",
+					"providerId": "",
+					"model": "",
+					"enabledToolIds": [
+						"read",
+						"glob",
+						"grep",
+						"write",
+						"edit",
+						"create"
+					],
+					"maxIterations": 24,
+					"contextSize": 32768,
+					"compactOnError": false
+				},
+				"inputs": {
+					"systemPrompt": "You are Composer. Materialize Explorer findings for ONE assigned queue unit into `.langflower/memory/`.\n\n## Scope\n\nThe Orchestrator task names the target file (e.g. `core/overview.md` or `modules/<area>.md`) and may include Explorer findings. Create/update THAT target only — do not rewrite the entire corpus in one turn.\n\nSection sets by target type:\n- `core/overview.md` — ## Purpose, ## User, ## Scope, ## How to run\n- `core/layout.md` — ## Tree, ## Package ownership\n- `core/architecture.md` — ## Runtime flow, ## Boundaries, ## Key ADRs\n- `core/build-test.md` — ## Install, ## Build, ## Unit tests, ## Integration, ## Verify\n- `core/entrypoints.md` — ## CLI, ## Server, ## UI, ## Ports\n- `core/conventions.md` — ## TypeScript, ## Errors, ## Modules, ## Reactivity/agents (as applicable)\n- `modules/<area>.md` — ## Responsibility, ## Layout, ## Contracts, ## Neighbors, ## Pitfalls\n- `history/build-log.md` / `history/work-queue.md` — only when Orchestrator assigns those units\n\n## Quality bar\n\n- Concrete paths, commands, type/package names — no vague filler.\n- Prefer memory tools: create_memory_file, update_memory_section, append_memory_log, get_memory_tree, read_memory_section, search_memory_grep. Harness write/edit/create on `.langflower/memory/…` is OK.\n- Ground every claim in Explorer evidence + your own reads. Do not invent APIs.\n- If the target exists, update sections — do not leave stubs.\n\nReturn: files/sections written + whether this queue unit is complete + any residual gaps for Orchestrator."
+				},
+				"ui": {
+					"position": {
+						"x": 620,
+						"y": 280
+					},
+					"label": "Composer"
+				}
+			},
+			{
+				"id": "criteria",
+				"type": "common-string",
+				"params": {},
+				"inputs": {
+					"value": "Accept ONLY when `.langflower/memory/` is a coding-agent-ready project map built via an indexed work queue. ALL must hold:\n1) `history/work-queue.md` exists with ## Pending empty (or explicit justified skips with evidence); Done covers every indexed major package/area plus mandatory core topics.\n2) Mandatory files exist: core/overview.md, core/layout.md, core/architecture.md, core/build-test.md, core/entrypoints.md, core/conventions.md, modules/*.md for each indexed package/area, history/build-log.md, history/work-queue.md.\n3) Each core/module file has real ## sections with concrete paths/commands — not placeholders or one-paragraph fluff.\n4) Module pages state responsibility, layout, contracts, neighbors, pitfalls with file evidence matching the queue.\n5) get_memory_tree shows the structure; search_memory_grep finds build/test commands and package names; spot-check read_memory_section on work-queue Done items and at least two modules.\n6) Reject if content looks like one shallow whole-repo pass instead of queued units, or if Pending still has work.\n7) Readiness report is honest.\nVerify with memory tools before accept."
+				},
+				"ui": {
+					"position": {
+						"x": 300,
+						"y": 520
+					},
+					"label": "Ready criteria"
+				}
+			},
+			{
+				"id": "review",
+				"type": "common-review",
+				"params": {
+					"providerId": "",
+					"model": "",
+					"maxIterations": 12
+				},
+				"inputs": {
+					"systemPrompt": "You are the Memory readiness Review (Validator) for a CODING-AGENT project map / project wiki.\nCall tool accept or feedback — never reply in plain text only.\n\nHard reject:\n- Missing or non-empty ## Pending in history/work-queue.md (unless skips are justified with evidence)\n- Thin corpora: single overview, missing modules/*, missing build-test/entrypoints/conventions\n- Vague prose without paths/commands\n- Evidence of one shallow whole-repo skim instead of serial queued units\n\nVerify with get_memory_tree, search_memory_grep, and read_memory_section: spot-check history/work-queue.md, core/*, and at least two modules/* against the task criteria before accept.\nCall accept only when the map is detailed enough to start real coding work. Call feedback with concrete missing queue items / files / sections otherwise."
+				},
+				"ui": {
+					"position": {
+						"x": 920,
+						"y": 280
+					},
+					"label": "Memory Ready Review"
+				}
+			},
+			{
+				"id": "done",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 1200,
+						"y": 280
+					},
+					"label": "Finish"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-brief-orch",
+				"fromNodeId": "brief",
+				"fromPort": ["message", 0],
+				"toNodeId": "orchestrator",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-mem-orch",
+				"fromNodeId": "memory-tools",
+				"fromPort": ["tools", 0],
+				"toNodeId": "orchestrator",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "e-mem-explorer",
+				"fromNodeId": "memory-tools",
+				"fromPort": ["tools", 0],
+				"toNodeId": "explorer",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "e-mem-composer",
+				"fromNodeId": "memory-tools",
+				"fromPort": ["tools", 0],
+				"toNodeId": "composer",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "e-mem-review",
+				"fromNodeId": "memory-tools",
+				"fromPort": ["tools", 0],
+				"toNodeId": "review",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "e-reg-explorer",
+				"fromNodeId": "explorer",
+				"fromPort": ["registration", 0],
+				"toNodeId": "orchestrator",
+				"toPort": ["subagentRegistration", 0]
+			},
+			{
+				"edgeId": "e-reg-composer",
+				"fromNodeId": "composer",
+				"fromPort": ["registration", 0],
+				"toNodeId": "orchestrator",
+				"toPort": ["subagentRegistration", 1]
+			},
+			{
+				"edgeId": "e-spawn-explorer",
+				"fromNodeId": "orchestrator",
+				"fromPort": ["subagent", 0],
+				"toNodeId": "explorer",
+				"toPort": ["task", 0]
+			},
+			{
+				"edgeId": "e-spawn-composer",
+				"fromNodeId": "orchestrator",
+				"fromPort": ["subagent", 0],
+				"toNodeId": "composer",
+				"toPort": ["task", 0]
+			},
+			{
+				"edgeId": "e-result-explorer",
+				"fromNodeId": "explorer",
+				"fromPort": ["result", 0],
+				"toNodeId": "orchestrator",
+				"toPort": ["subagentResult", 0]
+			},
+			{
+				"edgeId": "e-result-composer",
+				"fromNodeId": "composer",
+				"fromPort": ["result", 0],
+				"toNodeId": "orchestrator",
+				"toPort": ["subagentResult", 1]
+			},
+			{
+				"edgeId": "e-orch-review-result",
+				"fromNodeId": "orchestrator",
+				"fromPort": ["response", 0],
+				"toNodeId": "review",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-criteria-review-task",
+				"fromNodeId": "criteria",
+				"fromPort": ["value", 0],
+				"toNodeId": "review",
+				"toPort": ["task", 0]
+			},
+			{
+				"edgeId": "e-review-feedback",
+				"fromNodeId": "review",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "orchestrator",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-review-done",
+				"fromNodeId": "review",
+				"fromPort": ["response", 0],
+				"toNodeId": "done",
+				"toPort": ["value", 0]
+			}
+		]
+	}
+}

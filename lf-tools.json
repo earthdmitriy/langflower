@@ -1,0 +1,117 @@
+{
+	"model": "gemma-3-12b-it-ultra-uncensored-heretic",
+	"messages": [
+		{
+			"role": "system",
+			"content": "You are the Proposer. Draft a clear claim packet f... <Truncated in logs> ...allable via internal tool loop): read, glob, grep."
+		},
+		{
+			"role": "user",
+			"content": "Claim: Langflower should default every agent to a ... <Truncated in logs> ...ragraph with one concrete risk and one mitigation."
+		}
+	],
+	"stream": true,
+	"tools": [
+		{
+			"type": "function",
+			"function": {
+				"name": "read",
+				"description": "Read a file under the project root. Optional start... <Truncated in logs> ...al postProcess: source of (res: string) => string.",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"path": {
+							"type": "string",
+							"description": "Project-relative file path"
+						},
+						"startLine": {
+							"type": "number",
+							"description": "1-based start line"
+						},
+						"endLine": {
+							"type": "number",
+							"description": "1-based end line (inclusive)"
+						},
+						"offset": {
+							"type": "number",
+							"description": "0-based line offset"
+						},
+						"limit": {
+							"type": "number",
+							"description": "Max lines to return"
+						},
+						"postProcess": {
+							"type": "string",
+							"description": "Optional source of (res: string) => string applied after a successful read"
+						}
+					},
+					"required": ["path"],
+					"additionalProperties": false
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "glob",
+				"description": "List files matching a glob under the project root (gitignore-aware by default). Optional postProcess.",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"pattern": {
+							"type": "string",
+							"description": "Glob pattern, e.g. **/*.ts"
+						},
+						"cwd": {
+							"type": "string",
+							"description": "Optional subdirectory relative to project root"
+						},
+						"respectGitignore": {
+							"type": "boolean",
+							"description": "Default true"
+						},
+						"postProcess": {
+							"type": "string",
+							"description": "Optional source of (res: string) => string"
+						}
+					},
+					"required": ["pattern"],
+					"additionalProperties": false
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "grep",
+				"description": "Regex search across project files (gitignore-aware by default; Node walk — not ripgrep). Optional postProcess.",
+				"parameters": {
+					"type": "object",
+					"properties": {
+						"pattern": {
+							"type": "string",
+							"description": "JavaScript RegExp source"
+						},
+						"path": {
+							"type": "string",
+							"description": "Optional subdirectory or file to search"
+						},
+						"caseInsensitive": {
+							"type": "boolean"
+						},
+						"respectGitignore": {
+							"type": "boolean",
+							"description": "Default true"
+						},
+						"postProcess": {
+							"type": "string",
+							"description": "Optional source of (res: string) => string"
+						}
+					},
+					"required": ["pattern"],
+					"additionalProperties": false
+				}
+			}
+		}
+	]
+}

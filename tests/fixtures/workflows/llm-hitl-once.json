@@ -1,0 +1,69 @@
+{
+	"id": "llm-hitl-once",
+	"createdAt": "2026-06-17T00:00:00.000Z",
+	"updatedAt": "2026-06-17T00:00:00.000Z",
+	"nodes": [
+		{
+			"id": "prompt-1",
+			"type": "common-string",
+			"position": {
+				"x": 0,
+				"y": 0
+			},
+			"data": {
+				"label": "Prompt",
+				"params": {},
+				"inputs": {
+					"value": "Say hello"
+				}
+			}
+		},
+		{
+			"id": "llm-1",
+			"type": "common-agent",
+			"position": {
+				"x": 280,
+				"y": 0
+			},
+			"data": {
+				"label": "Agent",
+				"params": {
+					"enabledTools": [],
+					"temperature": 0.7,
+					"maxTokens": 4096,
+					"model": "mock/test-model"
+				},
+				"inputs": {}
+			}
+		},
+		{
+			"id": "ask-1",
+			"type": "common-dialog",
+			"position": {
+				"x": 560,
+				"y": 0
+			},
+			"data": {
+				"label": "Ask User",
+				"params": {},
+				"inputs": {}
+			}
+		}
+	],
+	"edges": [
+		{
+			"edgeId": "e-prompt-llm",
+			"fromNodeId": "prompt-1",
+			"fromPort": ["value", 0],
+			"toNodeId": "llm-1",
+			"toPort": ["userPrompt", 0]
+		},
+		{
+			"edgeId": "e-llm-ask",
+			"fromNodeId": "llm-1",
+			"fromPort": ["response", 0],
+			"toNodeId": "ask-1",
+			"toPort": ["question", 0]
+		}
+	]
+}

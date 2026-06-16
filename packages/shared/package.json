@@ -1,0 +1,79 @@
+{
+	"name": "@langflower/shared",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"main": "./dist/constants/defaults.js",
+	"types": "./dist/constants/defaults.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/constants/defaults.d.ts",
+			"import": "./dist/constants/defaults.js"
+		},
+		"./constants/defaults": {
+			"types": "./dist/constants/defaults.d.ts",
+			"import": "./dist/constants/defaults.js"
+		},
+		"./constants/defaults.js": {
+			"types": "./dist/constants/defaults.d.ts",
+			"import": "./dist/constants/defaults.js"
+		},
+		"./types/config": {
+			"types": "./dist/types/config.d.ts",
+			"import": "./dist/types/config.js"
+		},
+		"./types/config.js": {
+			"types": "./dist/types/config.d.ts",
+			"import": "./dist/types/config.js"
+		},
+		"./langflower": {
+			"types": "./dist/langflower.d.ts",
+			"import": "./dist/langflower.js"
+		},
+		"./langflower.js": {
+			"types": "./dist/langflower.d.ts",
+			"import": "./dist/langflower.js"
+		},
+		"./langflower-ws-waits": {
+			"types": "./dist/langflower-ws-waits.d.ts",
+			"import": "./dist/langflower-ws-waits.js"
+		},
+		"./langflower-ws-waits.js": {
+			"types": "./dist/langflower-ws-waits.d.ts",
+			"import": "./dist/langflower-ws-waits.js"
+		},
+		"./types/langflower-server": {
+			"types": "./dist/types/langflower-server.d.ts",
+			"import": "./dist/types/langflower-server.js"
+		},
+		"./types/langflower-workflow": {
+			"types": "./dist/types/langflower-workflow.d.ts",
+			"import": "./dist/types/langflower-workflow.js"
+		},
+		"./types/langflower-bootstrap": {
+			"types": "./dist/types/langflower-bootstrap.d.ts",
+			"import": "./dist/types/langflower-bootstrap.js"
+		},
+		"./types/langflower-config": {
+			"types": "./dist/types/langflower-config.d.ts",
+			"import": "./dist/types/langflower-config.js"
+		},
+		"./types/langflower-palette": {
+			"types": "./dist/types/langflower-palette.d.ts",
+			"import": "./dist/types/langflower-palette.js"
+		}
+	},
+	"scripts": {
+		"build": "rm -rf dist tsconfig.tsbuildinfo && tsc -p tsconfig.json",
+		"typecheck": "tsc -p tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"@langflower/node-sdk": "0.1.0",
+		"@langflower/runtime": "0.1.0",
+		"@langflower/websocket-bridge": "0.1.0",
+		"rxjs": "^7.8.1"
+	},
+	"files": [
+		"dist"
+	]
+}

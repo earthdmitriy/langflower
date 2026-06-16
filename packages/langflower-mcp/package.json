@@ -1,0 +1,41 @@
+{
+	"name": "@langflower/mcp",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"bin": {
+		"langflower-mcp": "./bin/langflower-mcp.js"
+	},
+	"exports": {
+		"./build-tool-catalog": {
+			"types": "./dist/build-tool-catalog.d.ts",
+			"import": "./dist/build-tool-catalog.js"
+		},
+		"./create-bridge-session": {
+			"types": "./dist/create-bridge-session.d.ts",
+			"import": "./dist/create-bridge-session.js"
+		},
+		"./handle-tool-call": {
+			"types": "./dist/handle-tool-call.d.ts",
+			"import": "./dist/handle-tool-call.js"
+		},
+		"./mcp-exposure-policy": {
+			"types": "./dist/mcp-exposure-policy.d.ts",
+			"import": "./dist/mcp-exposure-policy.js"
+		}
+	},
+	"scripts": {
+		"codegen": "node scripts/codegen-bridge-tools.mjs",
+		"build": "node scripts/codegen-bridge-tools.mjs && tsc -p tsconfig.json",
+		"typecheck": "tsc -p tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"@langflower/shared": "0.1.0",
+		"@langflower/websocket-bridge": "0.1.0",
+		"rxjs": "^7.8.1"
+	},
+	"files": [
+		"dist",
+		"bin"
+	]
+}

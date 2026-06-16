@@ -1,0 +1,350 @@
+{
+	"model": "qwopus3.6-27b-v2-mtp",
+	"max_tokens": 32000,
+	"messages": [
+		{
+			"role": "system",
+			"content": "You are opencode, an interactive CLI tool that hel... <Truncated in logs> ...SKILL.md</location>\n  </skill>\n</available_skills>"
+		},
+		{
+			"role": "user",
+			"content": "hi"
+		}
+	],
+	"tools": [
+		{
+			"type": "function",
+			"function": {
+				"name": "bash",
+				"description": "Executes a given Windows PowerShell (5.1) command ... <Truncated in logs> ...ecks, and releases; return the PR URL when done.\r\n",
+				"parameters": {
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"command": {
+							"type": "string",
+							"description": "The command to execute"
+						},
+						"timeout": {
+							"minimum": -9007199254740991,
+							"exclusiveMinimum": 0,
+							"type": "integer",
+							"maximum": 9007199254740991,
+							"description": "Optional timeout in milliseconds"
+						},
+						"workdir": {
+							"type": "string",
+							"description": "The working directory to run the command in. Defaults to the current directory. Use this instead of 'cd' commands."
+						}
+					},
+					"required": ["command"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "edit",
+				"description": "Performs exact string replacements in files. \r\n\r\nU... <Truncated in logs> ...l if you want to rename a variable for instance.\r\n",
+				"parameters": {
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"filePath": {
+							"type": "string",
+							"description": "The absolute path to the file to modify"
+						},
+						"oldString": {
+							"type": "string",
+							"description": "The text to replace"
+						},
+						"newString": {
+							"type": "string",
+							"description": "The text to replace it with (must be different from oldString)"
+						},
+						"replaceAll": {
+							"type": "boolean",
+							"description": "Replace all occurrences of oldString (default false)"
+						}
+					},
+					"required": ["filePath", "oldString", "newString"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "glob",
+				"description": "- Fast file pattern matching tool that works with ... <Truncated in logs> ...searches as a batch that are potentially useful.\r\n",
+				"parameters": {
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"pattern": {
+							"type": "string",
+							"description": "The glob pattern to match files against"
+						},
+						"path": {
+							"type": "string",
+							"description": "The directory to search in. If not specified, the ... <Truncated in logs> ...avior. Must be a valid directory path if provided."
+						}
+					},
+					"required": ["pattern"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "grep",
+				"description": "- Fast content search tool that works with any cod... <Truncated in logs> ...globbing and grepping, use the Task tool instead\r\n",
+				"parameters": {
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"pattern": {
+							"type": "string",
+							"description": "The regex pattern to search for in file contents"
+						},
+						"path": {
+							"type": "string",
+							"description": "The directory to search in. Defaults to the current working directory."
+						},
+						"include": {
+							"type": "string",
+							"description": "File pattern to include in the search (e.g. \"*.js\", \"*.{ts,tsx}\")"
+						}
+					},
+					"required": ["pattern"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "question",
+				"description": "Use this tool when you need to ask the user questi... <Truncated in logs> ... and add \"(Recommended)\" at the end of the label\r\n",
+				"parameters": {
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"questions": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"question": {
+										"type": "string",
+										"description": "Complete question"
+									},
+									"header": {
+										"type": "string",
+										"description": "Very short label (max 30 chars)"
+									},
+									"options": {
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"label": {
+													"type": "string",
+													"description": "Display text (1-5 words, concise)"
+												},
+												"description": {
+													"type": "string",
+													"description": "Explanation of choice"
+												}
+											},
+											"required": ["label", "description"]
+										},
+										"description": "Available choices"
+									},
+									"multiple": {
+										"type": "boolean",
+										"description": "Allow selecting multiple choices"
+									}
+								},
+								"required": ["question", "header", "options"]
+							},
+							"description": "Questions to ask"
+						}
+					},
+					"required": ["questions"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "read",
+				"description": "Read a file or directory from the local filesystem... <Truncated in logs> ...es and PDFs and return them as file attachments.\r\n",
+				"parameters": {
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"filePath": {
+							"type": "string",
+							"description": "The absolute path to the file or directory to read"
+						},
+						"offset": {
+							"minimum": 0,
+							"type": "integer",
+							"maximum": 9007199254740991,
+							"description": "The line number to start reading from (1-indexed)"
+						},
+						"limit": {
+							"minimum": 0,
+							"type": "integer",
+							"maximum": 9007199254740991,
+							"description": "The maximum number of lines to read (defaults to 2000)"
+						}
+					},
+					"required": ["filePath"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "skill",
+				"description": "Load a specialized skill when the task at hand mat... <Truncated in logs> ... one of the skills listed in your system prompt.\r\n",
+				"parameters": {
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"name": {
+							"type": "string",
+							"description": "The name of the skill from available_skills"
+						}
+					},
+					"required": ["name"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "task",
+				"description": "Launch a new agent to handle complex, multistep ta... <Truncated in logs> ...ent to execute multiple units of work in parallel.",
+				"parameters": {
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"description": {
+							"type": "string",
+							"description": "A short (3-5 words) description of the task"
+						},
+						"prompt": {
+							"type": "string",
+							"description": "The task for the agent to perform"
+						},
+						"subagent_type": {
+							"type": "string",
+							"description": "The type of specialized agent to use for this task"
+						},
+						"task_id": {
+							"type": "string",
+							"description": "This should only be set if you mean to resume a pr... <Truncated in logs> ...session as before instead of creating a fresh one)"
+						},
+						"command": {
+							"type": "string",
+							"description": "The command that triggered this task"
+						}
+					},
+					"required": ["description", "prompt", "subagent_type"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "todowrite",
+				"description": "Create and maintain a structured task list for the... <Truncated in logs> ...ppened\" -> one command\r\n\r\nWhen in doubt, use it.\r\n",
+				"parameters": {
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"todos": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"content": {
+										"type": "string",
+										"description": "Brief description of the task"
+									},
+									"status": {
+										"type": "string",
+										"description": "Current status of the task: pending, in_progress, completed, cancelled"
+									},
+									"priority": {
+										"type": "string",
+										"description": "Priority level of the task: high, medium, low"
+									}
+								},
+								"required": ["content", "status", "priority"]
+							},
+							"description": "The updated todo list"
+						}
+					},
+					"required": ["todos"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "webfetch",
+				"description": "- Fetches content from a specified URL\r\n- Takes a ... <Truncated in logs> ...s may be summarized if the content is very large\r\n",
+				"parameters": {
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"url": {
+							"type": "string",
+							"description": "The URL to fetch content from"
+						},
+						"format": {
+							"type": "string",
+							"enum": ["text", "markdown", "html"],
+							"description": "The format to return the content in (text, markdown, or html). Defaults to markdown.",
+							"default": "markdown"
+						},
+						"timeout": {
+							"type": "number",
+							"description": "Optional timeout in seconds (max 120)"
+						}
+					},
+					"required": ["url"]
+				}
+			}
+		},
+		{
+			"type": "function",
+			"function": {
+				"name": "write",
+				"description": "Writes a file to the local filesystem.\r\n\r\nUsage:\r\n... <Truncated in logs> ... it. Avoid writing emojis to files unless asked.\r\n",
+				"parameters": {
+					"$schema": "https://json-schema.org/draft/2020-12/schema",
+					"type": "object",
+					"properties": {
+						"content": {
+							"type": "string",
+							"description": "The content to write to the file"
+						},
+						"filePath": {
+							"type": "string",
+							"description": "The absolute path to the file to write (must be absolute, not relative)"
+						}
+					},
+					"required": ["content", "filePath"]
+				}
+			}
+		}
+	],
+	"tool_choice": "auto",
+	"stream": true,
+	"stream_options": {
+		"include_usage": true
+	}
+}

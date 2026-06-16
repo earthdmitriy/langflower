@@ -1,0 +1,18 @@
+{
+	"id": "golden-sample",
+	"threshold": 1,
+	"scorer": "exact",
+	"skillPath": "skills/triage.md",
+	"cases": [
+		{
+			"id": "greet",
+			"input": "Say the greeting token from the skill.",
+			"expected": "HELLO_OK"
+		},
+		{
+			"id": "farewell",
+			"input": "Say the farewell token from the skill.",
+			"expected": "BYE_OK"
+		}
+	]
+}

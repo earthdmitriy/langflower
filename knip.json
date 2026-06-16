@@ -1,0 +1,70 @@
+{
+	"$schema": "https://unpkg.com/knip@5/schema.json",
+	"workspaces": {
+		"packages/shared": {
+			"entry": [
+				"src/langflower.ts",
+				"src/langflower-bus-config.ts",
+				"src/langflower-ws-waits.ts",
+				"src/constants/defaults.ts",
+				"src/types/config.ts",
+				"src/types/langflower-*.ts"
+			],
+			"project": ["src/**/*.ts"]
+		},
+		"packages/node-sdk": {
+			"entry": [
+				"src/node-factory/define-reactive-node/define-reactive-node.ts",
+				"src/node-factory/define-reactive-node/ui-schema-inference.ts"
+			],
+			"project": ["src/**/*.ts"]
+		},
+		"packages/common-nodes": {
+			"entry": ["src/catalog.ts", "src/test-nodes/test-index.ts"],
+			"project": ["src/**/*.ts"]
+		},
+		"packages/runtime": {
+			"entry": ["src/runtime.ts", "src/port-meta.ts"],
+			"project": ["src/**/*.ts"]
+		},
+		"packages/tools": {
+			"entry": ["src/create-project-harness.ts", "src/permission.ts"],
+			"project": ["src/**/*.ts"]
+		},
+		"packages/eval": {
+			"entry": ["src/load-pack.ts", "src/run-eval-suite.ts"],
+			"project": ["src/**/*.ts"]
+		},
+		"packages/langflower-mcp": {
+			"entry": ["src/cli.ts", "bin/langflower-mcp.js"],
+			"project": ["src/**/*.ts"]
+		},
+		"packages/server": {
+			"entry": [
+				"src/create-server.ts",
+				"src/bootstrap/project-bootstrap.service.ts",
+				"src/server-context.ts"
+			],
+			"project": ["src/**/*.ts"]
+		},
+		"packages/cli": {
+			"entry": ["src/index.ts"],
+			"project": ["src/**/*.ts"]
+		},
+		"packages/websocket-bridge": {
+			"entry": [
+				"src/bridge-types.ts",
+				"src/create-client.ts",
+				"src/create-server.ts"
+			],
+			"project": ["src/**/*.ts"]
+		},
+		"packages/ui": {
+			"entry": ["src/main.ts"],
+			"project": ["src/**/*.ts"]
+		}
+	},
+	"ignoreDependencies": ["@angular/common", "@angular/core", "ng-diagram"],
+	"ignoreFiles": ["build/**", "tests/**", "demo-project/**"],
+	"exclude": ["unlisted", "files"]
+}

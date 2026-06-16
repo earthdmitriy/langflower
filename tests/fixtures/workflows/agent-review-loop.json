@@ -1,0 +1,108 @@
+{
+	"id": "agent-review-loop",
+	"createdAt": "2026-06-18T00:00:00.000Z",
+	"updatedAt": "2026-06-18T00:00:00.000Z",
+	"nodes": [
+		{
+			"id": "task-1",
+			"type": "common-string",
+			"position": {
+				"x": 0,
+				"y": 0
+			},
+			"data": {
+				"label": "Task",
+				"params": {},
+				"inputs": {
+					"value": "Write a brief summary of Langflower"
+				}
+			}
+		},
+		{
+			"id": "agent-1",
+			"type": "common-agent",
+			"position": {
+				"x": 280,
+				"y": 0
+			},
+			"data": {
+				"label": "Agent",
+				"params": {
+					"providerId": "mock",
+					"model": "test-model",
+					"enabledTools": [],
+					"maxIterations": 3
+				},
+				"inputs": {}
+			}
+		},
+		{
+			"id": "review-1",
+			"type": "common-review",
+			"position": {
+				"x": 560,
+				"y": 0
+			},
+			"data": {
+				"label": "Review",
+				"params": {
+					"providerId": "mock",
+					"model": "test-model",
+					"maxIterations": 3,
+					"maxReviewAttempts": 3
+				},
+				"inputs": {}
+			}
+		},
+		{
+			"id": "preview-1",
+			"type": "common-preview",
+			"position": {
+				"x": 840,
+				"y": 0
+			},
+			"data": {
+				"label": "Preview",
+				"params": {},
+				"inputs": {}
+			}
+		}
+	],
+	"edges": [
+		{
+			"edgeId": "e-task-agent",
+			"fromNodeId": "task-1",
+			"fromPort": ["value", 0],
+			"toNodeId": "agent-1",
+			"toPort": ["userPrompt", 0]
+		},
+		{
+			"edgeId": "e-task-review",
+			"fromNodeId": "task-1",
+			"fromPort": ["value", 0],
+			"toNodeId": "review-1",
+			"toPort": ["task", 0]
+		},
+		{
+			"edgeId": "e-agent-review",
+			"fromNodeId": "agent-1",
+			"fromPort": ["response", 0],
+			"toNodeId": "review-1",
+			"toPort": ["result", 0]
+		},
+		{
+			"edgeId": "e-review-preview",
+			"fromNodeId": "review-1",
+			"fromPort": ["response", 0],
+			"toNodeId": "preview-1",
+			"toPort": ["text", 0]
+		},
+		{
+			"edgeId": "e-review-feedback",
+			"fromNodeId": "review-1",
+			"fromPort": ["feedback", 0],
+			"toNodeId": "agent-1",
+			"toPort": ["feedback", 0]
+		}
+	]
+}

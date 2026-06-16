@@ -1,0 +1,18 @@
+---
+description: >-
+  Langflower Angular UI and ngDiagram editor. Use when editing packages/ui,
+  canvas, palette, workflow store, or diagram services.
+globs: packages/ui/**
+alwaysApply: false
+---
+
+# UI package
+
+- **ngDiagram:** `DiagramModelService` + `provideNgDiagram()` on editor page.
+- **State:** `WorkflowStore` (RxJS) ↔ `workflow-diagram.mapper` (TODO).
+- **Transport:** WebSocket bus via `LangflowerSocketService`; HTTP only for
+  ADR-approved bulk escape hatches.
+- Components: standalone, `OnPush`. No duplicate port validation — use `shared`.
+- **Inline inputs:** primitive port values on node body → `data.inputs`; `supportsInlinePortInput`.
+- `tsconfig.json`: `composite: false` (Angular requirement).
+- See `packages/ui/AGENTS.md` and `docs/NAVIGATION.md`.

@@ -1,0 +1,44 @@
+---
+description: >-
+  Do not leave langflower dev server running after agent work. Stop port 4010
+  when verification finishes unless the user asked to keep the server up.
+alwaysApply: true
+---
+
+# Dev server lifecycle (agents)
+
+`langflower start` and `npm run dev` are **long-running** processes. Do not leave
+them running when you finish a task.
+
+## Default
+
+- **Do not** start the dev server in the **background** unless the user explicitly
+  asks to keep it running for manual testing.
+- Prefer **one-shot verification** that exits on its own:
+  - `node build/tools/agent-run.mjs verify` — build + unit + integration (~1 min);
+    this is the close-out gate
+  - `node build/tools/agent-run.mjs verify --quick` — build + unit only
+    (intermediate; not enough to mark a feature done)
+  - `node build/test.mjs --integration` — after a local `build-all`, when you
+    changed execution / WS / bootstrap / agent flows only
+  - Short `curl` / WebSocket probe, then exit
+
+## If you must start the server
+
+1. Run in the **foreground** with a bounded check, or in background only when the
+   user requested it.
+2. **Stop the server before ending your turn** — do not assume the user will kill it.
+3. On Windows (Git Bash): find PID on port 4010 and terminate:
+
+```bash
+netstat -ano | grep ':4010' | grep LISTENING
+taskkill //F //PID <pid>
+```
+
+4. If port 4010 is busy at startup, stop the existing process first — do not start
+   a second server.
+
+## When the user wants the server running
+
+Only then may you leave it up — say clearly that it is still running and on which
+port.

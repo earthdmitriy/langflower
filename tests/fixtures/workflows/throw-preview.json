@@ -1,0 +1,42 @@
+{
+	"id": "throw-preview",
+	"createdAt": "2026-06-16T00:00:00.000Z",
+	"updatedAt": "2026-06-16T00:00:00.000Z",
+	"nodes": [
+		{
+			"id": "throw-1",
+			"type": "common-throw",
+			"position": {
+				"x": 80,
+				"y": 120
+			},
+			"data": {
+				"label": "Throw",
+				"params": {},
+				"inputs": {}
+			}
+		},
+		{
+			"id": "preview-1",
+			"type": "common-preview",
+			"position": {
+				"x": 320,
+				"y": 120
+			},
+			"data": {
+				"label": "Preview",
+				"params": {},
+				"inputs": {}
+			}
+		}
+	],
+	"edges": [
+		{
+			"edgeId": "edge-1",
+			"fromNodeId": "throw-1",
+			"fromPort": ["done", 0],
+			"toNodeId": "preview-1",
+			"toPort": ["text", 0]
+		}
+	]
+}

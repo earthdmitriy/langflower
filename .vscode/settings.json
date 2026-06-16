@@ -1,0 +1,14 @@
+{
+	"terminal.integrated.defaultProfile.windows": "Git Bash",
+	"terminal.integrated.profiles.windows": {
+		"Git Bash": {
+			"path": "C:\\Program Files\\Git\\bin\\bash.exe",
+			"args": ["--login", "-i"],
+			"icon": "terminal-bash"
+		}
+	},
+	"terminal.integrated.automationProfile.windows": {
+		"path": "C:\\Program Files\\Git\\bin\\bash.exe",
+		"args": ["--login", "-i"]
+	}
+}

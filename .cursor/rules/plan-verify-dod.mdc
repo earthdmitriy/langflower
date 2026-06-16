@@ -1,0 +1,49 @@
+---
+description: >-
+  Plans and feature close-out must use full npm run test / verify as Definition
+  of Done. verify --quick must never be the sole Verify step in a plan.
+alwaysApply: true
+---
+
+# Plan Verify = full test gate (DoD)
+
+When writing or revising a **plan** (`CreatePlan`, `.cursor/plans/*.plan.md`, or
+an in-chat implementation checklist), the **Verify / Definition of Done**
+section must require the full suite:
+
+- `npm run test` **or** `node build/tools/agent-run.mjs verify`
+  (build + unit **and** integration)
+
+## Forbidden as sole DoD
+
+Do **not** end a plan’s Verify section with only:
+
+- `verify --quick`
+- focused `vitest run <paths>` alone
+- “unit only” / “build + unit”
+
+Those are allowed as **intermediate** checks while iterating. If mentioned in a
+plan, label them explicitly as intermediate (not close-out).
+
+## Why
+
+Agents execute the plan’s Verify literally. A weak Verify in the plan overrides
+the [AGENTS.md](AGENTS.md) hard gate in practice and has already shipped green
+`verify --quick` with broken integration.
+
+## Required plan shape
+
+```markdown
+### Verify
+
+- Intermediate (optional): focused vitest / `verify --quick` during the loop.
+- **Close-out (required):** `npm run test` or full `verify` — unit and
+  integration. Do not mark the feature done on `--quick` alone.
+```
+
+Prefer a dedicated todo such as `full-test-gate` that stays open until the full
+suite is green.
+
+Same rule when **finishing** work without a formal plan: do not declare done on
+`verify --quick` alone. See AGENTS.md **Hard gate** and
+`.cursor/skills/langflower-build/SKILL.md`.

@@ -1,0 +1,134 @@
+{
+	"metadata": {
+		"name": "Agents dialog",
+		"description": "Chat loop with two agents — proposer and critique — then HITL review before finish.",
+		"createdAt": "2026-07-24T00:00:00.000Z",
+		"updatedAt": "2026-07-24T00:00:00.000Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 0,
+			"y": 0,
+			"scale": 0.85,
+			"width": 1100,
+			"height": 800
+		},
+		"nodes": [
+			{
+				"id": "chat",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 40, "y": 240 },
+					"label": "Topic"
+				}
+			},
+			{
+				"id": "proposer",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "custom",
+					"providerId": "",
+					"model": "",
+					"maxIterations": 6,
+					"maxFeedbackTurns": 3
+				},
+				"inputs": {
+					"systemPrompt": "You are the Proposer. Draft a clear short claim or answer for the user's topic. When feedback arrives from Critique or Review, revise — do not ignore it."
+				},
+				"ui": {
+					"position": { "x": 300, "y": 160 },
+					"label": "Proposer"
+				}
+			},
+			{
+				"id": "critique",
+				"type": "common-critique",
+				"params": {
+					"providerId": "",
+					"model": "",
+					"maxIterations": 6
+				},
+				"inputs": {
+					"systemPrompt": "Call tool `feedback` or `accept` — never reply in plain text.\nYou are an independent Critique. Attack contradictions, overclaim, and missing evidence. Call accept only when the packet is defensible."
+				},
+				"ui": {
+					"position": { "x": 560, "y": 360 },
+					"label": "Critique"
+				}
+			},
+			{
+				"id": "review",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 820, "y": 200 },
+					"label": "Human review"
+				}
+			},
+			{
+				"id": "done",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 1080, "y": 200 },
+					"label": "Done"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-chat-proposer",
+				"fromNodeId": "chat",
+				"fromPort": ["message", 0],
+				"toNodeId": "proposer",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-proposer-critique",
+				"fromNodeId": "proposer",
+				"fromPort": ["response", 0],
+				"toNodeId": "critique",
+				"toPort": ["packet", 0]
+			},
+			{
+				"edgeId": "e-chat-critique-assignment",
+				"fromNodeId": "chat",
+				"fromPort": ["message", 0],
+				"toNodeId": "critique",
+				"toPort": ["assignment", 0]
+			},
+			{
+				"edgeId": "e-critique-feedback",
+				"fromNodeId": "critique",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "proposer",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-critique-accept",
+				"fromNodeId": "critique",
+				"fromPort": ["response", 0],
+				"toNodeId": "review",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-review-feedback",
+				"fromNodeId": "review",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "proposer",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-review-done",
+				"fromNodeId": "review",
+				"fromPort": ["response", 0],
+				"toNodeId": "done",
+				"toPort": ["value", 0]
+			}
+		]
+	}
+}

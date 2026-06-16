@@ -1,0 +1,20 @@
+{
+	"mcpServers": {
+		"ng-diagram-docs": {
+			"command": "cmd",
+			"args": ["/c", "npx", "-y", "@ng-diagram/mcp"]
+		},
+		"ts-scan": {
+			"command": "cmd",
+			"args": ["/c", "ts-scan", "--mcp"]
+		},
+		"langflower": {
+			"command": "cmd",
+			"args": [
+				"/c",
+				"node",
+				"packages/langflower-mcp/bin/langflower-mcp.js"
+			]
+		}
+	}
+}

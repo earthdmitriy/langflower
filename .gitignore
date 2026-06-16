@@ -1,0 +1,37 @@
+node_modules/
+dist/
+.local-install/
+.release/
+artifacts/
+vendor/
+ui-dist/
+.tools/
+.angular/
+*.log
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+.env
+tests/tmp/*
+!tests/tmp/.gitignore
+
+# Langflower node bundler cache (esbuild)
+**/.langflower/**/.cache/
+
+# Generated custom-node compile diagnostics
+**/.langflower/nodes/**/COMPILATION_ERRORS.md
+
+# Machine-specific demo runtime config
+demo-project/.langflower/config.json
+
+# Generated custom-node compile diagnostics (demo pack)
+demo-project/.langflower/nodes/my-nodes/COMPILATION_ERRORS.md
+
+# Integration test temp leak (wrong path)
+tests/tests/tmp/
+
+# Test coverage
+coverage/
+
+# Windows CMD redirect artifact
+nul

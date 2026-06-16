@@ -1,0 +1,107 @@
+{
+	"id": "router-two-channels",
+	"createdAt": "2026-06-16T00:00:00.000Z",
+	"updatedAt": "2026-06-16T00:00:00.000Z",
+	"nodes": [
+		{
+			"id": "constant-a",
+			"type": "common-constant",
+			"position": {
+				"x": 40,
+				"y": 80
+			},
+			"data": {
+				"label": "Constant A",
+				"params": {
+					"value": "alpha"
+				},
+				"inputs": {}
+			}
+		},
+		{
+			"id": "constant-b",
+			"type": "common-constant",
+			"position": {
+				"x": 40,
+				"y": 200
+			},
+			"data": {
+				"label": "Constant B",
+				"params": {
+					"value": "beta"
+				},
+				"inputs": {}
+			}
+		},
+		{
+			"id": "router-1",
+			"type": "common-router",
+			"position": {
+				"x": 240,
+				"y": 140
+			},
+			"data": {
+				"label": "Router",
+				"params": {},
+				"inputs": {},
+				"routerChannels": ["ch", "ch@1"]
+			}
+		},
+		{
+			"id": "preview-a",
+			"type": "common-preview",
+			"position": {
+				"x": 420,
+				"y": 80
+			},
+			"data": {
+				"label": "Preview A",
+				"params": {},
+				"inputs": {}
+			}
+		},
+		{
+			"id": "preview-b",
+			"type": "common-preview",
+			"position": {
+				"x": 420,
+				"y": 200
+			},
+			"data": {
+				"label": "Preview B",
+				"params": {},
+				"inputs": {}
+			}
+		}
+	],
+	"edges": [
+		{
+			"edgeId": "edge-a",
+			"fromNodeId": "constant-a",
+			"fromPort": ["value", 0],
+			"toNodeId": "router-1",
+			"toPort": ["ch", 0]
+		},
+		{
+			"edgeId": "edge-b",
+			"fromNodeId": "constant-b",
+			"fromPort": ["value", 0],
+			"toNodeId": "router-1",
+			"toPort": ["ch", 1]
+		},
+		{
+			"edgeId": "edge-pa",
+			"fromNodeId": "router-1",
+			"fromPort": ["ch", 0],
+			"toNodeId": "preview-a",
+			"toPort": ["text", 0]
+		},
+		{
+			"edgeId": "edge-pb",
+			"fromNodeId": "router-1",
+			"fromPort": ["ch", 1],
+			"toNodeId": "preview-b",
+			"toPort": ["text", 0]
+		}
+	]
+}

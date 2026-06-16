@@ -1,0 +1,36 @@
+---
+description: >-
+  Langflower UI theming and typography. Use when styling components, adding
+  colors, buttons, inputs, or panels in packages/ui.
+globs: packages/ui/**
+alwaysApply: false
+---
+
+# UI theming & typography
+
+Read `packages/ui/docs/THEMES.md` before adding colors to components.
+Read `packages/ui/docs/TYPOGRAPHY.md` before changing fonts or text styles.
+
+## Theme rules
+
+- **Colors:** `var(--lf-*)` from `src/theme/themes.css` only — no `#hex` in component `styles`
+- **Buttons:** `.lf-btn`, `.lf-btn--ghost`, `.lf-btn--icon` from `components.css`
+- **Inputs:** `.lf-input`, `.lf-textarea` + `.lf-text-body`
+- **Theme API:** `ThemeService` — do not set `data-theme` on `<html>` manually
+- **Checklist:** complete `THEMES.md` new-component checklist; test dark + light
+
+## Typography rules
+
+- **Tokens:** `src/theme/tokens.css` — font sizes/weights/families only
+- **Classes:** `.lf-text-*` from `typography.css` — no raw `font-size: Npx`
+- **Headings:** `h1` toolbar · `h2` panel titles · canvas node labels are `span`
+- **Muted:** `.lf-text-caption--muted` or `var(--lf-text-muted)`
+
+## Files
+
+- `src/theme/themes.css` — color variables (dark default, light override)
+- `src/theme/tokens.css` — typography + spacing tokens
+- `src/theme/typography.css` — semantic text utilities
+- `src/theme/components.css` — buttons and inputs
+- `docs/THEMES.md` — full guide + checklist
+- `docs/TYPOGRAPHY.md` — font scale and headings

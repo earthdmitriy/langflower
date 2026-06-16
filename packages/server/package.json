@@ -1,0 +1,45 @@
+{
+	"name": "@langflower/server",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./create-server": {
+			"types": "./dist/create-server.d.ts",
+			"import": "./dist/create-server.js"
+		},
+		"./bootstrap": {
+			"types": "./dist/bootstrap/project-bootstrap.service.d.ts",
+			"import": "./dist/bootstrap/project-bootstrap.service.js"
+		},
+		"./server-context": {
+			"types": "./dist/server-context.d.ts",
+			"import": "./dist/server-context.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"typecheck": "tsc -p tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"@langflower/common-nodes": "0.1.0",
+		"@langflower/compiler": "0.1.0",
+		"@langflower/node-sdk": "0.1.0",
+		"@langflower/runtime": "0.1.0",
+		"@langflower/shared": "0.1.0",
+		"@langflower/tools": "0.1.0",
+		"@langflower/websocket-bridge": "0.1.0",
+		"express": "^4.21.0",
+		"rxjs": "^7.8.1",
+		"ws": "^8.18.0"
+	},
+	"devDependencies": {
+		"@types/express": "^4.17.21",
+		"@types/ws": "^8.5.13",
+		"typescript": "~6.0.0"
+	},
+	"files": [
+		"dist",
+		"skeleton"
+	]
+}

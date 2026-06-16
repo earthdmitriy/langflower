@@ -1,0 +1,66 @@
+{
+	"id": "delay-preview",
+	"createdAt": "2026-06-16T00:00:00.000Z",
+	"updatedAt": "2026-06-16T00:00:00.000Z",
+	"nodes": [
+		{
+			"id": "constant-1",
+			"type": "common-constant",
+			"position": {
+				"x": 80,
+				"y": 120
+			},
+			"data": {
+				"label": "Constant",
+				"params": {
+					"value": "through-delay"
+				},
+				"inputs": {}
+			}
+		},
+		{
+			"id": "delay-1",
+			"type": "common-delay",
+			"position": {
+				"x": 320,
+				"y": 120
+			},
+			"data": {
+				"label": "Delay",
+				"params": {},
+				"inputs": {
+					"delay": 50
+				}
+			}
+		},
+		{
+			"id": "preview-1",
+			"type": "common-preview",
+			"position": {
+				"x": 560,
+				"y": 120
+			},
+			"data": {
+				"label": "Preview",
+				"params": {},
+				"inputs": {}
+			}
+		}
+	],
+	"edges": [
+		{
+			"edgeId": "edge-1",
+			"fromNodeId": "constant-1",
+			"fromPort": ["value", 0],
+			"toNodeId": "delay-1",
+			"toPort": ["value", 0]
+		},
+		{
+			"edgeId": "edge-2",
+			"fromNodeId": "delay-1",
+			"fromPort": ["value", 0],
+			"toNodeId": "preview-1",
+			"toPort": ["text", 0]
+		}
+	]
+}

@@ -1,0 +1,35 @@
+{
+	"name": "@langflower/cli",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Langflower CLI workspace package (published via root langflower)",
+	"type": "module",
+	"bin": {
+		"langflower": "./bin/langflower.js"
+	},
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"typecheck": "tsc -p tsconfig.json --noEmit",
+		"start": "node bin/langflower.js"
+	},
+	"dependencies": {
+		"@langflower/eval": "0.1.0",
+		"@langflower/server": "0.1.0",
+		"@langflower/shared": "0.1.0",
+		"commander": "^12.1.0",
+		"open": "^10.1.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.0"
+	},
+	"engines": {
+		"node": ">=22.22.3"
+	},
+	"files": [
+		"dist",
+		"bin"
+	],
+	"license": "MIT"
+}

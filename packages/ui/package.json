@@ -1,0 +1,40 @@
+{
+	"name": "@langflower/ui",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"build": "ng build",
+		"typecheck": "ng build --configuration development",
+		"start": "ng serve"
+	},
+	"dependencies": {
+		"@angular/animations": "^22.0.0",
+		"@angular/common": "^22.0.0",
+		"@angular/compiler": "^22.0.0",
+		"@angular/core": "^22.0.0",
+		"@angular/forms": "^22.0.0",
+		"@angular/platform-browser": "^22.0.0",
+		"@angular/platform-browser-dynamic": "^22.0.0",
+		"@angular/router": "^22.0.0",
+		"@langflower/common-nodes": "0.1.0",
+		"@langflower/node-sdk": "0.1.0",
+		"@langflower/runtime": "0.1.0",
+		"@langflower/shared": "0.1.0",
+		"@langflower/websocket-bridge": "0.1.0",
+		"dompurify": "^3.4.11",
+		"marked": "^18.0.5",
+		"ng-diagram": "^1.2.4",
+		"rxjs": "^7.8.1",
+		"tslib": "^2.8.0",
+		"zone.js": "~0.16.0"
+	},
+	"devDependencies": {
+		"@angular-devkit/build-angular": "^22.0.0",
+		"@angular/cli": "^22.0.0",
+		"@angular/compiler-cli": "^22.0.0",
+		"@tailwindcss/postcss": "^4.3.1",
+		"@types/dompurify": "^3.0.5",
+		"tailwindcss": "^4.3.1",
+		"typescript": "~6.0.0"
+	}
+}

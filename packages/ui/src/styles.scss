@@ -1,0 +1,245 @@
+@import 'tailwindcss';
+@import 'ng-diagram/styles.css';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme {
+	--font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+/**
+ * Composer control tokens (palette §8 / epic 35). Shared height for Stop,
+ * Pause, Start icons and text pills in the composer footer.
+ */
+:root {
+	--lf-control-h: 2rem;
+	--lf-btn-pad: calc(var(--lf-control-h) / 2);
+}
+
+@layer components {
+	.lf-composer-pill {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: var(--lf-control-h);
+		padding: 0 var(--lf-btn-pad);
+		border-radius: 9999px;
+		font-size: 0.75rem;
+		line-height: 1;
+		font-weight: 500;
+		transition-property: color, background-color, border-color, opacity;
+		transition-duration: 150ms;
+	}
+
+	.lf-composer-icon-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: var(--lf-control-h);
+		height: var(--lf-control-h);
+		padding: 0;
+		border-radius: 9999px;
+		transition-property: color, background-color, border-color, opacity;
+		transition-duration: 150ms;
+	}
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+}
+
+body {
+	@apply bg-zinc-50 font-sans text-sm text-zinc-950 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+}
+
+button,
+textarea {
+	font: inherit;
+}
+
+/**
+ * Interactive controls default to a hand cursor. Resize grips keep their own
+ * Tailwind cursor utilities (`cursor-col-resize` / `cursor-row-resize`), which
+ * win over this base rule. Disabled / aria-disabled use not-allowed.
+ */
+@layer base {
+	button:not(:disabled):not([aria-disabled='true']) {
+		cursor: pointer;
+	}
+
+	button:disabled,
+	button[aria-disabled='true'] {
+		cursor: not-allowed;
+	}
+}
+
+/**
+ * Hover linkage (work log ↔ canvas) — applied from `NodeHoverService` on the
+ * consecutive same-`nodeId` row group wrapper (one strip per cluster).
+ * Global because the feed lives in the sidebar, outside canvas encapsulation.
+ * Chrome-only tint — background only, no border/outline
+ * (`docs/use-cases/grok-feed.md` S4; `docs/features/feed-panel.md`).
+ */
+.lf-feed-row--hovered {
+	border-radius: 0.5rem;
+	background-color: rgba(139, 92, 246, 0.1);
+}
+
+html[data-theme='dark'] .lf-feed-row--hovered {
+	background-color: rgba(167, 139, 250, 0.12);
+}
+
+/**
+ * Edge hover (idle wires). Kept global so encapsulation on nested
+ * ng-diagram-base-edge cannot block the inherited --edge-stroke the path reads.
+ * Mid blue between default gray and lf selected blue.
+ */
+lf-edge:hover:not(.lf-edge--selected) {
+	--edge-stroke: rgb(74 108 182);
+}
+
+html[data-theme='dark'] lf-edge:hover:not(.lf-edge--selected) {
+	--edge-stroke: rgb(120 160 220);
+}
+
+lf-edge.lf-edge--pulse ng-diagram-base-edge path {
+	animation: lf-edge-pulse 0.3s ease-out;
+}
+
+@keyframes lf-edge-pulse {
+	0% {
+		stroke: #10b981;
+		stroke-width: 3;
+		filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.9));
+	}
+	100% {
+		stroke: #a1a1aa;
+		stroke-width: 2;
+		filter: none;
+	}
+}
+
+/**
+ * Port emit flash — global so it applies for unwired outputs (reasoning /
+ * draftResponse) that have no edge keyframes. Infinite while `--pulse` is on
+ * so streaming chunks keep a visible throb (class stays true via switchMap).
+ */
+.lf-port-anchor.lf-port-anchor--pulse {
+	--ngd-port-border-color: rgb(16 185 129);
+	--ngd-port-background-color: rgb(167 243 208);
+	--ngd-port-size: 0.45rem;
+	animation: lf-port-pulse 0.45s ease-in-out infinite;
+}
+
+html[data-theme='dark'] .lf-port-anchor.lf-port-anchor--pulse {
+	--ngd-port-border-color: rgb(52 211 153);
+	--ngd-port-background-color: rgb(6 78 59);
+	animation-name: lf-port-pulse-dark;
+}
+
+@keyframes lf-port-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+	}
+	50% {
+		box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.7);
+	}
+}
+
+@keyframes lf-port-pulse-dark {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+	}
+	50% {
+		box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.7);
+	}
+}
+
+/**
+ * Persistent execution chrome for wires (vs the transient `lf-edge--pulse`
+ * flash above): pending source output paints the wire dark yellow,
+ * errored source paints it red. Dark yellow is distinct from the yellow used
+ * for pending nodes, and red mirrors the node `--failed` colour.
+ */
+lf-edge.lf-edge--pending ng-diagram-base-edge path {
+	stroke: rgb(202 138 4);
+	stroke-width: 3;
+}
+
+lf-edge.lf-edge--error ng-diagram-base-edge path {
+	stroke: rgb(244 63 94);
+	stroke-width: 3;
+}
+
+lf-edge.lf-edge--value ng-diagram-base-edge path {
+	stroke: rgb(16 185 129);
+	stroke-width: 3;
+}
+
+html[data-theme='dark'] lf-edge.lf-edge--value ng-diagram-base-edge path {
+	stroke: rgb(52 211 153);
+}
+
+html[data-theme='dark'] lf-edge.lf-edge--pending ng-diagram-base-edge path {
+	stroke: rgb(250 204 21);
+}
+
+html[data-theme='dark'] lf-edge.lf-edge--error ng-diagram-base-edge path {
+	stroke: rgb(251 113 133);
+}
+
+/**
+ * Thin scrollbar for feed scroll areas (light + dark). Applied via the
+ * `.lf-scroll` utility on the work-log list container and per-port <pre>.
+ */
+.lf-scroll {
+	scrollbar-width: thin;
+	scrollbar-color: rgb(212 212 216) transparent;
+}
+
+.lf-scroll::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.lf-scroll::-webkit-scrollbar-button {
+	display: none;
+	width: 0;
+	height: 0;
+}
+
+.lf-scroll::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.lf-scroll::-webkit-scrollbar-thumb {
+	background-color: rgb(212 212 216);
+	border-radius: 9999px;
+	border: 2px solid transparent;
+	background-clip: content-box;
+}
+
+.lf-scroll::-webkit-scrollbar-thumb:hover {
+	background-color: rgb(161 161 170);
+}
+
+.lf-scroll::-webkit-scrollbar-corner {
+	background: transparent;
+}
+
+html[data-theme='dark'] .lf-scroll {
+	scrollbar-color: rgb(63 63 70) transparent;
+}
+
+html[data-theme='dark'] .lf-scroll::-webkit-scrollbar-thumb {
+	background-color: rgb(63 63 70);
+}
+
+html[data-theme='dark'] .lf-scroll::-webkit-scrollbar-thumb:hover {
+	background-color: rgb(82 82 91);
+}

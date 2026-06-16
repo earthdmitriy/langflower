@@ -1,0 +1,313 @@
+n 34 uniqueAnswers 34 uniqueRuns 34
+--- Q1 [A] ---
+When you run `langflower start [project-dir]` in an empty folder, it initializes the project by creating a **`.langflower/`** directory. 
+
+This folder contains:
+*   **Config:** `.langflower/langflower.jsonc` (where you define providers and secrets).
+*   **Instructions:** `.langflower/instructions.md`.
+*   **Custom Nodes:** A `nodes/my-nodes/` package.
+*   **Skills:** The `langflower-helper` and `langflower-node-writer` skills.
+*   **Workflows:** A set of initial workflows.
+
+The **`starter`** workflow (which powers this current chat) opens first by default.
+
+--- Q2 [A] ---
+No, bootstrap does not dump every sample workflow into your project. 
+
+It only includes the **`starter`** workflow (this chat) and basic components like `my-nodes`. The full coding pipelines (**simple-coder** and **advanced-coder**) live in the product skeleton catalog; you can pull them in as needed rather than having them clutter every new project.
+
+--- Q3 [A] ---
+A second `langflower start` **does not overwrite** your workflows or skills.
+
+Once the `.langflower/` folder exists, running `start` simply loads the existing data to launch the project. It only "seeds" (creates) the initial files during the very first run.
+
+--- Q4 [A] ---
+To configure your LLM provider and API keys, edit the **`.langflower/langflower.jsonc`** file.
+
+Use `{env:VAR}` references to pull values from your environment variables (e.g., `"{env:OPENAI_API_KEY}"`).
+
+**Does bootstrap invent secrets?**
+No. Bootstrap never invents API keys or secrets; you must provide them yourself via your environment or the config file.
+
+--- Q5 [A] ---
+Runs will **fail closed** rather than hanging if a provider is missing. The error message will explicitly name the configuration path you need to edit in `.langflower/langflower.jsonc`.
+
+--- Q6 [B] ---
+The first-run seed includes the following core components in your project:
+
+*   **Configuration:** `.langflower/langflower.jsonc`
+*   **Documentation:** `instructions.md`
+*   **Custom Nodes:** The `nodes/my-nodes/` pack
+*   **Skills:** `langflower-helper` and `langflower-node-writer`
+*   **Workflow:** The **`starter`** workflow (this current chat)
+
+The **skeleton catalog inventory** contains extra sample workflows (such as **simple-coder** and **advanced-coder**) that are available for reference but are not automatically dumped into every project.
+
+--- Q7 [B] ---
+Yes, there is a **product skeleton catalog** containing extra sample workflows (like `simple-coder` and `advanced-coder`) that are not automatically dumped into every project.
+
+To use them:
+1. Browse the catalog to find a workflow that fits your needs.
+2. Copy/import it into your current project to see how it's structured. 
+
+If you need help with a specific coding pipeline, I recommend looking at the **simple-coder** or **advanced-coder** samples first!
+
+--- Q8 [B] ---
+No. The source of truth for your **active project** is the `.langflower/` directory (which contains your specific workflows, nodes, skills, and config).
+
+The `dist/skeleton/` folder represents the **product skeleton catalog**. These are pre-built sample workflows and nodes that exist in the library but are not automatically dumped into every project unless you explicitly pull them in.
+
+--- Q9 [B] ---
+No, bootstrap does **not** run `npm install` for your custom nodes automatically.
+
+After you add or edit files in `nodes/my-nodes/`, you must manually trigger an update by clicking **Custom → Update** in the editor to register the changes.
+
+--- Q10 [C] ---
+In Langflower, these represent different levels of complexity in how the system handles code generation:
+
+### The Difference
+*   **`basic-coder` (Simple Coder):** A linear workflow. It takes a prompt, generates a block of code, and outputs it. It is best for **one-off snippets** or isolated functions.
+*   **`coding-agent` (Advanced Coder):** An iterative/recursive workflow. It doesn't just "write" once; it typically follows a loop: **Plan $\rightarrow$ Write $\rightarrow$ Review $\rightarrow$ Refine**. It can handle multi-file changes and self-correct errors.
+
+### Can `basic-coder` be the full value?
+**It depends on your goal:**
+*   **Yes**, if you need quick, modular pieces of code (e.g., "Write a Python function to sort a list").
+*   **No**, if you need to build a complex feature from scratch. For large tasks, `basic-coder` can lose context or fail to catch logic errors that an agent would catch during its "Review" and "Refine" steps.
+
+**Recommendation:** Start with `basic-coder` for prototyping small components, then switch to the **advanced-coder** sample workflow in the catalog when you need the system to handle complex logic autonomously.
+
+--- Q11 [C] ---
+The multi-loop coding pipeline follows these stages:
+
+1.  **Clarify**: The model refines the initial prompt into a clear set of requirements.
+2.  **Red Team**: Identifies potential edge cases, bugs, or "gotchas" before coding begins.
+3.  **Coder**: Generates the actual code based on clarified requirements and red team feedback.
+4.  **QA**: Runs tests (unit/integration) to verify the code's correctness.
+5.  **Review**: A human-in-the-loop (HITL) or model step evaluates the logic and style.
+6.  **Result HITL**: Final human approval or adjustment before finalizing the output.
+
+### Who decides the order?
+The **graph** decides the order. 
+
+In Langflower, these stages are structured as a directed graph where each node's output feeds into the next. While the models *inside* the nodes perform the logic, the sequence and flow (the "looping" nature) are defined by the workflow structure itself.
+
+--- Q12 [C] ---
+To start a Chat Input graph, click the **Run** button. 
+
+This triggers the workflow and opens the interactive input field where you can type your first prompt to begin the sequence.
+
+--- Q13 [C] ---
+It is **Proven but Iterative**. 
+
+While we have moved past simple "autocomplete," a truly autonomous agent that handles a massive, complex project from a single prompt without human intervention is still evolving. Here is the breakdown:
+
+### 1. What is Proven (The Agentic Shift)
+We can now reliably implement agents that handle:
+*   **Planning:** Breaking a high-level goal into sub-tasks.
+*   **Execution:** Writing code, running tests, and fixing errors based on feedback.
+*   **Context Awareness:** Using RAG or "Long Context" to understand the entire codebase (e.g., Cursor, Devin).
+
+### 2. Why it is still "Partial"
+Full autonomy is difficult because:
+*   **Edge Cases:** LLMs can still struggle with complex architectural decisions or very specific UI nuances without human guidance.
+*   **State Management:** Keeping track of how a change in `File A` affects `File Z` across a large project requires sophisticated "reasoning" loops.
+
+### How to see this in Langflower:
+Instead of building a coding agent from scratch, use the **simple-coder** or **advanced-coder** sample workflows in the catalog. They demonstrate how to structure an LLM's "thought process" into a repeatable workflow:
+1.  **Plan** (LLM generates steps)
+2.  **Code** (LLM writes snippets)
+3.  **Verify** (LLM checks/runs code)
+
+**Action:** If you want to build your own, start by exploring the `nodes/my-nodes/` folder to see how individual coding actions are modularized.
+
+--- Q14 [D] ---
+The **Settings (gear icon)** opens the **Configuration Panel** (usually on the right side of the editor). 
+
+It replaces the need to see every parameter at once, consolidating all properties—such as inputs, outputs, and specific node parameters—into a single, organized view so your main canvas stays clean.
+
+--- Q15 [D] ---
+To store keys preferentially, use **environment variables** referenced in your configuration file. This keeps secrets out of your source code and makes switching environments easy.
+
+### 1. How to store them
+Edit `.langflower/langflower.jsonc` using the `{env:VAR_NAME}` syntax:
+
+```jsonc
+{
+  "providers": {
+    "openai": "{env:OPENAI_API_KEY}",
+    "anthropic": "{env:ANTHROPIC_API_KEY}"
+  }
+}
+```
+
+### 2. How to reveal them in the UI
+The UI primarily displays the **provider name** and its configuration structure. To see the actual value while working:
+*   **Check your terminal:** Run `echo $OPENAI_API_KEY` (or your specific variable).
+*   **Check the config file:** Open `.langflower/langflower.jsonc` to see exactly which variables are being mapped.
+
+**Note:** Langflower does not "invent" keys for you; if a key is missing from your environment, the run will fail closed rather than hang.
+
+--- Q16 [D] ---
+**Project vs. Global:**
+Project configuration (found in `.langflower/langflower.jsonc`) wins and overrides any global defaults.
+
+**Reloading:**
+A full reload is **not** required. Changes made via "Save" are applied dynamically to your active workflow.
+
+--- Q17 [E] ---
+In Langflower:
+
+**Soft Pause vs. Hard Stop**
+*   **Soft Pause:** Suspends execution at a specific node while preserving all previous states. The workflow "waits" there (e.g., for user input or a manual trigger) and can resume exactly where it left off.
+*   **Hard Stop:** Terminates the workflow path entirely. It marks the end of a branch or the entire flow.
+
+**Does Stop create a checkpoint?**
+*   **Yes.** A **Stop** node acts as a terminal point that saves the current state. When you run the workflow again, it can resume from that specific "checkpoint" rather than starting from the very beginning (unless you choose to restart).
+
+--- Q18 [E] ---
+No, the run does **not** die. 
+
+Closing the browser only closes the visual interface (the UI). The backend process started by `langflower start` continues to run in your terminal.
+
+**What happens on reopen:**
+*   **State Preservation:** When you reopen the browser and navigate back to the project, the workflow will be exactly where it left off. 
+*   **Continuous Execution:** If a node was currently processing when you closed the tab, it will finish its work in the background.
+*   **Persistence:** You can switch between different workflows or tabs without restarting the server.
+
+To stop the run entirely, you must press `Ctrl+C` in the terminal where `langflower start` is running.
+
+--- Q19 [E] ---
+Yes. Because all project data (workflows, nodes, and config) is persisted in the **`.langflower/`** folder, your progress is saved.
+
+To resume after a restart or reboot:
+1. Navigate to your project directory.
+2. Run `langflower start [project-dir]`.
+
+The workflow will reload its definitions and state from the `.langflower/` directory automatically.
+
+--- Q20 [E] ---
+In Langflower, you can continue from a checkpoint in two ways:
+
+### 1. Implicit Checkpoints (Every Node)
+By default, the workflow engine tracks the state of **every node** as it executes. You can technically "continue" from any node that has already finished its execution without needing to define anything explicitly.
+
+### 2. Explicit Boundaries (`common-checkpoint` / `createCheckpoint`)
+While not strictly required for the engine to function, explicit boundaries are used to create **named milestones**.
+
+*   **Use these when:** You want to jump back to a specific logical "save point" (e.g., after a complex loop or before a branching path) rather than just the very last node executed.
+*   **How it works:** When you define a `common-checkpoint`, it acts as a named anchor. You can tell the workflow to resume from that specific name, making it easier to manage long workflows where you don't want to restart from the absolute beginning.
+
+**Summary:** 
+*   **Required?** No, the engine tracks every node automatically.
+*   **Recommended?** Yes, use `common-checkpoint` for major milestones to make resuming more intuitive.
+
+--- Q21 [E] ---
+No, they represent different behaviors in Langflower:
+
+*   **Pause**: A temporary "hold." The workflow stops at a specific node, preserving all current data and state so you can resume exactly where you left off.
+*   **Stop**: A final termination. The workflow ends at that point (unless it's a branch with multiple exits).
+*   **Browser Disconnect**: A UI event. If you close the tab or lose internet, the execution usually continues in the background; you just lose the live visual feedback until you reconnect.
+*   **Checkpoint Continue**: Resuming from a saved "snapshot." Unlike Pause (which is often linear), Checkpoints allow you to jump back to specific milestones in a workflow and start again from there.
+
+**Summary Table:**
+| Action | State Preserved? | Can Resume? | Best for... |
+| :--- | :--- | :--- | :--- |
+| **Pause** | Yes | Yes (Next step) | Waiting for human input or manual inspection. |
+| **Stop** | No | No | Finishing a workflow or branching off. |
+| **Disconnect** | Yes | Yes (Visuals only) | Moving between tabs/devices. |
+| **Checkpoint** | Yes | Yes (Jump to point) | Debugging specific sections or long-running tasks. |
+
+--- Q22 [F] ---
+It is primarily a combination of **Tool Profiles** and **Graph Stages**, depending on how you structure your workflow:
+
+1.  **Tool Profiles (Node Capabilities):** Each node can have access to these tools simultaneously. For example, a "Coder" node can have `read`, `write`, and `bash` as its available toolset to solve a problem in one go.
+2.  **Graph Stages (Sequential Flow):** In most complex workflows (like the *simple-coder* or *advanced-coder* samples), they function as sequential stages:
+    *   **Explore:** Find the context (`read`/`grep`).
+    *   **Write:** Apply the change (`edit`/`write`).
+    *   **Bash:** Verify/Execute the result.
+
+**Actionable Tip:** If you want a node to "think" through all three, give it all three tools. If you want a precise pipeline, chain them as separate nodes so the output of one (e.g., a file path from `grep`) feeds into the next (e.g., an `edit` command).
+
+--- Q23 [F] ---
+Yes, **Allow decisions carry over** within the same run session. Once you approve an action (like a specific file write or a tool call), Langflower remembers that choice for subsequent steps in that workflow.
+
+Regarding permissions:
+- **Allow on Write:** Grants permission to modify files (using `write`, `create`, or `edit`).
+- **Bash:** Is a separate capability. "Write" does not automatically grant "Bash"; you must explicitly allow the LLM to execute shell commands when it triggers a bash tool.
+
+--- Q24 [F] ---
+Agents get MCP tools via **`McpHandle`** objects, which are derived from your raw configuration.
+
+### 1. Raw Config vs. McpHandle
+- **Raw Config:** You define your servers in `.langflower/langflower.jsonc`. This is the "source of truth" where you specify the type (e.g., `stdio`, `sse`) and the command/args.
+- **McpHandle:** When the workflow runs, Langflower parses that config into an `McpHandle`. The agent doesn't see the raw JSON; it uses the handle to query available tools, resources, and prompts dynamically.
+
+### 2. Do all `mcp.servers` start immediately?
+**No.** They are typically initialized when the workflow starts (or when a node requiring them is reached). 
+- If you have many servers defined in your config but only use one in a specific workflow, Langflower manages the lifecycle so that they don't all need to be "active" simultaneously unless required by the current execution path.
+
+**Actionable Tip:** To add a new tool, update your `langflower.jsonc` with the server details and then click **Update** on your custom node to refresh the handles.
+
+--- Q25 [F] ---
+Here are the answers based on Langflower's architecture:
+
+*   **Sub-Agent vs. Canvas Node Spawn:** A **Sub-Agent** is an agentic node that manages its own internal logic (like a recursive "thought" loop), while a **Canvas Node Spawn** refers to creating and placing specific instances of nodes or workflows onto your visual canvas.
+*   **Parallel Fan-out:** Yes, when multiple paths branch from a single node, they execute in parallel by default.
+*   **Nested Workflows:** Yes, workflows are modular; you can nest a workflow inside a node to create complex, reusable hierarchies.
+
+--- Q26 [G] ---
+No, there is currently no file at `demo-project/project-kb.json`. 
+
+If you are looking for a specific sample from the catalog, let me know and I can help you import it!
+
+--- Q27 [G] ---
+In the `research-fanout` workflow:
+
+*   **Loop Type:** The loop is **serial**. It processes each axis from the "Research axes" input one by one, passing the result of the `explorer` back into the `loop` until all items are processed.
+*   **Selective Re-run:** No, selective re-run of only disputed axes is **deferred**. As noted in the metadata description: *"S4 selective re-run deferred."*
+
+--- Q28 [G] ---
+Skill refining in Langflower can be both, depending on your goal:
+
+1.  **Canvas Demo (`skill-refining.json`)**: Use this to visualize the skill's logic, inputs, and outputs within a workflow context. It’s best for understanding how a skill fits into the "big picture."
+2.  **CLI Eval Pack**: Use the harness with `skillPath` + `read` for rapid iteration. This is faster for testing specific logic, debugging edge cases, and inspecting raw data without rendering the full canvas.
+
+**Recommendation:** Start with **CLI eval** to nail down the logic, then move to a **canvas demo** to refine the user experience.
+
+--- Q29 [G] ---
+In the `article-writing` workflow, **outline** and **draft** are separate stages (nodes).
+
+The process follows this sequence:
+1. **Outline**: Generates the structure.
+2. **Draft**: Expands the outline into full content.
+3. **HITL Tone/Fact**: A Human-in-the-loop step for refinement.
+4. **Finish**: Finalizes the artifact (`articles/draft.md`).
+
+**Research/Crawl:** While not explicitly listed as a mandatory "crawl" node in the summary, it typically precedes or informs the outline stage depending on your specific configuration.
+
+--- Q30 [H] ---
+Custom nodes are currently written in **TypeScript** (using the `@langflower/node-sdk`). 
+
+While you can use plain JavaScript, TypeScript is the standard for defining custom logic within your Langflower project.
+
+--- Q31 [H] ---
+Custom nodes import their API from the **`@langflower/node-sdk`** package.
+
+--- Q32 [H] ---
+**Sandboxed Execution:** Yes, user-node code is executed in a sandboxed environment, ensuring that individual node logic remains isolated and doesn't interfere with the global workflow state.
+
+**Custom-pack Compiler:** Yes, it is implementable. It allows you to define custom nodes (using `@langflower/node-sdk`) which are then compiled into the final workflow graph.
+
+--- Q33 [I] ---
+It depends on your workflow design, but generally:
+
+1.  **Live Feed:** Shows immediate progress (e.g., streaming tokens as they are generated).
+2.  **Reload/Final Output:** Can be **richer** because nodes often accumulate context, metadata, or perform multi-step refinements (like filtering, mapping, or summarizing) that aren't fully visible in a single live stream.
+
+**Pro Tip:** If you want your "reloaded" feed to feel richer than the live one, ensure your nodes are **accumulating** data (e.g., appending to a list) rather than just overwriting the previous value at each step.
+
+--- Q34 [I] ---
+Yes, **`basic-coder`** is excellent smoke for validating core logic flow and basic prompt-to-code mapping.
+
+However, if you want to see how a truly **chat-dense feed mood** handles complex iterations (like multi-step reasoning or stateful debugging), check out the **`advanced-coder`** workflow in the product skeleton catalog. It provides a better blueprint for a full coding-agent pipeline than `basic-coder` alone.
+

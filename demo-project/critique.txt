@@ -1,0 +1,30 @@
+1. **Mitigation does not address the stated risk** — The risk described is about sequencing errors (e.g., invoking verification before sufficient context, wasting iterations). But the mitigation (`permission.ask` gates on file writes, bash, network calls) addresses safety concerns, not sequencing efficiency. These are orthogonal problems; permission gates don't prevent wasted iterations or misleading results from bad ordering.
+
+2. **Risk is asserted without evidence** — The claim that rigid rails "break on novel tasks" and cause wasted iterations is presented as fact with no data, benchmark, or even a concrete example. A truly concrete risk would include specifics: which task types fail, how often, what the cost is.
+
+3. **Internal inconsistency between premise and mitigation** — The paragraph argues for soft harness to gain flexibility/adaptability, then immediately restricts that same adaptability with permission gates at "high-risk boundaries." If the core value of soft harness is autonomy in sequencing, why does the mitigation re-impose hard constraints? The logic doesn't reconcile these two angles.
+---
+
+1. **The concrete example is trivially solvable without soft harness** — "parse JSON step crashes on CSV" isn't evidence that rigid rails fail on novel tasks; it's just poor workflow design. A rigid rail could include a format-detection step before parsing, solving this at no cost. The example doesn't demonstrate a genuine limitation of structured sequencing on truly novel or unpredictable inputs.
+
+2. **Checkpoint markers contradict the soft-harness premise** — The original claim is that agents should default to LLM autonomy in choosing tools and stopping. But checkpoint markers are pre-defined structural constraints placed by system designers, not agent-chosen decision points. If checkpoints must be authored ahead of time, the agent isn't truly autonomous in sequencing—it can only backtrack within boundaries someone else set. This conflates "soft harness" with a hybrid checkpoint-based approach that's closer to structured rails than true autonomy.
+
+3. **No evidence that checkpoints actually reduce wasted iterations** — The claim that checkpoints preserve efficiency is asserted without data. How do we know checkpoints are placed at the right granularity? What if an error occurs between two checkpoints, forcing backtracking further than intended? Without benchmarks or examples showing checkpoint-based backtracking outperforms rigid rails on real tasks, this remains unsubstantiated.
+---
+
+1. **Mitigation doesn't address the stated risk** — The risk is cascading failures from incorrect path selection on novel inputs. A token/step budget with human escalation doesn't prevent wrong-path execution; it merely stops the agent after damage has already been done (or limits how much). If the agent wastes 90% of its budget on a wrong approach before hitting the limit and escalating to human review, that's still wasteful—it doesn't solve the core sequencing problem.
+
+2. **Token/step budgets are too blunt** — Different tasks legitimately require different amounts of tokens/steps, so a fixed budget may be overly restrictive for complex but legitimate work. Worse, counting steps/tokens doesn't distinguish between productive and unproductive iterations—an agent could be making slow progress toward the right answer while burning through its budget prematurely.
+
+3. **The risk example is still overstated** — "Unexpected error state" isn't a novel input; it's an error condition that should be handled by error-handling logic in the rail itself (catch-all handlers, fallback paths, retries). The claim that rigid rails can't handle unexpected errors ignores standard workflow design patterns.
+
+4. **No evidence provided** — Still no data or benchmarks showing soft harness outperforms rigid rails on novel inputs, or that token budgets effectively prevent runaway costs without being overly restrictive.
+---
+
+1. **Mitigation contradicts the soft-harness premise** — The proposer argues for LLM autonomy in choosing tools and stop, but "local state-aware constraints" (e.g., only exposing `run_tests` after a patch is written) ARE rigid rails—just at finer granularity. If someone must pre-define which tools are available at each state, that's still exhaustive configuration, not agent autonomy. This conflates "soft harness" with granular structured sequencing.
+
+2. **The example isn't truly novel** — Debugging a repository with multiple interacting bugs is a well-understood task domain. Rigid rails CAN handle this through iterative loops (write patch → run tests → if fail, analyze and retry) without combinatorial explosion because the loop structure is fixed even if content varies. The example conflates "open-ended" with "novel/unpredictable."
+
+3. **No evidence provided** — Still no data or benchmarks showing soft harness outperforms rigid rails on open-ended tasks like debugging, or that local state constraints actually reduce configuration burden versus traditional workflow design patterns.
+
+4. **"Default every agent" is unjustified** — Even if soft harness works for some classes of tasks, defaulting EVERY agent ignores well-structured domains (e.g., data extraction from known schemas, form processing) where rigid rails are simpler and more reliable. The claim doesn't justify why one-size-fits-all is appropriate.

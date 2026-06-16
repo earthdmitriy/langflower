@@ -1,0 +1,43 @@
+{
+	"dividerPositions": {
+		"leftWidth": 277,
+		"rightWidth": 500.4000244140625,
+		"composerHeight": 120,
+	},
+	"provider": {
+		"lmstudio": {
+			"name": "LM Studio",
+			"options": {
+				"baseURL": "http://127.0.0.1:1234/v1",
+			},
+			"models": {
+				"local-model": {
+					"name": "Local model (set id to match LM Studio)",
+				},
+			},
+		},
+		"cursor-proxy": {
+			"name": "Cursor-proxy",
+			"options": {
+				"baseURL": "http://127.0.0.1:8080/v1",
+			},
+			"models": {
+				"cursor-grok-4.5-medium": "cursor-grok-4.5-medium",
+				"cursor-grok-4.5-high-fast": " cursor-grok-4.5-high-fast",
+			},
+		},
+		"openai": {
+			"name": "OpenAI",
+			"options": {
+				"baseURL": "https://api.openai.com/v1",
+				"apiKey": "{env:OPENAI_API_KEY}",
+			},
+			"models": {
+				"gpt-4o-mini": {
+					"name": "GPT-4o Mini",
+				},
+			},
+		},
+	},
+	"currentWorkflowId": "starter",
+}

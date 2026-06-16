@@ -1,0 +1,6 @@
+node_modules/
+dist/
+COMPILATION_ERRORS.md
+*.tsbuildinfo
+package-lock.json
+npm-shrinkwrap.json

@@ -1,0 +1,29 @@
+{
+	"name": "@langflower/runtime",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"main": "./dist/runtime.js",
+	"types": "./dist/runtime.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/runtime.d.ts",
+			"import": "./dist/runtime.js"
+		},
+		"./port-meta": {
+			"types": "./dist/port-meta.d.ts",
+			"import": "./dist/port-meta.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"typecheck": "tsc -p tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"@rx-evo/stateful-observable": "^0.5.2",
+		"rxjs": "^7.8.1"
+	},
+	"files": [
+		"dist"
+	]
+}

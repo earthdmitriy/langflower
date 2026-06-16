@@ -1,0 +1,343 @@
+{
+	"metadata": {
+		"name": "Advanced coder",
+		"description": "Plan → refine → coder → review → QA with internal loops and HITL after QA (successor intent to coding-agent). Partial sample graph; configure a provider before running.",
+		"createdAt": "2026-07-24T00:00:00.000Z",
+		"updatedAt": "2026-07-24T00:00:00.000Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 0,
+			"y": 0,
+			"scale": 0.55,
+			"width": 1600,
+			"height": 900
+		},
+		"nodes": [
+			{
+				"id": "goal",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 40,
+						"y": 280
+					},
+					"label": "Goal"
+				}
+			},
+			{
+				"id": "planner",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "plan",
+					"providerId": "",
+					"model": "",
+					"maxIterations": 8,
+					"maxFeedbackTurns": 4
+				},
+				"inputs": {
+					"systemPrompt": "You are the Planner for a coding change.\nExplore the repo with harness tools (read/glob/grep; limited .md writes).\nIf requirements are missing, ask one focused clarifying question in your response (Clarify Review Gate will reply on feedback).\nWhen ready, emit a concise draft plan on response for red-team critique and the plan Review Gate.\nWhen feedback arrives (clarify replies, red-team attack, plan-gate notes, or result-gate improve notes), revise the plan — do not ignore it."
+				},
+				"ui": {
+					"position": {
+						"x": 300,
+						"y": 200
+					},
+					"label": "Planner"
+				}
+			},
+			{
+				"id": "ask",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 560,
+						"y": 40
+					},
+					"label": "Clarify"
+				}
+			},
+			{
+				"id": "red-team",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "custom",
+					"providerId": "",
+					"model": "",
+					"enabledToolIds": ["read", "glob", "grep"],
+					"maxIterations": 6,
+					"maxFeedbackTurns": 0
+				},
+				"inputs": {
+					"systemPrompt": "You are an independent Planner red-team — not the Planner's co-author.\nYour userPrompt is the Planner's latest draft. Attack scope, missing tests, unsafe assumptions, and overclaim.\nBe hostile but specific. End with 2–4 bullet findings. Do not rubber-stamp."
+				},
+				"ui": {
+					"position": {
+						"x": 560,
+						"y": 280
+					},
+					"label": "Planner Red Team"
+				}
+			},
+			{
+				"id": "plan-gate",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 560,
+						"y": 520
+					},
+					"label": "Plan Accept"
+				}
+			},
+			{
+				"id": "planner-feedback",
+				"type": "common-merge",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 300,
+						"y": 480
+					},
+					"label": "Planner feedback"
+				}
+			},
+			{
+				"id": "coder",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "coder",
+					"providerId": "",
+					"model": "",
+					"maxIterations": 10,
+					"maxFeedbackTurns": 3
+				},
+				"inputs": {
+					"systemPrompt": "You receive an accepted plan as the user prompt. Implement with harness tools. Prefer minimal edits. Summarize files changed in your final response.\nWhen QA or Review feedback arrives, revise — do not ignore it."
+				},
+				"ui": {
+					"position": {
+						"x": 860,
+						"y": 200
+					},
+					"label": "Coder"
+				}
+			},
+			{
+				"id": "qa",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "custom",
+					"providerId": "",
+					"model": "",
+					"enabledToolIds": ["read", "glob", "grep", "bash"],
+					"maxIterations": 8,
+					"maxFeedbackTurns": 0
+				},
+				"inputs": {
+					"systemPrompt": "You are the QA agent. Your userPrompt is the Coder's latest summary/change context.\nRun project tests via bash when appropriate (respect permission.ask).\nReport pass/fail clearly. Be specific about failures so Coder can revise via feedback."
+				},
+				"ui": {
+					"position": {
+						"x": 1120,
+						"y": 80
+					},
+					"label": "QA Agent"
+				}
+			},
+			{
+				"id": "review",
+				"type": "common-review",
+				"params": {
+					"providerId": "",
+					"model": "",
+					"maxIterations": 5
+				},
+				"inputs": {
+					"systemPrompt": "You are principles / plan-fit Review after QA.\nCall accept only if the change matches the accepted plan criteria and is non-blocking.\nCall feedback with concrete revision notes otherwise."
+				},
+				"ui": {
+					"position": {
+						"x": 1120,
+						"y": 320
+					},
+					"label": "Principles Review"
+				}
+			},
+			{
+				"id": "coder-feedback",
+				"type": "common-merge",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 860,
+						"y": 400
+					},
+					"label": "Coder feedback"
+				}
+			},
+			{
+				"id": "result-gate",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 1380,
+						"y": 280
+					},
+					"label": "Result HITL"
+				}
+			},
+			{
+				"id": "done",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 1620,
+						"y": 280
+					},
+					"label": "Finish"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-goal-planner",
+				"fromNodeId": "goal",
+				"fromPort": ["message", 0],
+				"toNodeId": "planner",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-planner-ask",
+				"fromNodeId": "planner",
+				"fromPort": ["response", 0],
+				"toNodeId": "ask",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-ask-planner-merge",
+				"fromNodeId": "ask",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "planner-feedback",
+				"toPort": ["value", 0]
+			},
+			{
+				"edgeId": "e-planner-redteam",
+				"fromNodeId": "planner",
+				"fromPort": ["response", 0],
+				"toNodeId": "red-team",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-redteam-planner-merge",
+				"fromNodeId": "red-team",
+				"fromPort": ["response", 0],
+				"toNodeId": "planner-feedback",
+				"toPort": ["value", 1]
+			},
+			{
+				"edgeId": "e-planner-plangate",
+				"fromNodeId": "planner",
+				"fromPort": ["response", 0],
+				"toNodeId": "plan-gate",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-plangate-planner-merge",
+				"fromNodeId": "plan-gate",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "planner-feedback",
+				"toPort": ["value", 2]
+			},
+			{
+				"edgeId": "e-resultgate-planner-merge",
+				"fromNodeId": "result-gate",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "planner-feedback",
+				"toPort": ["value", 3]
+			},
+			{
+				"edgeId": "e-planner-merge-feedback",
+				"fromNodeId": "planner-feedback",
+				"fromPort": ["value", 0],
+				"toNodeId": "planner",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-plangate-coder",
+				"fromNodeId": "plan-gate",
+				"fromPort": ["response", 0],
+				"toNodeId": "coder",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-plangate-review-task",
+				"fromNodeId": "plan-gate",
+				"fromPort": ["response", 0],
+				"toNodeId": "review",
+				"toPort": ["task", 0]
+			},
+			{
+				"edgeId": "e-coder-qa",
+				"fromNodeId": "coder",
+				"fromPort": ["response", 0],
+				"toNodeId": "qa",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-qa-coder-merge",
+				"fromNodeId": "qa",
+				"fromPort": ["response", 0],
+				"toNodeId": "coder-feedback",
+				"toPort": ["value", 0]
+			},
+			{
+				"edgeId": "e-qa-review",
+				"fromNodeId": "qa",
+				"fromPort": ["response", 0],
+				"toNodeId": "review",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-review-coder-merge",
+				"fromNodeId": "review",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "coder-feedback",
+				"toPort": ["value", 1]
+			},
+			{
+				"edgeId": "e-coder-merge-feedback",
+				"fromNodeId": "coder-feedback",
+				"fromPort": ["value", 0],
+				"toNodeId": "coder",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-review-resultgate",
+				"fromNodeId": "review",
+				"fromPort": ["response", 0],
+				"toNodeId": "result-gate",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-resultgate-done",
+				"fromNodeId": "result-gate",
+				"fromPort": ["response", 0],
+				"toNodeId": "done",
+				"toPort": ["value", 0]
+			}
+		]
+	}
+}

@@ -1,0 +1,9 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"rootDir": "../..",
+		"outDir": "./out-tsc/vitest",
+		"types": []
+	},
+	"include": ["src/**/*.ts"]
+}

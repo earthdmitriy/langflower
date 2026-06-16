@@ -1,0 +1,66 @@
+{
+	"id": "triple-emit",
+	"createdAt": "2026-06-16T00:00:00.000Z",
+	"updatedAt": "2026-06-16T00:00:00.000Z",
+	"nodes": [
+		{
+			"id": "constant-1",
+			"type": "common-constant",
+			"position": {
+				"x": 40,
+				"y": 80
+			},
+			"data": {
+				"label": "Constant",
+				"params": {
+					"value": "triple-me"
+				},
+				"inputs": {}
+			}
+		},
+		{
+			"id": "triple-1",
+			"type": "common-triple",
+			"position": {
+				"x": 240,
+				"y": 80
+			},
+			"data": {
+				"label": "Triple",
+				"params": {},
+				"inputs": {
+					"delay": 30
+				}
+			}
+		},
+		{
+			"id": "preview-1",
+			"type": "common-preview",
+			"position": {
+				"x": 440,
+				"y": 80
+			},
+			"data": {
+				"label": "Preview",
+				"params": {},
+				"inputs": {}
+			}
+		}
+	],
+	"edges": [
+		{
+			"edgeId": "edge-c-t",
+			"fromNodeId": "constant-1",
+			"fromPort": ["value", 0],
+			"toNodeId": "triple-1",
+			"toPort": ["value", 0]
+		},
+		{
+			"edgeId": "edge-t-p",
+			"fromNodeId": "triple-1",
+			"fromPort": ["value", 0],
+			"toNodeId": "preview-1",
+			"toPort": ["text", 0]
+		}
+	]
+}

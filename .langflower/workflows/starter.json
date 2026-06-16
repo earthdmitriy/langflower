@@ -1,0 +1,81 @@
+{
+	"metadata": {
+		"name": "Starter",
+		"description": "Chat loop with an onboarding agent (skill langflower-helper). After bootstrap — product capabilities, workflows, editor chrome, and custom nodes.",
+		"createdAt": "2026-07-24T00:00:00.000Z",
+		"updatedAt": "2026-07-24T00:00:00.000Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 0,
+			"y": 0,
+			"scale": 1,
+			"width": 900,
+			"height": 700
+		},
+		"nodes": [
+			{
+				"id": "chat",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 40, "y": 220 },
+					"label": "Ask"
+				}
+			},
+			{
+				"id": "helper",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "custom",
+					"skillId": "langflower-helper",
+					"providerId": "",
+					"model": "",
+					"maxIterations": 8,
+					"maxFeedbackTurns": 4
+				},
+				"inputs": {
+					"systemPrompt": "You are the Langflower onboarding assistant. Use the langflower-helper skill. The user already started Langflower and configured a provider — do not lead with CLI start or provider setup. Help with what Langflower can do, workflows, editor chrome, and custom nodes. Keep answers short and actionable."
+				},
+				"ui": {
+					"position": { "x": 320, "y": 180 },
+					"label": "Helper"
+				}
+			},
+			{
+				"id": "review",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 620, "y": 220 },
+					"label": "Review"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-chat-helper",
+				"fromNodeId": "chat",
+				"fromPort": ["message", 0],
+				"toNodeId": "helper",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-helper-review",
+				"fromNodeId": "helper",
+				"fromPort": ["response", 0],
+				"toNodeId": "review",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-review-feedback",
+				"fromNodeId": "review",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "helper",
+				"toPort": ["feedback", 0]
+			}
+		]
+	}
+}

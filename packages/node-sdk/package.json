@@ -1,0 +1,40 @@
+{
+	"name": "@langflower/node-sdk",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"main": "./dist/node-factory/define-reactive-node/define-reactive-node.js",
+	"types": "./dist/node-factory/define-reactive-node/define-reactive-node.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/node-factory/define-reactive-node/define-reactive-node.d.ts",
+			"import": "./dist/node-factory/define-reactive-node/define-reactive-node.js"
+		},
+		"./llm": {
+			"types": "./dist/node-factory/define-llm-node/define-llm-node.d.ts",
+			"import": "./dist/node-factory/define-llm-node/define-llm-node.js"
+		},
+		"./mcp": {
+			"types": "./dist/node-factory/define-mcp/mcp-handle.d.ts",
+			"import": "./dist/node-factory/define-mcp/mcp-handle.js"
+		},
+		"./create-typed-ui-schema": {
+			"types": "./dist/node-factory/define-reactive-node/ui-schema-inference.d.ts",
+			"import": "./dist/node-factory/define-reactive-node/ui-schema-inference.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"typecheck": "tsc -p tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"@rx-evo/stateful-observable": "^0.5.2",
+		"rxjs": "^7.8.1"
+	},
+	"devDependencies": {
+		"@langflower/runtime": "0.1.0"
+	},
+	"files": [
+		"dist"
+	]
+}
