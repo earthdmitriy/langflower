@@ -122,8 +122,8 @@ Maintainers (monorepo only): [docs/RELEASE.md](https://github.com/earthdmitriy/l
 
 Shipped with the npm package under [`docs/public/`](https://github.com/earthdmitriy/langflower/tree/master/docs/public):
 
-| Want to…                     | Start here                                                                                      |
-| ---------------------------- | ----------------------------------------------------------------------------------------------- |
+| Want to…                     | Start here                                                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Install and first run        | [Getting started](https://github.com/earthdmitriy/langflower/blob/master/docs/public/getting-started.md)   |
 | Understand the product       | [Product overview](https://github.com/earthdmitriy/langflower/blob/master/docs/public/product.md)          |
 | Use the canvas and runs      | [Using the editor](https://github.com/earthdmitriy/langflower/blob/master/docs/public/using-the-editor.md) |

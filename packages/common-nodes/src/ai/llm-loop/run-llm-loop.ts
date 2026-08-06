@@ -813,19 +813,45 @@ const invokeTool = <Chunk>(
 		);
 	}
 
+	const toolAbort = new AbortController();
+	const abortTool = (): void => {
+		toolAbort.abort();
+	};
+	cancelSignal.addEventListener('abort', abortTool);
+
+	const invokeOptions = {
+		...(options.policy.toolNotAllowedText === undefined
+			? {}
+			: {
+					notInAllowlistText: options.policy.toolNotAllowedText,
+				}),
+		signal: toolAbort.signal,
+	};
+
 	const invocation$ = defer(() =>
 		invokeInventoryTool(
 			options.harness,
 			options.inventoryTools,
 			call,
 			options.toolCtx,
-			options.policy.toolNotAllowedText === undefined
-				? undefined
-				: {
-						notInAllowlistText: options.policy.toolNotAllowedText,
-					},
-		),
+			invokeOptions,
+		).catch((error: unknown) => {
+			// Avoid unhandled rejection when timeout/cancel aborts in-flight work.
+			if (toolAbort.signal.aborted) {
+				return {
+					ok: false as const,
+					text: 'Tool aborted.',
+				};
+			}
+
+			throw error;
+		}),
+	).pipe(
+		finalize(() => {
+			cancelSignal.removeEventListener('abort', abortTool);
+		}),
 	);
+
 	const boundedInvocation$ =
 		options.recovery.toolTimeoutMs > 0
 			? invocation$.pipe(
@@ -841,13 +867,14 @@ const invokeTool = <Chunk>(
 			map((result) =>
 				result.ok ? result.text : `Error: ${result.text}`,
 			),
-			catchError((error) =>
-				of(
+			catchError((error) => {
+				abortTool();
+				return of(
 					error instanceof TimeoutError
 						? `Error: Tool ${call.name} timed out after ${options.recovery.toolTimeoutMs}ms.`
 						: `Error: ${classifyLlmFailure(error).message}`,
-				),
-			),
+				);
+			}),
 			mergeMap((result) =>
 				toolResultPackets(state, call, result, options, []),
 			),

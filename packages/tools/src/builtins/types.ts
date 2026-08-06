@@ -8,6 +8,8 @@ export type HandlerContext = {
 	/** Absolute (or project-relative) roots trusted outside the project. */
 	readonly allowedRoots: readonly string[];
 	readonly bashEnabled: boolean;
+	/** Per-invoke abort (tool timeout / run cancel). */
+	readonly signal?: AbortSignal;
 };
 
 export type BuiltinTool<Id extends string = string> = {

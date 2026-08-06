@@ -9,9 +9,7 @@ import { applyPostProcess } from '../apply-post-process.js';
 import { asBoolean, asString } from '../args.js';
 import { displayPath, fenceOptions } from '../fence.js';
 import type { BuiltinTool, HandlerContext } from '../types.js';
-import { walkFiles } from '../walk-files.js';
-
-const MAX_GREP_MATCHES = 100;
+import { runGrepCascade } from './search.js';
 
 const invoke = async (
 	ctx: HandlerContext,
@@ -23,22 +21,9 @@ const invoke = async (
 		throw new Error('grep requires string argument «pattern».');
 	}
 
-	let regex: RegExp;
-
-	try {
-		regex = new RegExp(
-			pattern,
-			asBoolean(args, 'caseInsensitive', false) ? 'i' : '',
-		);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-		throw new Error(
-			`Invalid regex «${pattern}»: ${message}. Escape special characters or simplify the pattern.`,
-		);
-	}
-
 	const searchPath = asString(args, 'path') ?? '.';
 	const respectGitignore = asBoolean(args, 'respectGitignore', true);
+	const caseInsensitive = asBoolean(args, 'caseInsensitive', false);
 	const absolute = resolveProjectPath(
 		ctx.projectRoot,
 		searchPath,
@@ -53,53 +38,16 @@ const invoke = async (
 	const fenceRoot =
 		resolveFenceRoot(ctx.projectRoot, absolute, ctx.allowedRoots) ??
 		path.resolve(ctx.projectRoot);
-	const files = stat.isFile()
-		? [displayPath(ctx, absolute)]
-		: (await walkFiles(fenceRoot, absolute, respectGitignore)).map((file) =>
-				displayPath(ctx, path.join(fenceRoot, file)),
-			);
 
-	const hits: string[] = [];
-
-	for (const file of files) {
-		if (hits.length >= MAX_GREP_MATCHES) {
-			break;
-		}
-
-		const fileAbs = resolveProjectPath(
-			ctx.projectRoot,
-			file,
-			fenceOptions(ctx),
-		);
-		let text: string;
-
-		try {
-			text = await fs.readFile(fileAbs, 'utf8');
-		} catch {
-			continue;
-		}
-
-		const lines = text.split(/\r?\n/);
-
-		for (let i = 0; i < lines.length; i += 1) {
-			const line = lines[i] ?? '';
-
-			if (regex.test(line)) {
-				hits.push(`${file}:${i + 1}:${line}`);
-				if (hits.length >= MAX_GREP_MATCHES) {
-					break;
-				}
-			}
-		}
-	}
-
-	const body =
-		hits.length === 0
-			? '(no matches)'
-			: hits.join('\n') +
-				(hits.length >= MAX_GREP_MATCHES
-					? `\n…[truncated at ${MAX_GREP_MATCHES}; refine pattern or path]`
-					: '');
+	const { body } = await runGrepCascade({
+		pattern,
+		caseInsensitive,
+		respectGitignore,
+		searchAbsolute: absolute,
+		fenceRoot,
+		displayPath: (fileAbs) => displayPath(ctx, fileAbs),
+		...(ctx.signal !== undefined ? { signal: ctx.signal } : {}),
+	});
 
 	return applyPostProcess(args, body);
 };
@@ -110,13 +58,14 @@ export const grepTool = {
 		toolId: 'grep',
 		name: 'grep',
 		description:
-			'Regex search across project files (gitignore-aware by default; Node walk — not ripgrep). Optional postProcess.',
+			'Regex search across project files (gitignore-aware by default; ripgrep when available, else grep, else bounded Node walk). Optional postProcess.',
 		inputSchema: {
 			type: 'object',
 			properties: {
 				pattern: {
 					type: 'string',
-					description: 'JavaScript RegExp source',
+					description:
+						'Regex pattern (ripgrep dialect when rg is available; JavaScript RegExp on Node fallback)',
 				},
 				path: {
 					type: 'string',

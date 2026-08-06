@@ -104,9 +104,13 @@ export const createProjectHarness = (
 			}
 
 			try {
+				const invokeCtx: HandlerContext =
+					call.signal === undefined
+						? ctx
+						: { ...ctx, signal: call.signal };
 				const text = await invokeBuiltin(
 					toolId as BuiltinToolId,
-					ctx,
+					invokeCtx,
 					call.args,
 				);
 				return { ok: true, text };

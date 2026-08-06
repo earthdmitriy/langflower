@@ -3,6 +3,7 @@ import type {
 	BuiltinToolRegistration,
 	Harness,
 } from '@langflower/tools/create-project-harness';
+import type { ToolHandlerContext as HostToolHandlerContext } from '@langflower/tools/domain-tool-configs';
 import {
 	isToolAlwaysDenied,
 	type PermissionConfig,
@@ -54,10 +55,15 @@ export const wrapBuiltinToolHandles = (
 		name: reg.name,
 		description: reg.description,
 		inputSchema: reg.inputSchema,
-		invoke: async (args) => {
+		invoke: async (args, toolCtx?) => {
+			// Shell passes tools host bag (optional signal); SDK type stays identity-only.
+			const hostCtx = toolCtx as HostToolHandlerContext | undefined;
 			const result = await harness.invoke({
 				toolId: reg.toolId,
 				args,
+				...(hostCtx?.signal !== undefined
+					? { signal: hostCtx.signal }
+					: {}),
 			});
 
 			if (!result.ok) {

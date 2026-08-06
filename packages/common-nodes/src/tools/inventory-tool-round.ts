@@ -87,6 +87,7 @@ export const invokeInventoryTool = async (
 	toolCtx: ToolHandlerContext | undefined,
 	options?: {
 		readonly notInAllowlistText?: (toolName: string) => string;
+		readonly signal?: AbortSignal;
 	},
 ): Promise<{ readonly ok: boolean; readonly text: string }> => {
 	const handle = findToolHandle(tools, call.name);
@@ -112,9 +113,13 @@ export const invokeInventoryTool = async (
 
 	const args = parseToolArgs(call.arguments);
 	const toolId = handle.toolId.length > 0 ? handle.toolId : handle.name;
+	const ctx: ToolHandlerContext =
+		options?.signal === undefined
+			? toolCtx
+			: { ...toolCtx, signal: options.signal };
 
 	if (isBuiltinToolId(toolId)) {
-		const authorize = toolCtx.authorize ?? harness?.authorize;
+		const authorize = ctx.authorize ?? harness?.authorize;
 
 		if (authorize === undefined) {
 			return {
@@ -134,7 +139,7 @@ export const invokeInventoryTool = async (
 	}
 
 	try {
-		const text = await handle.invoke(args, toolCtx);
+		const text = await handle.invoke(args, ctx);
 		return { ok: true, text };
 	} catch (error) {
 		return {

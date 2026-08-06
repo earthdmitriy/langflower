@@ -11,6 +11,8 @@ export type ToolInvokeResult =
 export type ToolInvokeCall = {
 	readonly toolId: string;
 	readonly args: Readonly<Record<string, unknown>>;
+	/** Per-invoke abort (tool timeout / run cancel). */
+	readonly signal?: AbortSignal;
 };
 
 export type BuiltinToolRegistration = {

@@ -22,6 +22,8 @@ export type ToolHandlerContext = {
 	readonly webFetch?: (request: WebFetchRequest) => Promise<WebFetchResult>;
 	readonly denyPaths?: readonly string[];
 	readonly allowedHosts?: readonly string[];
+	/** Per-invoke abort (tool timeout / run cancel) for builtins. */
+	readonly signal?: AbortSignal;
 };
 
 export type ToolHandler = (
