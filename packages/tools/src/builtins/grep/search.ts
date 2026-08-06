@@ -48,8 +48,17 @@ export type GrepSearchDeps = {
 };
 
 type GrepSearchOutcome =
-	| { readonly ok: true; readonly hits: readonly GrepHit[]; readonly truncated: boolean; readonly backend: 'rg' | 'grep' | 'node' }
-	| { readonly ok: false; readonly reason: 'unavailable' | 'error'; readonly message: string };
+	| {
+			readonly ok: true;
+			readonly hits: readonly GrepHit[];
+			readonly truncated: boolean;
+			readonly backend: 'rg' | 'grep' | 'node';
+	  }
+	| {
+			readonly ok: false;
+			readonly reason: 'unavailable' | 'error';
+			readonly message: string;
+	  };
 
 const throwIfAborted = (signal: AbortSignal | undefined): void => {
 	if (signal?.aborted) {
@@ -57,10 +66,7 @@ const throwIfAborted = (signal: AbortSignal | undefined): void => {
 	}
 };
 
-const formatHits = (
-	hits: readonly GrepHit[],
-	truncated: boolean,
-): string => {
+const formatHits = (hits: readonly GrepHit[], truncated: boolean): string => {
 	if (hits.length === 0) {
 		return '(no matches)';
 	}
@@ -74,10 +80,8 @@ const formatHits = (
 		: body;
 };
 
-const formatGrepBody = (
-	hits: readonly GrepHit[],
-	truncated: boolean,
-): string => formatHits(hits, truncated);
+const formatGrepBody = (hits: readonly GrepHit[], truncated: boolean): string =>
+	formatHits(hits, truncated);
 
 const parseLineHits = (
 	stdout: string,
@@ -232,10 +236,7 @@ const searchWithGrep = async (
 		'-E',
 		'-I',
 		...(input.caseInsensitive ? ['-i'] : []),
-		...WALK_EXCLUDE_DIR_NAMES.flatMap((name) => [
-			'--exclude-dir',
-			name,
-		]),
+		...WALK_EXCLUDE_DIR_NAMES.flatMap((name) => ['--exclude-dir', name]),
 		'-e',
 		input.pattern,
 		input.searchAbsolute,
@@ -282,9 +283,7 @@ const searchWithGrep = async (
 			ok: false,
 			reason: 'unavailable',
 			message:
-				error instanceof Error
-					? error.message
-					: 'Error executing grep',
+				error instanceof Error ? error.message : 'Error executing grep',
 		};
 	}
 };
@@ -307,10 +306,7 @@ export const searchWithNodeWalk = async (
 	let regex: RegExp;
 
 	try {
-		regex = new RegExp(
-			input.pattern,
-			input.caseInsensitive ? 'i' : '',
-		);
+		regex = new RegExp(input.pattern, input.caseInsensitive ? 'i' : '');
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		return {
@@ -410,8 +406,7 @@ export const searchWithNodeWalk = async (
 		}
 	}
 
-	const fileCapHit =
-		!stat.isFile() && files.length >= MAX_GREP_FILES_SCANNED;
+	const fileCapHit = !stat.isFile() && files.length >= MAX_GREP_FILES_SCANNED;
 
 	return {
 		ok: true,

@@ -16,7 +16,9 @@ import {
 } from 'ng-diagram';
 import { Subject } from 'rxjs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CanvasNodeStatusService } from '../../canvas-node-status-folding/canvas-node-status.service';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
+import { NodeHoverService } from '../../../services/node-hover.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import { LfNodeComponent } from '../components/lf-node.component';
 import type { LfNodeData } from '../components/lf-node.component';
@@ -85,11 +87,12 @@ function createRaw() {
 
 type Raw = ReturnType<typeof createRaw>;
 
-function makeNode(id: string): SimpleNode<LfNodeData> {
+function makeNode(id: string, selected = false): SimpleNode<LfNodeData> {
 	return {
 		id,
 		type: 'lf-node',
 		position: { x: 0, y: 0 },
+		selected,
 		data: {
 			id,
 			type: 'common-constant',
@@ -118,16 +121,27 @@ function outputPending(runId: string, nodeId: string, edgeIds: string[] = []) {
 	};
 }
 
-function outputValue(runId: string, nodeId: string, edgeIds: string[] = []) {
+function outputValue(
+	runId: string,
+	nodeId: string,
+	options: {
+		readonly edgeIds?: string[];
+		readonly portId?: string;
+		readonly streaming?: boolean;
+	} = {},
+) {
 	return {
 		kind: 'output-emitted' as const,
 		runId,
 		nodeId,
-		portId: 'response',
+		portId: options.portId ?? 'response',
 		portIdx: 0,
-		edgeIds,
+		edgeIds: options.edgeIds ?? [],
 		state: 'value' as const,
 		value: 'x',
+		...(options.streaming === true
+			? { feed: { streaming: true as const } }
+			: {}),
 	};
 }
 
@@ -147,7 +161,7 @@ function outputError(runId: string, nodeId: string, edgeIds: string[] = []) {
 describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 	let raw: Raw;
 	let fixture: ComponentFixture<LfNodeComponent>;
-	let service: WorkflowExecutionService;
+	let hover: NodeHoverService;
 
 	beforeAll(() => {
 		if (typeof globalThis.ResizeObserver === 'undefined') {
@@ -188,6 +202,8 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 					useValue: { raw, cached: raw },
 				},
 				WorkflowExecutionService,
+				CanvasNodeStatusService,
+				NodeHoverService,
 			],
 		})
 			.overrideComponent(LfNodeComponent, {
@@ -199,7 +215,7 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 		fixture = TestBed.createComponent(LfNodeComponent);
 		fixture.componentRef.setInput('node', makeNode('node-a'));
 		fixture.detectChanges();
-		service = TestBed.inject(WorkflowExecutionService);
+		hover = TestBed.inject(NodeHoverService);
 	});
 
 	function chromeEl(): HTMLElement {
@@ -210,9 +226,43 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 		raw['runner.output-emitted'].next(outputPending('run-1', 'node-a'));
 		fixture.detectChanges();
 
-		expect(service.nodeStatus('node-a')).toBe('pending');
 		expect(chromeEl().classList.contains('lf-node-chrome--pending')).toBe(
 			true,
+		);
+	});
+
+	it('is pending on input-received alone', () => {
+		raw['runner.input-received'].next({
+			kind: 'input-received',
+			runId: 'run-1',
+			nodeId: 'node-a',
+			portId: 'prompt',
+			portIdx: 0,
+			edgeIds: [],
+			state: 'value',
+			value: 'hi',
+		});
+		fixture.detectChanges();
+
+		expect(chromeEl().classList.contains('lf-node-chrome--pending')).toBe(
+			true,
+		);
+	});
+
+	it('stays pending for streaming output value', () => {
+		raw['runner.output-emitted'].next(
+			outputValue('run-1', 'node-a', {
+				portId: 'draft',
+				streaming: true,
+			}),
+		);
+		fixture.detectChanges();
+
+		expect(chromeEl().classList.contains('lf-node-chrome--pending')).toBe(
+			true,
+		);
+		expect(chromeEl().classList.contains('lf-node-chrome--value')).toBe(
+			false,
 		);
 	});
 
@@ -220,7 +270,6 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 		raw['runner.output-emitted'].next(outputError('run-1', 'node-a'));
 		fixture.detectChanges();
 
-		expect(service.nodeStatus('node-a')).toBe('error');
 		expect(chromeEl().classList.contains('lf-node-chrome--error')).toBe(
 			true,
 		);
@@ -229,15 +278,26 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 	it('keeps settled chrome on run done', () => {
 		raw['runner.output-emitted'].next(outputValue('run-1', 'node-a'));
 		fixture.detectChanges();
-		expect(service.nodeStatus('node-a')).toBe('value');
 		expect(chromeEl().classList.contains('lf-node-chrome--value')).toBe(
 			true,
 		);
 
 		raw['runner.done'].next({ kind: 'done', runId: 'run-1' });
 		fixture.detectChanges();
-		expect(service.nodeStatus('node-a')).toBe('value');
 		expect(chromeEl().classList.contains('lf-node-chrome--value')).toBe(
+			true,
+		);
+	});
+
+	it('keeps amber after done when only streaming outputs fired', () => {
+		raw['runner.output-emitted'].next(
+			outputValue('run-1', 'node-a', { streaming: true }),
+		);
+		fixture.detectChanges();
+		raw['runner.done'].next({ kind: 'done', runId: 'run-1' });
+		fixture.detectChanges();
+
+		expect(chromeEl().classList.contains('lf-node-chrome--pending')).toBe(
 			true,
 		);
 	});
@@ -248,7 +308,6 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 			raw['runner.output-emitted'].next(outputValue('run-1', 'node-a'));
 			fixture.detectChanges();
 
-			expect(fixture.componentInstance.pulse()).toBe(true);
 			expect(chromeEl().classList.contains('lf-node-chrome--pulse')).toBe(
 				true,
 			);
@@ -256,13 +315,32 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 			vi.advanceTimersByTime(350);
 			fixture.detectChanges();
 
-			expect(fixture.componentInstance.pulse()).toBe(false);
 			expect(chromeEl().classList.contains('lf-node-chrome--pulse')).toBe(
 				false,
 			);
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+
+	it('applies selected class alongside pending (CSS cascade: selected wins)', () => {
+		raw['runner.output-emitted'].next(outputPending('run-1', 'node-a'));
+		fixture.componentRef.setInput('node', makeNode('node-a', true));
+		fixture.detectChanges();
+
+		const el = chromeEl();
+		expect(el.classList.contains('lf-node-chrome--pending')).toBe(true);
+		expect(el.classList.contains('lf-node-chrome--selected')).toBe(true);
+	});
+
+	it('applies hovered class alongside value (CSS cascade: hovered wins)', () => {
+		raw['runner.output-emitted'].next(outputValue('run-1', 'node-a'));
+		hover.set('node-a');
+		fixture.detectChanges();
+
+		const el = chromeEl();
+		expect(el.classList.contains('lf-node-chrome--value')).toBe(true);
+		expect(el.classList.contains('lf-node-chrome--hovered')).toBe(true);
 	});
 
 	it('emits updateNode.requested with label on Enter commit', () => {

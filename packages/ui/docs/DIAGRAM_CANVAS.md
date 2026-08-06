@@ -670,50 +670,49 @@ Canvas node/edge UI must use theme tokens from [`THEMES.md`](THEMES.md):
 | `lf-edge-chrome.component.ts`     | select / idle hover via `--edge-stroke`; `lf-edge--pending` / `--value` / `--error` / `--pulse` / `--back` (execution strokes in `styles.scss`) |
 | `node-inline-inputs.component.ts` | `.lf-input`, `.lf-textarea`                                                                                                                     |
 
-Node UI states (`inactive`, `pending`, `value`, `error`) apply via
-`lf-node-chrome--pending` / `--value` / `--error` classes (alongside the
-existing `--selected`), driven by `LfNodeComponent.status` →
-`WorkflowExecutionService.nodeStatus(nodeId)`. Wire UI states (`inactive`,
-`pending`, `value`, `error`) apply via `lf-edge--inactive` / `--pending` /
-`--value` / `--error` on the `LfEdgeChromeComponent` host (a custom
-`NgDiagramEdgeTemplate`; edges carry `type: 'lf-edge'`), driven by
-`WorkflowExecutionService.wireStatus(edgeId)`. A transient green pulse (a
+Node UI states (`inactive`, `pending`, `value`, `error`, `hitl`) apply via
+`lf-node-chrome--pending` / `--value` / `--error` / `--hitl` classes
+(alongside `--selected` / `--hovered`), driven by
+`LfNodeComponent` → `CanvasNodeStatusService.getNodeStatusEvents(nodeId)`
+(`status$` + `pulse$`). Selected and hover stay outside that fold (diagram
+`node.selected` + `NodeHoverService`). CSS cascade in `node-port-layout.css`
+is status → pulse → selected → hovered so editor chrome overrides execution
+colors. Wire UI states (`inactive`, `pending`, `value`, `error`) apply via
+`lf-edge--inactive` / `--pending` / `--value` / `--error` on the
+`LfEdgeChromeComponent` host (a custom `NgDiagramEdgeTemplate`; edges carry
+`type: 'lf-edge'`), driven by `WorkflowExecutionService.wireStatus(edgeId)`
+(raw port states — edges are not streaming-aware). A transient green pulse (a
 delivered value) is `lf-node-chrome--pulse` / `lf-edge--pulse` /
 `lf-port-anchor--pulse`, from the pure `valuePulseCommands$` /
-`valuePulseActive$` helper (`pulseOn` then `pulseOff` via RxJS `timer`) bound
-with `toSignal` on each node / edge / port-row from its live
-`getEventsForNode` / `getEventsForEdge` / `getEventsForPort` /
-`getInputEventsForPort` slice — no `setTimeout`, no separate animation
-service. Port pulse uses a global infinite keyframe while the class is on
-(so unwired streaming outs like `reasoning` / `draftResponse` keep a visible
-throb without needing an edge); edge pulse stays a one-shot path animation. **Idle edge hover** is separate: set `--edge-stroke` on
-`lf-edge:hover` (see [Edge chrome](#edge-chrome-select--hover--execution));
-do not rely on DefaultEdge’s `.default-edge:hover` selectors. Styles map to
+`valuePulseActive$` helper (`pulseOn` then `pulseOff` via RxJS `timer`) —
+nodes bind factory `pulse$`; edges/ports still filter live
+`getEventsForEdge` / `getEventsForPort` / `getInputEventsForPort`. Port pulse
+uses a global infinite keyframe while the class is on (so unwired streaming
+outs like `reasoning` / `draftResponse` keep a visible throb without needing
+an edge); edge pulse stays a one-shot path animation. **Idle edge hover** is
+separate: set `--edge-stroke` on `lf-edge:hover` (see
+[Edge chrome](#edge-chrome-select--hover--execution)); do not rely on
+DefaultEdge’s `.default-edge:hover` selectors. Styles map to
 `.lf-node-chrome--*` border/glow rules in `node-port-layout.css` and the
 `lf-edge--*` / `lf-edge:hover` stroke rules in `styles.scss`. Node
 `--pending` is a muted 1px amber border only (no outer ring) so emit flash
 on ports/edges stays the primary activity cue.
 
-**Output-port-state model**: node chrome is the output-port `StatefulObservable`
-states, rendered directly with no extra mapping via
-`WorkflowExecutionService.nodeStatus(nodeId)` — any output pending → `pending`
-(muted amber), all outputs value → `value` (green), any output error → `error` (red),
-no outputs seen → `inactive`. Wire chrome is the parallel, edge-side projection:
-each `output-emitted` carries the `edgeIds` it flows into, so a pending source
-output paints its outgoing wires `pending` and a delivered value paints them
-`value`. Both chrome sets are **signals-native and self-contained per element** —
-each node/edge reads the reduced signal on its first render, so the colour
-appears as soon as ng-diagram paints the element and survives a mid-run reconnect
-(`executionFeed.snapshot` replay) without a canvas-wide DOM sweep. Several nodes
-can be coloured at once (e.g. several loading in parallel). Pending is surfaced
-because the runtime emits `output-emitted` `pending` (loading) then `value` for
-plain-Observable-sourced ports. A node never reached in the current run stays
-`inactive` — there is no proactive "about to run" highlight.
+**Node status fold** (`features/canvas-node-status-folding`): any
+`input-received` / `output-emitted` → `pending` (amber); streaming output
+`value` (`feed.streaming` on event or palette) stays `pending`; non-streaming
+output `value` → `value` (green); any output `error` → `error`; chrome HITL
+await (port events + palette) → `hitl`. Composer HITL tabs / idle chat-entry /
+permission UI stay on `WorkflowExecutionService` — a separate fold; see
+`canvas-node-status-folding/README.md`. Streaming-only nodes keep amber after run
+done/interrupt. Wire chrome remains the edge-side raw port-state projection:
+each `output-emitted` carries the `edgeIds` it flows into. Both chrome sets
+are self-contained per element so colour appears as soon as ng-diagram paints
+and survives mid-run reconnect (`executionFeed.snapshot` replay). A node never
+reached in the current run stays `inactive`.
 
-Partial runs: a node keeps its chrome from the current run's sections only;
-sections from a prior `runId` are dropped the moment that node's first event
-under the new `runId` arrives (see feed folding above) — not a separate
-`completedInRunNodeIds` set.
+Partial runs: a node keeps its chrome from the current run only; a new `runId`
+clears the per-node fold (same reset as edge chrome).
 
 ---
 
@@ -726,7 +725,9 @@ under the new `runId` arrives (see feed folding above) — not a separate
 | `find-incoming-edge.test.ts`             | Incoming edge lookup for disconnect                                           |
 | `find-outgoing-diagram-edges.test.ts`    | Outgoing edges for output disconnect all                                      |
 | `diagram-canvas-highlight.test.ts`       | Node UI state / highlight resolution                                          |
-| `lf-node-chrome.test.ts`                 | `lf-node-chrome--*` class rendering from `nodeStatus` + pulse                 |
+| `lf-node-chrome.test.ts`                 | `lf-node-chrome--*` from `CanvasNodeStatusService` + pulse + select/hover     |
+| `canvas-node-status-projection.test.ts`  | Streaming-aware per-node status append / snapshot parity                      |
+| `canvas-node-hitl-projection.test.ts`    | Node-scoped chrome HITL open/close from port events                           |
 | `lf-edge-chrome.test.ts`                 | `lf-edge--*` from `wireStatus` + pulse + host pointer-events + back-edge dash |
 | `lf-node-port-row-pulse.test.ts`         | Port-anchor `--pulse` from output-emitted / input-received                    |
 | `value-pulse-active.test.ts`             | Pure `pulseOn` / `pulseOff` command stream + boolean projection               |

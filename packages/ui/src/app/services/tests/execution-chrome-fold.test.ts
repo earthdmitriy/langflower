@@ -3,17 +3,13 @@ import { describe, expect, it } from 'vitest';
 import {
 	foldChromeState,
 	replayEdgeStates,
-	replayNodeOutputStates,
 	type ChromeKeying,
 } from '../execution-chrome-fold.js';
 
 describe('foldChromeState', () => {
-	const nodeKeying: ChromeKeying<string> = {
-		replay: replayNodeOutputStates,
-		keysFromOutput: (event) =>
-			typeof event.portId === 'string'
-				? [`${event.nodeId}:${event.portId}`]
-				: [],
+	const edgeKeying: ChromeKeying<EdgeId> = {
+		replay: replayEdgeStates,
+		keysFromOutput: (event) => event.edgeIds ?? [],
 	};
 
 	it('applies output and reset without wiping same-runId', () => {
@@ -29,35 +25,31 @@ describe('foldChromeState', () => {
 					portIdx: 0,
 					state: 'value',
 					value: 1,
-					edgeIds: [],
+					edgeIds: ['e1' as EdgeId],
 				},
 			},
-			nodeKeying,
+			edgeKeying,
 		);
-		expect(afterOutput.map.get('n1:out')).toBe('value');
+		expect(afterOutput.map.get('e1' as EdgeId)).toBe('value');
 		expect(afterOutput.runId).toBe('r1');
 
 		const sameRun = foldChromeState(
 			afterOutput,
 			{ type: 'reset', runId: 'r1' as RunId },
-			nodeKeying,
+			edgeKeying,
 		);
-		expect(sameRun.map.get('n1:out')).toBe('value');
+		expect(sameRun.map.get('e1' as EdgeId)).toBe('value');
 
 		const newRun = foldChromeState(
 			afterOutput,
 			{ type: 'reset', runId: 'r2' as RunId },
-			nodeKeying,
+			edgeKeying,
 		);
 		expect(newRun.map.size).toBe(0);
 		expect(newRun.runId).toBe('r2');
 	});
 
 	it('replays edge ids from snapshot', () => {
-		const edgeKeying: ChromeKeying<EdgeId> = {
-			replay: replayEdgeStates,
-			keysFromOutput: (event) => event.edgeIds ?? [],
-		};
 		const state = foldChromeState(
 			{ map: new Map(), runId: null },
 			{

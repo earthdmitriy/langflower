@@ -72,27 +72,6 @@ export const foldChromeState = <K>(
 	return state;
 };
 
-export const replayNodeOutputStates = (
-	snapshot: ExecutionFeedSnapshotPayload | null,
-): Map<string, RuntimePortSignalState> => {
-	const map = new Map<string, RuntimePortSignalState>();
-	if (snapshot === null) {
-		return map;
-	}
-	for (const event of snapshot.events) {
-		if (
-			event.kind === 'output-emitted' &&
-			typeof event.portId === 'string' &&
-			(event.state === 'value' ||
-				event.state === 'pending' ||
-				event.state === 'error')
-		) {
-			map.set(`${event.nodeId}:${event.portId}`, event.state);
-		}
-	}
-	return map;
-};
-
 export const replayEdgeStates = (
 	snapshot: ExecutionFeedSnapshotPayload | null,
 ): Map<EdgeId, RuntimePortSignalState> => {
@@ -114,14 +93,6 @@ export const replayEdgeStates = (
 		}
 	}
 	return map;
-};
-
-const NODE_CHROME_KEYING: ChromeKeying<string> = {
-	replay: replayNodeOutputStates,
-	keysFromOutput: (event) =>
-		typeof event.portId === 'string'
-			? [`${event.nodeId}:${event.portId}`]
-			: [],
 };
 
 const EDGE_CHROME_KEYING: ChromeKeying<EdgeId> = {
@@ -163,14 +134,6 @@ const createChromeMap$ = <K>(
 		shareReplay(1),
 	);
 };
-
-export const createNodeOutputStates$ = (deps: {
-	readonly executionFeedSnapshot$: Observable<ExecutionFeedSnapshotPayload | null>;
-	readonly outputEmitted$: Observable<OutputEmittedEvent>;
-	readonly runnerStarted$: Observable<RunId>;
-	readonly runnerStartNodeStarted$: Observable<RunId>;
-}): Observable<ReadonlyMap<string, RuntimePortSignalState>> =>
-	createChromeMap$(deps, NODE_CHROME_KEYING);
 
 export const createEdgeStates$ = (deps: {
 	readonly executionFeedSnapshot$: Observable<ExecutionFeedSnapshotPayload | null>;

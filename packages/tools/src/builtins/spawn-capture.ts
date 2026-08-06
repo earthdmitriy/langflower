@@ -33,9 +33,7 @@ export const spawnCapture = (
 			cwd: options.cwd,
 			windowsHide: true,
 			shell: false,
-			...(options.signal !== undefined
-				? { signal: options.signal }
-				: {}),
+			...(options.signal !== undefined ? { signal: options.signal } : {}),
 		});
 		let stdout = '';
 		let stderr = '';

@@ -4,6 +4,6 @@ omit meanless entries from bridge protocol
 
 schemaVersion - useless
 "kind":"frame" - omit for 'frame' - consider as default value
-"direction":"outbound" -  use 'dir': 'in/out'
+"direction":"outbound" - use 'dir': 'in/out'
 "scope":"broadcast" - useless?
 "runId" - no sense, no parallel runs

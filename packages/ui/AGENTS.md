@@ -197,7 +197,9 @@ Each feature lives in `src/app/features/<feature>/` with this layout:
 Current features:
 
 - `canvas/` — diagram canvas, node rendering, viewport sync
+- `canvas-node-status-folding/` — per-node execution chrome (`status$` / `pulse$`)
 - `editor/` — editor shell, run button
+- `feed-folding/` — work-log nested feed projection
 - `palette/` — node palette sidebar, drag preview, node previews
 - `sidebar/` — work log, HITL composer, inspector, settings
 - `topbar/` — workflow topbar, catalog management

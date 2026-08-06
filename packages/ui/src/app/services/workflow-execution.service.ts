@@ -38,10 +38,7 @@ import {
 	nodeLabelsFromWorkflow,
 	nodeTypeByIdFromWorkflow,
 } from './execution-catalog';
-import {
-	createEdgeStates$,
-	createNodeOutputStates$,
-} from './execution-chrome-fold';
+import { createEdgeStates$ } from './execution-chrome-fold';
 import { createHitlTriggeredNodes$ } from './execution-hitl-fold';
 import { createPendingPermissionAsks$ } from './execution-permission-fold';
 import { createIsRunning$ } from './execution-run-gate-fold';
@@ -57,8 +54,6 @@ import {
 import { LangflowerBridgeService } from './langflower-bridge.service';
 import { ExecutionFeedService } from '../features/feed-folding/execution-feed.service';
 
-type NodeFeedStatus = 'inactive' | 'pending' | 'value' | 'error' | 'hitl';
-
 type OutputEmittedEvent = Extract<
 	RuntimeRunnerEvent,
 	{ kind: 'output-emitted' }
@@ -69,10 +64,8 @@ type InputReceivedEvent = Extract<
 >;
 
 /**
- * Single shared projection of `runner.*` telemetry into {@link FeedSection}s
- * — backs both the work log timeline and canvas node chrome (`nodeStatus`)
- * off the exact same fold, so "working"/"completed"/"failed" never drifts
- * between the sidebar and the canvas.
+ * Cross-feature execution façade: feed, edges, composer HITL, run gate.
+ * Canvas **node** chrome lives in {@link CanvasNodeStatusService} (separate fold).
  *
  * Fold pipelines live in sibling `execution-*-fold.ts` / `execution-catalog.ts`
  * modules; this injectable wires bridge streams and exposes the UI façade.
@@ -299,17 +292,6 @@ export class WorkflowExecutionService {
 
 	readonly isRunning = toSignal(this.isRunning$, { initialValue: false });
 
-	private readonly nodeOutputStates$ = createNodeOutputStates$({
-		executionFeedSnapshot$: this.executionFeedSnapshot$,
-		outputEmitted$: this.outputEmitted$,
-		runnerStarted$: this.runnerStarted$,
-		runnerStartNodeStarted$: this.runnerStartNodeStarted$,
-	});
-
-	private readonly nodeOutputStates = toSignal(this.nodeOutputStates$, {
-		initialValue: new Map<string, RuntimePortSignalState>(),
-	});
-
 	private readonly edgeStates$ = createEdgeStates$({
 		executionFeedSnapshot$: this.executionFeedSnapshot$,
 		outputEmitted$: this.outputEmitted$,
@@ -386,47 +368,11 @@ export class WorkflowExecutionService {
 
 	// ── Public query methods ──────────────────────────────────────────
 
-	/**
-	 * Canvas node chrome, expressed directly in `StatefulObservable` port
-	 * states: `inactive` / `pending` / `value` / `error`, with `hitl`
-	 * taking priority while a human reply is awaited.
-	 */
-	nodeStatus(nodeId: string): NodeFeedStatus {
-		if (
-			this.hitlTriggered(nodeId) ||
-			this.pendingPermissionAsks().some((ask) => ask.nodeId === nodeId)
-		) {
-			return 'hitl';
-		}
-
-		const prefix = `${nodeId}:`;
-		const states: RuntimePortSignalState[] = [];
-		for (const [key, s] of this.nodeOutputStates()) {
-			if (key.startsWith(prefix)) {
-				states.push(s);
-			}
-		}
-		if (states.length === 0) {
-			return 'inactive';
-		}
-		if (states.some((s) => s === 'error')) {
-			return 'error';
-		}
-		if (states.some((s) => s === 'pending')) {
-			return 'pending';
-		}
-		return 'value';
-	}
-
 	latestOutputValue(nodeId: string, portId: string): unknown {
 		return this.latestOutputValues().get(`${nodeId}:${portId}`);
 	}
 
 	hitlTriggered(nodeId: string): boolean {
-		// Visibility is per-node (open on wired input, close on reply) — not
-		// gated on the whole-run flag, so answering one parallel HITL node
-		// does not hide siblings still awaiting. Idle chat-entry composers
-		// also count so the canvas ring matches the feed.
 		return (
 			this.hitlTriggeredNodes().has(nodeId) ||
 			this.idleChatEntryNodeIds().includes(nodeId)
@@ -550,10 +496,7 @@ export class WorkflowExecutionService {
 
 	/**
 	 * In-flight agents that expose `steerControl` (eligibility for Pause).
-	 *
-	 * Chrome flips to `value` on the first streamed draft chunk, so `pending`
-	 * alone is not enough — also treat nodes with an **active** feed section
-	 * as working (otherwise Pause stays disabled for the whole stream).
+	 * Uses open feed visits — not canvas chrome status.
 	 */
 	workingSteerNodeIds(): readonly string[] {
 		const graph = this.activeGraph();
@@ -567,13 +510,10 @@ export class WorkflowExecutionService {
 		);
 		const ids: string[] = [];
 		for (const node of graph.nodes) {
-			const status = this.nodeStatus(node.id);
-			const isWorking =
-				status === 'pending' ||
-				(status !== 'hitl' &&
-					status !== 'error' &&
-					activeFeedNodeIds.has(node.id));
-			if (!isWorking) {
+			if (!activeFeedNodeIds.has(node.id)) {
+				continue;
+			}
+			if (this.hitlTriggered(node.id)) {
 				continue;
 			}
 			const def = this.paletteByType().get(node.type);
@@ -641,15 +581,6 @@ export class WorkflowExecutionService {
 
 	wireStatus(edgeId: string): 'inactive' | 'pending' | 'value' | 'error' {
 		return this.edgeStates().get(edgeId as EdgeId) ?? 'inactive';
-	}
-
-	/**
-	 * Per-element view of the live `output-emitted` stream, filtered to a
-	 * single node — drives the transient pulse only; steady-state chrome
-	 * comes from `nodeStatus`.
-	 */
-	getEventsForNode(nodeId: string): Observable<OutputEmittedEvent> {
-		return this.outputEmitted$.pipe(filter((e) => e.nodeId === nodeId));
 	}
 
 	getEventsForEdge(edgeId: string): Observable<OutputEmittedEvent> {

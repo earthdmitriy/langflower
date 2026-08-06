@@ -1,3 +1,4 @@
+import { AsyncPipe } from '@angular/common';
 import {
 	afterNextRender,
 	ChangeDetectionStrategy,
@@ -14,9 +15,9 @@ import {
 	untracked,
 	viewChild,
 } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import type { WorkflowNodePersisted } from '@langflower/shared/langflower';
+import { toObservable } from '@angular/core/rxjs-interop';
 import type { NodeId } from '@langflower/runtime';
+import type { WorkflowNodePersisted } from '@langflower/shared/langflower';
 import {
 	NgDiagramModelService,
 	NgDiagramNodeResizeAdornmentComponent,
@@ -25,7 +26,7 @@ import {
 	NgDiagramViewportService,
 	type SimpleNode,
 } from 'ng-diagram';
-import { map, switchMap } from 'rxjs';
+import { map, shareReplay, switchMap } from 'rxjs';
 import { fromOutputPortId } from '../../../diagram/diagram-port-id.js';
 import {
 	resolveNodePorts,
@@ -34,11 +35,11 @@ import {
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { NodeHoverService } from '../../../services/node-hover.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
+import { CanvasNodeStatusService } from '../../canvas-node-status-folding/canvas-node-status.service';
 import { NodeContentMinSizeService } from '../services/node-content-min-size.service.js';
 import { NodePreviewValuesService } from '../services/node-preview-values.service.js';
 import { measureNodeContentMinHeightPx } from '../utils/measure-node-content-min-size.js';
 import { sizeFromSeResizeDelta } from '../utils/se-node-resize-gesture.js';
-import { valuePulseActive$ } from '../utils/value-pulse-active.js';
 import { LfNodeBypassPortRowComponent } from './lf-node-bypass-port-row.component';
 import { LfNodePortRowComponent } from './lf-node-port-row.component';
 
@@ -65,22 +66,25 @@ const displayLabel = (data: WorkflowNodePersisted): string => {
 		class: 'lf-diagram-node',
 	},
 	imports: [
+		AsyncPipe,
 		LfNodePortRowComponent,
 		LfNodeBypassPortRowComponent,
 		NgDiagramNodeResizeAdornmentComponent,
 	],
 	template: `
 		<ng-diagram-node-resize-adornment>
+			@let status = status$ | async;
+			@let pulse = pulse$ | async;
 			<div
 				class="lf-node-chrome rounded-xl border border-zinc-300 bg-white py-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
 				[attr.data-node-id]="node().id"
 				[class.lf-node-chrome--selected]="node().selected ?? false"
 				[class.lf-node-chrome--hovered]="hover.isHovered(node().id)"
-				[class.lf-node-chrome--pending]="status() === 'pending'"
-				[class.lf-node-chrome--value]="status() === 'value'"
-				[class.lf-node-chrome--error]="status() === 'error'"
-				[class.lf-node-chrome--hitl]="status() === 'hitl'"
-				[class.lf-node-chrome--pulse]="pulse()"
+				[class.lf-node-chrome--pending]="status === 'pending'"
+				[class.lf-node-chrome--value]="status === 'value'"
+				[class.lf-node-chrome--error]="status === 'error'"
+				[class.lf-node-chrome--hitl]="status === 'hitl'"
+				[class.lf-node-chrome--pulse]="pulse === true"
 				(mouseenter)="hover.set(node().id)"
 				(mouseleave)="hover.clear()"
 			>
@@ -193,27 +197,30 @@ export class LfNodeComponent {
 	private readonly destroyRef = inject(DestroyRef);
 	readonly hover = inject(NodeHoverService);
 	private readonly execution = inject(WorkflowExecutionService);
+	private readonly canvasNodeStatus = inject(CanvasNodeStatusService);
 
 	private seResizeCleanup: (() => void) | undefined;
 
 	readonly node = input.required<SimpleNode<LfNodeData>>();
 	private readonly content = viewChild<ElementRef<HTMLElement>>('content');
 
-	/** Steady-state execution chrome, reduced from the shared service signal. */
-	readonly status = computed(() => this.execution.nodeStatus(this.node().id));
+	private readonly nodeId$ = toObservable(this.node).pipe(
+		map((node) => node.id),
+	);
 
-	/**
-	 * Transient green flash on a delivered value — `valuePulseActive$` over
-	 * this node's live `output-emitted` slice (not the reduced steady-state).
-	 */
-	readonly pulse = toSignal(
-		toObservable(this.node).pipe(
-			map((node) => node.id),
-			switchMap((nodeId) =>
-				valuePulseActive$(this.execution.getEventsForNode(nodeId)),
-			),
-		),
-		{ initialValue: false },
+	private readonly nodeStatusEvents$ = this.nodeId$.pipe(
+		map((nodeId) => this.canvasNodeStatus.getNodeStatusEvents(nodeId)),
+		shareReplay(1),
+	);
+
+	/** Steady-state execution chrome from per-node status factory. */
+	readonly status$ = this.nodeStatusEvents$.pipe(
+		switchMap((nodeStatusEvents) => nodeStatusEvents.status$),
+	);
+
+	/** Transient green flash — factory `pulse$` over live port events. */
+	readonly pulse$ = this.nodeStatusEvents$.pipe(
+		switchMap((nodeStatusEvents) => nodeStatusEvents.pulse$),
 	);
 
 	readonly editingLabel = signal(false);

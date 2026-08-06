@@ -95,24 +95,16 @@
 	overflow: hidden;
 }
 
-.lf-node-chrome--selected {
-	border-color: rgb(59 130 246);
-	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
-}
-
-:host-context([data-theme='dark']) .lf-node-chrome--selected {
-	border-color: rgb(96 165 250);
-	box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.35);
-}
-
 /**
- * Execution chrome — driven by each node's output-port states
- * (`WorkflowExecutionService.nodeStatus`): any output pending → `--pending`
- * (muted amber, 1px border only — no ring), all outputs value → `--value`
- * (green), any output error → `--error` (red), no outputs seen → no colour.
- * Multiple nodes may be coloured at once (e.g. several loading in parallel).
- * Transient emit flash is `--pulse` on node / port / edge via
- * `valuePulseActive$`.
+ * Node chrome cascade (same specificity → last wins):
+ * 1. CanvasNodeChromeStatus (`--pending` / `--value` / `--error` / `--hitl`)
+ * 2. `--pulse` (transient value flash)
+ * 3. `--selected` (editor selection overrides status + pulse)
+ * 4. `--hovered` (work-log linkage overrides status, pulse, and selected)
+ *
+ * Status from `CanvasNodeStatusService.getNodeStatusEvents`: any event →
+ * amber pending; streaming output value stays pending; non-streaming value →
+ * green; error / hitl overlays. Selected/hover stay outside the fold.
  */
 .lf-node-chrome--pending {
 	border-color: rgb(217 119 6);
@@ -132,11 +124,6 @@
 	box-shadow: 0 0 0 2px rgba(14 165 233, 0.4);
 }
 
-/**
- * Transient pulse: a delivered value flashes the node chrome green. Driven by
- * `valuePulseActive$` over each node's live `output-emitted` slice — never
- * re-fires on replay/snapshot.
- */
 .lf-node-chrome--pulse {
 	box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5);
 	transition: box-shadow 150ms ease-out;
@@ -160,12 +147,16 @@
 	box-shadow: 0 0 0 2px rgba(56 189 248, 0.4);
 }
 
-/**
- * Hover linkage — applied from the work-log panel (or the node itself) via
- * `NodeHoverService`. Pure highlight; does not change execution state. Uses a
- * neutral violet ring so it reads distinctly from selection (blue) / pending
- * (amber) / value (green) / error (rose).
- */
+.lf-node-chrome--selected {
+	border-color: rgb(59 130 246);
+	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+
+:host-context([data-theme='dark']) .lf-node-chrome--selected {
+	border-color: rgb(96 165 250);
+	box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.35);
+}
+
 .lf-node-chrome--hovered {
 	border-color: rgb(139 92 246);
 	box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
