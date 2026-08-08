@@ -1,17 +1,18 @@
 {
+	"$schema": "../schemas/workflow.schema.json",
 	"metadata": {
 		"name": "Starter",
-		"description": "Chat loop with an onboarding agent (skill langflower-helper). After bootstrap — product capabilities, workflows, editor chrome, and custom nodes.",
+		"description": "Chat loop with an onboarding agent (skill langflower-helper) plus a Writer Sub-Agent (workflow-writer + node-writer). After bootstrap — product capabilities, workflows, editor chrome, and custom nodes.",
 		"createdAt": "2026-07-24T00:00:00.000Z",
-		"updatedAt": "2026-07-24T00:00:00.000Z"
+		"updatedAt": "2026-08-06T20:46:40.126Z"
 	},
 	"graph": {
 		"viewport": {
-			"x": 0,
-			"y": 0,
-			"scale": 1,
-			"width": 900,
-			"height": 700
+			"x": 8.53314208984375,
+			"y": -92.80001068115234,
+			"scale": 0.85,
+			"width": 728.0000610351562,
+			"height": 1005.3333740234375
 		},
 		"nodes": [
 			{
@@ -20,7 +21,10 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 40, "y": 220 },
+					"position": {
+						"x": 40,
+						"y": 280
+					},
 					"label": "Ask"
 				}
 			},
@@ -30,17 +34,68 @@
 				"params": {
 					"rolePreset": "custom",
 					"skillId": "langflower-helper",
-					"providerId": "",
-					"model": "",
+					"providerId": "polza.ai",
+					"model": "deepseek/deepseek-v4-flash-0731",
 					"maxIterations": 8,
-					"maxFeedbackTurns": 4
+					"maxFeedbackTurns": 4,
+					"toolPermissions": {
+						"read": "allow",
+						"glob": "allow",
+						"grep": "allow",
+						"edit": "allow",
+						"write": "allow",
+						"create": "allow",
+						"delete": "ask",
+						"bash": "ask"
+					}
 				},
 				"inputs": {
-					"systemPrompt": "You are the Langflower onboarding assistant. Use the langflower-helper skill. The user already started Langflower and configured a provider — do not lead with CLI start or provider setup. Help with what Langflower can do, workflows, editor chrome, and custom nodes. Keep answers short and actionable."
+					"systemPrompt": "You are the Langflower onboarding assistant. Use the langflower-helper skill. The user already started Langflower and configured a provider — do not lead with CLI start or provider setup. Help with what Langflower can do, workflows, editor chrome, and custom nodes. Keep answers short and actionable.\n\nWhen the user asks to draft or edit a workflow JSON or a custom node pack, spawn_subagent the Writer specialist (skills langflower-workflow-writer and langflower-node-writer) with a clear task; then summarize the Writer result for the user."
 				},
 				"ui": {
-					"position": { "x": 320, "y": 180 },
+					"position": {
+						"x": 320,
+						"y": 260
+					},
 					"label": "Helper"
+				}
+			},
+			{
+				"id": "writer",
+				"type": "common-sub-agent",
+				"params": {
+					"name": "Writer",
+					"description": "Drafts or edits workflow JSON and custom nodes using langflower-workflow-writer and langflower-node-writer skills",
+					"skillIds": [
+						"langflower-workflow-writer",
+						"langflower-node-writer"
+					],
+					"rolePreset": "custom",
+					"providerId": "",
+					"model": "",
+					"maxIterations": 16,
+					"contextSize": 32768,
+					"compactOnError": false,
+					"toolPermissions": {
+						"read": "allow",
+						"glob": "allow",
+						"grep": "allow",
+						"edit": "allow",
+						"write": "allow",
+						"create": "allow",
+						"delete": "ask",
+						"bash": "ask"
+					}
+				},
+				"inputs": {
+					"systemPrompt": "You are Writer. Follow langflower-workflow-writer and/or langflower-node-writer for the task. Prefer editing files under .langflower/workflows/ and .langflower/nodes/. Use only catalog node types and real ports. Return a short summary of files changed and any open risks."
+				},
+				"ui": {
+					"position": {
+						"x": 320,
+						"y": 1060
+					},
+					"label": "Writer"
 				}
 			},
 			{
@@ -49,7 +104,10 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 620, "y": 220 },
+					"position": {
+						"x": 640,
+						"y": 720
+					},
 					"label": "Review"
 				}
 			}
@@ -61,6 +119,27 @@
 				"fromPort": ["message", 0],
 				"toNodeId": "helper",
 				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-reg-writer",
+				"fromNodeId": "writer",
+				"fromPort": ["registration", 0],
+				"toNodeId": "helper",
+				"toPort": ["subagentRegistration", 0]
+			},
+			{
+				"edgeId": "e-spawn-writer",
+				"fromNodeId": "helper",
+				"fromPort": ["subagent", 0],
+				"toNodeId": "writer",
+				"toPort": ["task", 0]
+			},
+			{
+				"edgeId": "e-result-writer",
+				"fromNodeId": "writer",
+				"fromPort": ["result", 0],
+				"toNodeId": "helper",
+				"toPort": ["subagentResult", 0]
 			},
 			{
 				"edgeId": "e-helper-review",

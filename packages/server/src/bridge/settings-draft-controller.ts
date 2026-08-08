@@ -35,6 +35,37 @@ import { buildLangflowerConfigSnapshot } from './build-langflower-config-snapsho
 const isScope = (value: unknown): value is LangflowerConfigScope =>
 	value === 'project' || value === 'global';
 
+/** Fill missing/empty Save keys from the session draft (write-only apiKey). */
+const mergeProviderApiKeysFromSession = (
+	payload: LangflowerConfigSaveRequestedPayload,
+	sessionDraft: SettingsDraft | undefined,
+): Readonly<Record<string, string>> | undefined => {
+	if (payload.provider === undefined || sessionDraft === undefined) {
+		return payload.providerApiKeys;
+	}
+
+	const merged: Record<string, string> = {
+		...(payload.providerApiKeys ?? {}),
+	};
+
+	for (const row of sessionDraft.providers) {
+		const id = row.id.trim();
+		if (id.length === 0) {
+			continue;
+		}
+		const fromPayload = merged[id]?.trim() ?? '';
+		if (fromPayload.length > 0) {
+			continue;
+		}
+		const pending = row.apiKey.trim();
+		if (pending.length > 0) {
+			merged[id] = pending;
+		}
+	}
+
+	return Object.keys(merged).length > 0 ? merged : payload.providerApiKeys;
+};
+
 const layerForScope = (
 	layers: {
 		readonly project: LangflowerConfig;
@@ -263,14 +294,19 @@ export const createSettingsDraftController = (
 			return null;
 		}
 
+		const providerApiKeys = mergeProviderApiKeysFromSession(
+			payload,
+			state?.draft,
+		);
+
 		const layers = await context.langflowerConfigService.writeSettings({
 			scope: payload.scope,
 			...(payload.model !== undefined ? { model: payload.model } : {}),
 			...(payload.provider !== undefined
 				? { provider: payload.provider }
 				: {}),
-			...(payload.providerApiKeys !== undefined
-				? { providerApiKeys: payload.providerApiKeys }
+			...(providerApiKeys !== undefined
+				? { providerApiKeys }
 				: {}),
 			...('serverLogs' in payload
 				? { serverLogs: payload.serverLogs }

@@ -1,4 +1,5 @@
 {
+	"$schema": "../schemas/workflow.schema.json",
 	"metadata": {
 		"name": "Memory navigate",
 		"description": "Chat loop: Navigator LLM + Searcher Sub-Agent answer questions grounded in `.langflower/memory/` via common-memory-tools. Configure a provider; build memory with kb-create (Memory create) first when empty.",
@@ -20,7 +21,10 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 40, "y": 240 },
+					"position": {
+						"x": 40,
+						"y": 240
+					},
 					"label": "Ask"
 				}
 			},
@@ -30,7 +34,10 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 40, "y": 40 },
+					"position": {
+						"x": 40,
+						"y": 40
+					},
 					"label": "Memory Tools"
 				}
 			},
@@ -49,7 +56,10 @@
 					"systemPrompt": "You answer questions about this project grounded in project memory.\n\nConvention: markdown under `.langflower/memory/` (built by the kb-create / Memory create workflow). Memory is also readable with harness file tools on `.langflower/memory/…`.\n\nBefore answering, use get_memory_tree / search_memory_grep / read_memory_section (yourself or via spawn_subagent Searcher). Prefer memory hits over guessing. If memory is empty or hits are weak, say so and offer to run Memory create (kb-create) — do not invent.\n\nWhen HITL feedback arrives, revise the answer — do not ignore it. Keep answers short and cite memory file paths / headings when available."
 				},
 				"ui": {
-					"position": { "x": 300, "y": 200 },
+					"position": {
+						"x": 300,
+						"y": 200
+					},
 					"label": "Navigator"
 				}
 			},
@@ -72,7 +82,10 @@
 					"systemPrompt": "You are Searcher. Use get_memory_tree, search_memory_grep, and read_memory_section for the task query. Return top hits with file paths and heading context. If memory is missing or empty, say so clearly. Do not invent content."
 				},
 				"ui": {
-					"position": { "x": 580, "y": 40 },
+					"position": {
+						"x": 580,
+						"y": 40
+					},
 					"label": "Searcher"
 				}
 			},
@@ -82,7 +95,10 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 580, "y": 280 },
+					"position": {
+						"x": 580,
+						"y": 280
+					},
 					"label": "Review"
 				}
 			}

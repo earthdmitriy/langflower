@@ -17,6 +17,7 @@ import {
 	type LangflowerWsClient,
 } from '@langflower/shared/langflower-ws-waits';
 import type { LangflowerConfigDraftSnapshotPayload } from '@langflower/shared/langflower.js';
+import { draftToSavePayload } from '@langflower/shared/langflower.js';
 
 const waitDraft = (
 	client: LangflowerWsClient,
@@ -162,6 +163,169 @@ describe('settings config draft (WS bridge)', () => {
 		const snap = await pristine$;
 		expect(snap.draft.providers.every((row) => row.id !== 'draft-a')).toBe(
 			true,
+		);
+	});
+
+	it('save persists apiKey from providerApiKeys payload to disk', async () => {
+		const configPath = path.join(
+			projectDir,
+			'.langflower',
+			'langflower.jsonc',
+		);
+		const providerId = 'openai-save-key';
+
+		client['editor.settings.requested'].next({
+			open: true,
+			scope: 'project',
+		});
+
+		const dirty$ = waitDraft(
+			client,
+			(snap) =>
+				snap.scope === 'project' &&
+				snap.dirty &&
+				snap.draft.providers.some((row) => row.id === providerId),
+		);
+
+		client['langflower.config.draft.patch.requested'].next({
+			scope: 'project',
+			draft: {
+				defaultProviderId: '',
+				defaultModelId: '',
+				serverLogs: 'default',
+				providers: [
+					{
+						id: providerId,
+						name: 'OpenAI',
+						baseURL: 'https://api.openai.com/v1',
+						modelsText: 'gpt-4o-mini',
+						apiKey: 'sk-integration-test',
+						hasApiKey: false,
+					},
+				],
+			},
+		});
+
+		await dirty$;
+
+		const savePayload = draftToSavePayload('project', {
+			defaultProviderId: '',
+			defaultModelId: '',
+			serverLogs: 'default',
+			providers: [
+				{
+					id: providerId,
+					name: 'OpenAI',
+					baseURL: 'https://api.openai.com/v1',
+					modelsText: 'gpt-4o-mini',
+					apiKey: 'sk-integration-test',
+					hasApiKey: false,
+				},
+			],
+		});
+
+		const saved$ = waitDraft(
+			client,
+			(snap) =>
+				snap.scope === 'project' &&
+				snap.dirty === false &&
+				snap.draft.providers.some((row) => row.id === providerId),
+		);
+
+		client['langflower.config.save.requested'].next(savePayload);
+		await saved$;
+
+		const raw = JSON.parse(await fs.readFile(configPath, 'utf8')) as {
+			readonly provider?: Readonly<
+				Record<
+					string,
+					{
+						readonly options?: { readonly apiKey?: string };
+					}
+				>
+			>;
+		};
+		expect(raw.provider?.[providerId]?.options?.apiKey).toBe(
+			'sk-integration-test',
+		);
+	});
+
+	it('save falls back to session draft apiKey when payload omits providerApiKeys', async () => {
+		const configPath = path.join(
+			projectDir,
+			'.langflower',
+			'langflower.jsonc',
+		);
+		const providerId = 'openai-session-fallback';
+
+		client['editor.settings.requested'].next({
+			open: true,
+			scope: 'project',
+		});
+
+		const dirty$ = waitDraft(
+			client,
+			(snap) =>
+				snap.scope === 'project' &&
+				snap.dirty &&
+				snap.draft.providers.some((row) => row.id === providerId),
+		);
+
+		client['langflower.config.draft.patch.requested'].next({
+			scope: 'project',
+			draft: {
+				defaultProviderId: '',
+				defaultModelId: '',
+				serverLogs: 'default',
+				providers: [
+					{
+						id: providerId,
+						name: 'OpenAI',
+						baseURL: 'https://api.openai.com/v1',
+						modelsText: '',
+						apiKey: 'sk-session-fallback',
+						hasApiKey: false,
+					},
+				],
+			},
+		});
+
+		await dirty$;
+
+		const saved$ = waitDraft(
+			client,
+			(snap) =>
+				snap.scope === 'project' &&
+				snap.dirty === false &&
+				snap.draft.providers.some((row) => row.id === providerId),
+		);
+
+		client['langflower.config.save.requested'].next({
+			scope: 'project',
+			model: '',
+			provider: {
+				[providerId]: {
+					name: 'OpenAI',
+					options: { baseURL: 'https://api.openai.com/v1' },
+				},
+			},
+			providerApiKeys: {},
+			serverLogs: null,
+		});
+		await saved$;
+
+		const raw = JSON.parse(await fs.readFile(configPath, 'utf8')) as {
+			readonly provider?: Readonly<
+				Record<
+					string,
+					{
+						readonly options?: { readonly apiKey?: string };
+					}
+				>
+			>;
+		};
+		expect(raw.provider?.[providerId]?.options?.apiKey).toBe(
+			'sk-session-fallback',
 		);
 	});
 });

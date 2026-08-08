@@ -33,6 +33,11 @@ import type {
 	ServerLogsDraft,
 	SettingsDraft,
 } from '../utils/settings-draft';
+import {
+	draftAfterLayerSnapshot,
+	mergeDraftPatch,
+	sameDraft,
+} from '../utils/settings-draft';
 
 const DRAFT_PATCH_DEBOUNCE_MS = 250;
 
@@ -592,6 +597,7 @@ export class LfSettingsPanelComponent implements OnDestroy {
 	readonly scope = this.editorSettings.scope;
 	/** Optimistic local draft; authoritative fold is server draft snapshot. */
 	readonly draft = signal<SettingsDraft>(configToDraft({}));
+	private readonly syncedBaseline = signal<SettingsDraft>(configToDraft({}));
 	readonly validationError = signal<string | null>(null);
 	readonly bootstrapPending = signal(false);
 	readonly bootstrapMessage = signal<string | null>(null);
@@ -681,7 +687,21 @@ export class LfSettingsPanelComponent implements OnDestroy {
 				return;
 			}
 			untracked(() => {
-				this.draft.set(snap.draft as SettingsDraft);
+				const previous = this.draft();
+				const previousBaseline = this.syncedBaseline();
+				const incomingDraft = snap.draft as SettingsDraft;
+				const incomingBaseline = snap.baseline as SettingsDraft;
+
+				const next = sameDraft(previousBaseline, incomingBaseline)
+					? mergeDraftPatch(previous, incomingDraft)
+					: draftAfterLayerSnapshot(
+							previous,
+							previousBaseline,
+							incomingBaseline,
+						);
+
+				this.draft.set(next);
+				this.syncedBaseline.set(incomingBaseline);
 			});
 		});
 	}
@@ -761,6 +781,7 @@ export class LfSettingsPanelComponent implements OnDestroy {
 		}
 
 		this.validationError.set(null);
+		this.syncedBaseline.set(configToDraft({}));
 		this.editorSettings.requestScope(next);
 	}
 

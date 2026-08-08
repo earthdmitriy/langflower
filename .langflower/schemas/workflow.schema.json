@@ -1,0 +1,119 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "workflow.schema.json",
+	"title": "Langflower workflow document",
+	"description": "On-disk shape of `.langflower/workflows/{id}.json`. Identity is the filename stem, not a field inside the file.",
+	"type": "object",
+	"required": ["metadata", "graph"],
+	"additionalProperties": true,
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "JSON Schema reference for IDE autocomplete."
+		},
+		"metadata": {
+			"type": "object",
+			"required": ["name", "createdAt", "updatedAt"],
+			"additionalProperties": true,
+			"properties": {
+				"name": { "type": "string" },
+				"description": { "type": "string" },
+				"createdAt": { "type": "string" },
+				"updatedAt": { "type": "string" }
+			}
+		},
+		"graph": {
+			"type": "object",
+			"required": ["viewport", "nodes", "edges"],
+			"additionalProperties": false,
+			"properties": {
+				"viewport": {
+					"type": "object",
+					"required": ["x", "y", "scale"],
+					"additionalProperties": true,
+					"properties": {
+						"x": { "type": "number" },
+						"y": { "type": "number" },
+						"scale": { "type": "number" },
+						"width": { "type": "number" },
+						"height": { "type": "number" }
+					}
+				},
+				"nodes": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/node" }
+				},
+				"edges": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/edge" }
+				}
+			}
+		}
+	},
+	"$defs": {
+		"node": {
+			"type": "object",
+			"required": ["id", "type", "params", "inputs", "ui"],
+			"additionalProperties": false,
+			"properties": {
+				"id": { "type": "string" },
+				"type": { "type": "string" },
+				"params": {
+					"type": "object",
+					"additionalProperties": true
+				},
+				"inputs": {
+					"type": "object",
+					"additionalProperties": true
+				},
+				"ui": {
+					"type": "object",
+					"required": ["position"],
+					"additionalProperties": true,
+					"properties": {
+						"position": {
+							"type": "object",
+							"required": ["x", "y"],
+							"additionalProperties": false,
+							"properties": {
+								"x": { "type": "number" },
+								"y": { "type": "number" },
+								"width": { "type": "number" },
+								"height": { "type": "number" }
+							}
+						},
+						"label": { "type": "string" }
+					}
+				}
+			}
+		},
+		"edge": {
+			"type": "object",
+			"required": [
+				"edgeId",
+				"fromNodeId",
+				"fromPort",
+				"toNodeId",
+				"toPort"
+			],
+			"additionalProperties": false,
+			"properties": {
+				"edgeId": { "type": "string" },
+				"fromNodeId": { "type": "string" },
+				"fromPort": {
+					"type": "array",
+					"minItems": 2,
+					"maxItems": 2,
+					"prefixItems": [{ "type": "string" }, { "type": "number" }]
+				},
+				"toNodeId": { "type": "string" },
+				"toPort": {
+					"type": "array",
+					"minItems": 2,
+					"maxItems": 2,
+					"prefixItems": [{ "type": "string" }, { "type": "number" }]
+				}
+			}
+		}
+	}
+}

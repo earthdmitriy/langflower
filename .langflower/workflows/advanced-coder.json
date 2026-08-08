@@ -1,4 +1,5 @@
 {
+	"$schema": "../schemas/workflow.schema.json",
 	"metadata": {
 		"name": "Advanced coder",
 		"description": "Plan → refine → coder → review → QA with internal loops and HITL after QA (successor intent to coding-agent). Partial sample graph; configure a provider before running.",

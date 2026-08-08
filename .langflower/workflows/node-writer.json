@@ -1,4 +1,5 @@
 {
+	"$schema": "../schemas/workflow.schema.json",
 	"metadata": {
 		"name": "Node writer",
 		"description": "Chat loop with an agent that has skill langflower-node-writer — draft defineNode / defineReactiveNode packs under .langflower/nodes.",
@@ -20,7 +21,10 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 40, "y": 220 },
+					"position": {
+						"x": 40,
+						"y": 220
+					},
 					"label": "Ask"
 				}
 			},
@@ -39,7 +43,10 @@
 					"systemPrompt": "You help the user write Langflower custom nodes. Follow the langflower-node-writer skill and ADR-030 pack layout. Prefer defineNode; use defineReactiveNode only when exclusive branches are required."
 				},
 				"ui": {
-					"position": { "x": 320, "y": 180 },
+					"position": {
+						"x": 320,
+						"y": 180
+					},
 					"label": "Node writer"
 				}
 			},
@@ -49,7 +56,10 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 620, "y": 220 },
+					"position": {
+						"x": 620,
+						"y": 220
+					},
 					"label": "Review"
 				}
 			}

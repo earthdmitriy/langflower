@@ -1,4 +1,5 @@
 {
+	"$schema": "../schemas/workflow.schema.json",
 	"metadata": {
 		"name": "Agents dialog",
 		"description": "Chat loop with two agents — proposer and critique — then HITL review before finish.",
@@ -20,7 +21,10 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 40, "y": 240 },
+					"position": {
+						"x": 40,
+						"y": 240
+					},
 					"label": "Topic"
 				}
 			},
@@ -38,7 +42,10 @@
 					"systemPrompt": "You are the Proposer. Draft a clear short claim or answer for the user's topic. When feedback arrives from Critique or Review, revise — do not ignore it."
 				},
 				"ui": {
-					"position": { "x": 300, "y": 160 },
+					"position": {
+						"x": 300,
+						"y": 160
+					},
 					"label": "Proposer"
 				}
 			},
@@ -54,7 +61,10 @@
 					"systemPrompt": "Call tool `feedback` or `accept` — never reply in plain text.\nYou are an independent Critique. Attack contradictions, overclaim, and missing evidence. Call accept only when the packet is defensible."
 				},
 				"ui": {
-					"position": { "x": 560, "y": 360 },
+					"position": {
+						"x": 560,
+						"y": 360
+					},
 					"label": "Critique"
 				}
 			},
@@ -64,7 +74,10 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 820, "y": 200 },
+					"position": {
+						"x": 820,
+						"y": 200
+					},
 					"label": "Human review"
 				}
 			},
@@ -74,7 +87,10 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 1080, "y": 200 },
+					"position": {
+						"x": 1080,
+						"y": 200
+					},
 					"label": "Done"
 				}
 			}
@@ -120,7 +136,7 @@
 				"fromNodeId": "review",
 				"fromPort": ["feedback", 0],
 				"toNodeId": "proposer",
-				"toPort": ["feedback", 0]
+				"toPort": ["feedback", 1]
 			},
 			{
 				"edgeId": "e-review-done",

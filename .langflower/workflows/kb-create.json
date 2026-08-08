@@ -1,17 +1,18 @@
 {
+	"$schema": "../schemas/workflow.schema.json",
 	"metadata": {
 		"name": "Memory create",
 		"description": "Index-then-serial Memory create: Orchestrator builds a work queue via glob/read, then spawns Explorer→Composer one unit at a time into `.langflower/memory/`. common-review blocks exit until the bar is met. Configure a provider before running.",
 		"createdAt": "2026-07-27T00:00:00.000Z",
-		"updatedAt": "2026-07-27T13:55:52.395Z"
+		"updatedAt": "2026-07-27T13:00:00.000Z"
 	},
 	"graph": {
 		"viewport": {
-			"x": -25.06671142578125,
-			"y": 216.00006103515625,
+			"x": 0,
+			"y": 0,
 			"scale": 0.55,
-			"width": 638.921875,
-			"height": 973.328125
+			"width": 1600,
+			"height": 900
 		},
 		"nodes": [
 			{
@@ -45,24 +46,18 @@
 				"type": "common-openai-llm",
 				"params": {
 					"rolePreset": "custom",
-					"providerId": "local",
-					"model": "hauhaucs/gemma4-12b-qat-uncensored-hauhaucs-balanced@q4_k_m",
+					"providerId": "",
+					"model": "",
 					"enabledToolIds": [
 						"read",
 						"glob",
 						"grep",
 						"write",
 						"edit",
-						"create",
-						"get_memory_tree",
-						"read_memory_section",
-						"search_memory_grep",
-						"append_memory_log",
-						"update_memory_section",
-						"create_memory_file"
+						"create"
 					],
-					"maxIterations": 0,
-					"maxFeedbackTurns": 0
+					"maxIterations": 24,
+					"maxFeedbackTurns": 8
 				},
 				"inputs": {
 					"systemPrompt": "You are the Orchestrator for building a DETAILED project memory map (project wiki) under `.langflower/memory/`.\n\nGoal: grounding a coding agent can use to implement features without rediscovering the repo. A thin whole-repo skim is NOT enough.\n\n## Required memory layout (all under `.langflower/memory/`)\n\n1) `core/overview.md` — purpose, primary user, ships vs not, how to run\n2) `core/layout.md` — directory / package map with ownership\n3) `core/architecture.md` — runtime flow, boundaries, key ADRs / invariants\n4) `core/build-test.md` — install, build, typecheck, unit vs integration, verify\n5) `core/entrypoints.md` — CLI / server / UI / MCP paths and ports\n6) `core/conventions.md` — coding rules agents must follow\n7) `modules/<area>.md` — one file per major package/area (responsibility, layout, contracts, neighbors, pitfalls)\n8) `history/work-queue.md` — indexed work units (Pending / In progress / Done)\n9) `history/build-log.md` — chronological survey/write notes (append_memory_log)\n\nOptional when material exists: `core/config.md`, `core/workflows-skills.md`.\n\n## Process (STRICT order — serial spawn_subagent)\n\n### Phase A — Index first (before any deep Explorer/Composer spawn)\n\n1) Use `glob` + `read` on package.json workspaces, top-level dirs, README*, AGENTS.md, docs/** (or equivalents). List every workspace package / major area and each mandatory `core/*` topic.\n2) Persist `.langflower/memory/history/work-queue.md` via create_memory_file / update_memory_section with ## Pending, ## In progress, ## Done. Each Pending item: id, path(s) to survey, target memory file (`modules/<area>.md` or `core/<name>.md`), status.\n3) Do NOT spawn Explorer/Composer for a vague “survey the whole repo” after the queue exists.\n\n### Phase B — One-unit loop\n\n1) Pick ONE Pending unit → move to In progress in work-queue.md.\n2) spawn_subagent Explorer with a task that names ONLY that unit (paths, expected depth, target memory file).\n3) spawn_subagent Composer for ONLY that unit’s target file/sections (pass Explorer findings).\n4) Mark the unit Done; append_memory_log on history/build-log.md.\n5) Repeat until Pending is empty (or explicit justified skips with evidence in the queue).\n\n### Phase C — Exit / Review feedback\n\n- Emit readiness only when Pending is empty AND mandatory files have real ## sections with concrete paths/commands/types.\n- Module pages MUST cover every indexed package/area from the queue.\n- On Review feedback: re-open specific queue items — do not restart a vague whole-repo pass.\n- Cite evidence (paths + section headings) in the readiness report."
@@ -83,9 +78,9 @@
 					"description": "Surveys one queued repo unit for the coding-agent memory corpus",
 					"skillIds": [],
 					"rolePreset": "explorer",
-					"providerId": "local",
-					"model": "hauhaucs/gemma4-12b-qat-uncensored-hauhaucs-balanced@q4_k_m",
-					"maxIterations": 0,
+					"providerId": "",
+					"model": "",
+					"maxIterations": 20,
 					"contextSize": 32768,
 					"compactOnError": false
 				},
@@ -108,23 +103,17 @@
 					"description": "Writes one queued memory file/section into `.langflower/memory/`",
 					"skillIds": [],
 					"rolePreset": "custom",
-					"providerId": "local",
-					"model": "hauhaucs/gemma4-12b-qat-uncensored-hauhaucs-balanced@q4_k_m",
+					"providerId": "",
+					"model": "",
 					"enabledToolIds": [
 						"read",
 						"glob",
 						"grep",
 						"write",
 						"edit",
-						"create",
-						"get_memory_tree",
-						"read_memory_section",
-						"search_memory_grep",
-						"append_memory_log",
-						"update_memory_section",
-						"create_memory_file"
+						"create"
 					],
-					"maxIterations": 0,
+					"maxIterations": 24,
 					"contextSize": 32768,
 					"compactOnError": false
 				},
@@ -133,8 +122,8 @@
 				},
 				"ui": {
 					"position": {
-						"x": 600,
-						"y": 760
+						"x": 620,
+						"y": 280
 					},
 					"label": "Composer"
 				}
@@ -158,9 +147,9 @@
 				"id": "review",
 				"type": "common-review",
 				"params": {
-					"providerId": "local",
-					"model": "hauhaucs/gemma4-12b-qat-uncensored-hauhaucs-balanced@q4_k_m",
-					"maxIterations": 0
+					"providerId": "",
+					"model": "",
+					"maxIterations": 12
 				},
 				"inputs": {
 					"systemPrompt": "You are the Memory readiness Review (Validator) for a CODING-AGENT project map / project wiki.\nCall tool accept or feedback — never reply in plain text only.\n\nHard reject:\n- Missing or non-empty ## Pending in history/work-queue.md (unless skips are justified with evidence)\n- Thin corpora: single overview, missing modules/*, missing build-test/entrypoints/conventions\n- Vague prose without paths/commands\n- Evidence of one shallow whole-repo skim instead of serial queued units\n\nVerify with get_memory_tree, search_memory_grep, and read_memory_section: spot-check history/work-queue.md, core/*, and at least two modules/* against the task criteria before accept.\nCall accept only when the map is detailed enough to start real coding work. Call feedback with concrete missing queue items / files / sections otherwise."

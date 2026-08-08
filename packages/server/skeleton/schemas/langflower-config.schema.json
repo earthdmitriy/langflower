@@ -55,7 +55,17 @@
 					},
 					"options": {
 						"type": "object",
-						"additionalProperties": true
+						"additionalProperties": true,
+						"properties": {
+							"baseURL": {
+								"type": "string",
+								"description": "OpenAI-compatible API base URL (e.g. https://api.openai.com/v1 or http://127.0.0.1:1234/v1)."
+							},
+							"apiKey": {
+								"type": "string",
+								"description": "API key or `{env:VAR_NAME}` placeholder. Resolved on the server only; omitted from WebSocket snapshots. Prefer `{env:…}` over literals on disk."
+							}
+						}
 					}
 				}
 			}

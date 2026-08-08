@@ -6,6 +6,7 @@ export {
 	defaultProviderStaticModelIds,
 	draftAfterLayerSnapshot,
 	draftToSavePayload,
+	mergeDraftPatch,
 	sameDraft,
 	type ProviderDraft,
 	type ServerLogsDraft,

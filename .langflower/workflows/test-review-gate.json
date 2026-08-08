@@ -1,0 +1,91 @@
+{
+	"metadata": {
+		"name": "Test review gate",
+		"createdAt": "2026-08-07T07:31:42.003Z",
+		"updatedAt": "2026-08-07T07:32:29.721Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": -205.333251953125,
+			"y": 13.8665771484375,
+			"scale": 1,
+			"width": 728.328125,
+			"height": 1005.328125
+		},
+		"nodes": [
+			{
+				"id": "ade4b3ad-8248-4223-8acf-aa972616d708",
+				"type": "langflower-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 315,
+						"y": 400.99999618530273
+					}
+				}
+			},
+			{
+				"id": "1eaf70f9-3533-4ca3-baf3-e1592403a10c",
+				"type": "common-string",
+				"params": {},
+				"inputs": {
+					"value": "1"
+				},
+				"ui": {
+					"position": {
+						"x": 61,
+						"y": 413.99999618530273
+					}
+				}
+			},
+			{
+				"id": "07bdfafc-3871-46c9-b2b6-0f8bb571297a",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 592,
+						"y": 349.99999618530273
+					}
+				}
+			},
+			{
+				"id": "cb1b62a3-2118-4355-9bed-b7643fe05da3",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 600,
+						"y": 520
+					}
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "91cda2ec-f023-441b-a559-4207ab0046a1",
+				"fromNodeId": "1eaf70f9-3533-4ca3-baf3-e1592403a10c",
+				"fromPort": ["value", 0],
+				"toNodeId": "ade4b3ad-8248-4223-8acf-aa972616d708",
+				"toPort": ["trigger", 0]
+			},
+			{
+				"edgeId": "947252fb-74aa-441b-b05f-9dd30192dbda",
+				"fromNodeId": "ade4b3ad-8248-4223-8acf-aa972616d708",
+				"fromPort": ["ok", 0],
+				"toNodeId": "07bdfafc-3871-46c9-b2b6-0f8bb571297a",
+				"toPort": ["value", 0]
+			},
+			{
+				"edgeId": "0927fae1-31e1-4d55-9794-21c59a06d5d3",
+				"fromNodeId": "ade4b3ad-8248-4223-8acf-aa972616d708",
+				"fromPort": ["fail", 0],
+				"toNodeId": "cb1b62a3-2118-4355-9bed-b7643fe05da3",
+				"toPort": ["value", 0]
+			}
+		]
+	}
+}

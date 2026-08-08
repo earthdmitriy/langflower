@@ -1,4 +1,5 @@
 {
+	"$schema": "./schemas/langflower-config.schema.json",
 	"dividerPositions": {
 		"leftWidth": 277,
 		"rightWidth": 500.4000244140625,

@@ -1,9 +1,17 @@
 {
-	"currentWorkflowId": "kb-create",
-	"provider": {},
+	"$schema": "./schemas/langflower-config.schema.json",
+	"currentWorkflowId": "starter",
+	"provider": {
+		"1": {
+			"name": "1",
+			"options": {
+				"baseURL": "1"
+			}
+		}
+	},
 	"dividerPositions": {
 		"leftWidth": 280,
 		"rightWidth": 461.3335266113281,
-		"composerHeight": 168,
-	},
+		"composerHeight": 168
+	}
 }
