@@ -186,7 +186,7 @@ shipped**.
 | Merge                     | `common-merge`            | **done**    | Flow                                                                     |
 | Delay                     | `common-delay`            | **done**    | Flow                                                                     |
 | Loop                      | `common-loop`             | **done**    | External map-collect for dynamic N (epic 07)                             |
-| Repeat                    | `common-repeat`           | **done**    | Flow — emit `value` N times (first ASAP, then on `trigger`), then `done` |
+| Repeat                    | `common-repeat`           | **done**    | Flow — emit `value` N times (first ASAP, then on `trigger`), `index` (0-based), then `done` |
 | Router                    | `common-router`           | **done**    | Reactive channels                                                        |
 | Preview                   | `common-preview`          | **done**    | Output                                                                   |
 | Finish                    | `common-finish`           | **done**    | `stopsRun`                                                               |

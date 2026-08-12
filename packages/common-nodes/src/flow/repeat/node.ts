@@ -54,7 +54,7 @@ export const repeatNode = defineReactiveNode({
 					observeOn(asapScheduler),
 					map((_, index) =>
 						index < n
-							? { kind: 'value' as const, value: v }
+							? { kind: 'value' as const, value: v, index }
 							: { kind: 'done' as const },
 					),
 				);
@@ -64,6 +64,11 @@ export const repeatNode = defineReactiveNode({
 		const valueOut$ = session$.pipeValue(
 			filter((e) => e.kind === 'value'),
 			map((e) => e.value),
+		);
+
+		const indexOut$ = session$.pipeValue(
+			filter((e) => e.kind === 'value'),
+			map((e) => e.index),
 		);
 
 		const doneOut$ = session$.pipeValue(
@@ -77,8 +82,12 @@ export const repeatNode = defineReactiveNode({
 				configureOutput('value', valueOut$, {
 					inferTypeFrom: value,
 				}),
+				configureOutput('index', indexOut$, {
+					wireType: 'number',
+				}),
 				configureOutput('done', doneOut$, {
 					wireType: 'boolean',
+					feed: { role: 'none' },
 				}),
 			],
 		};

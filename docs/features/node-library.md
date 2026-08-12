@@ -525,7 +525,7 @@ Statuses below match [STATUS.md](../STATUS.md) / `catalog.ts` (2026-07-19).
 | Merge      | `common-merge`      | P1  | **done** | Fan-in / combine                                                  |
 | Delay      | `common-delay`      | —   | **done** | Async delay                                                       |
 | Checkpoint | `common-checkpoint` | —   | **done** | Explicit durable resume boundary                                  |
-| Repeat     | `common-repeat`     | —   | **done** | Emit `value` N times (first ASAP, then on `trigger`), then `done` |
+| Repeat     | `common-repeat`     | —   | **done** | Emit `value` N times (first ASAP, then on `trigger`), `index` (0-based), then `done` |
 | IF         | `common-if`         | P0  | **done** | Boolean condition → `true` / `false` outputs                      |
 | Switch     | `common-switch`     | P0  | **done** | Value + rules → `pass` / `fail` / `default`                       |
 | Compare    | `common-compare`    | P0  | **done** | `a`, `b`, `op` → `result: boolean`                                |

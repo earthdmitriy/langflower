@@ -305,9 +305,7 @@ export const createSettingsDraftController = (
 			...(payload.provider !== undefined
 				? { provider: payload.provider }
 				: {}),
-			...(providerApiKeys !== undefined
-				? { providerApiKeys }
-				: {}),
+			...(providerApiKeys !== undefined ? { providerApiKeys } : {}),
 			...('serverLogs' in payload
 				? { serverLogs: payload.serverLogs }
 				: {}),

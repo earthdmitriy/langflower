@@ -26,6 +26,7 @@ describe('common-repeat node', () => {
 		const instance = repeatNode.getInstance();
 		const trigger$ = new Subject<unknown>();
 		const values = collect(instance.outputs.value);
+		const indices = collect(instance.outputs.index);
 		const dones = collect(instance.outputs.done);
 
 		instance.inputs.trigger.connect(trigger$);
@@ -34,19 +35,23 @@ describe('common-repeat node', () => {
 
 		await Promise.resolve();
 		expect(values.items).toEqual(['x']);
+		expect(indices.items).toEqual([0]);
 		expect(dones.items).toEqual([]);
 
 		trigger$.next(1);
 		await Promise.resolve();
 		expect(values.items).toEqual(['x', 'x']);
+		expect(indices.items).toEqual([0, 1]);
 		expect(dones.items).toEqual([]);
 
 		trigger$.next(2);
 		await Promise.resolve();
 		expect(values.items).toEqual(['x', 'x']);
+		expect(indices.items).toEqual([0, 1]);
 		expect(dones.items).toEqual([true]);
 
 		values.unsubscribe();
+		indices.unsubscribe();
 		dones.unsubscribe();
 	});
 
@@ -54,6 +59,7 @@ describe('common-repeat node', () => {
 		const instance = repeatNode.getInstance();
 		const trigger$ = new Subject<unknown>();
 		const values = collect(instance.outputs.value);
+		const indices = collect(instance.outputs.index);
 		const dones = collect(instance.outputs.done);
 
 		instance.inputs.trigger.connect(trigger$);
@@ -62,13 +68,16 @@ describe('common-repeat node', () => {
 
 		await Promise.resolve();
 		expect(values.items).toEqual(['once']);
+		expect(indices.items).toEqual([0]);
 
 		trigger$.next('go');
 		await Promise.resolve();
 		expect(values.items).toEqual(['once']);
+		expect(indices.items).toEqual([0]);
 		expect(dones.items).toEqual([true]);
 
 		values.unsubscribe();
+		indices.unsubscribe();
 		dones.unsubscribe();
 	});
 
@@ -76,6 +85,7 @@ describe('common-repeat node', () => {
 		const instance = repeatNode.getInstance();
 		const trigger$ = new Subject<unknown>();
 		const values = collect(instance.outputs.value);
+		const indices = collect(instance.outputs.index);
 		const dones = collect(instance.outputs.done);
 
 		instance.inputs.trigger.connect(trigger$);
@@ -86,8 +96,10 @@ describe('common-repeat node', () => {
 			firstValueFrom(instance.outputs.done.value$),
 		).resolves.toBe(true);
 		expect(values.items).toEqual([]);
+		expect(indices.items).toEqual([]);
 
 		values.unsubscribe();
+		indices.unsubscribe();
 		dones.unsubscribe();
 	});
 
@@ -96,6 +108,7 @@ describe('common-repeat node', () => {
 		const trigger$ = new Subject<unknown>();
 		const value$ = new BehaviorSubject<string>('a');
 		const values = collect(instance.outputs.value);
+		const indices = collect(instance.outputs.index);
 		const dones = collect(instance.outputs.done);
 
 		instance.inputs.trigger.connect(trigger$);
@@ -104,14 +117,17 @@ describe('common-repeat node', () => {
 
 		await Promise.resolve();
 		expect(values.items).toEqual(['a']);
+		expect(indices.items).toEqual([0]);
 
 		value$.next('b');
 		await Promise.resolve();
 		expect(values.items).toEqual(['a', 'b']);
+		expect(indices.items).toEqual([0, 0]);
 
 		trigger$.next(1);
 		await Promise.resolve();
 		expect(values.items).toEqual(['a', 'b', 'b']);
+		expect(indices.items).toEqual([0, 0, 1]);
 		expect(dones.items).toEqual([]);
 
 		trigger$.next(2);
@@ -119,6 +135,36 @@ describe('common-repeat node', () => {
 		expect(dones.items).toEqual([true]);
 
 		values.unsubscribe();
+		indices.unsubscribe();
 		dones.unsubscribe();
+	});
+
+	it('resets index sequence when count changes', async () => {
+		const instance = repeatNode.getInstance();
+		const trigger$ = new Subject<unknown>();
+		const count$ = new BehaviorSubject<number>(2);
+		const values = collect(instance.outputs.value);
+		const indices = collect(instance.outputs.index);
+
+		instance.inputs.trigger.connect(trigger$);
+		instance.inputs.count.connect(count$);
+		instance.inputs.value.connect(of('x'));
+
+		await Promise.resolve();
+		expect(values.items).toEqual(['x']);
+		expect(indices.items).toEqual([0]);
+
+		count$.next(3);
+		await Promise.resolve();
+		expect(values.items).toEqual(['x', 'x']);
+		expect(indices.items).toEqual([0, 0]);
+
+		trigger$.next(1);
+		await Promise.resolve();
+		expect(values.items).toEqual(['x', 'x', 'x']);
+		expect(indices.items).toEqual([0, 0, 1]);
+
+		values.unsubscribe();
+		indices.unsubscribe();
 	});
 });
