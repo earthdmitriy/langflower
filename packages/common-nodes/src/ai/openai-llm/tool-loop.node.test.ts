@@ -177,7 +177,15 @@ describe('common-openai-llm tool loop', () => {
 		});
 
 		const responseEvent = await responsePromise;
-		expect(responseEvent).toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), 'Done editing.']));
+		expect(responseEvent).toEqual(
+			expect.arrayContaining([
+				'out',
+				expect.anything(),
+				expect.anything(),
+				expect.anything(),
+				'Done editing.',
+			]),
+		);
 		expect(captured).toHaveLength(3);
 		expect(
 			captured[0]?.tools?.some((t) => t.function.name === 'read'),

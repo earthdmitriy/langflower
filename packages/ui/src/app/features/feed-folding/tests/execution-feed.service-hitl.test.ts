@@ -17,15 +17,9 @@ describe('ExecutionFeedService HITL', () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ review: 'review' }, [review]);
 
-		harness.raw.runnerPort$.next(
-			outputEvent('review', 'draft', 'before'),
-		);
-		harness.raw.runnerPort$.next(
-			inputEvent('review', 'reply', 'continue'),
-		);
-		harness.raw.runnerPort$.next(
-			outputEvent('review', 'draft', 'after'),
-		);
+		harness.raw.runnerPort$.next(outputEvent('review', 'draft', 'before'));
+		harness.raw.runnerPort$.next(inputEvent('review', 'reply', 'continue'));
+		harness.raw.runnerPort$.next(outputEvent('review', 'draft', 'after'));
 
 		const visits = harness.latestNodes();
 		// Same-node while-last: reply closes, resumed draft reopens the same card.
@@ -57,9 +51,7 @@ describe('ExecutionFeedService HITL', () => {
 		harness.seedCatalog({ left: 'review', right: 'review' }, [review]);
 		harness.raw.runnerPort$.next(outputEvent('left', 'draft', 'L'));
 		harness.raw.runnerPort$.next(outputEvent('right', 'draft', 'R'));
-		harness.raw.runnerPort$.next(
-			inputEvent('left', 'reply', 'left only'),
-		);
+		harness.raw.runnerPort$.next(inputEvent('left', 'reply', 'left only'));
 
 		const [left, right] = harness.latestNodes();
 		expect((await readItems(left!, 'reply'))[0]?.value).toBe('left only');

@@ -8,37 +8,37 @@
 
 - **Problem Statement:** Canvas wiring lacks visual affordances: while drawing an edge, users cannot see which ports are type-compatible; when hovering or selecting a node, incident edges are not emphasized (only direct edge hover/select and endpoint ports on selected edges work today). Custom nodes define **open-ended** `wireType` strings — a compile-time CSS matrix per type does not scale.
 - **User Prompt Source:**
-  1. When dragging port (drawing edge) — highlight compatible ports.
-  2. When hovering/selecting node — highlight its edges.
+    1. When dragging port (drawing edge) — highlight compatible ports.
+    2. When hovering/selecting node — highlight its edges.
 - **External Context:** [UI 04](../DONE/UI/04-selection-edge-port-highlight.md) (selected edge + endpoints, selected node ports). This epic extends — does not redo — that work.
 
 ## 2. Codebase Guardrails & Local Alignment
 
 - **Designated Base Folder:** `packages/ui/src/app/features/canvas/`
 - **Target Directories:**
-  - `packages/ui/src/app/features/canvas/components/` — flow canvas, port rows, edge chrome, lf-node
-  - `packages/ui/src/app/features/canvas/utils/` — draw-highlight CSS builder + inject helper
-  - `packages/ui/src/app/diagram/` — port resolution (wire type, connected, pinned)
-  - `packages/ui/src/app/features/canvas/styles/node-port-layout.css` — static highlight **appearance**
-  - `packages/runtime/src/runtime-editor.ts` — compatibility semantics (reference for CSS template)
+    - `packages/ui/src/app/features/canvas/components/` — flow canvas, port rows, edge chrome, lf-node
+    - `packages/ui/src/app/features/canvas/utils/` — draw-highlight CSS builder + inject helper
+    - `packages/ui/src/app/diagram/` — port resolution (wire type, connected, pinned)
+    - `packages/ui/src/app/features/canvas/styles/node-port-layout.css` — static highlight **appearance**
+    - `packages/runtime/src/runtime-editor.ts` — compatibility semantics (reference for CSS template)
 - **Architectural Patterns & Boilerplates Enforced:**
-  - **Attributes describe ports; CSS selects them; TS only at draw boundaries** — no per-port compatibility scan, no highlight service, no compile-time type enum.
-  - **Draw-scoped injected `<style>`** — on draw start, append ~4 CSS rules with **interpolated source `wireType`** (works for custom nodes); remove on draw end/cancel.
-  - **Static CSS** owns colors/rings (`var(--lf-*)`); injected block owns **selectors only** (or sets `--lf-port-compatible: 1`).
-  - ngDiagram boundary: canvas host `[attr.draw-active]`, port anchors carry metadata attributes ([`packages/ui/AGENTS.md`](../../packages/ui/AGENTS.md)).
-  - Local-only chrome — no cross-tab sync (same as UI 04).
+    - **Attributes describe ports; CSS selects them; TS only at draw boundaries** — no per-port compatibility scan, no highlight service, no compile-time type enum.
+    - **Draw-scoped injected `<style>`** — on draw start, append ~4 CSS rules with **interpolated source `wireType`** (works for custom nodes); remove on draw end/cancel.
+    - **Static CSS** owns colors/rings (`var(--lf-*)`); injected block owns **selectors only** (or sets `--lf-port-compatible: 1`).
+    - ngDiagram boundary: canvas host `[attr.draw-active]`, port anchors carry metadata attributes ([`packages/ui/AGENTS.md`](../../packages/ui/AGENTS.md)).
+    - Local-only chrome — no cross-tab sync (same as UI 04).
 - **Pattern & Boilerplate Reference Baseline:**
-  - [`lf-node-port-row.component.ts`](../../packages/ui/src/app/features/canvas/components/lf-node-port-row.component.ts): add `[attr.port-type]`, `[attr.port-side]`, `[attr.port-connected]`, `[attr.port-pinned]` on `.lf-port-anchor`.
-  - [`lf-node-bypass-port-row.component.ts`](../../packages/ui/src/app/features/canvas/components/lf-node-bypass-port-row.component.ts): same on in/out anchors.
-  - [`resolve-diagram-node-ports.ts`](../../packages/ui/src/app/diagram/resolve-diagram-node-ports.ts): extend with **pinned wire type** per input (from live edges + palette), not palette-only `wireType`.
-  - [`flow-canvas.component.ts`](../../packages/ui/src/app/features/canvas/components/flow-canvas.component.ts): `edgeDrawStarted` / `edgeDrawEnded` — inject/remove highlight style, toggle `draw-active`.
-  - [`lf-node.component.ts`](../../packages/ui/src/app/features/canvas/components/lf-node.component.ts): `connectedEdges` → pass incident flag to edges.
-  - [`lf-edge-chrome.component.ts`](../../packages/ui/src/app/features/canvas/components/lf-edge-chrome.component.ts): `lf-edge--node-incident` when edge touches hovered/selected node.
-  - [`runtime-editor.ts`](../../packages/runtime/src/runtime-editor.ts) lines 451–479: compatibility template (`any`, exact match, unpinned `dynamic`, pinned `dynamic`).
+    - [`lf-node-port-row.component.ts`](../../packages/ui/src/app/features/canvas/components/lf-node-port-row.component.ts): add `[attr.port-type]`, `[attr.port-side]`, `[attr.port-connected]`, `[attr.port-pinned]` on `.lf-port-anchor`.
+    - [`lf-node-bypass-port-row.component.ts`](../../packages/ui/src/app/features/canvas/components/lf-node-bypass-port-row.component.ts): same on in/out anchors.
+    - [`resolve-diagram-node-ports.ts`](../../packages/ui/src/app/diagram/resolve-diagram-node-ports.ts): extend with **pinned wire type** per input (from live edges + palette), not palette-only `wireType`.
+    - [`flow-canvas.component.ts`](../../packages/ui/src/app/features/canvas/components/flow-canvas.component.ts): `edgeDrawStarted` / `edgeDrawEnded` — inject/remove highlight style, toggle `draw-active`.
+    - [`lf-node.component.ts`](../../packages/ui/src/app/features/canvas/components/lf-node.component.ts): `connectedEdges` → pass incident flag to edges.
+    - [`lf-edge-chrome.component.ts`](../../packages/ui/src/app/features/canvas/components/lf-edge-chrome.component.ts): `lf-edge--node-incident` when edge touches hovered/selected node.
+    - [`runtime-editor.ts`](../../packages/runtime/src/runtime-editor.ts) lines 451–479: compatibility template (`any`, exact match, unpinned `dynamic`, pinned `dynamic`).
 - **Third-Party Dependencies & Packages:** None.
 - **Frontend Presentation Strategy:**
-  - **Component Library Standards:** lf-node / lf-edge templates — no Material.
-  - **Styling:** static rules in `node-port-layout.css`; dynamic selectors via `#lf-draw-highlight` injected `<style>` in `document.head` (or canvas host).
+    - **Component Library Standards:** lf-node / lf-edge templates — no Material.
+    - **Styling:** static rules in `node-port-layout.css`; dynamic selectors via `#lf-draw-highlight` injected `<style>` in `document.head` (or canvas host).
 - **Shared Utilities & Hooks:** `buildDrawHighlightCss`, `mountDrawHighlightStyle`, `unmountDrawHighlightStyle`, `cssEscapeAttrValue`, `resolveEffectiveOutputWireType` (canvas-local or diagram util).
 - **Internationalization (i18n) Mechanics:** None.
 - **Environment Configuration (ENV):** None.
@@ -49,18 +49,18 @@
 
 - **Affected Modules / Components:** Port row templates, diagram port resolution (pinned type), flow-canvas draw lifecycle, static + injected CSS, lf-edge incident class, lf-node hover/select linkage.
 - **Affected Files Inventory:**
-  - **New Files:**
-    - `packages/ui/src/app/features/canvas/utils/draw-highlight-css.ts` — `buildDrawHighlightCss(sourceWireType)`, `cssEscapeAttrValue`, mount/unmount helpers
-    - `packages/ui/src/app/features/canvas/utils/draw-highlight-css.test.ts` — CSS output + escaping + template branches (`any` source, `dynamic` source)
-    - `packages/ui/src/app/diagram/resolve-input-pinned-wire-type.ts` (optional) — UI-side pinned type from edges (mirror runtime semantics)
-  - **Changed Files:**
-    - `lf-node-port-row.component.ts`, `lf-node-bypass-port-row.component.ts` — port metadata attributes on anchors
-    - `resolve-diagram-node-ports.ts` — expose `pinnedWireType?: string` on input/bypass rows
-    - `flow-canvas.component.ts` — draw start/end, inject style, `[attr.draw-active]`, resolve effective source wire type once
-    - `lf-node.component.ts`, `lf-edge-chrome.component.ts` — incident edge highlight on node hover/select
-    - `node-port-layout.css` — `.lf-port-anchor--draw-compatible` appearance (applied by injected selectors)
-    - `packages/ui/docs/DIAGRAM_CANVAS.md` — document attribute contract + injected style lifecycle
-  - **Deleted Files:** None (do **not** add `CanvasWiringHighlightService` or per-port `compatibleHighlighted` inputs).
+    - **New Files:**
+        - `packages/ui/src/app/features/canvas/utils/draw-highlight-css.ts` — `buildDrawHighlightCss(sourceWireType)`, `cssEscapeAttrValue`, mount/unmount helpers
+        - `packages/ui/src/app/features/canvas/utils/draw-highlight-css.test.ts` — CSS output + escaping + template branches (`any` source, `dynamic` source)
+        - `packages/ui/src/app/diagram/resolve-input-pinned-wire-type.ts` (optional) — UI-side pinned type from edges (mirror runtime semantics)
+    - **Changed Files:**
+        - `lf-node-port-row.component.ts`, `lf-node-bypass-port-row.component.ts` — port metadata attributes on anchors
+        - `resolve-diagram-node-ports.ts` — expose `pinnedWireType?: string` on input/bypass rows
+        - `flow-canvas.component.ts` — draw start/end, inject style, `[attr.draw-active]`, resolve effective source wire type once
+        - `lf-node.component.ts`, `lf-edge-chrome.component.ts` — incident edge highlight on node hover/select
+        - `node-port-layout.css` — `.lf-port-anchor--draw-compatible` appearance (applied by injected selectors)
+        - `packages/ui/docs/DIAGRAM_CANVAS.md` — document attribute contract + injected style lifecycle
+    - **Deleted Files:** None (do **not** add `CanvasWiringHighlightService` or per-port `compatibleHighlighted` inputs).
 
 ### B. API, Data Contracts & DAL Strategy
 
@@ -68,20 +68,20 @@
 
 Bind on `.lf-port-anchor` (and bypass in/out anchors):
 
-| Attribute | Source | Purpose |
-| --- | --- | --- |
-| `port-type` | palette / effective `wireType` string | open set — custom nodes |
-| `port-side` | `'in'` \| `'out'` | only highlight inputs while drawing from output |
-| `port-connected` | presence when `connected === true` | exclude in `:not([port-connected])` |
-| `port-pinned` | pinned wire type when input is `dynamic` and wired | pinned `dynamic` accepts only that type |
+| Attribute        | Source                                             | Purpose                                         |
+| ---------------- | -------------------------------------------------- | ----------------------------------------------- |
+| `port-type`      | palette / effective `wireType` string              | open set — custom nodes                         |
+| `port-side`      | `'in'` \| `'out'`                                  | only highlight inputs while drawing from output |
+| `port-connected` | presence when `connected === true`                 | exclude in `:not([port-connected])`             |
+| `port-pinned`    | pinned wire type when input is `dynamic` and wired | pinned `dynamic` accepts only that type         |
 
 Use `[attr.port-type]="wireType()"`, `[attr.port-connected]="connected() ? '' : null"`, etc.
 
 #### Canvas host while drawing
 
-| Attribute | When |
-| --- | --- |
-| `draw-active` | presence from draw start until end/cancel |
+| Attribute        | When                                               |
+| ---------------- | -------------------------------------------------- |
+| `draw-active`    | presence from draw start until end/cancel          |
 | `draw-from-type` | optional debug — effective source wire type string |
 
 Host class: `lf-canvas` (existing or add on `flow-canvas` host).
@@ -122,7 +122,7 @@ Static appearance (shared selector suffix):
 
 ```css
 .lf-port-anchor--draw-compatible {
-  /* ring / scale — light + dark via var(--lf-*) */
+	/* ring / scale — light + dark via var(--lf-*) */
 }
 ```
 
@@ -140,9 +140,9 @@ CSS injection does not link nodes to edges. Reuse [`lf-node.component.ts`](../..
 - [`lf-edge-chrome.component.ts`](../../packages/ui/src/app/features/canvas/components/lf-edge-chrome.component.ts): host class `lf-edge--node-incident` + static stroke rules.
 
 - **Wrapper Strategy:**
-  - **Reuse:** endpoint highlight (UI 04), `connected` on port rows, runtime compatibility semantics as template spec.
-  - **New:** `buildDrawHighlightCss`, attribute bindings, inject/unmount lifecycle.
-  - **No:** `computeCompatiblePorts()`, `ReadonlySet` of port keys, highlight service.
+    - **Reuse:** endpoint highlight (UI 04), `connected` on port rows, runtime compatibility semantics as template spec.
+    - **New:** `buildDrawHighlightCss`, attribute bindings, inject/unmount lifecycle.
+    - **No:** `computeCompatiblePorts()`, `ReadonlySet` of port keys, highlight service.
 - **Reverse Compatibility Risk Matrix:** Additive attributes + CSS only. No bridge changes.
 
 ### C. Security, Identity & Compliance
@@ -187,11 +187,11 @@ CSS injection does not link nodes to edges. Reuse [`lf-node.component.ts`](../..
 
 ### A. Testing Strategy Matrix
 
-- [X] **Unit Testing:** `draw-highlight-css.test.ts` — escaped custom types, four rule template, `any`/`dynamic` source branches, mount/unmount idempotency.
-- [X] **Unit Testing:** pinned wire type resolution on diagram port rows (vs runtime fixtures if shared util).
+- [x] **Unit Testing:** `draw-highlight-css.test.ts` — escaped custom types, four rule template, `any`/`dynamic` source branches, mount/unmount idempotency.
+- [x] **Unit Testing:** pinned wire type resolution on diagram port rows (vs runtime fixtures if shared util).
 - [ ] **Integration Testing:** Optional flow-canvas test with mocked draw events.
 - [ ] **E2E / Smoke Testing:** Not required.
-- [X] **Manual Verification:** Draw from string / custom type / dynamic; node hover edges.
+- [x] **Manual Verification:** Draw from string / custom type / dynamic; node hover edges.
 
 ### B. Manual Verification Script
 

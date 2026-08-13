@@ -13,21 +13,21 @@
 
 - **Designated Base Folder:** `packages/ui/src/app/features/sidebar/`
 - **Target Directories:**
-  - `packages/ui/src/app/features/sidebar/format-port-value.ts` — new preview helper
-  - `packages/ui/src/app/features/sidebar/components/lf-work-log-panel.component.ts` — summary binding
-  - `packages/ui/src/app/features/sidebar/tests/format-port-value.test.ts` — unit tests
+    - `packages/ui/src/app/features/sidebar/format-port-value.ts` — new preview helper
+    - `packages/ui/src/app/features/sidebar/components/lf-work-log-panel.component.ts` — summary binding
+    - `packages/ui/src/app/features/sidebar/tests/format-port-value.test.ts` — unit tests
 - **Architectural Patterns & Boilerplates Enforced:**
-  - Keep `formatPortValue` for **expanded** body text (pretty JSON unchanged).
-  - Add separate `formatFeedCollapsedPreview(value)` for `<summary>` lines only.
-  - Pure functions — no bridge or fold changes for v1.
+    - Keep `formatPortValue` for **expanded** body text (pretty JSON unchanged).
+    - Add separate `formatFeedCollapsedPreview(value)` for `<summary>` lines only.
+    - Pure functions — no bridge or fold changes for v1.
 - **Pattern & Boilerplate Reference Baseline:**
-  - [`format-port-value.ts`](../../packages/ui/src/app/features/sidebar/format-port-value.ts): `JSON.stringify(value, null, 2)` for objects — do not change for expanded view.
-  - [`lf-work-log-panel.component.ts`](../../packages/ui/src/app/features/sidebar/components/lf-work-log-panel.component.ts): `@default` template uses `port.portId` in summary for `data` — switch to preview helper; reasoning branch already uses truncated `itemText`.
-  - [`fold-port-stream.ts`](../../packages/ui/src/app/features/feed-folding/operators/fold-port-stream.ts): streaming merge uses full `formatPortValue` — leave unchanged.
+    - [`format-port-value.ts`](../../packages/ui/src/app/features/sidebar/format-port-value.ts): `JSON.stringify(value, null, 2)` for objects — do not change for expanded view.
+    - [`lf-work-log-panel.component.ts`](../../packages/ui/src/app/features/sidebar/components/lf-work-log-panel.component.ts): `@default` template uses `port.portId` in summary for `data` — switch to preview helper; reasoning branch already uses truncated `itemText`.
+    - [`fold-port-stream.ts`](../../packages/ui/src/app/features/feed-folding/operators/fold-port-stream.ts): streaming merge uses full `formatPortValue` — leave unchanged.
 - **Third-Party Dependencies & Packages:** None.
 - **Frontend Presentation Strategy (If UI Affected):**
-  - **Component Library Standards:** Existing `<details>/<summary>` pattern in work log.
-  - **Styling & CSS Architecture Guardrails:** `truncate` on summary; `.lf-text-caption--muted`.
+    - **Component Library Standards:** Existing `<details>/<summary>` pattern in work log.
+    - **Styling & CSS Architecture Guardrails:** `truncate` on summary; `.lf-text-caption--muted`.
 - **Shared Utilities & Hooks:** `formatPortValue` remains canonical for inspector + expanded feed body.
 - **Internationalization (i18n) Mechanics:** Placeholder string `"JSON"` (English).
 - **Environment Configuration (ENV):** None.
@@ -38,12 +38,12 @@
 
 - **Affected Modules / Components:** Feed collapsed summaries only — not WS protocol, not fold logic, not inspector expanded view (unless inspector reuses preview helper later).
 - **Affected Files Inventory:**
-  - **New Files:** None (extend format-port-value module).
-  - **Changed Files:**
-    - `format-port-value.ts`: Export `formatFeedCollapsedPreview(value: unknown): string`.
-    - `format-port-value.test.ts`: Cases for JSON object/array → `"JSON"`; multiline string → last non-empty line; primitives → stringified.
-    - `lf-work-log-panel.component.ts`: Use preview in `@default`/`data`/tool/shell summaries where last-line preview desired.
-  - **Deleted Files:** None.
+    - **New Files:** None (extend format-port-value module).
+    - **Changed Files:**
+        - `format-port-value.ts`: Export `formatFeedCollapsedPreview(value: unknown): string`.
+        - `format-port-value.test.ts`: Cases for JSON object/array → `"JSON"`; multiline string → last non-empty line; primitives → stringified.
+        - `lf-work-log-panel.component.ts`: Use preview in `@default`/`data`/tool/shell summaries where last-line preview desired.
+    - **Deleted Files:** None.
 - **Backward Compatibility Plan:** Expanded `<pre>` body unchanged — only collapsed label changes.
 
 ### B. API, Data Contracts & DAL Strategy
@@ -52,14 +52,14 @@
 - **Data Access Layer (DAL) Pattern:** N/A.
 - **Endpoints & Routes Impacted:** None.
 - **Data Contracts (Schemas & Type Specs):**
-  ```typescript
-  // formatFeedCollapsedPreview rules (v1):
-  // - null/undefined → String(value)
-  // - string → last non-empty line (trimmed), or full string if single line
-  // - plain object or array (not Error, not combine-error tuple) → 'JSON'
-  // - number/boolean → String(value)
-  // - Error → message first line
-  ```
+    ```typescript
+    // formatFeedCollapsedPreview rules (v1):
+    // - null/undefined → String(value)
+    // - string → last non-empty line (trimmed), or full string if single line
+    // - plain object or array (not Error, not combine-error tuple) → 'JSON'
+    // - number/boolean → String(value)
+    // - Error → message first line
+    ```
 - **Wrapper Strategy:** New function alongside existing; `itemText()` may call preview for summaries, `formatPortValue` for bodies.
 - **Reverse Compatibility Risk Matrix:** None.
 
@@ -94,10 +94,10 @@
 
 ### A. Testing Strategy Matrix
 
-- [X] **Unit Testing:** `formatFeedCollapsedPreview` all branches.
+- [x] **Unit Testing:** `formatFeedCollapsedPreview` all branches.
 - [ ] **Integration Testing:** Optional component test for summary text.
 - [ ] **E2E / Smoke Testing:** Not required.
-- [X] **Manual Verification:** Run workflow emitting JSON object port; collapsed row shows `JSON`, expanded shows pretty-print.
+- [x] **Manual Verification:** Run workflow emitting JSON object port; collapsed row shows `JSON`, expanded shows pretty-print.
 
 ### B. Manual Verification Script
 
@@ -105,9 +105,9 @@
 
 - **Prerequisites:** Node outputting `{ "foo": 1, "bar": 2 }` to feed.
 - **Step-by-Step Actions:**
-  1. Run workflow.
-  2. Observe collapsed feed row before expanding.
-  3. Expand details.
+    1. Run workflow.
+    2. Observe collapsed feed row before expanding.
+    3. Expand details.
 - **Expected Output / Observable Result:** Summary shows `JSON` (not `}`); expanded body pretty-printed multiline JSON.
 
 #### Test Case 2: Multiline string last-line preview

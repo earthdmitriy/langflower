@@ -1,8 +1,9 @@
 # Epics — use-case readiness roadmap (completed)
 
-**Archived** under [`docs/DONE/`](../README.md). Epics **00–36** are landed.
+**Archived** under [`docs/DONE/`](../README.md). Epics **00–38** are landed.
 Active queue: see [`docs/TODO/EPICS/`](../../TODO/EPICS/README.md)
-(epic **37** — deterministic feed-fold). Further work also follows use-case Missing parts
+(epic **39** — `ai/` layout; epic **40** — custom node recompile / hot-swap).
+Further work also follows use-case Missing parts
 and [`docs/code-regression/`](../../code-regression/SUMMARY.md) Critical
 findings.
 
@@ -93,6 +94,8 @@ Status only after `verify`.
 | 34  | [34-feed-timeline-visual-contract.md](34-feed-timeline-visual-contract.md)             | UI    | **landed** — feed draft/tool segments + streaming chrome                                      |
 | 35  | [35-composer-shell-layout-contract.md](35-composer-shell-layout-contract.md)           | UI    | **landed** — composer shell (no labels / pills / tabs-only-2+)                                |
 | 36  | [36-stop-pause-steer-controls.md](36-stop-pause-steer-controls.md)                     | UI+RT | **landed** — rose Stop + amber Pause/`steerControl` (ADR-031/032)                             |
+| 37  | [37-deterministic-feed-fold.md](37-deterministic-feed-fold.md)                         | UI    | **landed** — TDD `feed-folding` nested fold; live work-log switch is a follow-up              |
+| 38  | [38-llm-autokick.md](38-llm-autokick.md)                                               | LLM   | **landed** — default autokick, dead-loop, HTTP join, pinned feed retry banner                 |
 
 ## Contracts
 

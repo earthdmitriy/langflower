@@ -103,9 +103,25 @@ These are **technical**, not conversation. Default peek behaviour:
   `· last event Ns ago`. Silence alone never opens HITL.
 
 **Recovery notices** (`feed.role: 'recovery'`): always-visible amber banner
-inside the node container (`Retrying…` or `Paused for Steer`) — not buried
-under Tool `<details>`. A **suspended** notice opens the Steer composer (same
-fold as Pause); retry notices do not.
+inside the node container — not buried under Tool `<details>`. A
+**suspended** notice opens the Steer composer (same fold as Pause); retry
+notices do not.
+
+**Autokick retry banner** (shipped): while `'retry'` is in progress the amber
+two-line banner (retry number, time since last retry, time until next retry)
+stays in **port-stream order** after the reasoning or draft block that
+tripped it — not under the node-visit header. The two-line wait timer ticks
+only while that recovery row is the **last entry in the visit**; after
+reconnect, rows are headline-only. Hide `working…` while the visit tail is
+recovery. The banner recomputes from notice timestamps on the existing
+1 Hz `livenessNowMs` clock (same tick as Pause “API quiet”). Example:
+
+```text
+Retrying idle stream · retry 3
+Last retry 1m 12s ago · next in 2m 48s
+```
+
+Strategy and notice fields: [LLM_RECOVERY](../LLM_RECOVERY.md).
 
 **Draft + tool/subagent interrupt sequence** (palette §7; shipped in feed
 projection — epic 34):

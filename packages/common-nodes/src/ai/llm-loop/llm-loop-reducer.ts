@@ -1,4 +1,5 @@
 import type { LlmLoopAction, LlmLoopState } from './llm-loop-types.js';
+import { autokickKickUserTurn } from './autokick-recovery.js';
 
 const assertNever = (value: never): never => {
 	throw new Error(`Unhandled LLM loop action: ${JSON.stringify(value)}`);
@@ -91,6 +92,17 @@ export const reduceLlmLoop = (
 					idleMs: action.idleMs,
 				},
 			};
+		case 'stream.dead-loop':
+			return {
+				...state,
+				phase: 'suspended',
+				committedMessages: [...state.roundCheckpoint],
+				suspendedBy: {
+					kind: 'dead-loop',
+					channel: action.channel,
+					reason: action.reason,
+				},
+			};
 		case 'provider.failed':
 			return {
 				...state,
@@ -159,6 +171,29 @@ export const reduceLlmLoop = (
 				suspendedBy: undefined,
 				failure: undefined,
 			};
+		case 'autokick.scheduled':
+			return {
+				...state,
+				phase: 'prepare',
+				committedMessages:
+					action.kickUserMessage === undefined
+						? [...state.roundCheckpoint]
+						: [
+								...state.roundCheckpoint,
+								autokickKickUserTurn(action.kickUserMessage),
+							],
+				autokickAttempts: state.autokickAttempts + 1,
+				autokickKickAttempts:
+					action.kickUserMessage === undefined
+						? state.autokickKickAttempts
+						: state.autokickKickAttempts + 1,
+				lastAutokickAt: action.atMs,
+				transientAttempts: 0,
+				partial: { reasoning: '', draft: '' },
+				pendingToolCalls: [],
+				suspendedBy: undefined,
+				failure: undefined,
+			};
 		case 'steer.received': {
 			const text = action.text?.trim() ?? '';
 			const messages =
@@ -175,6 +210,9 @@ export const reduceLlmLoop = (
 				committedMessages: messages,
 				roundCheckpoint: messages,
 				transientAttempts: 0,
+				autokickAttempts: 0,
+				autokickKickAttempts: 0,
+				lastAutokickAt: undefined,
 				partial: { reasoning: '', draft: '' },
 				pendingToolCalls: [],
 				suspendedBy: undefined,

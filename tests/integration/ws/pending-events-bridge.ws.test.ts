@@ -1,4 +1,8 @@
-import type { NodeId, PortTelemetry, RuntimeRunnerEvent } from '@langflower/runtime';
+import type {
+	NodeId,
+	PortTelemetry,
+	RuntimeRunnerEvent,
+} from '@langflower/runtime';
 import { filter, firstValueFrom, take } from 'rxjs';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -69,9 +73,7 @@ describe('runner pending events reach WS bridge', () => {
 		await donePromise;
 		sub.unsubscribe();
 
-		const outputEvents = allEvents.filter(
-			(e) => e[0] === 'out',
-		);
+		const outputEvents = allEvents.filter((e) => e[0] === 'out');
 
 		const nodeIds = new Set(outputEvents.map((e) => e[1]));
 		expect(nodeIds.has('string-1' as NodeId)).toBe(true);
@@ -98,7 +100,11 @@ describe('runner pending events reach WS bridge', () => {
 				filter(
 					(
 						event,
-					): event is PortTelemetry & { readonly 0: 'out'; readonly 3: 'value'; readonly 1: 'preview-1' } =>
+					): event is PortTelemetry & {
+						readonly 0: 'out';
+						readonly 3: 'value';
+						readonly 1: 'preview-1';
+					} =>
 						event[0] === 'out' &&
 						event[3] === 'value' &&
 						event[1] === 'preview-1',
@@ -113,10 +119,7 @@ describe('runner pending events reach WS bridge', () => {
 		sub.unsubscribe();
 
 		const delayEvents = allEvents.filter(
-			(e) =>
-				e[0] === 'out' &&
-				e[1] === 'delay-1' &&
-				e[2] === 'value',
+			(e) => e[0] === 'out' && e[1] === 'delay-1' && e[2] === 'value',
 		);
 
 		const states = delayEvents.map((e) => e[3]);
@@ -137,19 +140,19 @@ describe('runner pending events reach WS bridge', () => {
 
 		const eventsA: RuntimeRunnerEvent[] = [];
 		const eventsB: RuntimeRunnerEvent[] = [];
-		const subA = client['runner.port'].subscribe((e) =>
-			eventsA.push(e),
-		);
-		const subB = clientB['runner.port'].subscribe((e) =>
-			eventsB.push(e),
-		);
+		const subA = client['runner.port'].subscribe((e) => eventsA.push(e));
+		const subB = clientB['runner.port'].subscribe((e) => eventsB.push(e));
 
 		const valuePromise = firstValueFrom(
 			client['runner.port'].pipe(
 				filter(
 					(
 						event,
-					): event is PortTelemetry & { readonly 0: 'out'; readonly 3: 'value'; readonly 1: 'preview-1' } =>
+					): event is PortTelemetry & {
+						readonly 0: 'out';
+						readonly 3: 'value';
+						readonly 1: 'preview-1';
+					} =>
 						event[0] === 'out' &&
 						event[3] === 'value' &&
 						event[1] === 'preview-1',
@@ -169,9 +172,7 @@ describe('runner pending events reach WS bridge', () => {
 			events
 				.filter(
 					(e) =>
-						e[0] === 'out' &&
-						e[1] === nodeId &&
-						e[2] === 'value',
+						e[0] === 'out' && e[1] === nodeId && e[2] === 'value',
 				)
 				.map((e) => e[3]);
 

@@ -22,7 +22,10 @@ import {
 } from '../helpers/test-server.js';
 import { evalRegressionGateWorkflow } from '../helpers/scenarios/eval.js';
 
-type OutputErrorEvent = PortTelemetry & { readonly 0: 'out'; readonly 3: 'error' };
+type OutputErrorEvent = PortTelemetry & {
+	readonly 0: 'out';
+	readonly 3: 'error';
+};
 
 const waitForAssertError = (
 	client: LangflowerWsClient,

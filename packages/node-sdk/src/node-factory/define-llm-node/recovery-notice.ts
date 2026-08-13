@@ -8,9 +8,17 @@ export const RECOVERY_PORT_ID = 'recovery' as const;
 
 export type LlmRecoveryNoticeCode = 'retry' | 'suspended';
 
+export type LlmRecoveryRetryReason =
+	'idle' | 'dead-loop' | 'rate-limit' | 'provider-unavailable' | 'network';
+
 export type LlmRecoveryNotice = {
 	readonly code: LlmRecoveryNoticeCode;
 	readonly text: string;
+	readonly attempt?: number;
+	readonly reason?: LlmRecoveryRetryReason;
+	readonly lastAttemptAt?: number;
+	readonly nextAttemptAt?: number;
+	readonly backoffMs?: number;
 };
 
 export const isLlmRecoveryNotice = (
@@ -38,3 +46,20 @@ export const recoveryNoticeText = (value: unknown): string => {
 	}
 	return '';
 };
+
+/** Port payload: `code` + `text` plus any additive timing fields. */
+export const toLlmRecoveryPortValue = (
+	notice: LlmRecoveryNotice,
+): LlmRecoveryNotice => ({
+	code: notice.code,
+	text: notice.text,
+	...(notice.attempt !== undefined ? { attempt: notice.attempt } : {}),
+	...(notice.reason !== undefined ? { reason: notice.reason } : {}),
+	...(notice.lastAttemptAt !== undefined
+		? { lastAttemptAt: notice.lastAttemptAt }
+		: {}),
+	...(notice.nextAttemptAt !== undefined
+		? { nextAttemptAt: notice.nextAttemptAt }
+		: {}),
+	...(notice.backoffMs !== undefined ? { backoffMs: notice.backoffMs } : {}),
+});

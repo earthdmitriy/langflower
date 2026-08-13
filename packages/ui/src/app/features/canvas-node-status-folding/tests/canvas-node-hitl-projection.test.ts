@@ -117,7 +117,16 @@ describe('canvas-node-hitl-projection (single-node)', () => {
 				status: 'running',
 				events: [
 					['in', nodeId, 'prompt', 'value', 'hi', 0, [], null],
-					['in', 'other' as NodeId, 'prompt', 'value', 'ignore', 0, [], null],
+					[
+						'in',
+						'other' as NodeId,
+						'prompt',
+						'value',
+						'ignore',
+						0,
+						[],
+						null,
+					],
 				],
 			},
 			nodeId,

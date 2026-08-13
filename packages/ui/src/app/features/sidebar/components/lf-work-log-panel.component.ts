@@ -8,17 +8,41 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import { isLlmRecoveryNotice } from '@langflower/node-sdk/llm';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+	formatAutokickRetryBanner,
+	formatAutokickRetryHeadline,
+} from '../format-autokick-retry-banner.js';
 import { formatPortValue } from '../format-port-value.js';
 import { renderMarkdown } from '../../../utils/render-markdown.js';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
 import { ExecutionFeedService } from '../../feed-folding/execution-feed.service.js';
+import { isLatestRecoveryRow } from '../../feed-folding/latest-recovery-item.js';
 import type { PortStreamItem } from '../../feed-folding/types.js';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service.js';
 import { NodeHoverService } from '../../../services/node-hover.service.js';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service.js';
 
 const itemText = (item: PortStreamItem): string => formatPortValue(item.value);
+
+const recoveryBanner = (
+	item: PortStreamItem,
+	nowMs: number,
+	includeTimer: boolean,
+): string => {
+	if (
+		isLlmRecoveryNotice(item.value) &&
+		item.value.code === 'retry' &&
+		item.value.nextAttemptAt !== undefined
+	) {
+		return includeTimer
+			? formatAutokickRetryBanner(item.value, nowMs)
+			: formatAutokickRetryHeadline(item.value);
+	}
+
+	return itemText(item);
+};
 
 const presentationLabel = (item: PortStreamItem): string => {
 	switch (item.meta.presentation) {
@@ -99,6 +123,8 @@ const presentationLabel = (item: PortStreamItem): string => {
 							(scroll)="onScroll()"
 						>
 							@for (visit of visits; track visit.visitId) {
+								@let latestRecovery =
+									visit.pinnedRecovery | async;
 								<section
 									class="flex min-w-0 flex-col gap-1 px-2 py-1.5"
 									[class.lf-feed-row--hovered]="
@@ -113,6 +139,7 @@ const presentationLabel = (item: PortStreamItem): string => {
 										{{ execution.nodeLabel(visit.nodeId) }}
 										@if (
 											!visit.isClosed &&
+											!latestRecovery &&
 											execution.isRunning()
 										) {
 											<span
@@ -213,8 +240,15 @@ const presentationLabel = (item: PortStreamItem): string => {
 															<pre
 																class="whitespace-pre-wrap break-words rounded-md border border-amber-300/80 bg-amber-50 px-2 py-1.5 font-sans text-[11px] text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-100"
 																>{{
-																	itemText(
-																		item
+																	recoveryBanner(
+																		item,
+																		execution.livenessNowMs(),
+																		!visit.isClosed &&
+																			isLatestRecoveryRow(
+																				latestRecovery ??
+																					undefined,
+																				item
+																			)
 																	)
 																}}</pre>
 														}
@@ -475,7 +509,9 @@ export class LfWorkLogPanelComponent {
 
 	readonly autoScroll = signal(true);
 	readonly itemText = itemText;
+	readonly recoveryBanner = recoveryBanner;
 	readonly presentationLabel = presentationLabel;
+	readonly isLatestRecoveryRow = isLatestRecoveryRow;
 
 	private readonly scrollRef =
 		viewChild<ElementRef<HTMLDivElement>>('scrollRef');

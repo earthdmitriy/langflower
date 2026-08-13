@@ -135,6 +135,8 @@ export {
 	isLlmRecoveryNotice,
 	isLlmRecoverySuspended,
 	recoveryNoticeText,
+	toLlmRecoveryPortValue,
 	type LlmRecoveryNotice,
 	type LlmRecoveryNoticeCode,
+	type LlmRecoveryRetryReason,
 } from './recovery-notice.js';

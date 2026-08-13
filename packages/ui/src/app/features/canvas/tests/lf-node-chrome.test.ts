@@ -275,7 +275,7 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 			true,
 		);
 
-		raw['runner.done'].next(['done', 'run-1' ]);
+		raw['runner.done'].next(['done', 'run-1']);
 		fixture.detectChanges();
 		expect(chromeEl().classList.contains('lf-node-chrome--value')).toBe(
 			true,
@@ -287,7 +287,7 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 			outputValue('run-1', 'node-a', { streaming: true }),
 		);
 		fixture.detectChanges();
-		raw['runner.done'].next(['done', 'run-1' ]);
+		raw['runner.done'].next(['done', 'run-1']);
 		fixture.detectChanges();
 
 		expect(chromeEl().classList.contains('lf-node-chrome--pending')).toBe(

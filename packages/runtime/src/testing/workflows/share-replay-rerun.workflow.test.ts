@@ -100,10 +100,7 @@ const withTimeout = <T>(
 const waitForDone = (runtime: RuntimeHarness) =>
 	firstValueFrom(
 		runtime.runner.events$.pipe(
-			filter(
-				(event): event is ['done', RunId] =>
-					event[0] === 'done',
-			),
+			filter((event): event is ['done', RunId] => event[0] === 'done'),
 		),
 	);
 

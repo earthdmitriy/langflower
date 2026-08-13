@@ -181,7 +181,15 @@ describe('openai-llm + fixture MCP transport', () => {
 		});
 
 		const responseEvent = await responsePromise;
-		expect(responseEvent).toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), 'Got echo.']));
+		expect(responseEvent).toEqual(
+			expect.arrayContaining([
+				'out',
+				expect.anything(),
+				expect.anything(),
+				expect.anything(),
+				'Got echo.',
+			]),
+		);
 		expect(
 			captured[0]?.tools?.some((t) => t.function.name === mcpToolId),
 		).toBe(true);

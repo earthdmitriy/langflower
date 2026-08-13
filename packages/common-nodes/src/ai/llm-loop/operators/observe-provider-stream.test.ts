@@ -1,20 +1,37 @@
 import type { SteerControlPayload } from '@langflower/node-sdk/llm';
 import { Subject, firstValueFrom, toArray } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
+import type { ChatCompletionStreamChunk } from '../../chat-completion-stream.js';
 import { observeProviderStream } from './observe-provider-stream.js';
 
 const neverEndingStream = async function* (): AsyncGenerator<never> {
 	await new Promise(() => undefined);
 };
 
+const repeatingChunks = (
+	kind: 'reasoning' | 'draft',
+	text: string,
+	count: number,
+): AsyncGenerator<ChatCompletionStreamChunk> =>
+	(async function* () {
+		for (let index = 0; index < count; index += 1) {
+			yield { kind, text };
+		}
+		yield { kind: 'done' as const, text: '' };
+	})();
+
 describe('observeProviderStream', () => {
-	it('turns an idle stream into a terminal idle fact', async () => {
+	it('turns an idle stream into a terminal idle fact and aborts', async () => {
 		vi.useFakeTimers();
 		const pause$ = new Subject<SteerControlPayload>();
 		const cancel$ = new Subject<void>();
+		let signal: AbortSignal | undefined;
 		const result = firstValueFrom(
 			observeProviderStream({
-				createStream: async () => neverEndingStream(),
+				createStream: async (nextSignal) => {
+					signal = nextSignal;
+					return neverEndingStream();
+				},
 				pause$,
 				cancel$,
 				idleTimeoutMs: 50,
@@ -25,6 +42,7 @@ describe('observeProviderStream', () => {
 		await expect(result).resolves.toEqual([
 			{ kind: 'provider.idle', idleMs: 50 },
 		]);
+		expect(signal?.aborted).toBe(true);
 		vi.useRealTimers();
 	});
 
@@ -82,5 +100,108 @@ describe('observeProviderStream', () => {
 				},
 			},
 		]);
+	});
+
+	it('aborts on five identical reasoning deltas without erroring', async () => {
+		const pause$ = new Subject<SteerControlPayload>();
+		const cancel$ = new Subject<void>();
+		let signal: AbortSignal | undefined;
+		const facts = await firstValueFrom(
+			observeProviderStream({
+				createStream: async (nextSignal) => {
+					signal = nextSignal;
+					return repeatingChunks('reasoning', 'loop', 5);
+				},
+				pause$,
+				cancel$,
+				idleTimeoutMs: 0,
+			}).pipe(toArray()),
+		);
+
+		expect(facts).toContainEqual({
+			kind: 'provider.dead-loop',
+			channel: 'reasoning',
+			reason: 'consecutive',
+		});
+		expect(
+			facts.filter((fact) => fact.kind === 'provider.reasoning'),
+		).toHaveLength(5);
+		expect(facts.some((fact) => fact.kind === 'provider.failed')).toBe(
+			false,
+		);
+		expect(signal?.aborted).toBe(true);
+	});
+
+	it('aborts on five identical draft deltas', async () => {
+		const pause$ = new Subject<SteerControlPayload>();
+		const cancel$ = new Subject<void>();
+		let signal: AbortSignal | undefined;
+		const facts = await firstValueFrom(
+			observeProviderStream({
+				createStream: async (nextSignal) => {
+					signal = nextSignal;
+					return repeatingChunks('draft', 'x', 5);
+				},
+				pause$,
+				cancel$,
+				idleTimeoutMs: 0,
+			}).pipe(toArray()),
+		);
+
+		expect(facts.at(-1)).toEqual({
+			kind: 'provider.dead-loop',
+			channel: 'draft',
+			reason: 'consecutive',
+		});
+		expect(signal?.aborted).toBe(true);
+	});
+
+	it('trips a reasoning loop with no draft chunks', async () => {
+		const pause$ = new Subject<SteerControlPayload>();
+		const cancel$ = new Subject<void>();
+		const facts = await firstValueFrom(
+			observeProviderStream({
+				createStream: async () =>
+					repeatingChunks('reasoning', 'same', 5),
+				pause$,
+				cancel$,
+				idleTimeoutMs: 0,
+			}).pipe(toArray()),
+		);
+
+		expect(facts.some((fact) => fact.kind === 'provider.draft')).toBe(
+			false,
+		);
+		expect(facts).toContainEqual({
+			kind: 'provider.dead-loop',
+			channel: 'reasoning',
+			reason: 'consecutive',
+		});
+	});
+
+	it('does not emit dead-loop for unique deltas plus done', async () => {
+		const pause$ = new Subject<SteerControlPayload>();
+		const cancel$ = new Subject<void>();
+		const facts = await firstValueFrom(
+			observeProviderStream({
+				createStream: async () =>
+					(async function* () {
+						yield { kind: 'draft' as const, text: 'Cherry ' };
+						yield { kind: 'draft' as const, text: 'blossoms' };
+						yield {
+							kind: 'done' as const,
+							text: 'Cherry blossoms',
+						};
+					})(),
+				pause$,
+				cancel$,
+				idleTimeoutMs: 0,
+			}).pipe(toArray()),
+		);
+
+		expect(facts.some((fact) => fact.kind === 'provider.dead-loop')).toBe(
+			false,
+		);
+		expect(facts.at(-1)).toMatchObject({ kind: 'provider.done' });
 	});
 });

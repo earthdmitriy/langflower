@@ -49,7 +49,9 @@ const isStreamingPort = (
 		nodeId,
 	);
 	const configs =
-		event[0] === 'out' ? definition?.outputsConfigs : definition?.inputsConfigs;
+		event[0] === 'out'
+			? definition?.outputsConfigs
+			: definition?.inputsConfigs;
 	const config = configs?.find((entry) => entry.portId === portId);
 	return config?.feed?.streaming === true;
 };
@@ -114,9 +116,7 @@ export const eventsForNode = (
 	events: readonly RuntimeRunnerEvent[],
 	nodeId: string,
 ): readonly RuntimeRunnerEvent[] =>
-	events.filter(
-		(event) => isPortTelemetry(event) && event[1] === nodeId,
-	);
+	events.filter((event) => isPortTelemetry(event) && event[1] === nodeId);
 
 export const replayNodeChromeFromSnapshot = (
 	snapshot: ExecutionFeedSnapshotPayload | null,

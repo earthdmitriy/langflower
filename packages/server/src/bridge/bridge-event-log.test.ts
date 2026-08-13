@@ -37,14 +37,20 @@ afterEach(async () => {
 
 const parseFrames = (
 	text: string,
-): ReadonlyArray<
-	readonly [string, 'in' | 'out', string, unknown]
-> =>
+): ReadonlyArray<readonly [string, 'in' | 'out', string, unknown]> =>
 	text
 		.trim()
 		.split('\n')
 		.filter((line) => line.length > 0)
-		.map((line) => JSON.parse(line) as readonly [string, 'in' | 'out', string, unknown]);
+		.map(
+			(line) =>
+				JSON.parse(line) as readonly [
+					string,
+					'in' | 'out',
+					string,
+					unknown,
+				],
+		);
 
 describe('attachBridgeEventLog', () => {
 	it('records inbound, broadcast, and unicast BridgeFrame tuples', async () => {

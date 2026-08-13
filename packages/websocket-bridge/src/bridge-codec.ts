@@ -1,4 +1,8 @@
-import type { BridgeFrame, WsBridgeCodec, WsBridgeEvent } from './bridge-types.js';
+import type {
+	BridgeFrame,
+	WsBridgeCodec,
+	WsBridgeEvent,
+} from './bridge-types.js';
 
 const isBridgeFrame = (value: unknown): value is BridgeFrame =>
 	Array.isArray(value) &&

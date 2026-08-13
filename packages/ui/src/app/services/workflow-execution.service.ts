@@ -40,7 +40,10 @@ import {
 	nodeLabelsFromWorkflow,
 	nodeTypeByIdFromWorkflow,
 } from './execution-catalog';
-import { createEdgeStates$, type OutputPortTelemetry } from './execution-chrome-fold';
+import {
+	createEdgeStates$,
+	type OutputPortTelemetry,
+} from './execution-chrome-fold';
 import { createHitlTriggeredNodes$ } from './execution-hitl-fold';
 import { createPendingPermissionAsks$ } from './execution-permission-fold';
 import { createIsRunning$ } from './execution-run-gate-fold';
@@ -92,13 +95,13 @@ export class WorkflowExecutionService {
 		this.bridge.cached['workflow.current.snapshot'];
 	private readonly executionFeedSnapshot$ =
 		this.bridge.cached['executionFeed.snapshot'];
-	private readonly runnerPort$: Observable<PortTelemetry> =
-		this.bridge.raw['runner.port'].pipe(
-			filter(
-				(event: RuntimeRunnerEvent): event is PortTelemetry =>
-					isPortTelemetry(event),
-			),
-		);
+	private readonly runnerPort$: Observable<PortTelemetry> = this.bridge.raw[
+		'runner.port'
+	].pipe(
+		filter((event: RuntimeRunnerEvent): event is PortTelemetry =>
+			isPortTelemetry(event),
+		),
+	);
 	private readonly outputEmitted$ = this.runnerPort$.pipe(
 		filter((event): event is OutputPortTelemetry => event[0] === 'out'),
 	);

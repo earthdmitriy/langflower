@@ -12,8 +12,16 @@ import {
 } from './execution-feed-tail.js';
 import type { RuntimeRunnerEvent } from './runtime-event-types.js';
 
-const output = (): RuntimeRunnerEvent =>
-	['out', 'n1' as NodeId, 'out', 'value', 'x', 0, [], null];
+const output = (): RuntimeRunnerEvent => [
+	'out',
+	'n1' as NodeId,
+	'out',
+	'value',
+	'x',
+	0,
+	[],
+	null,
+];
 
 const done = (runId: string): RuntimeRunnerEvent => ['done', runId];
 

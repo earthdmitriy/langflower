@@ -5,8 +5,8 @@ Queued implementation plans. **Completed** plans live under
 
 | Area                            | Location                                                |
 | ------------------------------- | ------------------------------------------------------- |
-| **Active epic 37**              | [TODO/EPICS](EPICS/README.md)                           |
-| Epics 00–36 (landed / archived) | [DONE/EPICS](../DONE/EPICS/README.md)                   |
+| **Active epics 39–40**          | [TODO/EPICS](EPICS/README.md)                           |
+| Epics 00–38 (landed / archived) | [DONE/EPICS](../DONE/EPICS/README.md)                   |
 | LLM phases 1–6 (landed)         | [DONE/LLM-NODES](../DONE/LLM-NODES/llm-nodes-README.md) |
 | Canvas UI (landed)              | [DONE/UI](../DONE/UI/README.md)                         |
 

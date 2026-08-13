@@ -24,7 +24,9 @@ describe('ExecutionFeedService replay', () => {
 
 		expect(harness.latestNodes()).toEqual([]);
 
-		harness.seedCatalog({ 'agent-a': 'agent' }, [agent], { startRun: false });
+		harness.seedCatalog({ 'agent-a': 'agent' }, [agent], {
+			startRun: false,
+		});
 
 		expect(harness.latestNodes().map((node) => node.nodeId)).toEqual([
 			'agent-a',
@@ -38,7 +40,9 @@ describe('ExecutionFeedService replay', () => {
 
 	it('replaces history from snapshots and clears it on null', async () => {
 		const harness = createExecutionFeedHarness();
-		harness.seedCatalog({ 'agent-a': 'agent' }, [agent], { startRun: false });
+		harness.seedCatalog({ 'agent-a': 'agent' }, [agent], {
+			startRun: false,
+		});
 		harness.raw.executionFeedSnapshot$.next({
 			runId: runId(),
 			workflowId: 'wf-1',
@@ -68,15 +72,11 @@ describe('ExecutionFeedService replay', () => {
 			startRun: false,
 		});
 		startRun(harness, 'run-1');
-		harness.raw.runnerPort$.next(
-			outputEvent('agent-a', 'draft', 'one'),
-		);
+		harness.raw.runnerPort$.next(outputEvent('agent-a', 'draft', 'one'));
 		const run1VisitId = harness.latestNodes()[0]?.visitId;
 
 		startRun(harness, 'run-2');
-		harness.raw.runnerPort$.next(
-			outputEvent('agent-a', 'draft', 'two'),
-		);
+		harness.raw.runnerPort$.next(outputEvent('agent-a', 'draft', 'two'));
 		const run2Node = harness.latestNodes()[0]!;
 
 		expect(run1VisitId).toMatch(/^run-1:agent-a:/);

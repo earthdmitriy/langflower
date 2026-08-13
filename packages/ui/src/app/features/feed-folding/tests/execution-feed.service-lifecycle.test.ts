@@ -30,9 +30,7 @@ describe('ExecutionFeedService lifecycle', () => {
 				}
 			});
 
-		harness.raw.runnerPort$.next(
-			outputEvent('agent', 'draft', 'second'),
-		);
+		harness.raw.runnerPort$.next(outputEvent('agent', 'draft', 'second'));
 
 		expect(seen.at(-1)?.map((item) => item.value)).toEqual(['firstsecond']);
 		innerSubscription?.unsubscribe();

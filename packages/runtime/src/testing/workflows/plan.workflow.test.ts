@@ -78,11 +78,8 @@ describe('plan workflow (events$)', () => {
 		expect(draftValues).toEqual(['# ', 'Plan', '\n\n', 'Done']);
 
 		for (const event of events) {
-			if (
-				event[0] === 'out' ||
-				event[0] === 'in'
-			) {
-									}
+			if (event[0] === 'out' || event[0] === 'in') {
+			}
 		}
 	});
 

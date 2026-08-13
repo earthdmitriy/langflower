@@ -284,11 +284,15 @@ export const waitForRunnerOutput = async (
 export const waitForRunnerDone = async (
 	client: LangflowerWsClient,
 	runId?: string,
-): Promise<Extract<RuntimeRunnerEvent, readonly ['done'] | readonly ['done', RunId]>> =>
+): Promise<
+	Extract<RuntimeRunnerEvent, readonly ['done'] | readonly ['done', RunId]>
+> =>
 	firstValueFrom(
 		client['runner.done'].pipe(
 			filter(
-				(event): event is Extract<
+				(
+					event,
+				): event is Extract<
 					RuntimeRunnerEvent,
 					readonly ['done'] | readonly ['done', RunId]
 				> =>

@@ -26,11 +26,11 @@ const replacements = [
 	[/event\.runId === runId2 &&\s*\n?\s*/g, ''],
 	[/event\.edgeIds/g, 'edgeIdsFromPortEvent(event)'],
 	[/emit\.edgeIds/g, 'edgeIdsFromPortEvent(emit)'],
-	[/expect\(edgeIdsFromPortEvent\(event\)\)\.toBeInstanceOf\(Array\);\n/g, ''],
 	[
-		/from '\.\/workflow-events\.js';/g,
-		"from './workflow-events.js';",
+		/expect\(edgeIdsFromPortEvent\(event\)\)\.toBeInstanceOf\(Array\);\n/g,
+		'',
 	],
+	[/from '\.\/workflow-events\.js';/g, "from './workflow-events.js';"],
 ];
 
 for (const file of collect(root)) {
@@ -48,7 +48,10 @@ for (const file of collect(root)) {
 			"from './workflow-events.js';\n// edgeIdsFromPortEvent imported below",
 		);
 	}
-	if (next.includes('edgeIdsFromPortEvent(') && !next.match(/edgeIdsFromPortEvent/)) {
+	if (
+		next.includes('edgeIdsFromPortEvent(') &&
+		!next.match(/edgeIdsFromPortEvent/)
+	) {
 		// noop
 	}
 	if (

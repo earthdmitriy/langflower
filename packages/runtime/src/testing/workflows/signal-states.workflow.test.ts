@@ -158,16 +158,13 @@ describe('port signal states (pending / error via pipe(tap) typeguards)', () => 
 
 		const sourceError = events.find(
 			(event) =>
-				event[0] === 'out' &&
-				event[1] === 'e1' &&
-				event[3] === 'error',
+				event[0] === 'out' && event[1] === 'e1' && event[3] === 'error',
 		);
 		expect(sourceError).toBeDefined();
 
 		const sinkErrors = events.filter(
 			(event) =>
-				(event[0] === 'out' ||
-					event[0] === 'in') &&
+				(event[0] === 'out' || event[0] === 'in') &&
 				event[1] === 'sink' &&
 				event[3] === 'error',
 		);

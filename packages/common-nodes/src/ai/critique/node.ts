@@ -6,6 +6,7 @@ import { filter, map, Observable, type Observable as RxObservable } from 'rxjs';
 import {
 	defineLlmNode,
 	isSteerControlPayload,
+	toLlmRecoveryPortValue,
 	type SteerControlPayload,
 } from '@langflower/node-sdk/llm';
 import type { PermissionAskRequest } from '@langflower/tools/permission';
@@ -384,7 +385,7 @@ export const critiqueNode = defineLlmNode({
 					CritiqueChunk,
 					{ kind: 'recoveryNotice' }
 				>;
-				return { code: notice.code, text: notice.text };
+				return toLlmRecoveryPortValue(notice);
 			}),
 		);
 		const response$ = cycle$.pipeValue(

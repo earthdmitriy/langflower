@@ -45,7 +45,9 @@ export function wireEdge(
 
 export type OutputEmittedEvent = PortTelemetry & { readonly 0: 'out' };
 
-const isOutputValue = (event: RuntimeRunnerEvent): event is OutputEmittedEvent =>
+const isOutputValue = (
+	event: RuntimeRunnerEvent,
+): event is OutputEmittedEvent =>
 	isPortTelemetry(event) && event[0] === 'out' && event[3] === 'value';
 
 export function outputValues(

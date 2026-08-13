@@ -1,7 +1,10 @@
 import { filter, firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { readOutputValue } from '../readOutputValue.js';
-import { createRuntimeHarness, edgeIdsFromPortEvent } from '../workflows/workflow-events.js';
+import {
+	createRuntimeHarness,
+	edgeIdsFromPortEvent,
+} from '../workflows/workflow-events.js';
 import { createConstantTestNode } from './constant-node.js';
 import { createHitlTestNode } from './hitl-node.js';
 

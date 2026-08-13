@@ -219,7 +219,7 @@ describe('canvas-node-status-projection (single-node)', () => {
 				appended,
 				event,
 				catalogWithStreamingDraft(),
-			null,
+				null,
 			);
 		}
 		const replayed = replayNodeChromeFromSnapshot(

@@ -30,10 +30,7 @@ async function runThenStop(runtime: RuntimeHarness): Promise<string> {
 async function runToIdleViaFinish(runtime: RuntimeHarness): Promise<string> {
 	const donePromise = firstValueFrom(
 		runtime.runner.events$.pipe(
-			filter(
-				(event): event is ['done', RunId] =>
-					event[0] === 'done',
-			),
+			filter((event): event is ['done', RunId] => event[0] === 'done'),
 		),
 	);
 
@@ -50,8 +47,7 @@ describe('lyfecycle — empty graph', () => {
 		const donePromise = firstValueFrom(
 			runtime.runner.events$.pipe(
 				filter(
-					(event): event is ['done', RunId] =>
-						event[0] === 'done',
+					(event): event is ['done', RunId] => event[0] === 'done',
 				),
 			),
 		);

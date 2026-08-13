@@ -11,8 +11,10 @@ import type {
 
 const isPortTelemetry = (
 	event: RuntimeRunnerEvent,
-): event is Extract<RuntimeRunnerEvent, readonly ['in' | 'out', ...unknown[]]> =>
-	Array.isArray(event) && (event[0] === 'in' || event[0] === 'out');
+): event is Extract<
+	RuntimeRunnerEvent,
+	readonly ['in' | 'out', ...unknown[]]
+> => Array.isArray(event) && (event[0] === 'in' || event[0] === 'out');
 
 const isRuntimeDone = (
 	event: RuntimeRunnerEvent,

@@ -53,6 +53,8 @@ export type CreateChatCompletionStreamArgs = {
 	readonly messages: readonly ChatCompletionMessage[];
 	readonly tools?: readonly ChatCompletionToolDefinition[];
 	readonly signal?: ChatCompletionAbortSignal;
+	readonly frequency_penalty?: number;
+	readonly presence_penalty?: number;
 };
 
 /** OpenAI-compatible chat stream factory (credentials resolved server-side). */

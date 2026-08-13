@@ -180,40 +180,40 @@ Target / stub specs live as `NODE.md` under `packages/common-nodes/src/**` and
 in [features/node-library.md](features/node-library.md) — **do not treat those as
 shipped**.
 
-| Node                      | Type                      | Status      | Notes                                                                    |
-| ------------------------- | ------------------------- | ----------- | ------------------------------------------------------------------------ |
-| String / Number / Boolean | `common-string`, …        | **done**    | Literals                                                                 |
-| Merge                     | `common-merge`            | **done**    | Flow                                                                     |
-| Delay                     | `common-delay`            | **done**    | Flow                                                                     |
-| Loop                      | `common-loop`             | **done**    | External map-collect for dynamic N (epic 07)                             |
+| Node                      | Type                      | Status      | Notes                                                                                       |
+| ------------------------- | ------------------------- | ----------- | ------------------------------------------------------------------------------------------- |
+| String / Number / Boolean | `common-string`, …        | **done**    | Literals                                                                                    |
+| Merge                     | `common-merge`            | **done**    | Flow                                                                                        |
+| Delay                     | `common-delay`            | **done**    | Flow                                                                                        |
+| Loop                      | `common-loop`             | **done**    | External map-collect for dynamic N (epic 07)                                                |
 | Repeat                    | `common-repeat`           | **done**    | Flow — emit `value` N times (first ASAP, then on `trigger`), `index` (0-based), then `done` |
-| Router                    | `common-router`           | **done**    | Reactive channels                                                        |
-| Preview                   | `common-preview`          | **done**    | Output                                                                   |
-| Finish                    | `common-finish`           | **done**    | `stopsRun`                                                               |
-| Checkpoint                | `common-checkpoint`       | **done**    | Explicit durable boundary + picker resume (epic 20)                      |
-| Concat                    | `common-concat`           | **done**    | Text                                                                     |
-| Read File                 | `common-read-file`        | **done**    | Text — `ctx.files` (relative-only, no permission ask)                    |
-| Write File                | `common-write-file`       | **done**    | Text — `ctx.files`                                                       |
-| Append File               | `common-append-file`      | **done**    | Text — `ctx.files` + delimiter                                           |
-| Review Gate               | `common-hitl-review-gate` | **done**    | Reactive HITL (approve / request-changes; multi-await OK)                |
-| Fake LLM                  | `common-fake-llm`         | **done**    | Demo stream + scripted internal tool-loop                                |
-| OpenAI-compatible LLM     | `common-openai-llm`       | **done**    | Reactive stream/tool loop; idle/5xx retry → Steer; role tool profiles    |
-| MCP stdio                 | `common-mcp-stdio`        | **done**    | Node-owned stdio MCP → live `mcp-transport`                              |
-| MCP http                  | `common-mcp-http`         | **done**    | Node-owned HTTP MCP (+ optional launch) → live `mcp-transport`           |
-| Review (LLM tools)        | `common-review`           | **done**    | Shared reactive loop + forced `accept`/`feedback` policy                 |
-| Critique (LLM tools)      | `common-critique`         | **done**    | Shared reactive loop + path-choice attack policy                         |
-| Sub-Agent                 | `common-sub-agent`        | **partial** | L0 spawn/result with bounded wait + Pause/Steer; L1+ open                |
-| Chat Input                | `common-chat-input`       | **done**    | Composer cold-start entry (epic 13)                                      |
-| Assert                    | `common-assert`           | **done**    | Hard harness (epic 06)                                                   |
-| IF                        | `common-if`               | **done**    | Hard harness (epic 06)                                                   |
-| Gate                      | `common-gate`             | **done**    | Hard harness (epic 06)                                                   |
-| Compare                   | `common-compare`          | **done**    | Hard harness (epic 06)                                                   |
-| Switch                    | `common-switch`           | **done**    | Hard harness (epic 06); static `pass`/`fail`/`default` ports             |
-| Memory Tools              | `common-memory-tools`     | **done**    | ADR-033 — markdown tools under `.langflower/memory/`                     |
-| Fetch URL                 | `common-fetch-url`        | **done**    | Epic 12 — SSRF-guarded GET + HTML→text                                   |
-| Extract Links             | `common-extract-links`    | **done**    | Epic 12 — HTML → absolute links                                          |
-| Save Page                 | `common-save-page`        | **done**    | Epic 12 — persist under `.langflower/crawl/{runId}/`                     |
-| Crawl                     | `common-crawl`            | **done**    | Epic 12 — BFS depth/page caps + save                                     |
+| Router                    | `common-router`           | **done**    | Reactive channels                                                                           |
+| Preview                   | `common-preview`          | **done**    | Output                                                                                      |
+| Finish                    | `common-finish`           | **done**    | `stopsRun`                                                                                  |
+| Checkpoint                | `common-checkpoint`       | **done**    | Explicit durable boundary + picker resume (epic 20)                                         |
+| Concat                    | `common-concat`           | **done**    | Text                                                                                        |
+| Read File                 | `common-read-file`        | **done**    | Text — `ctx.files` (relative-only, no permission ask)                                       |
+| Write File                | `common-write-file`       | **done**    | Text — `ctx.files`                                                                          |
+| Append File               | `common-append-file`      | **done**    | Text — `ctx.files` + delimiter                                                              |
+| Review Gate               | `common-hitl-review-gate` | **done**    | Reactive HITL (approve / request-changes; multi-await OK)                                   |
+| Fake LLM                  | `common-fake-llm`         | **done**    | Demo stream + scripted internal tool-loop                                                   |
+| OpenAI-compatible LLM     | `common-openai-llm`       | **done**    | Reactive stream/tool loop; idle/5xx retry → Steer; role tool profiles                       |
+| MCP stdio                 | `common-mcp-stdio`        | **done**    | Node-owned stdio MCP → live `mcp-transport`                                                 |
+| MCP http                  | `common-mcp-http`         | **done**    | Node-owned HTTP MCP (+ optional launch) → live `mcp-transport`                              |
+| Review (LLM tools)        | `common-review`           | **done**    | Shared reactive loop + forced `accept`/`feedback` policy                                    |
+| Critique (LLM tools)      | `common-critique`         | **done**    | Shared reactive loop + path-choice attack policy                                            |
+| Sub-Agent                 | `common-sub-agent`        | **partial** | L0 spawn/result with bounded wait + Pause/Steer; L1+ open                                   |
+| Chat Input                | `common-chat-input`       | **done**    | Composer cold-start entry (epic 13)                                                         |
+| Assert                    | `common-assert`           | **done**    | Hard harness (epic 06)                                                                      |
+| IF                        | `common-if`               | **done**    | Hard harness (epic 06)                                                                      |
+| Gate                      | `common-gate`             | **done**    | Hard harness (epic 06)                                                                      |
+| Compare                   | `common-compare`          | **done**    | Hard harness (epic 06)                                                                      |
+| Switch                    | `common-switch`           | **done**    | Hard harness (epic 06); static `pass`/`fail`/`default` ports                                |
+| Memory Tools              | `common-memory-tools`     | **done**    | ADR-033 — markdown tools under `.langflower/memory/`                                        |
+| Fetch URL                 | `common-fetch-url`        | **done**    | Epic 12 — SSRF-guarded GET + HTML→text                                                      |
+| Extract Links             | `common-extract-links`    | **done**    | Epic 12 — HTML → absolute links                                                             |
+| Save Page                 | `common-save-page`        | **done**    | Epic 12 — persist under `.langflower/crawl/{runId}/`                                        |
+| Crawl                     | `common-crawl`            | **done**    | Epic 12 — BFS depth/page caps + save                                                        |
 
 ### Not in catalog (often overstated as done elsewhere)
 

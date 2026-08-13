@@ -2,7 +2,11 @@ import type {
 	ChatCompletionMessage,
 	CreateChatCompletionStream,
 } from '../chat-completion-stream.js';
-import { defineLlmNode, isSteerControlPayload } from '@langflower/node-sdk/llm';
+import {
+	defineLlmNode,
+	isSteerControlPayload,
+	toLlmRecoveryPortValue,
+} from '@langflower/node-sdk/llm';
 import {
 	concat,
 	EMPTY,
@@ -436,7 +440,7 @@ export const subAgentNode = defineLlmNode({
 					SubAgentChunk,
 					{ kind: 'recoveryNotice' }
 				>;
-				return { code: notice.code, text: notice.text };
+				return toLlmRecoveryPortValue(notice);
 			}),
 		);
 		const response$ = cycle$.pipeValue(

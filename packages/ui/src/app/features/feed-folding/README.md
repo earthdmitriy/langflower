@@ -127,7 +127,8 @@ Continue the last segment only while `portId` matches; otherwise open a new
 ```
 
 Reasoning live peek requires `!visit.isClosed &&` segment `$last`. Visit header
-`working…` still follows visit open + run status.
+`working…` follows visit open + run status, and is hidden while a recovery
+row is in the stream.
 
 ### 7. Result hides only the last draft
 
@@ -138,6 +139,26 @@ Reasoning live peek requires `!visit.isClosed &&` segment `$last`. Visit header
 
 `NodeFeedItem.hasResult` + `lastDraftSegmentId` drive the work-log gate so the
 final answer is not duplicated as draft + result.
+
+### 8. Recovery stays in timeline order
+
+```text
+❌ Lift latest recovery under the node-visit header (or footer-pin it)
+   — banner appears before the reasoning/draft block that tripped it
+❌ Snapshot pinnedRecovery on the outer nodeFeed$ map
+   — idle stays “current” while a later dead-loop row is in the stream
+✅ Recovery is a normal port segment after reasoning or draft
+   (dead-loop channel is either; do not special-case one)
+✅ NodeFeedItem.pinnedRecovery is the visit tail only when that tail is
+   recovery (distinctUntilChanged by seq): hide working…; tick the timer
+   on that stream row only. Any later reasoning/draft/result ⇒ headline-only
+```
+
+Recovery frames are **not** growing-merged (`foldPortStream` appends a new
+item each). Idle autokick, then a non-streaming `result` input (visit close),
+then dead-loop + reasoning/draft (while-last reopen) is **one visit** with two
+notices in segment order. A frozen latest-seq would still attach the timer to
+the idle row. Do not treat two notices as one attempt that changed reason.
 
 ## Append-only projection
 
@@ -167,7 +188,8 @@ type FeedProjection = {
 
 Nested `NodeFeedItem` / `PortEvent` / `port.stream` observables are **selectors**
 over shared `projection$` (`shareReplay({ bufferSize: 1, refCount: true })`).
-They must not hold a private scan of the full event list.
+They must not hold a private scan of the full event list. Recovery live tail:
+**§8**.
 
 ### Port-item fold (also event-sourced)
 

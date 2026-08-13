@@ -57,9 +57,7 @@ describe('ExecutionFeedService permissions', () => {
 	it('keeps permission decisions isolated from concurrent draft output', async () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
-		harness.raw.runnerPort$.next(
-			outputEvent('agent', 'draft', 'before'),
-		);
+		harness.raw.runnerPort$.next(outputEvent('agent', 'draft', 'before'));
 		harness.raw.permissionAsk$.next({
 			runId: 'run-1',
 			askId: 'ask-1',

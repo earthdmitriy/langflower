@@ -88,10 +88,10 @@ describe('LfNodePortRowComponent pulse', () => {
 				'response',
 				'value',
 				'ok',
-			0,
-			[],
-			null,
-		]);
+				0,
+				[],
+				null,
+			]);
 			fixture.detectChanges();
 
 			expect(fixture.componentInstance.pulse()).toBe(true);
@@ -128,10 +128,10 @@ describe('LfNodePortRowComponent pulse', () => {
 				'packet',
 				'value',
 				'claim',
-			0,
-			[],
-			null,
-		]);
+				0,
+				[],
+				null,
+			]);
 			fixture.detectChanges();
 
 			expect(fixture.componentInstance.pulse()).toBe(true);
@@ -151,7 +151,16 @@ describe('LfNodePortRowComponent pulse', () => {
 	});
 
 	it('ignores events for other ports', () => {
-		raw['runner.port'].next(['out', 'node-a', 'other', 'value', 'x', 0, [], null]);
+		raw['runner.port'].next([
+			'out',
+			'node-a',
+			'other',
+			'value',
+			'x',
+			0,
+			[],
+			null,
+		]);
 		fixture.detectChanges();
 		expect(fixture.componentInstance.pulse()).toBe(false);
 	});

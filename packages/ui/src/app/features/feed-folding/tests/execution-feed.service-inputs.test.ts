@@ -77,15 +77,11 @@ describe('ExecutionFeedService unmarked inputs', () => {
 		]);
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
-		harness.raw.runnerPort$.next(
-			inputEvent('agent', 'hiddenIn', 'secret'),
-		);
+		harness.raw.runnerPort$.next(inputEvent('agent', 'hiddenIn', 'secret'));
 		harness.raw.runnerPort$.next(
 			outputEvent('agent', 'hiddenOut', 'secret-out'),
 		);
-		harness.raw.runnerPort$.next(
-			outputEvent('agent', 'draft', 'visible'),
-		);
+		harness.raw.runnerPort$.next(outputEvent('agent', 'draft', 'visible'));
 
 		const visit = harness.latestNodes()[0]!;
 		const portIds = await readPortIds(visit);

@@ -6,9 +6,11 @@ import type {
 import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
 import type { PermissionAskRequest } from '@langflower/tools/permission';
 import type { ChatCompletionMessage } from './chat-completion-stream.js';
-import type {
-	LlmInventoryInputs,
-	SteerControlPayload,
+import {
+	toLlmRecoveryPortValue,
+	type LlmInventoryInputs,
+	type LlmRecoveryNotice,
+	type SteerControlPayload,
 } from '@langflower/node-sdk/llm';
 import type { PortMeta } from '@langflower/node-sdk';
 import type {
@@ -106,11 +108,7 @@ type StandardLlmAgentChunk =
 	| { readonly kind: 'reasoning'; readonly text: string }
 	| { readonly kind: 'draftResponse'; readonly text: string }
 	| { readonly kind: 'toolLog'; readonly text: string }
-	| {
-			readonly kind: 'recoveryNotice';
-			readonly code: 'retry' | 'suspended';
-			readonly text: string;
-	  }
+	| ({ readonly kind: 'recoveryNotice' } & LlmRecoveryNotice)
 	| { readonly kind: 'response'; readonly text: string }
 	| {
 			readonly kind: 'historySync';
@@ -284,10 +282,7 @@ const demuxLlmAgentPorts = <Deps, Meta extends PortMeta | undefined>(
 			const notice = asKind<StandardLlmAgentChunk, 'recoveryNotice'>(
 				chunk,
 			);
-			return {
-				code: notice.code,
-				text: notice.text,
-			};
+			return toLlmRecoveryPortValue(notice);
 		}),
 	),
 	response$: cycle$.pipeValue(

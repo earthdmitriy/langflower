@@ -29,6 +29,11 @@ export type LlmFailure = {
 type LlmSuspendReason =
 	| { readonly kind: 'user-pause' }
 	| { readonly kind: 'stream-idle'; readonly idleMs: number }
+	| {
+			readonly kind: 'dead-loop';
+			readonly channel: 'reasoning' | 'draft';
+			readonly reason: 'consecutive' | 'cyclic';
+	  }
 	| { readonly kind: 'provider-failure'; readonly failure: LlmFailure };
 
 type LlmLoopPhase =
@@ -53,6 +58,10 @@ export type LlmLoopState = {
 		readonly toolCalls?: readonly ChatCompletionToolCall[];
 	};
 	readonly pendingToolCalls: readonly ChatCompletionToolCall[];
+	readonly autokickAttempts: number;
+	/** Kick-mode autokicks only; HTTP join does not bump penalties. */
+	readonly autokickKickAttempts: number;
+	readonly lastAutokickAt?: number | undefined;
 	readonly openSpawnCallId?: string | undefined;
 	readonly suspendedBy?: LlmSuspendReason | undefined;
 	readonly failure?: LlmFailure | undefined;
@@ -72,6 +81,11 @@ export type LlmLoopAction =
 	  }
 	| { readonly type: 'stream.paused' }
 	| { readonly type: 'stream.idle'; readonly idleMs: number }
+	| {
+			readonly type: 'stream.dead-loop';
+			readonly channel: 'reasoning' | 'draft';
+			readonly reason: 'consecutive' | 'cyclic';
+	  }
 	| { readonly type: 'provider.failed'; readonly failure: LlmFailure }
 	| {
 			readonly type: 'tool.completed';
@@ -81,10 +95,23 @@ export type LlmLoopAction =
 	| { readonly type: 'subagent.waiting'; readonly callId: string }
 	| { readonly type: 'subagent.completed' }
 	| { readonly type: 'retry.scheduled' }
+	| {
+			readonly type: 'autokick.scheduled';
+			/** Omit for HTTP replay-only (no kick user turn). */
+			readonly kickUserMessage?: string;
+			readonly atMs: number;
+	  }
 	| { readonly type: 'steer.received'; readonly text?: string }
 	| { readonly type: 'round.completed' }
 	| { readonly type: 'failure.fatal'; readonly failure: LlmFailure }
 	| { readonly type: 'cancel.requested' };
+
+type LlmDeadLoopPolicy = {
+	readonly maxWindowTokens: number;
+	readonly consecutiveThreshold: number;
+	readonly minRepetitions: number;
+	readonly minPatternTokens: number;
+};
 
 export type LlmRecoveryPolicy = {
 	readonly streamIdleTimeoutMs: number;
@@ -93,7 +120,21 @@ export type LlmRecoveryPolicy = {
 	readonly maxTransientRetries: number;
 	readonly retryBaseDelayMs: number;
 	readonly maxToolResultChars: number;
+	readonly autokickOnIdle: boolean;
+	readonly deadLoopEnabled: boolean;
+	readonly maxAutokickAttempts: number;
+	readonly autokickBackoffMs: number;
+	readonly autokickMaxBackoffMs: number;
+	readonly autokickUserMessage: string;
+	readonly autokickPenaltyDelta: {
+		readonly frequency: number;
+		readonly presence: number;
+	};
+	readonly deadLoop: LlmDeadLoopPolicy;
 };
+
+export const DEFAULT_AUTOKICK_USER_MESSAGE =
+	'I notice you are repeating yourself. Please stop and provide a concise answer.';
 
 export const DEFAULT_LLM_RECOVERY_POLICY: LlmRecoveryPolicy = {
 	streamIdleTimeoutMs: 90_000,
@@ -102,6 +143,22 @@ export const DEFAULT_LLM_RECOVERY_POLICY: LlmRecoveryPolicy = {
 	maxTransientRetries: 2,
 	retryBaseDelayMs: 1_000,
 	maxToolResultChars: 40_000,
+	autokickOnIdle: true,
+	deadLoopEnabled: true,
+	maxAutokickAttempts: 0,
+	autokickBackoffMs: 60_000,
+	autokickMaxBackoffMs: 960_000,
+	autokickUserMessage: DEFAULT_AUTOKICK_USER_MESSAGE,
+	autokickPenaltyDelta: {
+		frequency: 0.3,
+		presence: 0.3,
+	},
+	deadLoop: {
+		maxWindowTokens: 1_000,
+		consecutiveThreshold: 5,
+		minRepetitions: 3,
+		minPatternTokens: 2,
+	},
 };
 
 export const initialLlmLoopState = (
@@ -117,4 +174,6 @@ export const initialLlmLoopState = (
 		draft: '',
 	},
 	pendingToolCalls: [],
+	autokickAttempts: 0,
+	autokickKickAttempts: 0,
 });

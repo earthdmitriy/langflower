@@ -16,7 +16,9 @@ export class ExecutionFeedService {
 			executionFeedSnapshot$:
 				this.bridge.cached['executionFeed.snapshot'],
 			runnerPort$: this.bridge.raw['runner.port'].pipe(
-				filter((event): event is PortTelemetry => isPortTelemetry(event)),
+				filter((event): event is PortTelemetry =>
+					isPortTelemetry(event),
+				),
 			),
 			runnerStarted$: this.bridge.raw['runner.started'].pipe(
 				filter((id): id is RunId => typeof id === 'string'),

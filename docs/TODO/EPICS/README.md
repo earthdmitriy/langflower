@@ -1,6 +1,6 @@
 # Epics — use-case readiness queue (active)
 
-**Active** under [`docs/TODO/`](../README.md). Epics **00–36** are archived in
+**Active** under [`docs/TODO/`](../README.md). Epics **00–38** are archived in
 [`docs/DONE/EPICS/`](../../DONE/EPICS/README.md) once landed.
 
 Further product work also comes from
@@ -17,14 +17,18 @@ Do **not** re-open epic 15.
 | Code-regression epics       | **26–28 landed** — next from [SUMMARY](../../code-regression/SUMMARY.md) |
 | Custom-nodes SDK            | **29–33 landed** (defineNode → rename → contract → compiler → bootstrap) |
 | Feed / interrupt / composer | **34–36 landed** (feed segments, composer shell, Stop/Pause/Steer)       |
-| Deterministic feed fold     | **37 queued** — abstraction only; UI switch is a follow-up               |
+| Deterministic feed fold     | **37 landed** — abstraction only; UI switch is a follow-up               |
+| LLM autokick / dead-loop    | **38 landed** — default autokick + HTTP join + pinned feed banner        |
+| common-nodes `ai/` layout   | **39 queued** — after 38; `ai/nodes/` vs `ai/features/`                  |
+| Custom node reload          | **40 queued** — independent of 39; hot-swap + compile tool + starter     |
 | Use-cases                   | None Implementable — [use-cases](../../use-cases/README.md)              |
 
 ## Order
 
-| #   | File                                                           | Status                                                 |
-| --- | -------------------------------------------------------------- | ------------------------------------------------------ |
-| 37  | [37-deterministic-feed-fold.md](37-deterministic-feed-fold.md) | Queued — TDD `feed-folding` feature; **no** UI wire-up |
+| #   | File                                                                     | Status                                                                |
+| --- | ------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| 39  | [39-ai-package-restructure.md](39-ai-package-restructure.md)             | Queued — after 38; `ai/nodes/` + `ai/features/` named slices          |
+| 40  | [40-custom-node-recompile-reload.md](40-custom-node-recompile-reload.md) | Queued — independent of 39; cache + hot-swap + `compile_custom_nodes` |
 
 Roadmap context: palette normalize `docs/palette.html` §7–8. Remaining
 skeleton work: packaged `dist/skeleton` layout (S1) and Sample workflows
@@ -38,5 +42,8 @@ catalog UI (S3–S4).
   ([TESTING.md live gap](../../TESTING.md#live-openai-compatible--mcp-tool-calling-gap)).
 - TBD-001 custom-node sandbox; Sample workflows catalog UI (skeleton S3–S4);
   auto `npm install` from server.
-- Switch live work-log to `feed-folding` — follow-up after epic 37 lands
-  (see epic Out of scope / [feed-refactor.md](../feed-refactor.md)).
+- Auto-place / auto-wire a newly compiled custom type onto the canvas mid-run
+  (epic 40 step 2 stays idle topology).
+- Switch live work-log to `feed-folding` — follow-up after epic 37
+  (see [37 Out of scope](../../DONE/EPICS/37-deterministic-feed-fold.md) /
+  [feed-refactor.md](../feed-refactor.md)).

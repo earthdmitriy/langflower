@@ -46,15 +46,11 @@ describe('ExecutionFeedService visit reuse', () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
 
-		harness.raw.runnerPort$.next(
-			inputEvent('agent', 'userPrompt', 'hi'),
-		);
+		harness.raw.runnerPort$.next(inputEvent('agent', 'userPrompt', 'hi'));
 		harness.raw.runnerPort$.next(
 			outputEvent('agent', 'reasoning', 'think'),
 		);
-		harness.raw.runnerPort$.next(
-			outputEvent('agent', 'result', 'hello'),
-		);
+		harness.raw.runnerPort$.next(outputEvent('agent', 'result', 'hello'));
 
 		const visits = harness.latestNodes();
 		expect(visits).toHaveLength(1);

@@ -153,7 +153,15 @@ describe('common-fake-llm tool loop', () => {
 		});
 
 		const responseEvent = await responsePromise;
-		expect(responseEvent).toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), 'The file contains payload-42']));
+		expect(responseEvent).toEqual(
+			expect.arrayContaining([
+				'out',
+				expect.anything(),
+				expect.anything(),
+				expect.anything(),
+				'The file contains payload-42',
+			]),
+		);
 		expect(toolLogs.some((line) => line.includes('→ read'))).toBe(true);
 		expect(toolLogs.some((line) => line.includes('payload-42'))).toBe(true);
 

@@ -1,4 +1,8 @@
-import type { PortTelemetry, RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type {
+	PortTelemetry,
+	RunId,
+	RuntimeRunnerEvent,
+} from '@langflower/runtime';
 import { isPortTelemetry } from '@langflower/runtime';
 import type {
 	ExecutionFeedSnapshotPayload,
@@ -136,11 +140,7 @@ const computeHitlFromEvents = (
 			continue;
 		}
 		const [, nodeId, portId, , value] = event;
-		const def = definitionForNode(
-			paletteByType,
-			nodeTypeById,
-			nodeId,
-		);
+		const def = definitionForNode(paletteByType, nodeTypeById, nodeId);
 		if (def === undefined) {
 			continue;
 		}

@@ -7,17 +7,16 @@ import {
 	terminalExecutionProgressStatus,
 } from './derive-run-settle-outcome.js';
 
-const output = (state: 'value' | 'error' | 'pending'): RuntimeRunnerEvent =>
-	[
-		'out',
-		'n1' as NodeId,
-		'out',
-		state,
-		state === 'error' ? new Error('boom') : 'ok',
-		0,
-		[],
-		null,
-	];
+const output = (state: 'value' | 'error' | 'pending'): RuntimeRunnerEvent => [
+	'out',
+	'n1' as NodeId,
+	'out',
+	state,
+	state === 'error' ? new Error('boom') : 'ok',
+	0,
+	[],
+	null,
+];
 
 describe('deriveExecutionProgressStatus', () => {
 	it('passes through running and stopped', () => {

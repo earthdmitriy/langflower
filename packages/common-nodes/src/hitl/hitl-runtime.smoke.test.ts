@@ -100,7 +100,9 @@ describe('HITL common nodes (runtime smoke)', () => {
 			) {
 				pushEvents.push({
 					kind:
-						event[0] === 'out' ? 'output-emitted' : 'input-received',
+						event[0] === 'out'
+							? 'output-emitted'
+							: 'input-received',
 					nodeId: String(event[1]),
 					portId: String(event[2]),
 				});

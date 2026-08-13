@@ -29,6 +29,33 @@ describe('reduceLlmLoop', () => {
 		expect(suspended.partial.draft).toBe('partial answer');
 	});
 
+	it('suspends a dead loop without committing uncommitted partial', () => {
+		const initial = initialLlmLoopState([
+			{ role: 'user', content: 'build it' },
+		]);
+		const streaming = reduceLlmLoop(
+			reduceLlmLoop(initial, {
+				type: 'round.prepared',
+				messages: initial.committedMessages,
+			}),
+			{ type: 'stream.draft', text: 'loop loop loop' },
+		);
+		const suspended = reduceLlmLoop(streaming, {
+			type: 'stream.dead-loop',
+			channel: 'draft',
+			reason: 'consecutive',
+		});
+
+		expect(suspended.phase).toBe('suspended');
+		expect(suspended.committedMessages).toEqual(initial.committedMessages);
+		expect(suspended.partial.draft).toBe('loop loop loop');
+		expect(suspended.suspendedBy).toEqual({
+			kind: 'dead-loop',
+			channel: 'draft',
+			reason: 'consecutive',
+		});
+	});
+
 	it('appends Steer text once and Resume leaves checkpoint unchanged', () => {
 		const initial = initialLlmLoopState([
 			{ role: 'user', content: 'build it' },
@@ -50,6 +77,67 @@ describe('reduceLlmLoop', () => {
 			...initial.committedMessages,
 			{ role: 'user', content: 'continue with smaller reads' },
 		]);
+	});
+
+	it('schedules autokick from the checkpoint plus a kick user turn', () => {
+		const initial = initialLlmLoopState([
+			{ role: 'user', content: 'build it' },
+		]);
+		const streaming = reduceLlmLoop(
+			reduceLlmLoop(initial, {
+				type: 'round.prepared',
+				messages: initial.committedMessages,
+			}),
+			{ type: 'stream.draft', text: 'loop loop loop' },
+		);
+		const suspended = reduceLlmLoop(streaming, {
+			type: 'stream.dead-loop',
+			channel: 'draft',
+			reason: 'consecutive',
+		});
+		const scheduled = reduceLlmLoop(suspended, {
+			type: 'autokick.scheduled',
+			kickUserMessage: 'please stop repeating',
+			atMs: 1_700_000_000_000,
+		});
+
+		expect(scheduled.phase).toBe('prepare');
+		expect(scheduled.autokickAttempts).toBe(1);
+		expect(scheduled.autokickKickAttempts).toBe(1);
+		expect(scheduled.lastAutokickAt).toBe(1_700_000_000_000);
+		expect(scheduled.partial.draft).toBe('');
+		expect(scheduled.committedMessages).toEqual([
+			{ role: 'user', content: 'build it' },
+			{ role: 'user', content: 'please stop repeating' },
+		]);
+		expect(scheduled.committedMessages).not.toContainEqual({
+			role: 'assistant',
+			content: 'loop loop loop',
+		});
+	});
+
+	it('replays HTTP autokick from the checkpoint without a kick turn', () => {
+		const initial = initialLlmLoopState([
+			{ role: 'user', content: 'build it' },
+		]);
+		const streaming = reduceLlmLoop(
+			reduceLlmLoop(initial, {
+				type: 'round.prepared',
+				messages: initial.committedMessages,
+			}),
+			{ type: 'stream.draft', text: 'partial' },
+		);
+		const scheduled = reduceLlmLoop(streaming, {
+			type: 'autokick.scheduled',
+			atMs: 1_700_000_000_000,
+		});
+
+		expect(scheduled.phase).toBe('prepare');
+		expect(scheduled.autokickAttempts).toBe(1);
+		expect(scheduled.autokickKickAttempts).toBe(0);
+		expect(scheduled.lastAutokickAt).toBe(1_700_000_000_000);
+		expect(scheduled.committedMessages).toEqual(initial.committedMessages);
+		expect(scheduled.partial.draft).toBe('');
 	});
 });
 

@@ -156,8 +156,7 @@ export const isPortTelemetry = (
 
 export const isRuntimeDone = (
 	event: RuntimeRunnerEvent,
-): event is RuntimeDoneTelemetry =>
-	Array.isArray(event) && event[0] === 'done';
+): event is RuntimeDoneTelemetry => Array.isArray(event) && event[0] === 'done';
 
 /** Seed value pushed into an input port slot on {@link RuntimeRunner.start}. */
 export type RuntimeSeedPortValue = {

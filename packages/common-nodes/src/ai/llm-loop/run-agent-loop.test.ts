@@ -1,6 +1,10 @@
-import { ReplaySubject, filter, firstValueFrom, toArray } from 'rxjs';
-import { describe, expect, it } from 'vitest';
-import { DEFAULT_LLM_RECOVERY_POLICY } from './llm-loop-types.js';
+import { ReplaySubject, Subject, filter, firstValueFrom, toArray } from 'rxjs';
+import { describe, expect, it, vi } from 'vitest';
+import type { CreateChatCompletionStreamArgs } from '../chat-completion-stream.js';
+import {
+	DEFAULT_AUTOKICK_USER_MESSAGE,
+	DEFAULT_LLM_RECOVERY_POLICY,
+} from './llm-loop-types.js';
 import { runAgentLoop } from './run-agent-loop.js';
 
 describe('runAgentLoop recovery', () => {
@@ -40,6 +44,7 @@ describe('runAgentLoop recovery', () => {
 				recovery: {
 					...DEFAULT_LLM_RECOVERY_POLICY,
 					maxTransientRetries: 0,
+					autokickOnIdle: false,
 				},
 			}).pipe(toArray()),
 		);
@@ -518,5 +523,615 @@ describe('runAgentLoop recovery', () => {
 		expect(notice.code).toBe('suspended');
 		expect(notice.text).toMatch(/Paused for Steer or Resume/);
 		expect(notice.text).not.toMatch(/Retrying/);
+	});
+
+	it('suspends on a repeating draft stream without erroring', async () => {
+		let call = 0;
+		const steerControl$ = new ReplaySubject<
+			| { readonly kind: 'pause' }
+			| { readonly kind: 'steer'; readonly text: string }
+		>(1);
+		const notice = await firstValueFrom(
+			runAgentLoop({
+				factory: async () => {
+					call += 1;
+					return (async function* () {
+						for (let index = 0; index < 5; index += 1) {
+							yield { kind: 'draft' as const, text: 'loop' };
+						}
+						yield { kind: 'done' as const, text: 'loop' };
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [],
+				maxIterations: 3,
+				steerControl$,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					maxTransientRetries: 0,
+					autokickOnIdle: false,
+				},
+			}).pipe(filter((chunk) => chunk.kind === 'recoveryNotice')),
+		);
+
+		expect(call).toBe(1);
+		expect(notice.kind).toBe('recoveryNotice');
+		if (notice.kind !== 'recoveryNotice') {
+			return;
+		}
+		expect(notice.code).toBe('suspended');
+		expect(notice.text).toMatch(/repetition loop/);
+	});
+
+	it('autokicks a repeating draft with checkpoint plus kick, not the partial', async () => {
+		let call = 0;
+		const factoryArgs: CreateChatCompletionStreamArgs[] = [];
+		const steerControl$ = new ReplaySubject<
+			| { readonly kind: 'pause' }
+			| { readonly kind: 'steer'; readonly text: string }
+		>(1);
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async (args) => {
+					call += 1;
+					factoryArgs.push(args);
+					if (call === 1) {
+						return (async function* () {
+							for (let index = 0; index < 5; index += 1) {
+								yield { kind: 'draft' as const, text: 'loop' };
+							}
+							yield { kind: 'done' as const, text: 'loop' };
+						})();
+					}
+					return (async function* () {
+						yield { kind: 'done' as const, text: 'concise' };
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [],
+				maxIterations: 3,
+				steerControl$,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					maxTransientRetries: 0,
+					retryBaseDelayMs: 1,
+					autokickBackoffMs: 1,
+					autokickMaxBackoffMs: 1,
+					autokickPenaltyDelta: {
+						frequency: 0.5,
+						presence: 0.4,
+					},
+				},
+			}).pipe(toArray()),
+		);
+
+		expect(call).toBe(2);
+		expect(factoryArgs[1]?.messages).toEqual([
+			{ role: 'user', content: 'start' },
+			{ role: 'user', content: DEFAULT_AUTOKICK_USER_MESSAGE },
+		]);
+		expect(factoryArgs[1]?.messages).not.toContainEqual({
+			role: 'assistant',
+			content: 'looplooplooplooploop',
+		});
+		expect(factoryArgs[1]?.frequency_penalty).toBe(0.5);
+		expect(factoryArgs[1]?.presence_penalty).toBe(0.4);
+		expect(factoryArgs[0]?.frequency_penalty).toBeUndefined();
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'recoveryNotice' && chunk.code === 'retry',
+			),
+		).toBe(true);
+		const retry = chunks.find(
+			(chunk) =>
+				chunk.kind === 'recoveryNotice' && chunk.code === 'retry',
+		);
+		expect(retry).toMatchObject({
+			kind: 'recoveryNotice',
+			code: 'retry',
+			attempt: 1,
+			reason: 'dead-loop',
+			backoffMs: 1,
+		});
+		if (retry?.kind === 'recoveryNotice') {
+			expect(retry.lastAttemptAt).toBeUndefined();
+			expect(retry.nextAttemptAt).toBeGreaterThan(0);
+		}
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'recoveryNotice' &&
+					chunk.code === 'suspended',
+			),
+		).toBe(false);
+		expect(chunks).toContainEqual({
+			kind: 'response',
+			text: 'concise',
+		});
+	});
+
+	it('does not wait idle autokick backoff before a dead-loop reconnect', async () => {
+		vi.useFakeTimers();
+		let call = 0;
+		try {
+			const chunksPromise = firstValueFrom(
+				runAgentLoop({
+					factory: async () => {
+						call += 1;
+						if (call === 1) {
+							return (async function* () {
+								for (let index = 0; index < 5; index += 1) {
+									yield {
+										kind: 'draft' as const,
+										text: 'loop',
+									};
+								}
+								yield { kind: 'done' as const, text: 'loop' };
+							})();
+						}
+						return (async function* () {
+							yield { kind: 'done' as const, text: 'concise' };
+						})();
+					},
+					providerId: 'mock',
+					model: 'mock',
+					messages: [{ role: 'user', content: 'start' }],
+					tools: [],
+					maxIterations: 3,
+					recovery: {
+						...DEFAULT_LLM_RECOVERY_POLICY,
+						maxTransientRetries: 0,
+						retryBaseDelayMs: 1,
+						autokickBackoffMs: 60_000,
+						autokickMaxBackoffMs: 60_000,
+					},
+				}).pipe(toArray()),
+			);
+
+			await vi.advanceTimersByTimeAsync(1);
+			const chunks = await chunksPromise;
+			expect(call).toBe(2);
+			const retry = chunks.find(
+				(chunk) =>
+					chunk.kind === 'recoveryNotice' && chunk.code === 'retry',
+			);
+			expect(retry).toMatchObject({
+				kind: 'recoveryNotice',
+				reason: 'dead-loop',
+				backoffMs: 1,
+			});
+			expect(chunks).toContainEqual({
+				kind: 'response',
+				text: 'concise',
+			});
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('cancels autokick backoff on Pause without a second factory call', async () => {
+		vi.useFakeTimers();
+		let call = 0;
+		const steerControl$ = new Subject<
+			| { readonly kind: 'pause' }
+			| { readonly kind: 'steer'; readonly text: string }
+		>();
+		const chunks: Array<{
+			readonly kind: string;
+			readonly code?: string;
+			readonly text?: string;
+		}> = [];
+		const sub = runAgentLoop({
+			factory: async () => {
+				call += 1;
+				return (async function* () {
+					for (let index = 0; index < 5; index += 1) {
+						yield { kind: 'draft' as const, text: 'loop' };
+					}
+					yield { kind: 'done' as const, text: 'loop' };
+				})();
+			},
+			providerId: 'mock',
+			model: 'mock',
+			messages: [{ role: 'user', content: 'start' }],
+			tools: [],
+			maxIterations: 3,
+			steerControl$,
+			recovery: {
+				...DEFAULT_LLM_RECOVERY_POLICY,
+				maxTransientRetries: 0,
+				autokickBackoffMs: 60_000,
+				autokickMaxBackoffMs: 60_000,
+			},
+		}).subscribe((chunk) => {
+			chunks.push(chunk);
+		});
+
+		try {
+			await vi.advanceTimersByTimeAsync(0);
+			expect(
+				chunks.some(
+					(chunk) =>
+						chunk.kind === 'recoveryNotice' &&
+						chunk.code === 'retry',
+				),
+			).toBe(true);
+
+			steerControl$.next({ kind: 'pause' });
+			await vi.advanceTimersByTimeAsync(0);
+
+			expect(call).toBe(1);
+			expect(
+				chunks.some(
+					(chunk) =>
+						chunk.kind === 'toolLog' &&
+						chunk.text?.includes('Paused'),
+				),
+			).toBe(true);
+			expect(chunks.some((chunk) => chunk.kind === 'response')).toBe(
+				false,
+			);
+		} finally {
+			sub.unsubscribe();
+			vi.useRealTimers();
+		}
+	});
+
+	it('autokicks an idle empty stream then succeeds', async () => {
+		let call = 0;
+		const steerControl$ = new ReplaySubject<
+			| { readonly kind: 'pause' }
+			| { readonly kind: 'steer'; readonly text: string }
+		>(1);
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async () => {
+					call += 1;
+					if (call === 1) {
+						return (async function* () {
+							await new Promise(() => undefined);
+						})();
+					}
+					return (async function* () {
+						yield { kind: 'done' as const, text: 'after idle' };
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [],
+				maxIterations: 3,
+				steerControl$,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					maxTransientRetries: 0,
+					streamIdleTimeoutMs: 40,
+					autokickBackoffMs: 1,
+					autokickMaxBackoffMs: 1,
+				},
+			}).pipe(toArray()),
+		);
+
+		expect(call).toBe(2);
+		const idleRetry = chunks.find(
+			(chunk) =>
+				chunk.kind === 'recoveryNotice' && chunk.code === 'retry',
+		);
+		expect(idleRetry).toMatchObject({
+			kind: 'recoveryNotice',
+			code: 'retry',
+			attempt: 1,
+			reason: 'idle',
+			backoffMs: 1,
+		});
+		if (idleRetry?.kind === 'recoveryNotice') {
+			expect(idleRetry.lastAttemptAt).toBeUndefined();
+			expect(idleRetry.nextAttemptAt).toBeGreaterThan(0);
+		}
+		expect(chunks).toContainEqual({
+			kind: 'response',
+			text: 'after idle',
+		});
+	});
+
+	it('stamps lastAttemptAt on the second autokick wait', async () => {
+		let call = 0;
+		const steerControl$ = new ReplaySubject<
+			| { readonly kind: 'pause' }
+			| { readonly kind: 'steer'; readonly text: string }
+		>(1);
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async () => {
+					call += 1;
+					if (call < 3) {
+						return (async function* () {
+							for (let index = 0; index < 5; index += 1) {
+								yield { kind: 'draft' as const, text: 'loop' };
+							}
+							yield { kind: 'done' as const, text: 'loop' };
+						})();
+					}
+					return (async function* () {
+						yield { kind: 'done' as const, text: 'concise' };
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [],
+				maxIterations: 3,
+				steerControl$,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					maxTransientRetries: 0,
+					retryBaseDelayMs: 1,
+					autokickBackoffMs: 1,
+					autokickMaxBackoffMs: 1,
+				},
+			}).pipe(toArray()),
+		);
+
+		const retries = chunks.filter(
+			(chunk) =>
+				chunk.kind === 'recoveryNotice' && chunk.code === 'retry',
+		);
+		expect(retries).toHaveLength(2);
+		expect(retries[0]).toMatchObject({
+			attempt: 1,
+			reason: 'dead-loop',
+		});
+		if (retries[0]?.kind === 'recoveryNotice') {
+			expect(retries[0].lastAttemptAt).toBeUndefined();
+		}
+		expect(retries[1]).toMatchObject({
+			attempt: 2,
+			reason: 'dead-loop',
+		});
+		if (retries[1]?.kind === 'recoveryNotice') {
+			expect(retries[1].lastAttemptAt).toBeGreaterThan(0);
+			expect(retries[1].nextAttemptAt).toBeGreaterThan(
+				retries[1].lastAttemptAt ?? 0,
+			);
+		}
+		expect(call).toBe(3);
+	});
+
+	it('joins 429 into autokick wait without a kick or penalty', async () => {
+		let call = 0;
+		const factoryArgs: CreateChatCompletionStreamArgs[] = [];
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async (args) => {
+					call += 1;
+					factoryArgs.push(args);
+					if (call === 1) {
+						throw { status: 429, message: 'Rate limit' };
+					}
+					return (async function* () {
+						yield { kind: 'done' as const, text: 'after 429' };
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [],
+				maxIterations: 3,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					maxTransientRetries: 0,
+					autokickBackoffMs: 1,
+					autokickMaxBackoffMs: 1,
+					autokickPenaltyDelta: {
+						frequency: 0.5,
+						presence: 0.4,
+					},
+				},
+			}).pipe(toArray()),
+		);
+
+		expect(call).toBe(2);
+		expect(factoryArgs[1]?.messages).toEqual([
+			{ role: 'user', content: 'start' },
+		]);
+		expect(factoryArgs[1]?.frequency_penalty).toBeUndefined();
+		expect(factoryArgs[1]?.presence_penalty).toBeUndefined();
+		const retry = chunks.find(
+			(chunk) =>
+				chunk.kind === 'recoveryNotice' && chunk.code === 'retry',
+		);
+		expect(retry).toMatchObject({
+			kind: 'recoveryNotice',
+			code: 'retry',
+			attempt: 1,
+			reason: 'rate-limit',
+			backoffMs: 1,
+		});
+		if (retry?.kind === 'recoveryNotice') {
+			expect(retry.lastAttemptAt).toBeUndefined();
+			expect(retry.nextAttemptAt).toBeGreaterThan(0);
+		}
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'recoveryNotice' &&
+					chunk.code === 'suspended',
+			),
+		).toBe(false);
+		expect(chunks).toContainEqual({
+			kind: 'response',
+			text: 'after 429',
+		});
+	});
+
+	it('uses the short transient budget before joining 429 autokick', async () => {
+		let call = 0;
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async () => {
+					call += 1;
+					if (call < 3) {
+						throw { status: 429, message: 'Rate limit' };
+					}
+					return (async function* () {
+						yield { kind: 'done' as const, text: 'after budget' };
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [],
+				maxIterations: 3,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					maxTransientRetries: 1,
+					retryBaseDelayMs: 1,
+					autokickBackoffMs: 1,
+					autokickMaxBackoffMs: 1,
+				},
+			}).pipe(toArray()),
+		);
+
+		const retries = chunks.filter(
+			(chunk) =>
+				chunk.kind === 'recoveryNotice' && chunk.code === 'retry',
+		);
+		expect(retries).toHaveLength(2);
+		expect(retries[0]).toMatchObject({
+			attempt: 1,
+			reason: 'rate-limit',
+			backoffMs: 1,
+		});
+		expect(retries[1]).toMatchObject({
+			attempt: 1,
+			reason: 'rate-limit',
+			backoffMs: 1,
+		});
+		expect(call).toBe(3);
+		expect(chunks).toContainEqual({
+			kind: 'response',
+			text: 'after budget',
+		});
+	});
+
+	it('suspends 429 after the budget when autokick is off', async () => {
+		let call = 0;
+		const steerControl$ = new ReplaySubject<
+			| { readonly kind: 'pause' }
+			| { readonly kind: 'steer'; readonly text: string }
+		>(1);
+		const chunksPromise = firstValueFrom(
+			runAgentLoop({
+				factory: async () => {
+					call += 1;
+					if (call === 1) {
+						throw { status: 429, message: 'Rate limit' };
+					}
+					return (async function* () {
+						yield { kind: 'done' as const, text: 'after steer' };
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [],
+				maxIterations: 3,
+				steerControl$,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					maxTransientRetries: 0,
+					autokickOnIdle: false,
+				},
+			}).pipe(toArray()),
+		);
+
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		steerControl$.next({
+			kind: 'steer',
+			text: 'try later',
+		});
+
+		const chunks = await chunksPromise;
+		expect(call).toBe(2);
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'recoveryNotice' &&
+					chunk.code === 'suspended' &&
+					chunk.text.includes('Retry budget exhausted'),
+			),
+		).toBe(true);
+		expect(chunks).toContainEqual({
+			kind: 'response',
+			text: 'after steer',
+		});
+	});
+
+	it('cancels HTTP autokick backoff on Pause without a second factory call', async () => {
+		vi.useFakeTimers();
+		let call = 0;
+		const steerControl$ = new Subject<
+			| { readonly kind: 'pause' }
+			| { readonly kind: 'steer'; readonly text: string }
+		>();
+		const chunks: Array<{
+			readonly kind: string;
+			readonly code?: string;
+			readonly text?: string;
+		}> = [];
+		const sub = runAgentLoop({
+			factory: async () => {
+				call += 1;
+				throw { status: 500, message: 'unavailable' };
+			},
+			providerId: 'mock',
+			model: 'mock',
+			messages: [{ role: 'user', content: 'start' }],
+			tools: [],
+			maxIterations: 3,
+			steerControl$,
+			recovery: {
+				...DEFAULT_LLM_RECOVERY_POLICY,
+				maxTransientRetries: 0,
+				autokickBackoffMs: 60_000,
+				autokickMaxBackoffMs: 60_000,
+			},
+		}).subscribe((chunk) => {
+			chunks.push(chunk);
+		});
+
+		try {
+			await vi.advanceTimersByTimeAsync(0);
+			expect(
+				chunks.some(
+					(chunk) =>
+						chunk.kind === 'recoveryNotice' &&
+						chunk.code === 'retry',
+				),
+			).toBe(true);
+
+			steerControl$.next({ kind: 'pause' });
+			await vi.advanceTimersByTimeAsync(0);
+
+			expect(call).toBe(1);
+			expect(
+				chunks.some(
+					(chunk) =>
+						chunk.kind === 'toolLog' &&
+						chunk.text?.includes('Paused'),
+				),
+			).toBe(true);
+			expect(chunks.some((chunk) => chunk.kind === 'response')).toBe(
+				false,
+			);
+		} finally {
+			sub.unsubscribe();
+			vi.useRealTimers();
+		}
 	});
 });

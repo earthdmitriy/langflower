@@ -14,23 +14,23 @@
 
 - **Designated Base Folder:** `packages/ui/src/app/features/canvas/`
 - **Target Directories:**
-  - `packages/ui/src/app/features/canvas/` — draw gating + highlight (shared with edge-highlight epic)
-  - `packages/ui/src/app/services/workflow-execution.service.ts` — `isRunning` signal
-  - `docs/REACTIVE_NODES.md` § HITL and graph lock — doc sync
+    - `packages/ui/src/app/features/canvas/` — draw gating + highlight (shared with edge-highlight epic)
+    - `packages/ui/src/app/services/workflow-execution.service.ts` — `isRunning` signal
+    - `docs/REACTIVE_NODES.md` § HITL and graph lock — doc sync
 - **Architectural Patterns & Boilerplates Enforced:**
-  - UI reads runner state from bridge folds — `WorkflowExecutionService.isRunning`, not local caches.
-  - Graph lock authoritative on server — UI gate is UX layer, not security boundary.
-  - Compatible-port highlight: same draw-highlight inject + port attributes as [edge-highlight.md](edge-highlight.md) — **do not duplicate**.
+    - UI reads runner state from bridge folds — `WorkflowExecutionService.isRunning`, not local caches.
+    - Graph lock authoritative on server — UI gate is UX layer, not security boundary.
+    - Compatible-port highlight: same draw-highlight inject + port attributes as [edge-highlight.md](edge-highlight.md) — **do not duplicate**.
 - **Pattern & Boilerplate Reference Baseline:**
-  - [`execution-run-gate-fold.ts`](../../packages/ui/src/app/services/execution-run-gate-fold.ts): `createIsRunning$` fold.
-  - [`workflow-execution.service.ts`](../../packages/ui/src/app/services/workflow-execution.service.ts): `isRunning` signal exposed to components.
-  - [`lf-work-log-panel.component.ts`](../../packages/ui/src/app/features/sidebar/components/lf-work-log-panel.component.ts): precedent — Clear disabled when `isRunning`.
-  - [`apply-editor-mutation.ts`](../../packages/server/src/workflow/apply-editor-mutation.ts) lines 604–610: `isGraphLocked()` rejects addEdge.
-  - [`flow-canvas.component.ts`](../../packages/ui/src/app/features/canvas/components/flow-canvas.component.ts): ngDiagram config + edge draw handlers.
+    - [`execution-run-gate-fold.ts`](../../packages/ui/src/app/services/execution-run-gate-fold.ts): `createIsRunning$` fold.
+    - [`workflow-execution.service.ts`](../../packages/ui/src/app/services/workflow-execution.service.ts): `isRunning` signal exposed to components.
+    - [`lf-work-log-panel.component.ts`](../../packages/ui/src/app/features/sidebar/components/lf-work-log-panel.component.ts): precedent — Clear disabled when `isRunning`.
+    - [`apply-editor-mutation.ts`](../../packages/server/src/workflow/apply-editor-mutation.ts) lines 604–610: `isGraphLocked()` rejects addEdge.
+    - [`flow-canvas.component.ts`](../../packages/ui/src/app/features/canvas/components/flow-canvas.component.ts): ngDiagram config + edge draw handlers.
 - **Third-Party Dependencies & Packages:** None.
 - **Frontend Presentation Strategy (If UI Affected):**
-  - **Component Library Standards:** Cursor/not-allowed on canvas when running; optional toast/tooltip — prefer subtle cursor + ngDiagram draw prevention.
-  - **Styling & CSS Architecture Guardrails:** `.lf-canvas--graph-locked` overlay class on canvas host when running.
+    - **Component Library Standards:** Cursor/not-allowed on canvas when running; optional toast/tooltip — prefer subtle cursor + ngDiagram draw prevention.
+    - **Styling & CSS Architecture Guardrails:** `.lf-canvas--graph-locked` overlay class on canvas host when running.
 - **Shared Utilities & Hooks:** `buildDrawHighlightCss`, draw inject/unmount from [edge-highlight.md](edge-highlight.md) — skip inject when graph locked.
 - **Internationalization (i18n) Mechanics:** English tooltip if shown: "Stop the run to edit wiring."
 - **Environment Configuration (ENV):** None.
@@ -41,12 +41,12 @@
 
 - **Affected Modules / Components:** Flow canvas, ngDiagram interaction config, workflow execution service consumers, optional canvas chrome.
 - **Affected Files Inventory:**
-  - **New Files:** None (draw-highlight utils live in edge-highlight epic).
-  - **Changed Files:**
-    - `flow-canvas.component.ts`: Gate edge draw when `execution.isRunning()`; set canvas locked class; skip `addEdge.requested` if running (defense in depth).
-    - `flow-canvas.component.test.ts`: Assert no intent when running.
-    - `packages/ui/docs/DIAGRAM_CANVAS.md`, `docs/features/visual-workflow-editor.md`: Document run-lock UX.
-  - **Deleted Files:** None.
+    - **New Files:** None (draw-highlight utils live in edge-highlight epic).
+    - **Changed Files:**
+        - `flow-canvas.component.ts`: Gate edge draw when `execution.isRunning()`; set canvas locked class; skip `addEdge.requested` if running (defense in depth).
+        - `flow-canvas.component.test.ts`: Assert no intent when running.
+        - `packages/ui/docs/DIAGRAM_CANVAS.md`, `docs/features/visual-workflow-editor.md`: Document run-lock UX.
+    - **Deleted Files:** None.
 - **Backward Compatibility Plan:** Behavior change is intentional — users can no longer attempt doomed wire drops during runs. Server contract unchanged.
 
 ### B. API, Data Contracts & DAL Strategy
@@ -66,10 +66,10 @@
 ### D. Dataflow Architecture & Evolution
 
 - **State Lifecycle & Pipeline:**
-  1. Runner starts → `isRunning` true → canvas enters locked mode.
-  2. ngDiagram edge draw prevented or immediately cancelled (prefer prevent at draw start).
-  3. Compatible-port highlight inactive while locked — do not set `draw-active` or inject `#lf-draw-highlight`.
-  4. Runner done/interrupted → unlock → normal wiring + draw highlight behavior restored.
+    1. Runner starts → `isRunning` true → canvas enters locked mode.
+    2. ngDiagram edge draw prevented or immediately cancelled (prefer prevent at draw start).
+    3. Compatible-port highlight inactive while locked — do not set `draw-active` or inject `#lf-draw-highlight`.
+    4. Runner done/interrupted → unlock → normal wiring + draw highlight behavior restored.
 - **State Authority:** Bridge runner facts → execution fold → UI signal.
 - **Schema Evolution & Migration:** None.
 
@@ -93,10 +93,10 @@
 
 ### A. Testing Strategy Matrix
 
-- [X] **Unit Testing:** Flow canvas does not emit `addEdge.requested` when `isRunning` true; unlock restores emit.
-- [X] **Integration Testing:** WS test already covers server reject when locked — optional UI integration.
+- [x] **Unit Testing:** Flow canvas does not emit `addEdge.requested` when `isRunning` true; unlock restores emit.
+- [x] **Integration Testing:** WS test already covers server reject when locked — optional UI integration.
 - [ ] **E2E / Smoke Testing:** Not required.
-- [X] **Manual Verification:** Start run, attempt wire draw — blocked with visible feedback; stop run — wiring works.
+- [x] **Manual Verification:** Start run, attempt wire draw — blocked with visible feedback; stop run — wiring works.
 
 ### B. Manual Verification Script
 
@@ -104,10 +104,10 @@
 
 - **Prerequisites:** Simple two-node workflow.
 - **Step-by-Step Actions:**
-  1. Start full run.
-  2. Attempt to draw edge between nodes.
-  3. Stop or wait for completion.
-  4. Draw edge successfully.
+    1. Start full run.
+    2. Attempt to draw edge between nodes.
+    3. Stop or wait for completion.
+    4. Draw edge successfully.
 - **Expected Output / Observable Result:** Step 2 — no new edge, cursor/overlay indicates lock, no silent vanish. Step 4 — edge persists.
 
 ### C. Functional Requirements Checklist

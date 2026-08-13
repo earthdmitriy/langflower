@@ -22,6 +22,7 @@ Start with [PRODUCT](docs/PRODUCT.md), then the relevant feature/use-case doc.
 | [REACTIVITY](docs/REACTIVITY.md)                                   | RxJS folds and subscription rules                        |
 | [EXECUTION_ARCHITECTURE](docs/EXECUTION_ARCHITECTURE.md)           | Runtime/bridge execution flow                            |
 | [HOW_TO_WRITE_REACTIVE_NODES](docs/HOW_TO_WRITE_REACTIVE_NODES.md) | Node authoring                                           |
+| [LLM_RECOVERY](docs/LLM_RECOVERY.md)                               | Stuck stream / dead-loop recovery (idle, autokick)       |
 | [TESTING](docs/TESTING.md)                                         | Unit/API/integration tests                               |
 | [STATUS](docs/STATUS.md)                                           | Implemented versus stubbed                               |
 | [FOUND_BUGS](docs/FOUND_BUGS.md)                                   | Reproduced bugs and design lessons                       |

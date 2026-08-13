@@ -57,11 +57,18 @@ Project product data for Langflower lives under **`.langflower/`**.
 - **HITL loops** (Review Gate, feedback ports, composer Start/Send) are normal
   **internal waiting state of nodes**, not a separate product “interrupt the
   engine” mechanism.
-- LLM provider idle/HTTP 5xx/network failures retry from the last committed
-  round, then keep the node alive for **Steer / Resume** (recovery notices on
-  the `recovery` port; suspend opens the Steer composer). Partial draft text is
-  telemetry, not committed history. Authentication/configuration failures are
-  terminal. Generic reload of any failed non-LLM node is not yet shipped.
+- LLM provider idle **aborts** the in-flight request, then default
+  **autokick** (exponential backoff, full stored messages + kick user
+  turn). Dead-loop aborts the same way but waits **`retryBaseDelayMs`**
+  (not idle backoff) before that replay. HTTP 429 / 5xx / network use the
+  short transient budget, then join the idle autokick wait **without** a
+  kick turn or penalty bump. `'retry'` notices on the `recovery` port stay
+  in the feed after reasoning/draft, tick locally on the visit tail, and
+  do **not** open Steer. Autokick off or a finite cap exhausted keep the
+  node alive for **Steer / Resume** (`'suspended'`).
+  Partial draft text is telemetry, not committed history.
+  Authentication/configuration failures are terminal. Generic reload of any
+  failed non-LLM node is not yet shipped.
 - Also on the bus: runner start / resume / interrupt intents, `permission.ask`,
   and related facts.
 

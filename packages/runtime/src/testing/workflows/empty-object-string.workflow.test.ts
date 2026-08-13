@@ -80,10 +80,7 @@ describe('string → finish: no empty-object value leak', () => {
 		);
 
 		const stringValues = events.filter(
-			(e) =>
-				e[0] === 'out' &&
-				e[1] === 'string-1' &&
-				e[2] === 'value',
+			(e) => e[0] === 'out' && e[1] === 'string-1' && e[2] === 'value',
 		);
 
 		const valueStates = stringValues.filter((e) => e[3] === 'value');

@@ -30,9 +30,7 @@ describe('ExecutionFeedService steering', () => {
 		harness.raw.runnerPort$.next(
 			inputEvent('agent', STEER_CONTROL_PORT_ID, { kind: 'resume' }),
 		);
-		harness.raw.runnerPort$.next(
-			outputEvent('agent', 'draft', 'resumed'),
-		);
+		harness.raw.runnerPort$.next(outputEvent('agent', 'draft', 'resumed'));
 
 		const visits = harness.latestNodes();
 		// Same-node while-last: steer controls + resumed draft stay on one card.

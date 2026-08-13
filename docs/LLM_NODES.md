@@ -203,6 +203,10 @@ Retries never replay already-streamed `reasoning` / `draftResponse` chunks.
 
 ## Failure recovery
 
+**Stuck streams and dead loops** (idle watchdog, default autokick with
+exponential backoff, dead-loop detection, feed retry timers, Steer
+precedence): [LLM_RECOVERY.md](LLM_RECOVERY.md).
+
 Provider streams are RxJS resources with hard-cancel, Pause, and idle
 boundaries. `streamIdleTimeoutMs` defaults to 90 seconds; `0` disables the idle
 watchdog. Recoverable failures include network, rate-limit, HTTP 5xx, stream
@@ -210,8 +214,10 @@ idle, **output truncation** (`finish_reason=length` or incomplete tool-call
 JSON), opaque/unclassified errors, and a stream that ends without a `done`
 chunk. Those paths emit a sanitized **`recovery` inventory notice**
 (`feed.role: 'recovery'`) — distinct from ordinary `toolLog` — then retry from
-the last committed round checkpoint up to `maxTransientRetries`, then enter the
-same Steer/Resume await as Pause. A **`suspended`** recovery notice opens the
+the last committed round checkpoint up to `maxTransientRetries`. HTTP 429 /
+5xx / network then **join the autokick wait** (full-store replay, no kick,
+no penalty). Autokick off / a finite cap exhausted / unknown-after-budget
+enter the same Steer/Resume await as Pause. A **`suspended`** recovery notice opens the
 Steer composer (same HITL fold as Pause). Retry notices do not. Truncation never
 runs tools or commits a partial assistant/tool round; when compaction is enabled
 (`contextSize > 0`) a retry may force-compact history first. **Structural
@@ -447,6 +453,7 @@ See [CONFIG.md](CONFIG.md) for jsonc shape and bridge contract table.
 
 ## Related docs
 
+- Stuck / idle / dead-loop strategy: [LLM_RECOVERY.md](LLM_RECOVERY.md)
 - Provider / model jsonc: [CONFIG.md](CONFIG.md)
 - Built-in LLM node catalog (when shipped): [features/node-library.md](features/node-library.md)
 - Phased checklist: [DONE/LLM-NODES/llm-nodes-README.md](DONE/LLM-NODES/llm-nodes-README.md)

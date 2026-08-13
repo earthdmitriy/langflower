@@ -175,7 +175,9 @@ const resolveFeedMeta = (
 	);
 	const portDir = event[0];
 	const configs =
-		portDir === 'out' ? definition?.outputsConfigs : definition?.inputsConfigs;
+		portDir === 'out'
+			? definition?.outputsConfigs
+			: definition?.inputsConfigs;
 	const config = configs?.find((entry) => entry.portId === portId);
 	const rawRole = config?.feed?.role;
 	const role = isRuntimeFeedRole(rawRole) ? rawRole : undefined;
@@ -217,7 +219,9 @@ const normalizePortFrame = (
 		return null;
 	}
 	const kind =
-		portDir === 'out' ? ('output-emitted' as const) : ('input-received' as const);
+		portDir === 'out'
+			? ('output-emitted' as const)
+			: ('input-received' as const);
 	const base = {
 		source: 'port' as const,
 		kind,
@@ -228,10 +232,7 @@ const normalizePortFrame = (
 		value,
 	};
 
-	if (
-		portId === STEER_CONTROL_PORT_ID &&
-		isSteerControlPayload(value)
-	) {
+	if (portId === STEER_CONTROL_PORT_ID && isSteerControlPayload(value)) {
 		if (value.kind === 'pause') {
 			return {
 				...base,
@@ -323,7 +324,8 @@ const rebuildProjection = (
 	entries: readonly FeedSourceEntry[],
 	runId: RunId | null,
 	catalog: FeedCatalog,
-): FeedProjection => replayFeedProjection(normalizeEntries(entries, runId, catalog));
+): FeedProjection =>
+	replayFeedProjection(normalizeEntries(entries, runId, catalog));
 
 const appendEntry = (
 	state: FeedComposerState,
@@ -442,7 +444,10 @@ export const foldPortEventsToNodeFeed = (
 			map((event): FeedComposerAction => ({ type: 'port', event })),
 		),
 		sources.runnerStarted$.pipe(
-			map((runId): FeedComposerAction => ({ type: 'run-started', runId })),
+			map((runId): FeedComposerAction => ({
+				type: 'run-started',
+				runId,
+			})),
 		),
 		sources.permissionAsk$.pipe(
 			map((ask): FeedComposerAction => ({ type: 'permission-ask', ask })),

@@ -198,9 +198,9 @@ describe('common-openai-llm', () => {
 			.map((chunk) => String(chunk.value))
 			.join('');
 		expect(draftText).toBe('Cherry blossoms fall');
-		expect(
-			previewEvent[0] === 'out' && previewEvent[4],
-		).toBe('Cherry blossoms fall');
+		expect(previewEvent[0] === 'out' && previewEvent[4]).toBe(
+			'Cherry blossoms fall',
+		);
 
 		expect(captured).toHaveLength(1);
 		expect(captured[0]?.providerId).toBe('openai');
@@ -515,6 +515,18 @@ describe('common-openai-llm', () => {
 			'toolTimeoutMs',
 			'subagentTimeoutMs',
 			'maxTransientRetries',
+			'autokickOnIdle',
+			'deadLoopEnabled',
+			'maxAutokickAttempts',
+			'autokickBackoffMs',
+			'autokickMaxBackoffMs',
+			'autokickUserMessage',
+			'autokickPenaltyFrequency',
+			'autokickPenaltyPresence',
+			'deadLoopMaxWindowTokens',
+			'deadLoopConsecutiveThreshold',
+			'deadLoopMinRepetitions',
+			'deadLoopMinPatternTokens',
 		]);
 		expect(fields).not.toContain('tokenDelayMs');
 		const maxIterations = openAiLlmNode.uiSchema.find(

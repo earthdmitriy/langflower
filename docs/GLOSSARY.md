@@ -129,6 +129,16 @@ Hard cancel: ends the run.
 See [workflow-execution](features/workflow-execution.md),
 [run-interruption](use-cases/run-interruption.md).
 
+#### Recovery notice
+
+Amber feed banner when the LLM provider fails recoverably (`Retrying…` with
+attempt / last / next timers, or `Paused for Steer`). A **suspended** notice
+opens the Steer composer; retry does not. Idle / dead-loop strategy:
+[LLM_RECOVERY](LLM_RECOVERY.md).
+
+See [feed-panel](features/feed-panel.md),
+[run-interruption](use-cases/run-interruption.md) S6.
+
 ### Surfaces & durable controls (static)
 
 UI panels and durable operator concepts — not the run state machine.
@@ -395,6 +405,13 @@ Mechanics: [ADR-031](ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs
 [ADR-032](ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port);
 lifecycle intents on `runner.*`; Pause/Steer use the hidden `steerControl`
 HITL-class port.
+
+#### Recovery notice
+
+Product meaning: [Recovery notice](#recovery-notice).
+
+Mechanics: `LlmRecoveryNotice` (`retry` | `suspended`) on the LLM `recovery`
+port. Stuck stream / dead-loop strategy: [LLM_RECOVERY](LLM_RECOVERY.md).
 
 #### Skill
 

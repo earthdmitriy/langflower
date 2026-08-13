@@ -138,6 +138,12 @@ export type NodeFeedItem = {
 	readonly hasResult: boolean;
 	/** Last chronological draft segment; hidden in UI when {@link hasResult}. */
 	readonly lastDraftSegmentId: string | undefined;
+	/**
+	 * Live recovery tail in this visit (last item, if it is recovery). Live
+	 * `projection$` selector — not a snapshot from the outer `nodeFeed$` map.
+	 * Hides `working…` and ticks the wait timer on that stream row only.
+	 */
+	readonly pinnedRecovery: Observable<PortStreamItem | undefined>;
 	readonly foldedEventsFromPorts: Observable<readonly PortEvent[]>;
 };
 

@@ -1,5 +1,9 @@
 import { inject, Injectable } from '@angular/core';
-import type { PortTelemetry, RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type {
+	PortTelemetry,
+	RunId,
+	RuntimeRunnerEvent,
+} from '@langflower/runtime';
 import { isPortTelemetry } from '@langflower/runtime';
 import { combineLatest, merge, type Observable } from 'rxjs';
 import { filter, map, shareReplay } from 'rxjs/operators';
@@ -20,13 +24,13 @@ import type {
 @Injectable({ providedIn: 'root' })
 export class CanvasNodeStatusService {
 	private readonly bridge = inject(LangflowerBridgeService);
-	private readonly runnerPort$: Observable<PortTelemetry> =
-		this.bridge.raw['runner.port'].pipe(
-			filter(
-				(event: RuntimeRunnerEvent): event is PortTelemetry =>
-					isPortTelemetry(event),
-			),
-		);
+	private readonly runnerPort$: Observable<PortTelemetry> = this.bridge.raw[
+		'runner.port'
+	].pipe(
+		filter((event: RuntimeRunnerEvent): event is PortTelemetry =>
+			isPortTelemetry(event),
+		),
+	);
 	private readonly sources: CanvasNodeStatusBridgeSources = {
 		executionFeedSnapshot$: this.bridge.cached['executionFeed.snapshot'],
 		runnerPort$: this.runnerPort$,

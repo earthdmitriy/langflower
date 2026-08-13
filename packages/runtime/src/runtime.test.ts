@@ -388,9 +388,11 @@ describe('Runtime (v2)', () => {
 
 		expect(pauseRunId).toBe(runId);
 		const event = await pauseReceived;
-		expect(isPortTelemetry(event) && event[0] === 'in' && event[4]).toEqual({
-			kind: 'pause',
-		});
+		expect(isPortTelemetry(event) && event[0] === 'in' && event[4]).toEqual(
+			{
+				kind: 'pause',
+			},
+		);
 	});
 
 	it('pushIntoInput logs input-received before output-emitted (first and repeat)', async () => {
@@ -571,7 +573,11 @@ describe('Runtime (v2)', () => {
 
 		const orphanEvents: unknown[] = [];
 		const subscription = runtime.runner.events$.subscribe((event) => {
-			if (isPortTelemetry(event) && event[0] === 'out' && event[1] === 'O') {
+			if (
+				isPortTelemetry(event) &&
+				event[0] === 'out' &&
+				event[1] === 'O'
+			) {
 				orphanEvents.push(event);
 			}
 		});

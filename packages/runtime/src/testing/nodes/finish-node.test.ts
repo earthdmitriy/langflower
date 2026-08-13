@@ -28,8 +28,7 @@ describe('finish test node', () => {
 		const donePromise = firstValueFrom(
 			runtime.runner.events$.pipe(
 				filter(
-					(event): event is ['done', RunId] =>
-						event[0] === 'done',
+					(event): event is ['done', RunId] => event[0] === 'done',
 				),
 			),
 		);

@@ -211,7 +211,9 @@ or a new runtime primitive.
 **Related:** [ADR-015](ADR.md#adr-015--output-driven-run-completion-never-idle-settle) ·
 [ADR-032](ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port) ·
 [REACTIVITY.md](REACTIVITY.md). LLM loops avoid killing their cycle for
-recoverable provider failures, but that does not define general graph recovery.
+recoverable provider failures
+([LLM_RECOVERY.md](LLM_RECOVERY.md)), but that does not define general graph
+recovery.
 
 ---
 

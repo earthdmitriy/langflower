@@ -332,7 +332,15 @@ describe('common-review', () => {
 		});
 
 		const feedbackEvent = await feedbackPromise;
-		expect(feedbackEvent).toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), 'Rewrite the intro']));
+		expect(feedbackEvent).toEqual(
+			expect.arrayContaining([
+				'out',
+				expect.anything(),
+				expect.anything(),
+				expect.anything(),
+				'Rewrite the intro',
+			]),
+		);
 		expect(responseEmissions).toHaveLength(0);
 
 		responseSub.unsubscribe();
@@ -455,7 +463,15 @@ describe('common-review', () => {
 		});
 
 		const responseEvent = await responsePromise;
-		expect(responseEvent).toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), 'Accepted artifact body']));
+		expect(responseEvent).toEqual(
+			expect.arrayContaining([
+				'out',
+				expect.anything(),
+				expect.anything(),
+				expect.anything(),
+				'Accepted artifact body',
+			]),
+		);
 		expect(captured).toHaveLength(1);
 		expect(
 			captured[0]?.tools?.some((t) => t.function.name === 'accept'),
@@ -620,7 +636,15 @@ describe('common-review', () => {
 		expect(
 			toolLogTexts.some((text) => text.includes(REVIEW_TOOL_REMINDER)),
 		).toBe(true);
-		expect(feedbackEvent).toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), 'Need more detail']));
+		expect(feedbackEvent).toEqual(
+			expect.arrayContaining([
+				'out',
+				expect.anything(),
+				expect.anything(),
+				expect.anything(),
+				'Need more detail',
+			]),
+		);
 		expect(responseEmissions).toHaveLength(0);
 
 		eventsSub.unsubscribe();

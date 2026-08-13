@@ -51,14 +51,10 @@ describe('port event order (input-received precedes output-emitted)', () => {
 		const nodeIds = ['d1', 'd2', 'd3'];
 		for (const nodeId of nodeIds) {
 			const firstInputIdx = events.findIndex(
-				(event) =>
-					event[0] === 'in' &&
-					event[1] === nodeId,
+				(event) => event[0] === 'in' && event[1] === nodeId,
 			);
 			const outputIdx = events.findIndex(
-				(event) =>
-					event[0] === 'out' &&
-					event[1] === nodeId,
+				(event) => event[0] === 'out' && event[1] === nodeId,
 			);
 
 			expect(

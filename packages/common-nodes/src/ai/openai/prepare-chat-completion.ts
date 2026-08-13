@@ -37,6 +37,8 @@ const createMainStream = async (args: {
 	readonly messages: readonly ChatCompletionMessage[];
 	readonly tools: readonly ChatCompletionToolDefinition[];
 	readonly signal?: AbortSignal;
+	readonly frequency_penalty?: number;
+	readonly presence_penalty?: number;
 }): Promise<AsyncIterable<ChatCompletionStreamChunk>> =>
 	args.factory({
 		providerId: args.providerId,
@@ -44,6 +46,12 @@ const createMainStream = async (args: {
 		messages: args.messages,
 		...(args.tools.length > 0 ? { tools: args.tools } : {}),
 		...(args.signal !== undefined ? { signal: args.signal } : {}),
+		...(args.frequency_penalty !== undefined
+			? { frequency_penalty: args.frequency_penalty }
+			: {}),
+		...(args.presence_penalty !== undefined
+			? { presence_penalty: args.presence_penalty }
+			: {}),
 	});
 
 /**
@@ -58,6 +66,8 @@ export const prepareChatCompletion = async (args: {
 	readonly tools?: readonly ChatCompletionToolDefinition[];
 	readonly signal?: AbortSignal;
 	readonly compaction?: LlmCompactionConfig;
+	readonly frequency_penalty?: number;
+	readonly presence_penalty?: number;
 }): Promise<PreparedChatCompletion> => {
 	const tools = args.tools ?? [];
 	const config = args.compaction ?? DISABLED_COMPACTION_CONFIG;
@@ -108,6 +118,12 @@ export const prepareChatCompletion = async (args: {
 			messages,
 			tools,
 			...(args.signal !== undefined ? { signal: args.signal } : {}),
+			...(args.frequency_penalty !== undefined
+				? { frequency_penalty: args.frequency_penalty }
+				: {}),
+			...(args.presence_penalty !== undefined
+				? { presence_penalty: args.presence_penalty }
+				: {}),
 		});
 
 		return {
@@ -165,6 +181,12 @@ export const prepareChatCompletion = async (args: {
 				messages,
 				tools,
 				...(args.signal !== undefined ? { signal: args.signal } : {}),
+				...(args.frequency_penalty !== undefined
+					? { frequency_penalty: args.frequency_penalty }
+					: {}),
+				...(args.presence_penalty !== undefined
+					? { presence_penalty: args.presence_penalty }
+					: {}),
 			});
 
 			return {

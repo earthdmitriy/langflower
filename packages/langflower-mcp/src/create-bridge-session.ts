@@ -51,10 +51,7 @@ const FEED_RUN_STARTED_EVENTS = [
  * Bus events whose payloads are `RuntimeRunnerEvent` frames that also land in
  * `executionFeed.snapshot` / `RuntimeRunner.eventLog`.
  */
-const FEED_EVENT_LOG_BUS_EVENTS = [
-	'runner.port',
-	'runner.done',
-] as const;
+const FEED_EVENT_LOG_BUS_EVENTS = ['runner.port', 'runner.done'] as const;
 
 export type BridgeSession = {
 	readonly client: LangflowerWsClient;

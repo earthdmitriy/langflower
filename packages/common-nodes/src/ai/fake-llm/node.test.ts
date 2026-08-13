@@ -205,12 +205,10 @@ describe('common-fake-llm', () => {
 			.join('');
 		expect(draftText.length).toBeGreaterThan(500);
 
-		expect(
-			previewEvent[0] === 'out' && previewEvent[4],
-		).toContain('Write a haiku');
-		expect(
-			previewEvent[0] === 'out' && previewEvent[4],
-		).toMatch(/^Final:/);
+		expect(previewEvent[0] === 'out' && previewEvent[4]).toContain(
+			'Write a haiku',
+		);
+		expect(previewEvent[0] === 'out' && previewEvent[4]).toMatch(/^Final:/);
 
 		runtime.runner.interrupt('cancel');
 		runtime.runner.dispose();
@@ -299,7 +297,15 @@ describe('common-fake-llm', () => {
 			],
 		});
 
-		await expect(response).resolves.toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), expect.stringMatching(/^Final:/)]));
+		await expect(response).resolves.toEqual(
+			expect.arrayContaining([
+				'out',
+				expect.anything(),
+				expect.anything(),
+				expect.anything(),
+				expect.stringMatching(/^Final:/),
+			]),
+		);
 
 		runtime.runner.interrupt('cancel');
 		runtime.runner.dispose();
@@ -718,6 +724,18 @@ describe('common-fake-llm', () => {
 			'toolTimeoutMs',
 			'subagentTimeoutMs',
 			'maxTransientRetries',
+			'autokickOnIdle',
+			'deadLoopEnabled',
+			'maxAutokickAttempts',
+			'autokickBackoffMs',
+			'autokickMaxBackoffMs',
+			'autokickUserMessage',
+			'autokickPenaltyFrequency',
+			'autokickPenaltyPresence',
+			'deadLoopMaxWindowTokens',
+			'deadLoopConsecutiveThreshold',
+			'deadLoopMinRepetitions',
+			'deadLoopMinPatternTokens',
 			'tokenDelayMs',
 		]);
 		expect(fields).not.toContain('contextSize');

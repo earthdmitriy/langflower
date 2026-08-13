@@ -93,7 +93,8 @@ Each node is self-contained — helper logic is inlined into the consuming node 
   `for await` consumption outside the provider RxJS operator.
 - Recoverable provider failures reduce to loop suspension; only fatal failures
   enter the StatefulObservable error lane. Keep partial streamed text out of
-  committed history after a failed round.
+  committed history after a failed round. Stuck / dead-loop strategy:
+  [LLM_RECOVERY.md](../../docs/LLM_RECOVERY.md).
 
 ## Package boundary
 

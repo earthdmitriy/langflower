@@ -1,5 +1,6 @@
-import type { Observable } from 'rxjs';
+import { distinctUntilChanged, type Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { liveRecoveryTail } from '../latest-recovery-item';
 import type { NodeFeedItem, PortEvent, PortStreamItem } from '../types';
 import { portItemsKey, type FeedProjection } from './feed-projection';
 
@@ -9,13 +10,16 @@ const visitDraftAndResult = (
 ): {
 	readonly hasResult: boolean;
 	readonly lastDraftSegmentId: string | undefined;
+	readonly pinnedRecovery: PortStreamItem | undefined;
 } => {
 	const segments = projection.portsByVisit.get(visitId) ?? [];
 	let hasResult = false;
 	let lastDraftSegmentId: string | undefined;
+	const allItems: PortStreamItem[] = [];
 	for (const segment of segments) {
 		const items =
 			projection.itemsByPort.get(portItemsKey(segment.segmentId)) ?? [];
+		allItems.push(...items);
 		for (const item of items) {
 			if (item.meta.presentation === 'result') {
 				hasResult = true;
@@ -25,7 +29,11 @@ const visitDraftAndResult = (
 			}
 		}
 	}
-	return { hasResult, lastDraftSegmentId };
+	return {
+		hasResult,
+		lastDraftSegmentId,
+		pinnedRecovery: liveRecoveryTail(allItems),
+	};
 };
 
 /**
@@ -49,6 +57,16 @@ export const projectNodeFeed = (
 					isClosed: visit.isClosed,
 					hasResult,
 					lastDraftSegmentId,
+					pinnedRecovery: projection$.pipe(
+						map(
+							(next) =>
+								visitDraftAndResult(next, visit.visitId)
+									.pinnedRecovery,
+						),
+						distinctUntilChanged(
+							(left, right) => left?.seq === right?.seq,
+						),
+					),
 					foldedEventsFromPorts: projection$.pipe(
 						map((next) =>
 							(next.portsByVisit.get(visit.visitId) ?? []).map(

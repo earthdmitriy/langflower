@@ -55,13 +55,31 @@ describe('NodePreviewValuesService', () => {
 
 		expect(service.valueFor('n1', 'text')).toBe('from-snap');
 
-		raw['runner.port'].next(['in', 'n1', 'text', 'value', 'live', 0, [], null]);
+		raw['runner.port'].next([
+			'in',
+			'n1',
+			'text',
+			'value',
+			'live',
+			0,
+			[],
+			null,
+		]);
 
 		expect(service.valueFor('n1', 'text')).toBe('live');
 	});
 
 	it('clears on null feed snapshot', () => {
-		raw['runner.port'].next(['in', 'n1', 'text', 'value', 'kept', 0, [], null]);
+		raw['runner.port'].next([
+			'in',
+			'n1',
+			'text',
+			'value',
+			'kept',
+			0,
+			[],
+			null,
+		]);
 		expect(service.valueFor('n1', 'text')).toBe('kept');
 
 		raw['executionFeed.snapshot'].next(null);
@@ -70,13 +88,31 @@ describe('NodePreviewValuesService', () => {
 
 	it('clears on new runId and on workflow switch', () => {
 		raw['runner.started'].next('run-1');
-		raw['runner.port'].next(['in', 'n1', 'text', 'value', 'a', 0, [], null]);
+		raw['runner.port'].next([
+			'in',
+			'n1',
+			'text',
+			'value',
+			'a',
+			0,
+			[],
+			null,
+		]);
 		expect(service.valueFor('n1', 'text')).toBe('a');
 
 		raw['runner.started'].next('run-2');
 		expect(service.valueFor('n1', 'text')).toBeUndefined();
 
-		raw['runner.port'].next(['in', 'n1', 'text', 'value', 'b', 0, [], null]);
+		raw['runner.port'].next([
+			'in',
+			'n1',
+			'text',
+			'value',
+			'b',
+			0,
+			[],
+			null,
+		]);
 		raw['workflow.current.snapshot'].next({
 			activeWorkflow: {
 				workflowId: 'wf-a',

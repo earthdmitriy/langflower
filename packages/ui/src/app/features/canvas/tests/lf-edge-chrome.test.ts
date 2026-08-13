@@ -92,16 +92,7 @@ function outputPending(_runId: string, edgeIds: string[]) {
 }
 
 function outputValue(_runId: string, edgeIds: string[]) {
-	return [
-		'out',
-		'n1',
-		'response',
-		'value',
-		'x',
-		0,
-		edgeIds,
-		null,
-	] as const;
+	return ['out', 'n1', 'response', 'value', 'x', 0, edgeIds, null] as const;
 }
 
 describe('LfEdgeChromeComponent execution chrome (signal-driven DOM)', () => {
@@ -177,7 +168,7 @@ describe('LfEdgeChromeComponent execution chrome (signal-driven DOM)', () => {
 		fixture.detectChanges();
 		expect(service.wireStatus('edge-1')).toBe('pending');
 
-		raw['runner.done'].next(['done', 'run-1' ]);
+		raw['runner.done'].next(['done', 'run-1']);
 		fixture.detectChanges();
 
 		expect(service.wireStatus('edge-1')).toBe('pending');

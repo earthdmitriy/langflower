@@ -2,6 +2,8 @@ import type { ToolHandle } from '@langflower/node-sdk';
 import {
 	isSteerControlContinue,
 	isSteerControlPause,
+	type LlmRecoveryNotice,
+	type LlmRecoveryRetryReason,
 	type SteerControlPayload,
 } from '@langflower/node-sdk/llm';
 import type { Harness } from '@langflower/tools/create-project-harness';
@@ -58,6 +60,7 @@ import {
 	resolveForceTargetTokens,
 } from '../openai/llm-context-compaction.js';
 import { classifyLlmFailure } from './classify-llm-failure.js';
+import { autokickBackoffMs, autokickPenalties } from './autokick-recovery.js';
 import { reduceLlmLoop } from './llm-loop-reducer.js';
 import {
 	initialLlmLoopState,
@@ -75,11 +78,7 @@ export type SharedLlmLoopChunk =
 	| { readonly kind: 'reasoning'; readonly text: string }
 	| { readonly kind: 'draftResponse'; readonly text: string }
 	| { readonly kind: 'toolLog'; readonly text: string }
-	| {
-			readonly kind: 'recoveryNotice';
-			readonly code: 'retry' | 'suspended';
-			readonly text: string;
-	  }
+	| ({ readonly kind: 'recoveryNotice' } & LlmRecoveryNotice)
 	| {
 			readonly kind: 'historySync';
 			readonly messages: readonly ChatCompletionMessage[];
@@ -161,6 +160,18 @@ const failureText = (failure: LlmFailure): string => {
 	return `Provider failure${status}: ${failure.message}`;
 };
 
+const joinsAutokickWait = (
+	kind: LlmFailure['kind'],
+): kind is 'rate-limit' | 'provider-unavailable' | 'network' =>
+	kind === 'rate-limit' ||
+	kind === 'provider-unavailable' ||
+	kind === 'network';
+
+const retryReasonFromFailure = (
+	kind: LlmFailure['kind'],
+): LlmRecoveryRetryReason | undefined =>
+	joinsAutokickWait(kind) ? kind : undefined;
+
 const isIncompleteToolCallJson = (
 	calls: readonly ChatCompletionToolCall[],
 ): boolean => {
@@ -190,6 +201,125 @@ const isOutputTruncation = (fact: {
 
 	const calls = fact.toolCalls ?? [];
 	return calls.length > 0 && isIncompleteToolCallJson(calls);
+};
+
+const canScheduleAutokick = (
+	state: LlmLoopState,
+	recovery: LlmRecoveryPolicy,
+): boolean =>
+	recovery.autokickOnIdle &&
+	(recovery.maxAutokickAttempts === 0 ||
+		state.autokickAttempts < recovery.maxAutokickAttempts);
+
+const autokickPackets = <Chunk>(
+	state: LlmLoopState,
+	options: RunLlmLoopOptions<Chunk>,
+	args: {
+		readonly retryDetail: string;
+		readonly suspendedText: string;
+		readonly reason: LlmRecoveryRetryReason;
+		readonly retryAfterMs?: number;
+		readonly kickUserMessage?: string;
+	},
+): Observable<LlmLoopPacket<Chunk>> => {
+	if (!canScheduleAutokick(state, options.recovery)) {
+		return concat(
+			of(
+				emit<Chunk>({
+					kind: 'recoveryNotice',
+					code: 'suspended',
+					text: args.suspendedText,
+				}),
+			),
+			of(transition<Chunk>(state)),
+		);
+	}
+	const attempt = state.autokickAttempts + 1;
+	const backoffMs =
+		args.reason === 'dead-loop'
+			? options.recovery.retryBaseDelayMs
+			: Math.max(
+					autokickBackoffMs(
+						attempt,
+						options.recovery.autokickBackoffMs,
+						options.recovery.autokickMaxBackoffMs,
+					),
+					args.retryAfterMs ?? 0,
+				);
+	const nowMs = Date.now();
+	const interrupt$ = (options.steerControl$ ?? NEVER).pipe(
+		filter(
+			(payload) =>
+				isSteerControlPause(payload) || payload.kind === 'steer',
+		),
+		take(1),
+		map((payload) => ({ kind: 'interrupt' as const, payload })),
+	);
+	return concat(
+		of(
+			emit<Chunk>({
+				kind: 'recoveryNotice',
+				code: 'retry',
+				text: `⚠ ${args.retryDetail}. Retrying ${attempt} in ${backoffMs}ms.`,
+				attempt,
+				reason: args.reason,
+				backoffMs,
+				nextAttemptAt: nowMs + backoffMs,
+				...(state.lastAutokickAt !== undefined
+					? { lastAttemptAt: state.lastAutokickAt }
+					: {}),
+			}),
+		),
+		race(
+			of({ kind: 'elapsed' as const }).pipe(delay(backoffMs)),
+			interrupt$,
+		).pipe(
+			switchMap((event) => {
+				if (event.kind === 'interrupt') {
+					if (isSteerControlPause(event.payload)) {
+						return concat(
+							of(
+								emit<Chunk>({
+									kind: 'toolLog',
+									text: 'Paused. Send Steer feedback or Resume to continue.',
+								}),
+							),
+							of(
+								transition<Chunk>(
+									reduceLlmLoop(state, {
+										type: 'stream.paused',
+									}),
+								),
+							),
+						);
+					}
+					const text =
+						event.payload.kind === 'steer'
+							? event.payload.text
+							: undefined;
+					return of(
+						transition<Chunk>(
+							reduceLlmLoop(state, {
+								type: 'steer.received',
+								...(text !== undefined ? { text } : {}),
+							}),
+						),
+					);
+				}
+				return of(
+					transition<Chunk>(
+						reduceLlmLoop(state, {
+							type: 'autokick.scheduled',
+							atMs: Date.now(),
+							...(args.kickUserMessage !== undefined
+								? { kickUserMessage: args.kickUserMessage }
+								: {}),
+						}),
+					),
+				);
+			}),
+		),
+	);
 };
 
 const recoveryPackets = <Chunk>(
@@ -243,6 +373,7 @@ const recoveryPackets = <Chunk>(
 			failure.retryAfterMs ??
 			options.recovery.retryBaseDelayMs * 2 ** (attempt - 1);
 		const next = reduceLlmLoop(state, { type: 'retry.scheduled' });
+		const reason = retryReasonFromFailure(failure.kind);
 
 		return concat(
 			of(
@@ -250,10 +381,31 @@ const recoveryPackets = <Chunk>(
 					kind: 'recoveryNotice',
 					code: 'retry',
 					text: `⚠ ${failureText(failure)}. Retrying ${attempt}/${options.recovery.maxTransientRetries} in ${delayMs}ms.`,
+					attempt,
+					backoffMs: delayMs,
+					nextAttemptAt: Date.now() + delayMs,
+					...(reason !== undefined ? { reason } : {}),
+					...(state.lastAutokickAt !== undefined
+						? { lastAttemptAt: state.lastAutokickAt }
+						: {}),
 				}),
 			),
 			of(transition<Chunk>(next)).pipe(delay(delayMs)),
 		);
+	}
+
+	if (
+		joinsAutokickWait(failure.kind) &&
+		canScheduleAutokick(state, options.recovery)
+	) {
+		return autokickPackets(state, options, {
+			retryDetail: failureText(failure),
+			suspendedText: `⚠ ${failureText(failure)}. Retry budget exhausted; paused for Steer or Resume.`,
+			reason: failure.kind,
+			...(failure.retryAfterMs !== undefined
+				? { retryAfterMs: failure.retryAfterMs }
+				: {}),
+		});
 	}
 
 	return concat(
@@ -397,6 +549,12 @@ const providerFactAction = (
 			return { type: 'stream.paused' };
 		case 'provider.idle':
 			return { type: 'stream.idle', idleMs: fact.idleMs };
+		case 'provider.dead-loop':
+			return {
+				type: 'stream.dead-loop',
+				channel: fact.channel,
+				reason: fact.reason,
+			};
 		case 'provider.failed':
 			return undefined;
 	}
@@ -445,6 +603,18 @@ const providerFactPackets = <Chunk>(
 			const hasPartial =
 				frame.state.partial.reasoning.length > 0 ||
 				frame.state.partial.draft.length > 0;
+			const suspendedText = hasPartial
+				? `⚠ ${failure.message} Paused to avoid repeating partial work.`
+				: `⚠ ${failure.message}. Retry budget exhausted; paused for Steer or Resume.`;
+
+			if (options.recovery.autokickOnIdle) {
+				return autokickPackets(frame.state, options, {
+					retryDetail: failure.message,
+					suspendedText,
+					reason: 'idle',
+					kickUserMessage: options.recovery.autokickUserMessage,
+				});
+			}
 
 			return hasPartial
 				? concat(
@@ -452,13 +622,21 @@ const providerFactPackets = <Chunk>(
 							emit<Chunk>({
 								kind: 'recoveryNotice',
 								code: 'suspended',
-								text: `⚠ ${failure.message} Paused to avoid repeating partial work.`,
+								text: suspendedText,
 							}),
 						),
 						of(transition<Chunk>(frame.state)),
 					)
 				: recoveryPackets(frame.state, failure, options);
 		}
+		case 'provider.dead-loop':
+			return autokickPackets(frame.state, options, {
+				retryDetail: 'Provider output entered a repetition loop',
+				suspendedText:
+					'⚠ Provider output entered a repetition loop. Paused to avoid repeating partial work.',
+				reason: 'dead-loop',
+				kickUserMessage: options.recovery.autokickUserMessage,
+			});
 		case 'provider.failed':
 			return recoveryPackets(frame.state, fact.failure, options);
 		case 'provider.done': {
@@ -609,6 +787,13 @@ const prepareAndStream = <Chunk>(
 		const handleCancel = (): void => attempt.abort();
 		cancelSignal.addEventListener('abort', handleCancel, { once: true });
 
+		const penalties =
+			state.autokickKickAttempts > 0
+				? autokickPenalties(
+						state.autokickKickAttempts,
+						options.recovery.autokickPenaltyDelta,
+					)
+				: undefined;
 		const preparationSource$ = from(
 			prepareChatCompletion({
 				factory: options.factory,
@@ -618,6 +803,12 @@ const prepareAndStream = <Chunk>(
 				tools: options.chatTools,
 				signal: attempt.signal,
 				compaction: options.compaction,
+				...(penalties === undefined
+					? {}
+					: {
+							frequency_penalty: penalties.frequency,
+							presence_penalty: penalties.presence,
+						}),
 			}),
 		).pipe(
 			map((prepared) => ({ kind: 'prepared', prepared }) as const),
@@ -720,6 +911,9 @@ const prepareAndStream = <Chunk>(
 					cancel$,
 					idleTimeoutMs: options.recovery.streamIdleTimeoutMs,
 					onAbort: () => attempt.abort(),
+					deadLoop: options.recovery.deadLoopEnabled
+						? options.recovery.deadLoop
+						: false,
 				}).pipe(
 					scan<ProviderStreamFact, ProviderFrame>(
 						(frame, fact) => {

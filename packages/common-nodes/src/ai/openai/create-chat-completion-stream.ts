@@ -203,6 +203,12 @@ export const createChatCompletionStream = (deps: {
 					messages: toOpenAiMessages(args.messages),
 					stream: true,
 					...(tools !== undefined ? { tools } : {}),
+					...(args.frequency_penalty !== undefined
+						? { frequency_penalty: args.frequency_penalty }
+						: {}),
+					...(args.presence_penalty !== undefined
+						? { presence_penalty: args.presence_penalty }
+						: {}),
 				},
 				{
 					signal: args.signal as AbortSignal | undefined,

@@ -141,13 +141,14 @@ do not say coding pipelines “don’t exist” or are unavailable.
 
 ### 7. Run lifecycle
 
-| Mechanism             | Meaning                                                                                               |
-| --------------------- | ----------------------------------------------------------------------------------------------------- |
-| Hard Stop             | Cancel; does **not** by itself create checkpoint Continue                                             |
-| Soft Pause            | Per-node Steer pause of the last feed agent; siblings keep working; Send / Resume continues that node |
-| Browser close         | If `langflower start` stays up, run continues; reopen live or settled                                 |
-| Process kill / reboot | **Not** detachable resume                                                                             |
-| Checkpoint Continue   | Needs explicit boundary (`common-checkpoint` / `createCheckpoint`); **no** every-node auto Continue   |
+| Mechanism             | Meaning                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hard Stop             | Cancel; does **not** by itself create checkpoint Continue                                                                                                                                                                                                                                                                                                                                    |
+| Soft Pause            | Per-node Steer pause of the last feed agent; siblings keep working; Send / Resume continues that node                                                                                                                                                                                                                                                                                        |
+| Provider recovery     | Idle: default **autokick** (abort, exponential backoff, full-store replay + kick). Dead-loop: abort + short `retryBaseDelayMs` wait (not idle backoff) + kick. 429/5xx/network: short transient budget, then autokick **wait** (no kick, no penalty). `'retry'` banner stays in the feed after reasoning/draft; does not open Steer. Off / cap exhausted → **Steer**. Auth/config stay fatal |
+| Browser close         | If `langflower start` stays up, run continues; reopen live or settled                                                                                                                                                                                                                                                                                                                        |
+| Process kill / reboot | **Not** detachable resume                                                                                                                                                                                                                                                                                                                                                                    |
+| Checkpoint Continue   | Needs explicit boundary (`common-checkpoint` / `createCheckpoint`); **no** every-node auto Continue                                                                                                                                                                                                                                                                                          |
 
 These four are **not** the same thing.
 

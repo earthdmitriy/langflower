@@ -335,9 +335,7 @@ describe('router workflow (events$)', () => {
 		);
 
 		const routerEmits = events.filter(
-			(event) =>
-				event[0] === 'out' &&
-				event[1] === 'router',
+			(event) => event[0] === 'out' && event[1] === 'router',
 		);
 
 		// Bypass outputs must emit telemetry so downstream wires can highlight.
