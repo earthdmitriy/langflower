@@ -46,7 +46,7 @@ export function decodeInboundFrame(
 	return {
 		error: createWsBridgeError(
 			'INVALID_ENVELOPE',
-			'Frame must be a { type, payload } object',
+			'Frame must be a bridge tuple [ts, transportDir, busType, payload]',
 		),
 	};
 }

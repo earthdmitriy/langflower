@@ -114,10 +114,10 @@ describe('common-openai-llm tool loop', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'llm-1' &&
-						event.portId === 'response',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'llm-1' &&
+						event[2] === 'response',
 				),
 			),
 		);
@@ -177,10 +177,7 @@ describe('common-openai-llm tool loop', () => {
 		});
 
 		const responseEvent = await responsePromise;
-		expect(responseEvent).toMatchObject({
-			kind: 'output-emitted',
-			value: 'Done editing.',
-		});
+		expect(responseEvent).toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), 'Done editing.']));
 		expect(captured).toHaveLength(3);
 		expect(
 			captured[0]?.tools?.some((t) => t.function.name === 'read'),

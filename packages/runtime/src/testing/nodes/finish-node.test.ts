@@ -1,3 +1,4 @@
+import type { RunId } from '../../types.js';
 import { filter, firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { createConstantTestNode } from './constant-node.js';
@@ -27,8 +28,8 @@ describe('finish test node', () => {
 		const donePromise = firstValueFrom(
 			runtime.runner.events$.pipe(
 				filter(
-					(event): event is { kind: 'done'; runId: string } =>
-						event.kind === 'done',
+					(event): event is ['done', RunId] =>
+						event[0] === 'done',
 				),
 			),
 		);
@@ -36,7 +37,7 @@ describe('finish test node', () => {
 		const runId = runtime.runner.start();
 		const done = await donePromise;
 
-		expect(done.runId).toBe(runId);
+		expect(done[1]).toBe(runId);
 		expect(await firstValueFrom(runtime.runner.status$)).toBe('idle');
 	});
 });

@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { filter, firstValueFrom, take } from 'rxjs';
-import type { RuntimeRunnerEvent } from '@langflower/runtime';
+import type { PortTelemetry } from '@langflower/runtime';
 import {
 	createLangflowerWsClient,
 	runFullGraphAndWaitForOutput,
@@ -22,22 +22,19 @@ import {
 } from '../helpers/test-server.js';
 import { evalRegressionGateWorkflow } from '../helpers/scenarios/eval.js';
 
-type OutputErrorEvent = Extract<
-	RuntimeRunnerEvent,
-	{ kind: 'output-emitted'; state: 'error' }
->;
+type OutputErrorEvent = PortTelemetry & { readonly 0: 'out'; readonly 3: 'error' };
 
 const waitForAssertError = (
 	client: LangflowerWsClient,
 ): Promise<OutputErrorEvent> =>
 	firstValueFrom(
-		client['runner.output-emitted'].pipe(
+		client['runner.port'].pipe(
 			filter(
 				(event): event is OutputErrorEvent =>
-					event.kind === 'output-emitted' &&
-					event.state === 'error' &&
-					event.nodeId === 'gate' &&
-					event.portId === 'value',
+					event[0] === 'out' &&
+					event[3] === 'error' &&
+					event[1] === 'gate' &&
+					event[2] === 'value',
 			),
 			take(1),
 		),
@@ -83,7 +80,7 @@ describe('execute eval-regression-gate (WS bridge)', () => {
 				typeof value === 'string' && value.includes('suiteScore=1'),
 		});
 
-		expect(String(output.value)).toContain('threshold=1');
+		expect(String(output[4])).toContain('threshold=1');
 	});
 
 	it('Assert fails the workflow when suiteScore < threshold', async () => {
@@ -100,7 +97,7 @@ describe('execute eval-regression-gate (WS bridge)', () => {
 		const errorEvent = await errorPromise;
 		// Error instances are not preserved over the WS bridge — assert the
 		// fail-closed signal (output-emitted state=error on the Assert gate).
-		expect(errorEvent.state).toBe('error');
-		expect(errorEvent.nodeId).toBe('gate');
+		expect(errorEvent[3]).toBe('error');
+		expect(errorEvent[1]).toBe('gate');
 	});
 });

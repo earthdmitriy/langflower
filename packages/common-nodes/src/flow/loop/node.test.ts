@@ -118,12 +118,12 @@ describe('common-loop', () => {
 		const itemsSeen: string[] = [];
 		const itemSub = runtime.runner.events$.subscribe((event) => {
 			if (
-				event.kind === 'output-emitted' &&
-				event.state === 'value' &&
-				event.nodeId === 'loop' &&
-				event.portId === 'item'
+				event[0] === 'out' &&
+				event[3] === 'value' &&
+				event[1] === 'loop' &&
+				event[2] === 'item'
 			) {
-				itemsSeen.push(String(event.value));
+				itemsSeen.push(String(event[4]));
 			}
 		});
 
@@ -131,12 +131,12 @@ describe('common-loop', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'preview' &&
-						event.portId === 'text',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'preview' &&
+						event[2] === 'text',
 				),
-				map((event) => String(event.value)),
+				map((event) => String(event[4])),
 			),
 		);
 
@@ -197,12 +197,12 @@ describe('common-loop', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'preview' &&
-						event.portId === 'text',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'preview' &&
+						event[2] === 'text',
 				),
-				map((event) => String(event.value)),
+				map((event) => String(event[4])),
 			),
 		);
 

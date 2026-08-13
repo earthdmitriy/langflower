@@ -13,7 +13,6 @@ import {
 const runId = 'r1' as RunId;
 const nodeId = 'n1' as NodeId;
 const otherId = 'n2' as NodeId;
-const noEdges: never[] = [];
 
 const emptyCatalog = (): FeedCatalog => ({
 	labels: new Map(),
@@ -58,17 +57,9 @@ describe('canvas-node-status-projection (single-node)', () => {
 	it('marks pending on any input-received', () => {
 		const state = appendNodeChromeFrame(
 			emptyNodeChromeFoldState(),
-			{
-				kind: 'input-received',
-				runId,
-				nodeId,
-				portId: 'prompt',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: 'hi',
-			},
+			['in', nodeId, 'prompt', 'value', 'hi', 0, [], null],
 			emptyCatalog(),
+			null,
 		);
 		expect(foldStatusFromNodeState(state)).toBe('pending');
 	});
@@ -76,35 +67,35 @@ describe('canvas-node-status-projection (single-node)', () => {
 	it('keeps pending for streaming output value', () => {
 		let state = appendNodeChromeFrame(
 			emptyNodeChromeFoldState(),
-			{
-				kind: 'output-emitted',
-				runId,
+			[
+				'out',
 				nodeId,
-				portId: 'draft',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: 'tok',
-				feed: { role: 'draft', streaming: true },
-			},
+				'draft',
+				'value',
+				'tok',
+				0,
+				[],
+				{ role: 'draft', streaming: true },
+			],
 			catalogWithStreamingDraft(),
+			null,
 		);
 		expect(foldStatusFromNodeState(state)).toBe('pending');
 
 		state = appendNodeChromeFrame(
 			state,
-			{
-				kind: 'output-emitted',
-				runId,
+			[
+				'out',
 				nodeId,
-				portId: 'draft',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: 'tok2',
-				feed: { role: 'draft', streaming: true },
-			},
+				'draft',
+				'value',
+				'tok2',
+				0,
+				[],
+				{ role: 'draft', streaming: true },
+			],
 			catalogWithStreamingDraft(),
+			null,
 		);
 		expect(foldStatusFromNodeState(state)).toBe('pending');
 	});
@@ -112,17 +103,9 @@ describe('canvas-node-status-projection (single-node)', () => {
 	it('turns value on non-streaming output', () => {
 		const state = appendNodeChromeFrame(
 			emptyNodeChromeFoldState(),
-			{
-				kind: 'output-emitted',
-				runId,
-				nodeId,
-				portId: 'result',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: 'done',
-			},
+			['out', nodeId, 'result', 'value', 'done', 0, [], null],
 			catalogWithStreamingDraft(),
+			null,
 		);
 		expect(foldStatusFromNodeState(state)).toBe('value');
 	});
@@ -130,17 +113,9 @@ describe('canvas-node-status-projection (single-node)', () => {
 	it('resolves streaming from palette when event.feed absent', () => {
 		const state = appendNodeChromeFrame(
 			emptyNodeChromeFoldState(),
-			{
-				kind: 'output-emitted',
-				runId,
-				nodeId,
-				portId: 'draft',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: 'tok',
-			},
+			['out', nodeId, 'draft', 'value', 'tok', 0, [], null],
 			catalogWithStreamingDraft(),
+			null,
 		);
 		expect(foldStatusFromNodeState(state)).toBe('pending');
 	});
@@ -148,31 +123,15 @@ describe('canvas-node-status-projection (single-node)', () => {
 	it('error wins over value', () => {
 		let state = appendNodeChromeFrame(
 			emptyNodeChromeFoldState(),
-			{
-				kind: 'output-emitted',
-				runId,
-				nodeId,
-				portId: 'result',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: 'x',
-			},
+			['out', nodeId, 'result', 'value', 'x', 0, [], null],
 			emptyCatalog(),
+			null,
 		);
 		state = appendNodeChromeFrame(
 			state,
-			{
-				kind: 'output-emitted',
-				runId,
-				nodeId,
-				portId: 'result',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'error',
-				value: undefined,
-			},
+			['out', nodeId, 'result', 'error', undefined, 0, [], null],
 			emptyCatalog(),
+			null,
 		);
 		expect(foldStatusFromNodeState(state)).toBe('error');
 	});
@@ -184,27 +143,17 @@ describe('canvas-node-status-projection (single-node)', () => {
 				workflowId: 'w1',
 				status: 'completed',
 				events: [
-					{
-						kind: 'output-emitted',
-						runId,
-						nodeId: otherId,
-						portId: 'result',
-						portIdx: 0,
-						edgeIds: noEdges,
-						state: 'value',
-						value: 'other',
-					},
-					{
-						kind: 'output-emitted',
-						runId,
+					['out', otherId, 'result', 'value', 'other', 0, [], null],
+					[
+						'out',
 						nodeId,
-						portId: 'draft',
-						portIdx: 0,
-						edgeIds: noEdges,
-						state: 'value',
-						value: 'partial',
-						feed: { streaming: true },
-					},
+						'draft',
+						'value',
+						'partial',
+						0,
+						[],
+						{ streaming: true },
+					],
 				],
 			},
 			'n1',
@@ -214,27 +163,17 @@ describe('canvas-node-status-projection (single-node)', () => {
 		expect(
 			eventsForNode(
 				[
-					{
-						kind: 'output-emitted',
-						runId,
-						nodeId: otherId,
-						portId: 'result',
-						portIdx: 0,
-						edgeIds: noEdges,
-						state: 'value',
-						value: 'other',
-					},
-					{
-						kind: 'output-emitted',
-						runId,
+					['out', otherId, 'result', 'value', 'other', 0, [], null],
+					[
+						'out',
 						nodeId,
-						portId: 'draft',
-						portIdx: 0,
-						edgeIds: noEdges,
-						state: 'value',
-						value: 'partial',
-						feed: { streaming: true },
-					},
+						'draft',
+						'value',
+						'partial',
+						0,
+						[],
+						{ streaming: true },
+					],
 				],
 				'n1',
 			),
@@ -244,70 +183,35 @@ describe('canvas-node-status-projection (single-node)', () => {
 	it('returns to pending when input arrives after a settled result', () => {
 		let state = appendNodeChromeFrame(
 			emptyNodeChromeFoldState(),
-			{
-				kind: 'output-emitted',
-				runId,
-				nodeId,
-				portId: 'result',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: 'done',
-			},
+			['out', nodeId, 'result', 'value', 'done', 0, [], null],
 			catalogWithStreamingDraft(),
+			null,
 		);
 		expect(foldStatusFromNodeState(state)).toBe('value');
 
 		state = appendNodeChromeFrame(
 			state,
-			{
-				kind: 'input-received',
-				runId,
-				nodeId,
-				portId: 'feedback',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: 'revise this',
-			},
+			['in', nodeId, 'feedback', 'value', 'revise this', 0, [], null],
 			catalogWithStreamingDraft(),
+			null,
 		);
 		expect(foldStatusFromNodeState(state)).toBe('pending');
 	});
 
 	it('snapshot replay matches append sequence for one node', () => {
 		const events: RuntimeRunnerEvent[] = [
-			{
-				kind: 'input-received',
-				runId,
+			['in', nodeId, 'prompt', 'value', 'hi', 0, [], null],
+			[
+				'out',
 				nodeId,
-				portId: 'prompt',
-				portIdx: 0,
-				edgeIds: noEdges,
-				state: 'value',
-				value: 'hi',
-			},
-			{
-				kind: 'output-emitted',
-				runId,
-				nodeId,
-				portId: 'draft',
-				portIdx: 0,
-				edgeIds: noEdges,
-				state: 'value',
-				value: 'a',
-				feed: { streaming: true },
-			},
-			{
-				kind: 'output-emitted',
-				runId,
-				nodeId,
-				portId: 'result',
-				portIdx: 1,
-				edgeIds: noEdges,
-				state: 'value',
-				value: 'final',
-			},
+				'draft',
+				'value',
+				'a',
+				0,
+				[],
+				{ role: 'draft', streaming: true },
+			],
+			['out', nodeId, 'result', 'value', 'final', 1, [], null],
 		];
 		let appended = emptyNodeChromeFoldState();
 		for (const event of events) {
@@ -315,6 +219,7 @@ describe('canvas-node-status-projection (single-node)', () => {
 				appended,
 				event,
 				catalogWithStreamingDraft(),
+			null,
 			);
 		}
 		const replayed = replayNodeChromeFromSnapshot(

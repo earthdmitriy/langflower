@@ -142,7 +142,10 @@ export function createClient<C extends WsBridgeConfig>(
 
 	const socket = connectSocket(url);
 
-	const sendEvent = (event: { type: string; payload: unknown }): void => {
+	const sendEvent = (
+		event: { type: string; payload: unknown },
+		transportDir: 'in' | 'out',
+	): void => {
 		if (socket.readyState !== OPEN) {
 			errorsSubject.next({
 				code: 'TRANSPORT_NOT_OPEN',
@@ -151,7 +154,7 @@ export function createClient<C extends WsBridgeConfig>(
 			return;
 		}
 
-		socket.send(codec.encode(event));
+		socket.send(codec.encode(event, transportDir));
 	};
 
 	// Wire at construction so early `.next` is not silently dropped; sendEvent
@@ -159,6 +162,7 @@ export function createClient<C extends WsBridgeConfig>(
 	const wireSubscriptions: Subscription[] = wireOutgoingSubjects(
 		outgoingSubjects,
 		sendEvent,
+		'in',
 	);
 
 	socket.onOpen(() => {

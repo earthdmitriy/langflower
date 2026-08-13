@@ -129,16 +129,16 @@ describe('execute permission-escalation-ops (WS bridge)', () => {
 			const allowSub = autoAllowPermissions(client);
 
 			const toolLogsByNode = new Map<string, string[]>();
-			const toolSub = client['runner.output-emitted'].subscribe(
+			const toolSub = client['runner.port'].subscribe(
 				(event: RuntimeRunnerEvent) => {
 					if (
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.portId === 'toolLog'
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[2] === 'toolLog'
 					) {
-						const lines = toolLogsByNode.get(event.nodeId) ?? [];
-						lines.push(String(event.value));
-						toolLogsByNode.set(event.nodeId, lines);
+						const lines = toolLogsByNode.get(event[1]) ?? [];
+						lines.push(String(event[4]));
+						toolLogsByNode.set(event[1], lines);
 					}
 				},
 			);
@@ -211,7 +211,7 @@ describe('execute permission-escalation-ops (WS bridge)', () => {
 			allowSub.unsubscribe();
 			toolSub.unsubscribe();
 
-			expect(String(finish.value)).toContain('Bash:');
+			expect(String(finish[4])).toContain('Bash:');
 
 			const exploreLogs = toolLogsByNode.get('explore') ?? [];
 			const writeLogs = toolLogsByNode.get('write') ?? [];

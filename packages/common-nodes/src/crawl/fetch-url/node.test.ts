@@ -110,15 +110,15 @@ describe('common-fetch-url', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'error' &&
-						event.nodeId === 'fetch-1',
+						event[0] === 'out' &&
+						event[3] === 'error' &&
+						event[1] === 'fetch-1',
 				),
 			),
 		);
 
 		runtime.runner.start();
 		const errorEvent = await errorPromise;
-		expect(String(errorEvent.value)).toMatch(/Service unavailable/i);
+		expect(String(errorEvent[4])).toMatch(/Service unavailable/i);
 	});
 });

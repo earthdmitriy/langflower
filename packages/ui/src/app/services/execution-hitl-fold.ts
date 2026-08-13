@@ -1,4 +1,5 @@
-import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type { PortTelemetry, RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import { isPortTelemetry } from '@langflower/runtime';
 import type {
 	ExecutionFeedSnapshotPayload,
 	PaletteConfigPayload,
@@ -32,14 +33,12 @@ import {
 	steerControlHitlTransition,
 } from './hitl-projection';
 
-type InputReceivedEvent = Extract<
-	RuntimeRunnerEvent,
-	{ kind: 'input-received' }
->;
-type OutputEmittedEvent = Extract<
-	RuntimeRunnerEvent,
-	{ kind: 'output-emitted' }
->;
+type InputPortTelemetry = PortTelemetry & {
+	readonly 0: 'in';
+	readonly 2: string;
+	readonly 3: 'value';
+};
+import type { OutputPortTelemetry } from './execution-chrome-fold';
 
 type HitlFoldEvent =
 	| {
@@ -109,56 +108,58 @@ const computeHitlFromEvents = (
 ): Set<string> => {
 	const triggered = new Set<string>();
 	for (const event of events) {
-		if (
-			event.kind === 'output-emitted' &&
-			typeof event.portId === 'string' &&
-			event.state === 'value'
-		) {
+		if (isPortTelemetry(event) && event[0] === 'out') {
+			const [, nodeId, portId, state, value] = event;
+			if (typeof portId !== 'string' || state !== 'value') {
+				continue;
+			}
 			const role = resolveOutputFeedRole(
 				paletteByType,
 				nodeTypeById,
-				event.nodeId,
-				event.portId,
+				nodeId,
+				portId,
 			);
 			if (
-				(role === 'recovery' || event.portId === RECOVERY_PORT_ID) &&
-				isLlmRecoverySuspended(event.value)
+				(role === 'recovery' || portId === RECOVERY_PORT_ID) &&
+				isLlmRecoverySuspended(value)
 			) {
-				triggered.add(event.nodeId);
+				triggered.add(String(nodeId));
 			}
 			continue;
 		}
 		if (
-			event.kind !== 'input-received' ||
-			typeof event.portId !== 'string' ||
-			event.state !== 'value'
+			!isPortTelemetry(event) ||
+			event[0] !== 'in' ||
+			typeof event[2] !== 'string' ||
+			event[3] !== 'value'
 		) {
 			continue;
 		}
+		const [, nodeId, portId, , value] = event;
 		const def = definitionForNode(
 			paletteByType,
 			nodeTypeById,
-			event.nodeId,
+			nodeId,
 		);
 		if (def === undefined) {
 			continue;
 		}
-		const steer = steerControlHitlTransition(event.portId, event.value);
+		const steer = steerControlHitlTransition(portId, value);
 		if (steer === 'open') {
-			triggered.add(event.nodeId);
+			triggered.add(String(nodeId));
 			continue;
 		}
 		if (steer === 'close') {
-			triggered.delete(event.nodeId);
+			triggered.delete(String(nodeId));
 			continue;
 		}
-		if (event.portId === STEER_CONTROL_PORT_ID) {
+		if (portId === STEER_CONTROL_PORT_ID) {
 			continue;
 		}
-		if (hitlReplyReceived(def, event.portId)) {
-			triggered.delete(event.nodeId);
-		} else if (nonHitlInputReceived(def, event.nodeId, event.portId)) {
-			triggered.add(event.nodeId);
+		if (hitlReplyReceived(def, portId)) {
+			triggered.delete(String(nodeId));
+		} else if (nonHitlInputReceived(def, String(nodeId), portId)) {
+			triggered.add(String(nodeId));
 		}
 	}
 	return triggered;
@@ -265,10 +266,8 @@ export const createHitlTriggeredNodes$ = (deps: {
 	readonly workflowSnapshot$: Observable<WorkflowCurrentSnapshotPayload>;
 	readonly paletteSnapshot$: Observable<PaletteConfigPayload>;
 	readonly executionFeedSnapshot$: Observable<ExecutionFeedSnapshotPayload | null>;
-	readonly inputReceived$: Observable<
-		InputReceivedEvent & { portId: string }
-	>;
-	readonly outputEmitted$: Observable<OutputEmittedEvent>;
+	readonly inputReceived$: Observable<InputPortTelemetry>;
+	readonly outputEmitted$: Observable<OutputPortTelemetry>;
 	readonly runnerStarted$: Observable<RunId>;
 	readonly runnerStartNodeStarted$: Observable<RunId>;
 	readonly runnerDone$: Observable<unknown>;
@@ -292,9 +291,9 @@ export const createHitlTriggeredNodes$ = (deps: {
 			deps.inputReceived$.pipe(
 				map((event): HitlFoldEvent => ({
 					type: 'input',
-					nodeId: event.nodeId,
-					portId: event.portId,
-					value: event.value,
+					nodeId: String(event[1]),
+					portId: event[2],
+					value: event[4],
 					palette,
 					nodeTypes,
 				})),
@@ -305,21 +304,16 @@ export const createHitlTriggeredNodes$ = (deps: {
 	const output$ = catalog$.pipe(
 		switchMap(({ palette, nodeTypes }) =>
 			deps.outputEmitted$.pipe(
-				filter(
-					(event): event is OutputEmittedEvent & { portId: string } =>
-						typeof event.portId === 'string' &&
-						event.state === 'value',
-				),
 				map((event): HitlFoldEvent => ({
 					type: 'output',
-					nodeId: event.nodeId,
-					portId: event.portId,
-					value: event.value,
+					nodeId: String(event[1]),
+					portId: event[2],
+					value: event[4],
 					feedRole: resolveOutputFeedRole(
 						palette,
 						nodeTypes,
-						event.nodeId,
-						event.portId,
+						event[1],
+						event[2],
 					),
 				})),
 			),

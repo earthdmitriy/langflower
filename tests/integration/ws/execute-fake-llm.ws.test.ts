@@ -46,14 +46,14 @@ describe('execute fake-llm (WS bridge)', () => {
 		await seedWorkflowFromDisk(client, projectDir, fakeLlmStreamWorkflow());
 
 		const chunks: Array<{ portId: string; value: unknown }> = [];
-		const sub = client['runner.output-emitted'].subscribe(
+		const sub = client['runner.port'].subscribe(
 			(event: RuntimeRunnerEvent) => {
 				if (
-					event.kind === 'output-emitted' &&
-					event.state === 'value' &&
-					event.nodeId === 'llm-1'
+					event[0] === 'out' &&
+					event[3] === 'value' &&
+					event[1] === 'llm-1'
 				) {
-					chunks.push({ portId: event.portId, value: event.value });
+					chunks.push({ portId: event[2], value: event[4] });
 				}
 			},
 		);
@@ -69,8 +69,8 @@ describe('execute fake-llm (WS bridge)', () => {
 
 		sub.unsubscribe();
 
-		expect(output.value).toMatch(/^Final:/);
-		expect(String(output.value)).toContain('Write a haiku');
+		expect(output[4]).toMatch(/^Final:/);
+		expect(String(output[4])).toContain('Write a haiku');
 
 		const ports = chunks.map((chunk) => chunk.portId);
 		const firstDraft = ports.indexOf('draftResponse');
@@ -101,15 +101,15 @@ describe('execute fake-llm (WS bridge)', () => {
 		await seedWorkflowFromDisk(client, projectDir, fakeLlmToolsWorkflow());
 
 		const reasoning: string[] = [];
-		const sub = client['runner.output-emitted'].subscribe(
+		const sub = client['runner.port'].subscribe(
 			(event: RuntimeRunnerEvent) => {
 				if (
-					event.kind === 'output-emitted' &&
-					event.state === 'value' &&
-					event.nodeId === 'llm-1' &&
-					event.portId === 'reasoning'
+					event[0] === 'out' &&
+					event[3] === 'value' &&
+					event[1] === 'llm-1' &&
+					event[2] === 'reasoning'
 				) {
-					reasoning.push(String(event.value));
+					reasoning.push(String(event[4]));
 				}
 			},
 		);
@@ -125,8 +125,8 @@ describe('execute fake-llm (WS bridge)', () => {
 
 		sub.unsubscribe();
 
-		expect(output.value).toMatch(/^Final:/);
-		expect(String(output.value)).toContain('Search the repo');
+		expect(output[4]).toMatch(/^Final:/);
+		expect(String(output[4])).toContain('Search the repo');
 
 		const reasoningText = reasoning.join('');
 		expect(reasoningText).toContain('get_memory_tree');

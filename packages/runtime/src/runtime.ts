@@ -17,9 +17,9 @@ export type {
 	RuntimeEditorApi,
 	RuntimeFeedPortMeta,
 	RuntimeFeedRole,
-	RuntimeInputReceivedEvent,
+	PortTelemetry,
+	RuntimeDoneTelemetry,
 	RuntimeNode,
-	RuntimeOutputEmittedEvent,
 	RuntimePortSignalState,
 	RuntimeResumeOptions,
 	RuntimeRunnerApi,
@@ -28,6 +28,7 @@ export type {
 	RuntimeSeedPortValue,
 	RuntimeWireType,
 } from './types.js';
+export { isPortTelemetry, isRuntimeDone } from './types.js';
 export type { RuntimeOptions };
 
 export class RuntimeFacade {

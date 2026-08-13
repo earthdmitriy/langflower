@@ -1,4 +1,9 @@
-import type { NodeId, RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import {
+	isPortTelemetry,
+	type NodeId,
+	type RunId,
+	type RuntimeRunnerEvent,
+} from '@langflower/runtime';
 import {
 	buildWorkflowFingerprint,
 	toCheckpointJsonValue,
@@ -104,32 +109,34 @@ export class RunCheckpointSession {
 		event: RuntimeRunnerEvent,
 		boundary?: { readonly label?: string },
 	): boolean {
-		if (this.active === undefined || event.kind !== 'output-emitted') {
+		if (
+			this.active === undefined ||
+			!isPortTelemetry(event) ||
+			event[0] !== 'out'
+		) {
 			return false;
 		}
 
-		if (String(event.runId) !== this.active.runId) {
+		const [, nodeIdRaw, portId, state, value] = event;
+
+		if (state !== 'value' || typeof portId !== 'string') {
 			return false;
 		}
 
-		if (event.state !== 'value' || typeof event.portId !== 'string') {
-			return false;
-		}
-
-		const jsonValue = toCheckpointJsonValue(event.value);
+		const jsonValue = toCheckpointJsonValue(value);
 		if (jsonValue === undefined) {
-			this.unsupportedValue = `${event.nodeId}.${event.portId}`;
+			this.unsupportedValue = `${String(nodeIdRaw)}.${portId}`;
 			return false;
 		}
 
-		const nodeId = String(event.nodeId);
+		const nodeId = String(nodeIdRaw);
 		let ports = this.active.outputSnapshots.get(nodeId);
 		if (ports === undefined) {
 			ports = new Map();
 			this.active.outputSnapshots.set(nodeId, ports);
 		}
 
-		ports.set(event.portId, {
+		ports.set(portId, {
 			state: 'value',
 			value: jsonValue,
 		});

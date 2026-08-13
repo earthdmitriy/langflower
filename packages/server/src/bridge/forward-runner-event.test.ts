@@ -1,20 +1,16 @@
-import type {
-	RuntimeOutputEmittedEvent,
-	RuntimeRunnerEvent,
-} from '@langflower/runtime';
+import type { PortTelemetry, RuntimeRunnerEvent } from '@langflower/runtime';
 import { Subject } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { forwardRunnerEvent } from './forward-runner-event.js';
 import type { LangflowerBridge } from './langflower-bridge.types.js';
 
 /**
- * Unit test: `forwardRunnerEvent` passes `pending` output-emitted events via
+ * Unit test: `forwardRunnerEvent` passes port tuples via
  * `bridgeEmit` (session-shared fan-out). See `BRIDGE.md`.
  */
 
 type BridgeChannels = {
-	readonly 'runner.output-emitted': Subject<RuntimeOutputEmittedEvent>;
-	readonly 'runner.input-received': Subject<RuntimeRunnerEvent>;
+	readonly 'runner.port': Subject<PortTelemetry>;
 	readonly 'runner.done': Subject<RuntimeRunnerEvent>;
 };
 
@@ -22,30 +18,34 @@ const asBridge = (channels: BridgeChannels): LangflowerBridge =>
 	channels as unknown as LangflowerBridge;
 
 const createMockBridge = (): BridgeChannels => ({
-	'runner.output-emitted': new Subject<RuntimeOutputEmittedEvent>(),
-	'runner.input-received': new Subject<RuntimeRunnerEvent>(),
+	'runner.port': new Subject<PortTelemetry>(),
 	'runner.done': new Subject<RuntimeRunnerEvent>(),
 });
 
 const createPendingEvent = (
-	overrides: Partial<RuntimeOutputEmittedEvent> = {},
-): RuntimeOutputEmittedEvent => ({
-	kind: 'output-emitted',
-	runId: 'run-1' as import('@langflower/runtime').RunId,
-	nodeId: 'delay-1' as import('@langflower/runtime').NodeId,
-	portId: 'value',
-	portIdx: 0,
-	edgeIds: [],
-	state: 'pending',
-	value: undefined,
-	...overrides,
-});
+	overrides: Partial<{
+		state: PortTelemetry[3];
+		value: unknown;
+	}> = {},
+): PortTelemetry => {
+	const state = overrides.state ?? 'pending';
+	return [
+		'out',
+		'delay-1' as import('@langflower/runtime').NodeId,
+		'value',
+		state,
+		overrides.value ?? (state === 'value' ? 'result' : undefined),
+		0,
+		[],
+		null,
+	];
+};
 
 describe('forwardRunnerEvent — pending events', () => {
-	it('forwards output-emitted with state=pending via bridge', () => {
+	it('forwards output port tuple with state=pending via bridge', () => {
 		const bridge = createMockBridge();
-		const received: RuntimeOutputEmittedEvent[] = [];
-		const sub = bridge['runner.output-emitted'].subscribe((event) => {
+		const received: PortTelemetry[] = [];
+		const sub = bridge['runner.port'].subscribe((event) => {
 			received.push(event);
 		});
 
@@ -53,17 +53,17 @@ describe('forwardRunnerEvent — pending events', () => {
 		forwardRunnerEvent(asBridge(bridge), event);
 
 		expect(received).toHaveLength(1);
-		expect(received[0]!.state).toBe('pending');
-		expect(received[0]!.nodeId).toBe('delay-1');
-		expect(received[0]!.kind).toBe('output-emitted');
+		expect(received[0]![3]).toBe('pending');
+		expect(received[0]![1]).toBe('delay-1');
+		expect(received[0]![0]).toBe('out');
 
 		sub.unsubscribe();
 	});
 
-	it('forwards output-emitted with state=value via bridge', () => {
+	it('forwards output port tuple with state=value via bridge', () => {
 		const bridge = createMockBridge();
-		const received: RuntimeOutputEmittedEvent[] = [];
-		const sub = bridge['runner.output-emitted'].subscribe((event) => {
+		const received: PortTelemetry[] = [];
+		const sub = bridge['runner.port'].subscribe((event) => {
 			received.push(event);
 		});
 
@@ -71,16 +71,16 @@ describe('forwardRunnerEvent — pending events', () => {
 		forwardRunnerEvent(asBridge(bridge), event);
 
 		expect(received).toHaveLength(1);
-		expect(received[0]!.state).toBe('value');
-		expect(received[0]!.value).toBe('result');
+		expect(received[0]![3]).toBe('value');
+		expect(received[0]![4]).toBe('result');
 
 		sub.unsubscribe();
 	});
 
 	it('forwards pending then value in order', () => {
 		const bridge = createMockBridge();
-		const received: RuntimeOutputEmittedEvent[] = [];
-		const sub = bridge['runner.output-emitted'].subscribe((event) => {
+		const received: PortTelemetry[] = [];
+		const sub = bridge['runner.port'].subscribe((event) => {
 			received.push(event);
 		});
 
@@ -91,7 +91,7 @@ describe('forwardRunnerEvent — pending events', () => {
 		);
 
 		expect(received).toHaveLength(2);
-		expect(received.map((e) => e.state)).toEqual(['pending', 'value']);
+		expect(received.map((e) => e[3])).toEqual(['pending', 'value']);
 
 		sub.unsubscribe();
 	});
@@ -113,13 +113,13 @@ describe('forwardRunnerEvent — pending events', () => {
 	it('runtime events$ → forwardRunnerEvent → bridge channel wiring', () => {
 		const runtimeEvents$ = new Subject<RuntimeRunnerEvent>();
 		const bridge = createMockBridge();
-		const received: RuntimeOutputEmittedEvent[] = [];
+		const received: PortTelemetry[] = [];
 
 		const sub = runtimeEvents$.subscribe((event) => {
 			forwardRunnerEvent(asBridge(bridge), event);
 		});
 
-		const bridgeSub = bridge['runner.output-emitted'].subscribe((event) => {
+		const bridgeSub = bridge['runner.port'].subscribe((event) => {
 			received.push(event);
 		});
 
@@ -129,9 +129,9 @@ describe('forwardRunnerEvent — pending events', () => {
 		);
 
 		expect(received).toHaveLength(2);
-		expect(received[0]!.state).toBe('pending');
-		expect(received[1]!.state).toBe('value');
-		expect(received[1]!.value).toBe('through-delay');
+		expect(received[0]![3]).toBe('pending');
+		expect(received[1]![3]).toBe('value');
+		expect(received[1]![4]).toBe('through-delay');
 
 		bridgeSub.unsubscribe();
 		sub.unsubscribe();

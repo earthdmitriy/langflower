@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type { RunId } from '@langflower/runtime';
+import { isPortTelemetry } from '@langflower/runtime';
 import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
 import { merge } from 'rxjs';
 import { distinctUntilChanged, filter, map, scan, skip } from 'rxjs/operators';
@@ -36,16 +37,6 @@ const emptyPreviewState: PreviewState = {
 	runId: null,
 };
 
-/**
- * Live values received on input ports during execution, keyed by
- * `${nodeId}:${portId}` — backs `inline: 'preview'` port rows so they show
- * the value flowing through the wire while a run is in progress.
- *
- * Event-sourcing fold (same contract as canvas chrome): replace from
- * `executionFeed.snapshot`, append live `runner.input-received`, clear on
- * feed null / new run / workflow switch. Settled values stay after
- * `runner.done` so live settle matches reconnect replay.
- */
 @Injectable({ providedIn: 'root' })
 export class NodePreviewValuesService {
 	private readonly bridge = inject(LangflowerBridgeService);
@@ -58,24 +49,20 @@ export class NodePreviewValuesService {
 					snap,
 				})),
 			),
-			this.bridge.raw['runner.input-received'].pipe(
+			this.bridge.raw['runner.port'].pipe(
 				filter(
-					(
-						event,
-					): event is Extract<
-						RuntimeRunnerEvent,
-						{ kind: 'input-received' }
-					> & { portId: string } =>
-						event.kind === 'input-received' &&
-						event.state === 'value' &&
-						typeof event.portId === 'string',
+					(event) =>
+						isPortTelemetry(event) &&
+						event[0] === 'in' &&
+						event[3] === 'value' &&
+						typeof event[2] === 'string',
 				),
 				map((event): PreviewAction => ({
 					type: 'input',
-					runId: event.runId,
-					nodeId: event.nodeId,
-					portId: event.portId,
-					value: event.value,
+					runId: '' as RunId,
+					nodeId: String(event[1]),
+					portId: event[2],
+					value: event[4],
 				})),
 			),
 			merge(
@@ -113,7 +100,7 @@ export class NodePreviewValuesService {
 					previewKey(action.nodeId, action.portId),
 					action.value,
 				);
-				return { map: next, runId: action.runId };
+				return { map: next, runId: state.runId ?? action.runId };
 			}, emptyPreviewState),
 			map((state) => state.map),
 		),
@@ -124,7 +111,6 @@ export class NodePreviewValuesService {
 		return this.values().get(previewKey(nodeId, portId));
 	}
 
-	/** All known live input values for one node, keyed by `portId`. */
 	entriesForNode(nodeId: string): ReadonlyMap<string, unknown> {
 		const prefix = `${nodeId}:`;
 		const entries = new Map<string, unknown>();
@@ -151,13 +137,14 @@ const replayPreviewValues = (
 	}
 	for (const event of snapshot.events) {
 		if (
-			event.kind !== 'input-received' ||
-			event.state !== 'value' ||
-			typeof event.portId === 'symbol'
+			!isPortTelemetry(event) ||
+			event[0] !== 'in' ||
+			event[3] !== 'value' ||
+			typeof event[2] === 'symbol'
 		) {
 			continue;
 		}
-		map.set(previewKey(event.nodeId, event.portId), event.value);
+		map.set(previewKey(String(event[1]), event[2]), event[4]);
 	}
 	return map;
 };

@@ -268,7 +268,7 @@ describe('execute coding-agent full pipeline (WS bridge)', () => {
 			await donePromise;
 			allowSub.unsubscribe();
 
-			expect(String(finish.value).length).toBeGreaterThan(0);
+			expect(String(finish[4]).length).toBeGreaterThan(0);
 
 			const greet = await fs.readFile(
 				path.join(projectDir, 'src', 'greet.ts'),

@@ -1,4 +1,6 @@
 import type {
+	PortTelemetry,
+	RuntimeDoneTelemetry,
 	RuntimeEdge,
 	RuntimeEditorApi,
 	RuntimeRunnerApi,
@@ -356,23 +358,15 @@ const runnerConfig = {
 			message<Parameters<RuntimeRunnerApi['interrupt']>[0]>(),
 
 		/**
-		 * Output port signal — {@link RuntimeRunnerEvent} with
-		 * `kind === 'output-emitted'`.
+		 * Port signal — {@link PortTelemetry}; direction at `payload[0]` (`'in'` | `'out'`).
 		 */
-		'runner.output-emitted': message<RuntimeRunnerEvent>(),
+		'runner.port': message<PortTelemetry>(),
 
 		/**
-		 * Input port signal — {@link RuntimeRunnerEvent} with
-		 * `kind === 'input-received'` (wires, seeds).
-		 */
-		'runner.input-received': message<RuntimeRunnerEvent>(),
-
-		/**
-		 * Natural run end — {@link RuntimeRunnerEvent} with `kind === 'done'`
-		 * (empty graph, {@link RuntimeNode.stopsRun}, or forced complete).
+		 * Natural run end — {@link RuntimeDoneTelemetry}.
 		 * Runner status becomes `'idle'`.
 		 */
-		'runner.done': message<RuntimeRunnerEvent>(),
+		'runner.done': message<RuntimeDoneTelemetry>(),
 
 		/**
 		 * Runtime permission ask for a gated harness tool call (feed + composer).
@@ -751,8 +745,7 @@ const workflowManagerConfig = {
  * broadcast `workflow.*.snapshot`.
  *
  * **Runtime after reconnect:** hydrate the log / port state from
- * `executionFeed.snapshot`, then append live `runner.output-emitted`,
- * `runner.input-received`, `runner.done`, … — no replay of the full runner
+ * `executionFeed.snapshot`, then append live `runner.port`, `runner.done`, … — no replay of the full runner
  * history on every mutation, only the dedicated feed snapshot plus new frames.
  *
  * Partials: {@link editorConfig} | {@link runnerConfig} |

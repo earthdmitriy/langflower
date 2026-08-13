@@ -5,6 +5,7 @@ import {
 	paletteDefinition,
 	readItems,
 	runId,
+	startRun,
 } from './execution-feed.service.fixture';
 
 const agent = paletteDefinition('agent', [
@@ -23,7 +24,7 @@ describe('ExecutionFeedService replay', () => {
 
 		expect(harness.latestNodes()).toEqual([]);
 
-		harness.seedCatalog({ 'agent-a': 'agent' }, [agent]);
+		harness.seedCatalog({ 'agent-a': 'agent' }, [agent], { startRun: false });
 
 		expect(harness.latestNodes().map((node) => node.nodeId)).toEqual([
 			'agent-a',
@@ -37,7 +38,7 @@ describe('ExecutionFeedService replay', () => {
 
 	it('replaces history from snapshots and clears it on null', async () => {
 		const harness = createExecutionFeedHarness();
-		harness.seedCatalog({ 'agent-a': 'agent' }, [agent]);
+		harness.seedCatalog({ 'agent-a': 'agent' }, [agent], { startRun: false });
 		harness.raw.executionFeedSnapshot$.next({
 			runId: runId(),
 			workflowId: 'wf-1',
@@ -63,17 +64,24 @@ describe('ExecutionFeedService replay', () => {
 
 	it('keeps the same graph node in different runs separate', () => {
 		const harness = createExecutionFeedHarness();
-		harness.seedCatalog({ 'agent-a': 'agent' }, [agent]);
-		harness.raw.outputEmitted$.next(
-			outputEvent('agent-a', 'draft', 'one', { run: 'run-1' }),
+		harness.seedCatalog({ 'agent-a': 'agent' }, [agent], {
+			startRun: false,
+		});
+		startRun(harness, 'run-1');
+		harness.raw.runnerPort$.next(
+			outputEvent('agent-a', 'draft', 'one'),
 		);
-		harness.raw.outputEmitted$.next(
-			outputEvent('agent-a', 'draft', 'two', { run: 'run-2' }),
-		);
+		const run1VisitId = harness.latestNodes()[0]?.visitId;
 
-		expect(harness.latestNodes().map((node) => node.runId)).toEqual([
-			'run-1',
-			'run-2',
-		]);
+		startRun(harness, 'run-2');
+		harness.raw.runnerPort$.next(
+			outputEvent('agent-a', 'draft', 'two'),
+		);
+		const run2Node = harness.latestNodes()[0]!;
+
+		expect(run1VisitId).toMatch(/^run-1:agent-a:/);
+		expect(run2Node.runId).toBe('run-2');
+		expect(run2Node.visitId).toMatch(/^run-2:agent-a:/);
+		expect(run2Node.visitId).not.toBe(run1VisitId);
 	});
 });

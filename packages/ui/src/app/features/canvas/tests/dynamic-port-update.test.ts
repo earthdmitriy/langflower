@@ -36,14 +36,13 @@ import { LfNodeComponent } from '../components/lf-node.component';
 function createRawSubjects() {
 	return {
 		'editor.updateNode.requested': new Subject(),
-		'runner.input-received': new Subject(),
+		'runner.port': new Subject(),
 		// Consumed by WorkflowExecutionService, injected by LfNodeComponent
 		// for canvas execution chrome.
 		'workflow.current.snapshot': new Subject(),
 		'executionFeed.snapshot': new Subject(),
 		'palette.snapshot': new Subject(),
 		'customPalette.snapshot': new Subject(),
-		'runner.output-emitted': new Subject(),
 		'runner.started': new Subject(),
 		'runner.startNode.started': new Subject(),
 		'runner.done': new Subject(),

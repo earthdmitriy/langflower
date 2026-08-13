@@ -9,24 +9,39 @@ import {
 describe('foldChromeState', () => {
 	const edgeKeying: ChromeKeying<EdgeId> = {
 		replay: replayEdgeStates,
-		keysFromOutput: (event) => event.edgeIds ?? [],
+		keysFromOutput: (event) => event[6],
 	};
 
 	it('applies output and reset without wiping same-runId', () => {
-		const afterOutput = foldChromeState(
+		const afterSnapshot = foldChromeState(
 			{ map: new Map(), runId: null },
 			{
-				type: 'output',
-				event: {
-					kind: 'output-emitted',
+				type: 'snapshot',
+				snap: {
 					runId: 'r1' as RunId,
-					nodeId: 'n1' as NodeId,
-					portId: 'out',
-					portIdx: 0,
-					state: 'value',
-					value: 1,
-					edgeIds: ['e1' as EdgeId],
+					workflowId: 'w1',
+					status: 'running',
+					events: [],
 				},
+			},
+			edgeKeying,
+		);
+		expect(afterSnapshot.runId).toBe('r1');
+
+		const afterOutput = foldChromeState(
+			afterSnapshot,
+			{
+				type: 'output',
+				event: [
+					'out',
+					'n1' as NodeId,
+					'out',
+					'value',
+					1,
+					0,
+					['e1' as EdgeId],
+					null,
+				],
 			},
 			edgeKeying,
 		);
@@ -59,16 +74,16 @@ describe('foldChromeState', () => {
 					workflowId: 'w1',
 					status: 'running',
 					events: [
-						{
-							kind: 'output-emitted',
-							runId: 'r1' as RunId,
-							nodeId: 'n1' as NodeId,
-							portId: 'out',
-							portIdx: 0,
-							state: 'pending',
-							value: undefined,
-							edgeIds: ['e1' as EdgeId],
-						},
+						[
+							'out',
+							'n1' as NodeId,
+							'out',
+							'pending',
+							undefined,
+							0,
+							['e1' as EdgeId],
+							null,
+						],
 					],
 				},
 			},

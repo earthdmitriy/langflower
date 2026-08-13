@@ -85,12 +85,12 @@ describe('common-sub-agent', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'explorer' &&
-						event.portId === 'registration',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'explorer' &&
+						event[2] === 'registration',
 				),
-				map((event) => event.value),
+				map((event) => event[4]),
 			),
 		);
 
@@ -98,12 +98,12 @@ describe('common-sub-agent', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'explorer' &&
-						event.portId === 'result',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'explorer' &&
+						event[2] === 'result',
 				),
-				map((event) => event.value as SubAgentResultPayload),
+				map((event) => event[4] as SubAgentResultPayload),
 			),
 		);
 
@@ -148,10 +148,10 @@ describe('common-sub-agent', () => {
 			.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'explorer' &&
-						event.portId === 'result',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'explorer' &&
+						event[2] === 'result',
 				),
 			)
 			.subscribe(() => {

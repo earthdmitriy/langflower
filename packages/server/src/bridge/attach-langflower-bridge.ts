@@ -1,3 +1,4 @@
+import { isRuntimeDone } from '@langflower/runtime';
 import {
 	deriveExecutionProgressStatus,
 	terminalExecutionProgressStatus,
@@ -73,7 +74,7 @@ export const attachLangflowerBridge = (
 	// backlog via `executionFeed.snapshot`. See FOUND_BUGS pending race.
 	rootSubscription.add(
 		session.runtime.runner.events$.subscribe((event) => {
-			if (event.kind === 'done' && onRunSettled !== undefined) {
+			if (isRuntimeDone(event) && onRunSettled !== undefined) {
 				const progress = deriveExecutionProgressStatus(
 					'idle',
 					session.runtime.runner.eventLog,

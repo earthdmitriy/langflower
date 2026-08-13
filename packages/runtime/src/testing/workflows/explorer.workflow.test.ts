@@ -81,8 +81,7 @@ describe('explorer workflow (events$)', () => {
 			'prompt',
 			runId,
 		);
-		expect(prompt.runId).toBe(runId);
-		expect(prompt.value).toEqual({
+		expect(prompt[4]).toEqual({
 			question: `Explorer: ${TOPIC}`,
 			awaiting: true,
 		});
@@ -104,7 +103,6 @@ describe('explorer workflow (events$)', () => {
 			'response',
 			runId,
 		);
-		expect(response.runId).toBe(runId);
-		expect(response.value).toBe('Explorer: Focus on API docs');
+		expect(response[4]).toBe('Explorer: Focus on API docs');
 	});
 });

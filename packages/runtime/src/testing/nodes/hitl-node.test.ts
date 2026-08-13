@@ -1,7 +1,7 @@
 import { filter, firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { readOutputValue } from '../readOutputValue.js';
-import { createRuntimeHarness } from '../workflows/workflow-events.js';
+import { createRuntimeHarness, edgeIdsFromPortEvent } from '../workflows/workflow-events.js';
 import { createConstantTestNode } from './constant-node.js';
 import { createHitlTestNode } from './hitl-node.js';
 
@@ -54,10 +54,10 @@ describe('createHitlTestNode', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'ask' &&
-						event.portId === 'reply',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'ask' &&
+						event[2] === 'reply',
 				),
 			),
 		);
@@ -66,7 +66,7 @@ describe('createHitlTestNode', () => {
 		hitl.submitReply('yes');
 
 		const event = await replyPromise;
-		expect(event.kind === 'output-emitted' && event.value).toBe('yes');
-		expect(event.edgeIds).toEqual([]);
+		expect(event[0] === 'out' && event[4]).toBe('yes');
+		expect(edgeIdsFromPortEvent(event)).toEqual([]);
 	});
 });

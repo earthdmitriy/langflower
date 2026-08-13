@@ -1,5 +1,9 @@
 import type { SteerControlPayload } from '@langflower/node-sdk/llm';
-import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type {
+	PortTelemetry,
+	RunId,
+	RuntimeRunnerEvent,
+} from '@langflower/runtime';
 import type {
 	CustomPaletteSnapshotPayload,
 	ExecutionFeedSnapshotPayload,
@@ -139,8 +143,8 @@ export type NodeFeedItem = {
 
 export type FeedBridgeSources = {
 	readonly executionFeedSnapshot$: Observable<ExecutionFeedSnapshotPayload | null>;
-	readonly outputEmitted$: Observable<RuntimeRunnerEvent>;
-	readonly inputReceived$: Observable<RuntimeRunnerEvent>;
+	readonly runnerPort$: Observable<PortTelemetry>;
+	readonly runnerStarted$: Observable<RunId>;
 	readonly permissionAsk$: Observable<RunnerPermissionAskPayload>;
 	readonly permissionAccepted$: Observable<RunnerPermissionReplyPayload>;
 	readonly workflowSnapshot$: Observable<WorkflowCurrentSnapshotPayload>;

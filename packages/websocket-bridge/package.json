@@ -15,6 +15,14 @@
 		"./create-server": {
 			"types": "./dist/create-server.d.ts",
 			"import": "./dist/create-server.js"
+		},
+		"./bridge-codec": {
+			"types": "./dist/bridge-codec.d.ts",
+			"import": "./dist/bridge-codec.js"
+		},
+		"./bridge-codec.js": {
+			"types": "./dist/bridge-codec.d.ts",
+			"import": "./dist/bridge-codec.js"
 		}
 	},
 	"scripts": {

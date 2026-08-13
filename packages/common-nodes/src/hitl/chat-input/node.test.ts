@@ -75,10 +75,10 @@ describe('common-chat-input', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.nodeId === 'preview-1' &&
-						event.portId === 'text' &&
-						event.state === 'value',
+						event[0] === 'out' &&
+						event[1] === 'preview-1' &&
+						event[2] === 'text' &&
+						event[3] === 'value',
 				),
 			),
 		);
@@ -92,7 +92,7 @@ describe('common-chat-input', () => {
 		expect(runId).not.toBe(false);
 
 		const previewEvent = await previewPromise;
-		expect(previewEvent.value).toBe('Hello from chat');
+		expect(previewEvent[4]).toBe('Hello from chat');
 	});
 
 	it('plain start skips chat-entry clusters', () => {

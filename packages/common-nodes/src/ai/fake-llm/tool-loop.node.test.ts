@@ -65,12 +65,12 @@ describe('common-fake-llm tool loop', () => {
 		const toolLogs: string[] = [];
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
-				event.kind === 'output-emitted' &&
-				event.state === 'value' &&
-				event.nodeId === 'llm-1' &&
-				event.portId === 'toolLog'
+				event[0] === 'out' &&
+				event[3] === 'value' &&
+				event[1] === 'llm-1' &&
+				event[2] === 'toolLog'
 			) {
-				toolLogs.push(String(event.value));
+				toolLogs.push(String(event[4]));
 			}
 		});
 
@@ -78,10 +78,10 @@ describe('common-fake-llm tool loop', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'llm-1' &&
-						event.portId === 'response',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'llm-1' &&
+						event[2] === 'response',
 				),
 			),
 		);
@@ -153,10 +153,7 @@ describe('common-fake-llm tool loop', () => {
 		});
 
 		const responseEvent = await responsePromise;
-		expect(responseEvent).toMatchObject({
-			kind: 'output-emitted',
-			value: 'The file contains payload-42',
-		});
+		expect(responseEvent).toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), 'The file contains payload-42']));
 		expect(toolLogs.some((line) => line.includes('→ read'))).toBe(true);
 		expect(toolLogs.some((line) => line.includes('payload-42'))).toBe(true);
 

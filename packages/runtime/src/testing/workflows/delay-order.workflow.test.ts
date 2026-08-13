@@ -59,18 +59,15 @@ describe('delayed node ordering in the work-log timeline', () => {
 			1400,
 		);
 
-		const firstIndexOf = (kind: string, nodeId: string): number =>
+		const firstIndexOf = (portDir: 'in' | 'out', nodeId: string): number =>
 			events.findIndex(
-				(event) =>
-					event.kind === kind &&
-					event.runId === runId &&
-					event.nodeId === nodeId,
+				(event) => event[0] === portDir && event[1] === nodeId,
 			);
 
-		const strOut = firstIndexOf('output-emitted', 'str');
-		const delayOut = firstIndexOf('output-emitted', 'delay');
-		const previewOut = firstIndexOf('output-emitted', 'preview');
-		const finishOut = firstIndexOf('output-emitted', 'finish');
+		const strOut = firstIndexOf('out', 'str');
+		const delayOut = firstIndexOf('out', 'delay');
+		const previewOut = firstIndexOf('out', 'preview');
+		const finishOut = firstIndexOf('out', 'finish');
 
 		expect(strOut).toBeGreaterThanOrEqual(0);
 		expect(delayOut).toBeGreaterThanOrEqual(0);

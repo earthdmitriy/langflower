@@ -1,6 +1,6 @@
 # Specification: Compact bridge frame format
 
-**Status:** queued  
+**Status:** done  
 **Index:** [README.md](README.md)
 
 ## 1. Executive Summary & Intent
@@ -105,24 +105,20 @@ type BridgeFrame = readonly [
 **Replace** the object types at [`types.ts:131–154`](../../packages/runtime/src/types.ts) with one tuple source type:
 
 ```typescript
-/** Port signal: ['in'|'out', nodeId, portId, state, value, ...tail] — no kind, no runId */
+/** Port signal: fixed 8-slot tuple — no kind, no runId on port frames */
 export type PortTelemetry = readonly [
   portDir: 'in' | 'out',         // 'out' = was output-emitted, 'in' = was input-received
   nodeId: NodeId,
   portId: string,               // string ports only; symbol ports never serialized
   state: RuntimePortSignalState,
   value: unknown,
-  ...tail: PortTelemetryTail,
+  portIdx: number,              // default 0
+  edgeIds: readonly EdgeId[],   // default []
+  feed: RuntimeFeedPortMeta | null,
 ];
-
-/** Trailing slots appended only when non-default (variable length) */
-type PortTelemetryTail =
-  | readonly []                                    // portIdx 0, no edges, no feed
-  | readonly [portIdx: number]                     // portIdx !== 0
-  | readonly [portIdx: number, edgeIds: EdgeId[]] // + non-empty edgeIds
-  | readonly [portIdx: number, edgeIds: EdgeId[], feed: RuntimeFeedPortMeta]
-  | readonly [portIdx: number, feed: RuntimeFeedPortMeta]; // portIdx + feed, empty edges
 ```
+
+**Tuple JSON rule:** never put `undefined` in a tuple slot — `JSON.stringify` turns it into `null` on the wire anyway. Emit **`null`** for absent optional slots (`feed`, and `value` when pending).
 
 | Old object field | Tuple | Rule |
 | --- | --- | --- |
@@ -132,21 +128,21 @@ type PortTelemetryTail =
 | `nodeId` | index 1 | |
 | `portId` | index 2 | string only |
 | `state` | index 3 | |
-| `value` | index 4 | |
-| `portIdx` | tail[0] | append only when `!== 0` |
-| `edgeIds` | tail slot | append only when `length > 0` |
-| `feed` | tail slot | append only when defined |
+| `value` | index 4 | `null` when pending with no payload (prefer omitting pending input frames in UI) |
+| `portIdx` | index 5 | always present; default `0` |
+| `edgeIds` | index 6 | always present; default `[]` |
+| `feed` | index 7 | always present; default `null` |
 
 **Examples (JSON on wire and in log):**
 
 ```json
-["2026-08-06T09:31:05.623Z", "out", "runner.port", ["out", "node-1", "draft", "value", "Hello"]]
+["2026-08-06T09:31:05.623Z", "out", "runner.port", ["out", "node-1", "draft", "value", "Hello", 0, [], null]]
 ```
 
-With tail (portIdx 2, one edge):
+With feed meta and one edge:
 
 ```json
-["2026-08-06T09:31:05.623Z", "out", "runner.port", ["out", "node-1", "item", "value", 42, 2, ["edge-a"]]]
+["2026-08-06T09:31:05.623Z", "out", "runner.port", ["out", "node-1", "item", "value", 42, 2, ["edge-a"], {"role":"result"}]]
 ```
 
 #### `RuntimeRunnerEvent` — compact union
@@ -248,17 +244,16 @@ Tail slots (`portIdx`, `edgeIds`, `feed`) are read inline at the few call sites 
 
 ### C. Functional Requirements Checklist
 
-- [ ] `RuntimeOutputEmittedEvent` / `RuntimeInputReceivedEvent` **object types removed**; replaced by `PortTelemetry` tuple in `types.ts`.
-- [ ] No `kind` or `runId` on port tuples; direction is `'in'` / `'out'` at index 0.
-- [ ] `BridgeFrame` is a 4-tuple; WS and logs serialize the **same JSON string** — no log-only sanitization or transform.
-- [ ] Bus consolidates to `runner.port` (direction in payload[0]).
-- [ ] Folds migrated — destructure `PortTelemetry` directly; no accessor/glue module.
-- [ ] `runtime-runner.ts` emits tuples; all runtime tests/fixtures updated.
-- [ ] Legacy object envelope codec and `runner.output-emitted` / `runner.input-received` bus types **deleted** in the same change — no rollback flag or dual codec.
-- [ ] **`schemaVersion` removed** from `bridge-event-log.ts` (type line 18, `write()` omit at 179, inject at 187) and all bridge log tests/docs — no per-line version field.
-- [ ] `BridgeEventLogRecord` wrapper deleted; log lines are `BridgeFrame` tuples identical to WS frames.
-- [ ] ADR + BRIDGE/CONFIG docs updated.
-- [ ] **`npm run test`** at close-out.
+- [X] `RuntimeOutputEmittedEvent` / `RuntimeInputReceivedEvent` **object types removed**; replaced by `PortTelemetry` tuple in `types.ts`.
+- [X] No `kind` or `runId` on port tuples; direction is `'in'` / `'out'` at index 0.
+- [X] `BridgeFrame` is a 4-tuple; WS and logs serialize the **same JSON string** — no log-only sanitization or transform.
+- [X] Bus consolidates to `runner.port` (direction in payload[0]).
+- [X] Folds migrated — destructure `PortTelemetry` directly; no accessor/glue module.
+- [X] `runtime-runner.ts` emits tuples; all runtime tests/fixtures updated.
+- [X] Legacy object envelope codec and `runner.output-emitted` / `runner.input-received` bus types **deleted** in the same change — no rollback flag or dual codec.
+- [X] **`schemaVersion` removed** from bridge event log; log lines are `BridgeFrame` tuples identical to WS frames.
+- [X] ADR + docs updated.
+- [X] **`npm run test`** at close-out.
 
 ### Verify
 
@@ -297,7 +292,7 @@ Tail slots (`portIdx`, `edgeIds`, `feed`) are read inline at the few call sites 
   "2026-08-06T09:31:05.623Z",
   "out",
   "runner.port",
-  ["out", "node-1", "draft", "value", "Hello"]
+  ["out", "node-1", "draft", "value", "Hello", 0, [], null]
 ]
 ```
 
@@ -310,7 +305,9 @@ export type PortTelemetry = readonly [
   string,
   RuntimePortSignalState,
   unknown,
-  ...PortTelemetryTail,
+  number,
+  readonly EdgeId[],
+  RuntimeFeedPortMeta | null,
 ];
 
 export type RuntimeRunnerEvent = PortTelemetry | RuntimeDoneTelemetry;
@@ -320,7 +317,7 @@ export type RuntimeRunnerEvent = PortTelemetry | RuntimeDoneTelemetry;
 
 | Old | New |
 | --- | --- |
-| `{ kind: 'output-emitted', runId, nodeId, … }` | `['out', nodeId, portId, state, value, …tail]` |
-| `{ kind: 'input-received', runId, nodeId, … }` | `['in', nodeId, portId, state, value, …tail]` |
+| `{ kind: 'output-emitted', runId, nodeId, … }` | `['out', nodeId, portId, state, value, portIdx, edgeIds, feed]` |
+| `{ kind: 'input-received', runId, nodeId, … }` | `['in', nodeId, portId, state, value, portIdx, edgeIds, feed]` |
 | `event.kind === 'output-emitted'` | `event[0] === 'out'` or destructure `[portDir, …]` |
 | `event.runId` on port frame | session / snapshot `runId` only |

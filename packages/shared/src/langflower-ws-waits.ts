@@ -3,7 +3,13 @@
  * Shared by integration tests and `@langflower/mcp` (no filesystem I/O).
  */
 
-import type { NodeId, RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type {
+	NodeId,
+	PortTelemetry,
+	RunId,
+	RuntimeRunnerEvent,
+} from '@langflower/runtime';
+import { isPortTelemetry, isRuntimeDone } from '@langflower/runtime';
 import type { WsBridgeClientApi } from '@langflower/websocket-bridge';
 import { filter, firstValueFrom, take, timeout, type Observable } from 'rxjs';
 import { langflowerWsConfig } from './langflower-bus-config.js';
@@ -227,24 +233,18 @@ export const interruptRunner = async (
 	await interrupted$;
 };
 
-type InputReceivedEvent = Extract<
-	RuntimeRunnerEvent,
-	{ kind: 'input-received' }
->;
-
 export const sendHitlInput = async (
 	client: LangflowerWsClient,
 	payload: Parameters<LangflowerWsClient['runner.hitl.event']['next']>[0],
-	runId?: string,
-): Promise<InputReceivedEvent> => {
+): Promise<PortTelemetry> => {
 	const received$ = firstValueFrom(
-		client['runner.input-received'].pipe(
+		client['runner.port'].pipe(
 			filter(
-				(event): event is InputReceivedEvent =>
-					event.kind === 'input-received' &&
-					event.nodeId === payload.nodeId &&
-					event.portId === payload.portId &&
-					(runId === undefined || event.runId === runId),
+				(event): event is PortTelemetry =>
+					isPortTelemetry(event) &&
+					event[0] === 'in' &&
+					event[1] === payload.nodeId &&
+					event[2] === payload.portId,
 			),
 			take(1),
 		),
@@ -255,32 +255,27 @@ export const sendHitlInput = async (
 	return received$;
 };
 
-type OutputEmittedEvent = Extract<
-	RuntimeRunnerEvent,
-	{ kind: 'output-emitted'; state: 'value' }
->;
+type OutputPortTelemetry = PortTelemetry & { readonly 3: 'value' };
 
 export const waitForRunnerOutput = async (
 	client: LangflowerWsClient,
 	match: {
 		readonly nodeId: string;
 		readonly portId: string;
-		readonly runId?: string;
 		readonly predicate?: (value: unknown) => boolean;
 	},
-): Promise<OutputEmittedEvent> =>
+): Promise<OutputPortTelemetry> =>
 	firstValueFrom(
-		client['runner.output-emitted'].pipe(
+		client['runner.port'].pipe(
 			filter(
-				(event): event is OutputEmittedEvent =>
-					event.kind === 'output-emitted' &&
-					event.state === 'value' &&
-					event.nodeId === match.nodeId &&
-					event.portId === match.portId &&
-					(match.runId === undefined ||
-						event.runId === match.runId) &&
+				(event): event is OutputPortTelemetry =>
+					isPortTelemetry(event) &&
+					event[0] === 'out' &&
+					event[3] === 'value' &&
+					event[1] === match.nodeId &&
+					event[2] === match.portId &&
 					(match.predicate === undefined ||
-						match.predicate(event.value)),
+						match.predicate(event[4])),
 			),
 			take(1),
 		),
@@ -289,15 +284,16 @@ export const waitForRunnerOutput = async (
 export const waitForRunnerDone = async (
 	client: LangflowerWsClient,
 	runId?: string,
-): Promise<Extract<RuntimeRunnerEvent, { kind: 'done' }>> =>
+): Promise<Extract<RuntimeRunnerEvent, readonly ['done'] | readonly ['done', RunId]>> =>
 	firstValueFrom(
 		client['runner.done'].pipe(
 			filter(
-				(
-					event,
-				): event is Extract<RuntimeRunnerEvent, { kind: 'done' }> =>
-					event.kind === 'done' &&
-					(runId === undefined || event.runId === runId),
+				(event): event is Extract<
+					RuntimeRunnerEvent,
+					readonly ['done'] | readonly ['done', RunId]
+				> =>
+					isRuntimeDone(event) &&
+					(runId === undefined || event[1] === runId),
 			),
 			take(1),
 		),

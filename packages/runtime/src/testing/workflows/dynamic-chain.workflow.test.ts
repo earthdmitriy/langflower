@@ -136,7 +136,7 @@ describe('dynamic chain workflow', () => {
 		const textOutputPromise = waitForOutput(runtime, 'text-sink', 'value');
 		runtime.runner.start();
 		const textOutput = await textOutputPromise;
-		expect(textOutput.value).toBe('hello');
+		expect(textOutput[4]).toBe('hello');
 
 		runtime.runner.interrupt('cancel');
 
@@ -184,6 +184,6 @@ describe('dynamic chain workflow', () => {
 		);
 		runtime.runner.start();
 		const numberOutput = await numberOutputPromise;
-		expect(numberOutput.value).toBe(42);
+		expect(numberOutput[4]).toBe(42);
 	});
 });

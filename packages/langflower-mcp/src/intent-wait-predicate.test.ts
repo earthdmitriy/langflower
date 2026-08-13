@@ -121,20 +121,10 @@ describe('resolveWaitPredicate', () => {
 			payload: 'hi',
 		});
 		expect(
-			predicate!({
-				kind: 'input-received',
-				nodeId: 'n1',
-				portId: 'message',
-				runId: 'r1',
-			}),
+			predicate!(['in', 'n1', 'message', 'value', 'hi', 0, [], null]),
 		).toBe(true);
 		expect(
-			predicate!({
-				kind: 'input-received',
-				nodeId: 'n2',
-				portId: 'message',
-				runId: 'r1',
-			}),
+			predicate!(['in', 'n2', 'message', 'value', 'hi', 0, [], null]),
 		).toBe(false);
 	});
 
@@ -145,7 +135,7 @@ describe('resolveWaitPredicate', () => {
 		);
 		expect(predicate!(null)).toBe(true);
 		expect(predicate!({ events: [] })).toBe(true);
-		expect(predicate!({ events: [{ kind: 'done' }] })).toBe(false);
+		expect(predicate!({ events: [['done']] })).toBe(false);
 	});
 
 	it('correlates checkpoint discard to missing runId', () => {

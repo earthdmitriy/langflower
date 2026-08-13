@@ -12,7 +12,7 @@ import {
 	resolveMultilineInlineLayout,
 } from '@langflower/node-sdk';
 import { NgDiagramPortComponent } from 'ng-diagram';
-import { combineLatest, switchMap, type Observable } from 'rxjs';
+import { combineLatest, switchMap } from 'rxjs';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import { valuePulseActive$ } from '../utils/value-pulse-active.js';
 import { LfInlineFieldComponent } from './lf-inline-field.component';
@@ -118,16 +118,21 @@ export class LfNodePortRowComponent {
 			toObservable(this.runtimePortId),
 			toObservable(this.side),
 		]).pipe(
-			switchMap(([nodeId, runtimePortId, side]) => {
-				const events$: Observable<{ state: string }> =
-					side === 'out'
-						? this.execution.getEventsForPort(nodeId, runtimePortId)
-						: this.execution.getInputEventsForPort(
+			switchMap(([nodeId, runtimePortId, side]) =>
+				side === 'out'
+					? valuePulseActive$(
+							this.execution.getEventsForPort(
 								nodeId,
 								runtimePortId,
-							);
-				return valuePulseActive$(events$);
-			}),
+							),
+						)
+					: valuePulseActive$(
+							this.execution.getInputEventsForPort(
+								nodeId,
+								runtimePortId,
+							),
+						),
+			),
 		),
 		{ initialValue: false },
 	);

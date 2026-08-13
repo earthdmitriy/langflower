@@ -57,7 +57,7 @@ describe('ExecutionFeedService permissions', () => {
 	it('keeps permission decisions isolated from concurrent draft output', async () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
-		harness.raw.outputEmitted$.next(
+		harness.raw.runnerPort$.next(
 			outputEvent('agent', 'draft', 'before'),
 		);
 		harness.raw.permissionAsk$.next({
@@ -68,7 +68,7 @@ describe('ExecutionFeedService permissions', () => {
 			detail: 'command',
 			summary: 'Run command',
 		});
-		harness.raw.outputEmitted$.next(outputEvent('agent', 'draft', 'after'));
+		harness.raw.runnerPort$.next(outputEvent('agent', 'draft', 'after'));
 
 		// Permission port interrupts the draft segment; later draft is a new segment.
 		expect(

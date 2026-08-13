@@ -161,12 +161,11 @@ describe('pending state in workflow event log', () => {
 		const d1States = events
 			.filter(
 				(event) =>
-					event.kind === 'output-emitted' &&
-					event.runId === runId &&
-					event.nodeId === 'd1' &&
-					event.portId === 'value',
+					event[0] === 'out' &&
+					event[1] === 'd1' &&
+					event[2] === 'value',
 			)
-			.map((event) => event.state);
+			.map((event) => event[3]);
 
 		expect(d1States).toContain('pending');
 		expect(d1States).toContain('value');
@@ -193,12 +192,11 @@ describe('pending state in workflow event log', () => {
 		const srcStates = events
 			.filter(
 				(event) =>
-					event.kind === 'output-emitted' &&
-					event.runId === runId &&
-					event.nodeId === 'src' &&
-					event.portId === 'value',
+					event[0] === 'out' &&
+					event[1] === 'src' &&
+					event[2] === 'value',
 			)
-			.map((event) => event.state);
+			.map((event) => event[3]);
 
 		expect(srcStates).toContain('pending');
 		expect(srcStates).toContain('value');
@@ -234,12 +232,11 @@ describe('pending state in workflow event log', () => {
 			events
 				.filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.runId === runId &&
-						event.nodeId === nodeId &&
-						event.portId === 'value',
+						event[0] === 'out' &&
+						event[1] === nodeId &&
+						event[2] === 'value',
 				)
-				.map((event) => event.state);
+				.map((event) => event[3]);
 
 		const c1States = statesOf('c1');
 		const d1States = statesOf('d1');
@@ -354,10 +351,9 @@ function statesOfNode(
 	return events
 		.filter(
 			(event) =>
-				event.kind === 'output-emitted' &&
-				event.runId === runId &&
-				event.nodeId === nodeId &&
-				event.portId === 'value',
+				event[0] === 'out' &&
+				event[1] === nodeId &&
+				event[2] === 'value',
 		)
-		.map((event) => event.state);
+		.map((event) => event[3]);
 }

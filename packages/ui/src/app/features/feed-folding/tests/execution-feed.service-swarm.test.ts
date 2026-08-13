@@ -23,7 +23,7 @@ describe('ExecutionFeedService concurrent nodes', () => {
 			outputEvent('a', 'draft', 'A2'),
 			outputEvent('b', 'draft', 'B2'),
 		]) {
-			harness.raw.outputEmitted$.next(event);
+			harness.raw.runnerPort$.next(event);
 		}
 
 		expect(harness.latestNodes().map((node) => node.nodeId)).toEqual([
@@ -53,7 +53,7 @@ describe('ExecutionFeedService concurrent nodes', () => {
 			outputEvent('b', 'tool', 'B tool'),
 			outputEvent('a', 'draft', 'A2'),
 		]) {
-			harness.raw.outputEmitted$.next(event);
+			harness.raw.runnerPort$.next(event);
 		}
 
 		expect(

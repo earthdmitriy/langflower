@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
-import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type { PortTelemetry, RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import { isPortTelemetry } from '@langflower/runtime';
 import { combineLatest, merge, type Observable } from 'rxjs';
 import { filter, map, shareReplay } from 'rxjs/operators';
 import { LangflowerBridgeService } from '../../services/langflower-bridge.service';
@@ -12,16 +13,6 @@ import type {
 	NodeStatusEvents,
 } from './types';
 
-type PortPulseEvent = Extract<
-	RuntimeRunnerEvent,
-	{ kind: 'output-emitted' | 'input-received' }
->;
-
-type NodeStatusCacheEntry = {
-	readonly status$: Observable<CanvasNodeChromeStatus>;
-	readonly pulse$: Observable<boolean>;
-};
-
 /**
  * Per-node canvas chrome: filter bridge facts → fold status + pulse.
  * Simplified node-scoped HITL for ring only — composer HITL stays on WES.
@@ -29,10 +20,16 @@ type NodeStatusCacheEntry = {
 @Injectable({ providedIn: 'root' })
 export class CanvasNodeStatusService {
 	private readonly bridge = inject(LangflowerBridgeService);
+	private readonly runnerPort$: Observable<PortTelemetry> =
+		this.bridge.raw['runner.port'].pipe(
+			filter(
+				(event: RuntimeRunnerEvent): event is PortTelemetry =>
+					isPortTelemetry(event),
+			),
+		);
 	private readonly sources: CanvasNodeStatusBridgeSources = {
 		executionFeedSnapshot$: this.bridge.cached['executionFeed.snapshot'],
-		outputEmitted$: this.bridge.raw['runner.output-emitted'],
-		inputReceived$: this.bridge.raw['runner.input-received'],
+		runnerPort$: this.runnerPort$,
 		runnerStarted$: this.bridge.raw['runner.started'].pipe(
 			filter((id): id is RunId => typeof id === 'string'),
 		),
@@ -64,16 +61,9 @@ export class CanvasNodeStatusService {
 		);
 
 		const pulse$ = valuePulseActive$(
-			merge(
-				this.sources.outputEmitted$,
-				this.sources.inputReceived$,
-			).pipe(
-				filter(
-					(event): event is PortPulseEvent & { nodeId: string } =>
-						(event.kind === 'output-emitted' ||
-							event.kind === 'input-received') &&
-						event.nodeId === nodeId,
-				),
+			this.runnerPort$.pipe(
+				filter((event) => event[1] === nodeId),
+				map((event) => ({ state: event[3] })),
 			),
 		).pipe(shareReplay({ bufferSize: 1, refCount: false }));
 
@@ -82,3 +72,8 @@ export class CanvasNodeStatusService {
 		return entry;
 	}
 }
+
+type NodeStatusCacheEntry = {
+	readonly status$: Observable<CanvasNodeChromeStatus>;
+	readonly pulse$: Observable<boolean>;
+};

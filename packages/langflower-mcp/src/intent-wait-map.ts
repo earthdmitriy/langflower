@@ -14,7 +14,7 @@ const INTENT_WAIT_OVERRIDES: Readonly<Record<string, string | null>> = {
 	'runner.start.requested': 'runner.started',
 	'runner.startNode.requested': 'runner.startNode.started',
 	'runner.interrupt.requested': 'runner.interrupted',
-	'runner.hitl.event': 'runner.input-received',
+	'runner.hitl.event': 'runner.port',
 	'runner.permission.reply': null,
 	'runner.executionFeed.clear.requested': 'executionFeed.snapshot',
 	'runner.resume.requested': 'runner.resume.started',

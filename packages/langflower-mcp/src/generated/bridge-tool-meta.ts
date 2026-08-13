@@ -324,30 +324,21 @@ export const BRIDGE_TOOL_META = {
 			"description": "TypeScript payload: Parameters<RuntimeRunnerApi['interrupt']>[0]"
 		}
 	},
-	"runner.output-emitted": {
-		"description": "Output port signal — {@link RuntimeRunnerEvent} with `kind === 'output-emitted'`.",
-		"typeExpr": "RuntimeRunnerEvent",
+	"runner.port": {
+		"description": "Port signal — {@link PortTelemetry}; direction at `payload[0]` (`'in'` | `'out'`).",
+		"typeExpr": "PortTelemetry",
 		"inputSchema": {
 			"type": "object",
-			"description": "TypeScript payload: RuntimeRunnerEvent",
-			"additionalProperties": true
-		}
-	},
-	"runner.input-received": {
-		"description": "Input port signal — {@link RuntimeRunnerEvent} with `kind === 'input-received'` (wires, seeds).",
-		"typeExpr": "RuntimeRunnerEvent",
-		"inputSchema": {
-			"type": "object",
-			"description": "TypeScript payload: RuntimeRunnerEvent",
+			"description": "TypeScript payload: PortTelemetry",
 			"additionalProperties": true
 		}
 	},
 	"runner.done": {
-		"description": "Natural run end — {@link RuntimeRunnerEvent} with `kind === 'done'` (empty graph, {@link RuntimeNode.stopsRun}, or forced complete). Runner status becomes `'idle'`.",
-		"typeExpr": "RuntimeRunnerEvent",
+		"description": "Natural run end — {@link RuntimeDoneTelemetry}. Runner status becomes `'idle'`.",
+		"typeExpr": "RuntimeDoneTelemetry",
 		"inputSchema": {
 			"type": "object",
-			"description": "TypeScript payload: RuntimeRunnerEvent",
+			"description": "TypeScript payload: RuntimeDoneTelemetry",
 			"additionalProperties": true
 		}
 	},

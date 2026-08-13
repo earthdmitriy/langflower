@@ -137,7 +137,7 @@ describe('ExecutionFeedService incremental projection', () => {
 		const live = createExecutionFeedHarness();
 		live.seedCatalog({ agent: 'agent' }, [agent]);
 		for (const frame of events) {
-			live.raw.outputEmitted$.next(frame);
+			live.raw.runnerPort$.next(frame);
 		}
 
 		const snapshot = createExecutionFeedHarness();

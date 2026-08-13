@@ -77,11 +77,11 @@ describe('HITL common nodes (runtime smoke)', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'preview-1' &&
-						event.portId === 'text' &&
-						event.value === 'Build a demo',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'preview-1' &&
+						event[2] === 'text' &&
+						event[4] === 'Build a demo',
 				),
 			),
 		);
@@ -95,14 +95,14 @@ describe('HITL common nodes (runtime smoke)', () => {
 		}[] = [];
 		const pushSub = runtime.runner.events$.subscribe((event) => {
 			if (
-				(event.kind === 'input-received' ||
-					event.kind === 'output-emitted') &&
-				event.state === 'value'
+				(event[0] === 'in' || event[0] === 'out') &&
+				event[3] === 'value'
 			) {
 				pushEvents.push({
-					kind: event.kind,
-					nodeId: event.nodeId,
-					portId: String(event.portId),
+					kind:
+						event[0] === 'out' ? 'output-emitted' : 'input-received',
+					nodeId: String(event[1]),
+					portId: String(event[2]),
 				});
 			}
 		});
@@ -116,9 +116,9 @@ describe('HITL common nodes (runtime smoke)', () => {
 		expect(pushed).toBe(runId);
 
 		const previewEvent = await previewPromise;
-		expect(
-			previewEvent.kind === 'output-emitted' && previewEvent.value,
-		).toBe('Build a demo');
+		expect(previewEvent[0] === 'out' && previewEvent[4]).toBe(
+			'Build a demo',
+		);
 
 		const replyIdx = pushEvents.findIndex(
 			(event) =>
@@ -197,11 +197,11 @@ describe('HITL common nodes (runtime smoke)', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'preview-1' &&
-						event.portId === 'text' &&
-						event.value === 'approved draft',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'preview-1' &&
+						event[2] === 'text' &&
+						event[4] === 'approved draft',
 				),
 			),
 		);
@@ -215,10 +215,16 @@ describe('HITL common nodes (runtime smoke)', () => {
 			}),
 		).toBe(runId);
 
-		await expect(previewPromise).resolves.toMatchObject({
-			kind: 'output-emitted',
-			value: 'approved draft',
-		});
+		await expect(previewPromise).resolves.toEqual([
+			'out',
+			'preview-1',
+			'text',
+			'value',
+			'approved draft',
+			0,
+			[],
+			null,
+		]);
 
 		runtime.runner.interrupt('cancel');
 		runtime.runner.dispose();

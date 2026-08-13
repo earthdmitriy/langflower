@@ -20,8 +20,16 @@ export type WsBridgeEvent<Payload = unknown> = {
 	readonly payload: Payload;
 };
 
+/** Wire + log line: `[ts, transportDir, busType, payload]`. */
+export type BridgeFrame = readonly [
+	ts: string,
+	transportDir: 'in' | 'out',
+	busType: string,
+	payload: unknown,
+];
+
 export type WsBridgeCodec = {
-	encode(event: WsBridgeEvent): string;
+	encode(event: WsBridgeEvent, transportDir: 'in' | 'out'): string;
 	decode(raw: string): WsBridgeEvent | null;
 };
 

@@ -52,8 +52,7 @@ const FEED_RUN_STARTED_EVENTS = [
  * `executionFeed.snapshot` / `RuntimeRunner.eventLog`.
  */
 const FEED_EVENT_LOG_BUS_EVENTS = [
-	'runner.output-emitted',
-	'runner.input-received',
+	'runner.port',
 	'runner.done',
 ] as const;
 

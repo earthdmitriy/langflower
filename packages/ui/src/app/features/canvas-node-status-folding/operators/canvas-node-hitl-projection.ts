@@ -4,6 +4,7 @@ import {
 	STEER_CONTROL_PORT_ID,
 } from '@langflower/node-sdk/llm';
 import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import { isPortTelemetry } from '@langflower/runtime';
 import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
 import {
 	definitionForNode,
@@ -30,26 +31,20 @@ export const emptyNodeHitlAwaitState = (): NodeHitlAwaitState => ({
 const applySteerTransition = (
 	awaiting: boolean,
 	transition: 'open' | 'close',
-): boolean => {
-	if (transition === 'open') {
-		return true;
-	}
-	return false;
-};
+): boolean => transition === 'open';
 
-/**
- * Simplified chrome HITL: palette meta + port events for one node only.
- * No optimistic open/resolve, idle chat-entry, or permission asks.
- */
 export const applyNodeHitlFrame = (
 	state: NodeHitlAwaitState,
 	event: RuntimeRunnerEvent,
 	catalog: FeedCatalog | null,
 	nodeId: string,
+	runId: RunId | null,
 ): NodeHitlAwaitState => {
-	if (catalog === null) {
+	if (catalog === null || !isPortTelemetry(event)) {
 		return state;
 	}
+	const [portDir, eventNodeId, portId, eventState, value] = event;
+	const effectiveRunId = runId ?? state.runId;
 	const def = definitionForNode(
 		catalog.paletteByType,
 		catalog.nodeTypeById,
@@ -60,48 +55,48 @@ export const applyNodeHitlFrame = (
 	}
 
 	if (
-		event.kind === 'output-emitted' &&
-		typeof event.portId === 'string' &&
-		event.state === 'value'
+		portDir === 'out' &&
+		typeof portId === 'string' &&
+		eventState === 'value'
 	) {
 		const role = resolveOutputFeedRole(
 			catalog.paletteByType,
 			catalog.nodeTypeById,
-			event.nodeId,
-			event.portId,
+			eventNodeId,
+			portId,
 		);
 		if (
-			(role === 'recovery' || event.portId === RECOVERY_PORT_ID) &&
-			isLlmRecoverySuspended(event.value)
+			(role === 'recovery' || portId === RECOVERY_PORT_ID) &&
+			isLlmRecoverySuspended(value)
 		) {
-			return { awaiting: true, runId: event.runId };
+			return { awaiting: true, runId: effectiveRunId };
 		}
 		return state;
 	}
 
 	if (
-		event.kind !== 'input-received' ||
-		typeof event.portId !== 'string' ||
-		event.state !== 'value'
+		portDir !== 'in' ||
+		typeof portId !== 'string' ||
+		eventState !== 'value'
 	) {
 		return state;
 	}
 
-	const steer = steerControlHitlTransition(event.portId, event.value);
+	const steer = steerControlHitlTransition(portId, value);
 	if (steer === 'open' || steer === 'close') {
 		return {
 			awaiting: applySteerTransition(state.awaiting, steer),
-			runId: event.runId,
+			runId: effectiveRunId,
 		};
 	}
-	if (event.portId === STEER_CONTROL_PORT_ID) {
+	if (portId === STEER_CONTROL_PORT_ID) {
 		return state;
 	}
-	if (hitlReplyReceived(def, event.portId)) {
-		return { awaiting: false, runId: event.runId };
+	if (hitlReplyReceived(def, portId)) {
+		return { awaiting: false, runId: effectiveRunId };
 	}
-	if (nonHitlInputReceived(def, nodeId, event.portId)) {
-		return { awaiting: true, runId: event.runId };
+	if (nonHitlInputReceived(def, nodeId, portId)) {
+		return { awaiting: true, runId: effectiveRunId };
 	}
 	return state;
 };
@@ -116,7 +111,13 @@ export const replayNodeHitlFromSnapshot = (
 	}
 	let state = emptyNodeHitlAwaitState();
 	for (const event of eventsForNode(snapshot.events, nodeId)) {
-		state = applyNodeHitlFrame(state, event, catalog, nodeId);
+		state = applyNodeHitlFrame(
+			state,
+			event,
+			catalog,
+			nodeId,
+			snapshot.runId,
+		);
 	}
 	return { ...state, runId: snapshot.runId };
 };
@@ -139,7 +140,7 @@ export const rebuildNodeHitlAwaitState = (
 ): NodeHitlAwaitState => {
 	let state: NodeHitlAwaitState = { awaiting: false, runId };
 	for (const event of events) {
-		state = applyNodeHitlFrame(state, event, catalog, nodeId);
+		state = applyNodeHitlFrame(state, event, catalog, nodeId, runId);
 	}
 	return state;
 };

@@ -2,6 +2,7 @@ import { statefulObservable } from '@rx-evo/stateful-observable';
 import { filter, firstValueFrom, of, take, toArray } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import type { NodeId, PortMeta, RunId, RuntimeNode } from './types.js';
+import { isPortTelemetry } from './types.js';
 import { createConstantTestNode } from './testing/nodes/constant-node.js';
 import {
 	createDelayTestNode,
@@ -79,11 +80,12 @@ describe('RuntimeRunner.resume', () => {
 		const stageAEmissions: unknown[] = [];
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
-				event.kind === 'output-emitted' &&
-				event.nodeId === ('stage-a' as NodeId) &&
-				event.state === 'value'
+				isPortTelemetry(event) &&
+				event[0] === 'out' &&
+				event[1] === ('stage-a' as NodeId) &&
+				event[3] === 'value'
 			) {
-				stageAEmissions.push(event.value);
+				stageAEmissions.push(event[4]);
 			}
 		});
 
@@ -103,7 +105,7 @@ describe('RuntimeRunner.resume', () => {
 			'value',
 			firstRunId,
 		);
-		expect(terminal.value).toBe('stage-a');
+		expect(terminal[4]).toBe('stage-a');
 		expect(stageAEmissions).toEqual(['stage-a']);
 		sub.unsubscribe();
 	});
@@ -181,10 +183,11 @@ describe('RuntimeRunner.resume', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'input-received' &&
-						event.nodeId === ('delay' as NodeId) &&
-						event.portId === 'delay' &&
-						event.state === 'value',
+						isPortTelemetry(event) &&
+						event[0] === 'in' &&
+						event[1] === ('delay' as NodeId) &&
+						event[2] === 'delay' &&
+						event[3] === 'value',
 				),
 			),
 		);
@@ -211,7 +214,7 @@ describe('RuntimeRunner.resume', () => {
 		expect(resumeRunId).toBe('resume-router-delay');
 
 		const delayPortInput = await delayPortInput$;
-		expect(delayPortInput.value).toBe(delayMs);
+		expect(delayPortInput[4]).toBe(delayMs);
 
 		const delayed = await waitForOutput(
 			runtime,
@@ -219,7 +222,7 @@ describe('RuntimeRunner.resume', () => {
 			'value',
 			resumeRunId,
 		);
-		expect(delayed.value).toBe('hello');
+		expect(delayed[4]).toBe('hello');
 		expect(Date.now() - startedAt).toBeGreaterThanOrEqual(delayMs - 15);
 	});
 
@@ -250,10 +253,11 @@ describe('RuntimeRunner.resume', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.nodeId === ('merge' as NodeId) &&
-						event.portId === 'value' &&
-						event.state === 'value',
+						isPortTelemetry(event) &&
+						event[0] === 'out' &&
+						event[1] === ('merge' as NodeId) &&
+						event[2] === 'value' &&
+						event[3] === 'value',
 				),
 				take(2),
 				toArray(),
@@ -271,7 +275,7 @@ describe('RuntimeRunner.resume', () => {
 
 		expect(resumeRunId).toBe('resume-merge');
 		const mergeEmissions = await mergeEmissions$;
-		expect(mergeEmissions.map((event) => event.value)).toEqual(
+		expect(mergeEmissions.map((event) => event[4])).toEqual(
 			expect.arrayContaining(['foo', 'bar']),
 		);
 		expect(mergeEmissions).toHaveLength(2);
@@ -317,10 +321,11 @@ describe('RuntimeRunner.resume', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.nodeId === ('join' as NodeId) &&
-						event.portId === 'text' &&
-						event.state === 'value',
+						isPortTelemetry(event) &&
+						event[0] === 'out' &&
+						event[1] === ('join' as NodeId) &&
+						event[2] === 'text' &&
+						event[3] === 'value',
 				),
 			),
 		);
@@ -336,7 +341,7 @@ describe('RuntimeRunner.resume', () => {
 
 		expect(resumeRunId).toBe('resume-combine');
 		const joined = await joinOutput$;
-		expect(joined.value).toBe('beta|alpha');
+		expect(joined[4]).toBe('beta|alpha');
 	});
 
 	it('replays router bypass slots into merge multi-input', async () => {
@@ -379,10 +384,11 @@ describe('RuntimeRunner.resume', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.nodeId === ('merge' as NodeId) &&
-						event.portId === 'value' &&
-						event.state === 'value',
+						isPortTelemetry(event) &&
+						event[0] === 'out' &&
+						event[1] === ('merge' as NodeId) &&
+						event[2] === 'value' &&
+						event[3] === 'value',
 				),
 				take(2),
 				toArray(),
@@ -407,7 +413,7 @@ describe('RuntimeRunner.resume', () => {
 		});
 
 		const mergeEmissions = await mergeEmissions$;
-		expect(mergeEmissions.map((event) => event.value)).toEqual(
+		expect(mergeEmissions.map((event) => event[4])).toEqual(
 			expect.arrayContaining(['lane-0', 'lane-1']),
 		);
 		expect(mergeEmissions).toHaveLength(2);
@@ -463,10 +469,11 @@ describe('RuntimeRunner.resume', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.nodeId === ('join' as NodeId) &&
-						event.portId === 'text' &&
-						event.state === 'value',
+						isPortTelemetry(event) &&
+						event[0] === 'out' &&
+						event[1] === ('join' as NodeId) &&
+						event[2] === 'text' &&
+						event[3] === 'value',
 				),
 			),
 		);
@@ -489,6 +496,6 @@ describe('RuntimeRunner.resume', () => {
 		});
 
 		const joined = await joinOutput$;
-		expect(joined.value).toBe('lane-0|lane-1');
+		expect(joined[4]).toBe('lane-0|lane-1');
 	});
 });

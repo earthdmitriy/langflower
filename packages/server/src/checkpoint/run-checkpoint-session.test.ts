@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { RunId } from '@langflower/runtime';
+import type { NodeId, RunId } from '@langflower/runtime';
 import type { WorkflowLoadedPayload } from '@langflower/shared/langflower.js';
 import { RunCheckpointSession } from './run-checkpoint-session.js';
 
@@ -23,16 +23,13 @@ describe('RunCheckpointSession explicit boundaries', () => {
 		const session = new RunCheckpointSession(process.cwd());
 		session.beginRun('run-1' as RunId, emptyWorkflow('wf'));
 
-		session.observe({
-			kind: 'output-emitted',
-			runId: 'run-1' as RunId,
-			nodeId: 'stage-a',
-			portId: 'value',
-			portIdx: 0,
-			edgeIds: [],
-			state: 'value',
-			value: 'ok',
-		});
+		session.observe([
+			'out',
+			'stage-a' as NodeId,
+			'value',
+			'value',
+			'ok',
+		]);
 
 		await expect(session.markStopped()).resolves.toBeUndefined();
 	});
@@ -42,16 +39,13 @@ describe('RunCheckpointSession explicit boundaries', () => {
 		session.beginRun('run-boundary' as RunId, emptyWorkflow('wf'));
 
 		const shouldPersist = session.observe(
-			{
-				kind: 'output-emitted',
-				runId: 'run-boundary' as RunId,
-				nodeId: 'checkpoint-a',
-				portId: 'value',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: 'ok',
-			},
+			[
+				'out',
+				'checkpoint-a' as NodeId,
+				'value',
+				'value',
+				'ok',
+			],
 			{ label: 'After stage A' },
 		);
 

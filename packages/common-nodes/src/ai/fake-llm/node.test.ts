@@ -120,11 +120,11 @@ describe('common-fake-llm', () => {
 		const chunks: Array<{ portId: string; value: unknown }> = [];
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
-				event.kind === 'output-emitted' &&
-				event.state === 'value' &&
-				event.nodeId === 'llm-1'
+				event[0] === 'out' &&
+				event[3] === 'value' &&
+				event[1] === 'llm-1'
 			) {
-				chunks.push({ portId: event.portId, value: event.value });
+				chunks.push({ portId: event[2], value: event[4] });
 			}
 		});
 
@@ -132,10 +132,10 @@ describe('common-fake-llm', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'preview-1' &&
-						event.portId === 'text',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'preview-1' &&
+						event[2] === 'text',
 				),
 			),
 		);
@@ -206,10 +206,10 @@ describe('common-fake-llm', () => {
 		expect(draftText.length).toBeGreaterThan(500);
 
 		expect(
-			previewEvent.kind === 'output-emitted' && previewEvent.value,
+			previewEvent[0] === 'out' && previewEvent[4],
 		).toContain('Write a haiku');
 		expect(
-			previewEvent.kind === 'output-emitted' && previewEvent.value,
+			previewEvent[0] === 'out' && previewEvent[4],
 		).toMatch(/^Final:/);
 
 		runtime.runner.interrupt('cancel');
@@ -261,10 +261,10 @@ describe('common-fake-llm', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'llm-1' &&
-						event.portId === 'response',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'llm-1' &&
+						event[2] === 'response',
 				),
 			),
 		);
@@ -299,10 +299,7 @@ describe('common-fake-llm', () => {
 			],
 		});
 
-		await expect(response).resolves.toMatchObject({
-			kind: 'output-emitted',
-			value: expect.stringMatching(/^Final:/),
-		});
+		await expect(response).resolves.toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), expect.stringMatching(/^Final:/)]));
 
 		runtime.runner.interrupt('cancel');
 		runtime.runner.dispose();
@@ -346,12 +343,12 @@ describe('common-fake-llm', () => {
 		const reasoning: string[] = [];
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
-				event.kind === 'output-emitted' &&
-				event.state === 'value' &&
-				event.nodeId === 'llm-1' &&
-				event.portId === 'reasoning'
+				event[0] === 'out' &&
+				event[3] === 'value' &&
+				event[1] === 'llm-1' &&
+				event[2] === 'reasoning'
 			) {
-				reasoning.push(String(event.value));
+				reasoning.push(String(event[4]));
 			}
 		});
 
@@ -359,10 +356,10 @@ describe('common-fake-llm', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'llm-1' &&
-						event.portId === 'response',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'llm-1' &&
+						event[2] === 'response',
 				),
 			),
 		);
@@ -438,12 +435,12 @@ describe('common-fake-llm', () => {
 		const reasoning: string[] = [];
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
-				event.kind === 'output-emitted' &&
-				event.state === 'value' &&
-				event.nodeId === 'llm-1' &&
-				event.portId === 'reasoning'
+				event[0] === 'out' &&
+				event[3] === 'value' &&
+				event[1] === 'llm-1' &&
+				event[2] === 'reasoning'
 			) {
-				reasoning.push(String(event.value));
+				reasoning.push(String(event[4]));
 			}
 		});
 
@@ -451,10 +448,10 @@ describe('common-fake-llm', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'llm-1' &&
-						event.portId === 'response',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'llm-1' &&
+						event[2] === 'response',
 				),
 			),
 		);
@@ -532,10 +529,10 @@ describe('common-fake-llm', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'llm-1' &&
-						event.portId === 'response',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'llm-1' &&
+						event[2] === 'response',
 				),
 			),
 		);
@@ -611,12 +608,12 @@ describe('common-fake-llm', () => {
 		};
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
-				event.kind === 'output-emitted' &&
-				event.state === 'value' &&
-				event.portId === 'reasoning' &&
-				(event.nodeId === 'llm-a' || event.nodeId === 'llm-b')
+				event[0] === 'out' &&
+				event[3] === 'value' &&
+				event[2] === 'reasoning' &&
+				(event[1] === 'llm-a' || event[1] === 'llm-b')
 			) {
-				reasoningByNode[event.nodeId].push(String(event.value));
+				reasoningByNode[event[1]].push(String(event[4]));
 			}
 		});
 
@@ -625,10 +622,10 @@ describe('common-fake-llm', () => {
 				runtime.runner.events$.pipe(
 					filter(
 						(event) =>
-							event.kind === 'output-emitted' &&
-							event.state === 'value' &&
-							event.nodeId === 'llm-a' &&
-							event.portId === 'response',
+							event[0] === 'out' &&
+							event[3] === 'value' &&
+							event[1] === 'llm-a' &&
+							event[2] === 'response',
 					),
 				),
 			),
@@ -636,10 +633,10 @@ describe('common-fake-llm', () => {
 				runtime.runner.events$.pipe(
 					filter(
 						(event) =>
-							event.kind === 'output-emitted' &&
-							event.state === 'value' &&
-							event.nodeId === 'llm-b' &&
-							event.portId === 'response',
+							event[0] === 'out' &&
+							event[3] === 'value' &&
+							event[1] === 'llm-b' &&
+							event[2] === 'response',
 					),
 				),
 			),
@@ -787,12 +784,12 @@ describe('common-fake-llm', () => {
 		const reasoning: string[] = [];
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
-				event.kind === 'output-emitted' &&
-				event.state === 'value' &&
-				event.nodeId === 'llm-1' &&
-				event.portId === 'reasoning'
+				event[0] === 'out' &&
+				event[3] === 'value' &&
+				event[1] === 'llm-1' &&
+				event[2] === 'reasoning'
 			) {
-				reasoning.push(String(event.value));
+				reasoning.push(String(event[4]));
 			}
 		});
 
@@ -800,10 +797,10 @@ describe('common-fake-llm', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'llm-1' &&
-						event.portId === 'response',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'llm-1' &&
+						event[2] === 'response',
 				),
 			),
 		);
@@ -873,12 +870,12 @@ describe('common-fake-llm', () => {
 		const reasoning: string[] = [];
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
-				event.kind === 'output-emitted' &&
-				event.state === 'value' &&
-				event.nodeId === 'llm-1' &&
-				event.portId === 'reasoning'
+				event[0] === 'out' &&
+				event[3] === 'value' &&
+				event[1] === 'llm-1' &&
+				event[2] === 'reasoning'
 			) {
-				reasoning.push(String(event.value));
+				reasoning.push(String(event[4]));
 			}
 		});
 
@@ -886,10 +883,10 @@ describe('common-fake-llm', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'llm-1' &&
-						event.portId === 'response',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'llm-1' &&
+						event[2] === 'response',
 				),
 			),
 		);
@@ -967,10 +964,10 @@ describe('common-fake-llm', () => {
 				runtime.runner.events$.pipe(
 					filter((event) => {
 						if (
-							event.kind !== 'output-emitted' ||
-							event.state !== 'value' ||
-							event.nodeId !== 'llm-1' ||
-							event.portId !== 'response'
+							event[0] !== 'out' ||
+							event[3] !== 'value' ||
+							event[1] !== 'llm-1' ||
+							event[2] !== 'response'
 						) {
 							return false;
 						}
@@ -1093,10 +1090,10 @@ describe('common-fake-llm', () => {
 				runtime.runner.events$.pipe(
 					filter((event) => {
 						if (
-							event.kind !== 'output-emitted' ||
-							event.state !== 'value' ||
-							event.nodeId !== 'llm-1' ||
-							event.portId !== 'response'
+							event[0] !== 'out' ||
+							event[3] !== 'value' ||
+							event[1] !== 'llm-1' ||
+							event[2] !== 'response'
 						) {
 							return false;
 						}
@@ -1148,11 +1145,11 @@ describe('common-fake-llm', () => {
 		});
 
 		const first = await firstResponse;
-		expect(first).toMatchObject({ value: 'First answer' });
+		expect(first[4]).toBe('First answer');
 
 		feedback$.next('Make it shorter');
 		const second = await secondResponse;
-		expect(second).toMatchObject({ value: 'Second answer' });
+		expect(second[4]).toBe('Second answer');
 
 		runtime.runner.interrupt('cancel');
 		runtime.runner.dispose();

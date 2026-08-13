@@ -18,19 +18,19 @@ describe('ExecutionFeedService steering', () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
 
-		harness.raw.inputReceived$.next(
+		harness.raw.runnerPort$.next(
 			inputEvent('agent', STEER_CONTROL_PORT_ID, { kind: 'pause' }),
 		);
-		harness.raw.inputReceived$.next(
+		harness.raw.runnerPort$.next(
 			inputEvent('agent', STEER_CONTROL_PORT_ID, {
 				kind: 'steer',
 				text: 'be concise',
 			}),
 		);
-		harness.raw.inputReceived$.next(
+		harness.raw.runnerPort$.next(
 			inputEvent('agent', STEER_CONTROL_PORT_ID, { kind: 'resume' }),
 		);
-		harness.raw.outputEmitted$.next(
+		harness.raw.runnerPort$.next(
 			outputEvent('agent', 'draft', 'resumed'),
 		);
 

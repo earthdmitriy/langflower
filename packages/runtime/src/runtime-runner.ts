@@ -52,6 +52,7 @@ import {
 	RuntimeSeedPortValue,
 	type EdgeId,
 	type NodeId,
+	type PortTelemetry,
 	type RunId,
 } from './types.js';
 
@@ -463,8 +464,8 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 	}
 
 	private emitPortEvent(
-		runId: RunId,
-		kind: 'output-emitted' | 'input-received',
+		_runId: RunId,
+		portDir: 'in' | 'out',
 		nodeId: NodeId,
 		portId: string | symbol,
 		portIdx: number,
@@ -473,17 +474,17 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		edgeIds: EdgeId[],
 		feed?: RuntimeFeedPortMeta,
 	): void {
-		this.emitRunnerEvent({
-			kind,
-			runId,
+		const portIdStr = typeof portId === 'string' ? portId : String(portId);
+		this.emitRunnerEvent([
+			portDir,
 			nodeId,
-			portId,
-			portIdx,
-			edgeIds,
+			portIdStr,
 			state,
 			value,
-			...(feed !== undefined ? { feed } : {}),
-		});
+			portIdx,
+			edgeIds,
+			feed ?? null,
+		]);
 	}
 
 	private canPreparePushedInput(
@@ -540,7 +541,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			// (output-emitted / downstream input-received) in the event log.
 			this.emitPortEvent(
 				run.runId,
-				'input-received',
+				'in',
 				cfg.nodeId,
 				cfg.portId,
 				0,
@@ -573,7 +574,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		run.pushedInputSources.set(key, { source });
 		this.emitPortEvent(
 			run.runId,
-			'input-received',
+			'in',
 			cfg.nodeId,
 			cfg.portId,
 			0,
@@ -620,7 +621,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 
 						this.emitPortEvent(
 							run.runId,
-							'output-emitted',
+							'out',
 							nodeId,
 							portId,
 							0,
@@ -677,7 +678,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 
 						this.emitPortEvent(
 							run.runId,
-							'input-received',
+							'in',
 							nodeId,
 							portId,
 							slotIndex,
@@ -700,7 +701,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			return;
 		}
 
-		this.emitRunnerEvent({ kind: 'done', runId });
+		this.emitRunnerEvent(['done', runId]);
 		this.setStatus('idle');
 		this.teardownRun();
 	}
@@ -807,7 +808,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 								if (typeof seed.portId !== 'symbol') {
 									this.emitPortEvent(
 										runId,
-										'input-received',
+										'in',
 										nodeId,
 										seed.portId,
 										seed.slotIndex,
@@ -873,7 +874,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 							next: (value) => {
 								this.emitPortEvent(
 									runId,
-									'input-received',
+									'in',
 									nodeId,
 									portId,
 									0,
@@ -1222,7 +1223,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 
 							this.emitPortEvent(
 								run.runId,
-								'input-received',
+								'in',
 								group.nodeId,
 								group.portId,
 								0,

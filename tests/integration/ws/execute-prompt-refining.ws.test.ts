@@ -121,7 +121,7 @@ describe('execute prompt-refining pilot (WS bridge)', () => {
 			await donePromise;
 			allowSub.unsubscribe();
 
-			expect(String(finish.value)).toContain('prompts/scene-01.md');
+			expect(String(finish[4])).toContain('prompts/scene-01.md');
 
 			const artifact = await fs.readFile(
 				path.join(projectDir, 'prompts', 'scene-01.md'),

@@ -45,7 +45,7 @@ describe('execute smoke (WS bridge)', () => {
 			portId: 'text',
 		});
 
-		expect(output.value).toBe('Hello Langflower');
+		expect(output[4]).toBe('Hello Langflower');
 
 		await interruptRunner(client);
 	});

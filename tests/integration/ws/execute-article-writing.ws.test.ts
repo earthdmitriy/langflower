@@ -116,7 +116,7 @@ describe('execute article-writing pilot (WS bridge)', () => {
 			await donePromise;
 			allowSub.unsubscribe();
 
-			expect(String(finish.value)).toContain('articles/draft.md');
+			expect(String(finish[4])).toContain('articles/draft.md');
 
 			const artifact = await fs.readFile(
 				path.join(projectDir, 'articles', 'draft.md'),

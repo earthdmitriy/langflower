@@ -13,7 +13,7 @@ import { NodePreviewValuesService } from '../services/node-preview-values.servic
 const createRaw = () =>
 	({
 		'executionFeed.snapshot': new Subject<any>(),
-		'runner.input-received': new Subject<any>(),
+		'runner.port': new Subject<any>(),
 		'runner.started': new Subject<any>(),
 		'runner.startNode.started': new Subject<any>(),
 		'workflow.current.snapshot': new Subject<any>(),
@@ -50,41 +50,18 @@ describe('NodePreviewValuesService', () => {
 			runId: 'run-1',
 			workflowId: 'wf',
 			status: 'running',
-			events: [
-				{
-					kind: 'input-received',
-					runId: 'run-1',
-					nodeId: 'n1',
-					portId: 'text',
-					state: 'value',
-					value: 'from-snap',
-				},
-			],
+			events: [['in', 'n1', 'text', 'value', 'from-snap', 0, [], null]],
 		});
 
 		expect(service.valueFor('n1', 'text')).toBe('from-snap');
 
-		raw['runner.input-received'].next({
-			kind: 'input-received',
-			runId: 'run-1',
-			nodeId: 'n1',
-			portId: 'text',
-			state: 'value',
-			value: 'live',
-		});
+		raw['runner.port'].next(['in', 'n1', 'text', 'value', 'live', 0, [], null]);
 
 		expect(service.valueFor('n1', 'text')).toBe('live');
 	});
 
 	it('clears on null feed snapshot', () => {
-		raw['runner.input-received'].next({
-			kind: 'input-received',
-			runId: 'run-1',
-			nodeId: 'n1',
-			portId: 'text',
-			state: 'value',
-			value: 'kept',
-		});
+		raw['runner.port'].next(['in', 'n1', 'text', 'value', 'kept', 0, [], null]);
 		expect(service.valueFor('n1', 'text')).toBe('kept');
 
 		raw['executionFeed.snapshot'].next(null);
@@ -93,27 +70,13 @@ describe('NodePreviewValuesService', () => {
 
 	it('clears on new runId and on workflow switch', () => {
 		raw['runner.started'].next('run-1');
-		raw['runner.input-received'].next({
-			kind: 'input-received',
-			runId: 'run-1',
-			nodeId: 'n1',
-			portId: 'text',
-			state: 'value',
-			value: 'a',
-		});
+		raw['runner.port'].next(['in', 'n1', 'text', 'value', 'a', 0, [], null]);
 		expect(service.valueFor('n1', 'text')).toBe('a');
 
 		raw['runner.started'].next('run-2');
 		expect(service.valueFor('n1', 'text')).toBeUndefined();
 
-		raw['runner.input-received'].next({
-			kind: 'input-received',
-			runId: 'run-2',
-			nodeId: 'n1',
-			portId: 'text',
-			state: 'value',
-			value: 'b',
-		});
+		raw['runner.port'].next(['in', 'n1', 'text', 'value', 'b', 0, [], null]);
 		raw['workflow.current.snapshot'].next({
 			activeWorkflow: {
 				workflowId: 'wf-a',

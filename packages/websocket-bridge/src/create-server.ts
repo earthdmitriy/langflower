@@ -60,8 +60,8 @@ export function createServer<C extends WsBridgeConfig>(
 	const clients = new Set<ConnectedClientRecord<C>>();
 	const wireSubscriptions: Subscription[] = wireOutgoingSubjects(
 		broadcastSubjects,
-		(event) => {
-			const raw = codec.encode(event);
+		(event, transportDir) => {
+			const raw = codec.encode(event, transportDir);
 
 			for (const client of clients) {
 				if (client.ws.readyState === client.ws.OPEN) {
@@ -69,6 +69,7 @@ export function createServer<C extends WsBridgeConfig>(
 				}
 			}
 		},
+		'out',
 	);
 
 	const wss =
@@ -108,13 +109,14 @@ export function createServer<C extends WsBridgeConfig>(
 		const connectedSubject = new BehaviorSubject<boolean>(true);
 		const subscriptions = wireOutgoingSubjects(
 			outgoingSubjects,
-			(event) => {
+			(event, transportDir) => {
 				if (ws.readyState !== ws.OPEN) {
 					return;
 				}
 
-				ws.send(codec.encode(event));
+				ws.send(codec.encode(event, transportDir));
 			},
+			'out',
 		);
 
 		const closeClient = (): void => {

@@ -1,6 +1,7 @@
-import type {
-	RuntimeRunnerEvent,
-	RuntimeRunnerStatus,
+import {
+	isPortTelemetry,
+	type RuntimeRunnerEvent,
+	type RuntimeRunnerStatus,
 } from '@langflower/runtime';
 import type { ExecutionProgressStatus } from '../types/langflower-server.js';
 
@@ -28,16 +29,9 @@ export const deriveExecutionProgressStatus = (
 		return 'stopped';
 	}
 
-	const portEvents = events.filter(
-		(
-			event,
-		): event is Extract<
-			RuntimeRunnerEvent,
-			{ readonly kind: 'output-emitted' | 'input-received' }
-		> => event.kind === 'output-emitted' || event.kind === 'input-received',
-	);
-	const hasError = portEvents.some((event) => event.state === 'error');
-	const hasValue = portEvents.some((event) => event.state === 'value');
+	const portEvents = events.filter(isPortTelemetry);
+	const hasError = portEvents.some((event) => event[3] === 'error');
+	const hasValue = portEvents.some((event) => event[3] === 'value');
 
 	if (hasError && hasValue) {
 		return 'completed_with_errors';

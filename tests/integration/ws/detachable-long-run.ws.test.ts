@@ -80,7 +80,7 @@ describe('detachable long run (settle + reconnect)', () => {
 			runId,
 			status: 'completed',
 		});
-		expect(feed?.events.some((event) => event.kind === 'done')).toBe(true);
+		expect(feed?.events.some((event) => event[0] === 'done')).toBe(true);
 
 		clientB.close();
 	});

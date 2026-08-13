@@ -1,4 +1,4 @@
-import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type { PortTelemetry, RunId, RuntimeRunnerEvent } from '@langflower/runtime';
 import type {
 	CustomPaletteSnapshotPayload,
 	ExecutionFeedSnapshotPayload,
@@ -29,8 +29,7 @@ export type NodeChromeFoldState = {
 
 export type CanvasNodeStatusBridgeSources = {
 	readonly executionFeedSnapshot$: Observable<ExecutionFeedSnapshotPayload | null>;
-	readonly outputEmitted$: Observable<RuntimeRunnerEvent>;
-	readonly inputReceived$: Observable<RuntimeRunnerEvent>;
+	readonly runnerPort$: Observable<PortTelemetry>;
 	readonly runnerStarted$: Observable<RunId>;
 	readonly runnerStartNodeStarted$: Observable<RunId>;
 	readonly workflowSnapshot$: Observable<WorkflowCurrentSnapshotPayload>;

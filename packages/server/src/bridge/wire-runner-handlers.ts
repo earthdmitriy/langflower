@@ -1,7 +1,9 @@
-import type {
-	RunId,
-	RuntimeRunnerApi,
-	RuntimeSeedPortValue,
+import {
+	isPortTelemetry,
+	isRuntimeDone,
+	type RunId,
+	type RuntimeRunnerApi,
+	type RuntimeSeedPortValue,
 } from '@langflower/runtime';
 import {
 	buildWorkflowFingerprint,
@@ -81,14 +83,16 @@ export const wireRunnerHandlers = (
 
 	subscription.add(
 		session.runtime.runner.events$.subscribe((event) => {
+			const [, nodeId, portId] = isPortTelemetry(event) ? event : [];
 			const boundary =
-				event.kind === 'output-emitted' &&
-				typeof event.portId === 'string' &&
+				isPortTelemetry(event) &&
+				event[0] === 'out' &&
+				typeof portId === 'string' &&
 				session.activeWorkflow !== null
 					? resolveCheckpointBoundary(
 							session.activeWorkflow,
-							String(event.nodeId),
-							event.portId,
+							String(nodeId),
+							portId,
 						)
 					: undefined;
 
@@ -114,7 +118,7 @@ export const wireRunnerHandlers = (
 					.catch(() => undefined);
 			}
 
-			if (event.kind === 'done') {
+			if (isRuntimeDone(event)) {
 				void checkpoints
 					.markCompleted()
 					.then(async (summary) => {

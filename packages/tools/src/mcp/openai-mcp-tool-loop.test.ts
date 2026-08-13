@@ -120,10 +120,10 @@ describe('openai-llm + fixture MCP transport', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'llm-1' &&
-						event.portId === 'response',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'llm-1' &&
+						event[2] === 'response',
 				),
 			),
 		);
@@ -181,10 +181,7 @@ describe('openai-llm + fixture MCP transport', () => {
 		});
 
 		const responseEvent = await responsePromise;
-		expect(responseEvent).toMatchObject({
-			kind: 'output-emitted',
-			value: 'Got echo.',
-		});
+		expect(responseEvent).toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), 'Got echo.']));
 		expect(
 			captured[0]?.tools?.some((t) => t.function.name === mcpToolId),
 		).toBe(true);

@@ -118,7 +118,7 @@ describe('execute adversarial-red-team pilot (WS bridge)', () => {
 			);
 
 			const attack = await attackReady;
-			expect(String(attack.value)).toContain('Final:');
+			expect(String(attack[4])).toContain('Final:');
 
 			await sendHitlInput(
 				client,
@@ -133,7 +133,7 @@ describe('execute adversarial-red-team pilot (WS bridge)', () => {
 			const finish = await finishPromise;
 			await donePromise;
 
-			expect(String(finish.value)).toContain('Final:');
+			expect(String(finish[4])).toContain('Final:');
 		}, 15_000);
 	});
 });

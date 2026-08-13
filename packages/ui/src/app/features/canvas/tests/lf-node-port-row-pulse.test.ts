@@ -24,10 +24,9 @@ class MockPort {}
 function createRaw() {
 	return {
 		'executionFeed.snapshot': new Subject(),
-		'runner.output-emitted': new Subject(),
+		'runner.port': new Subject(),
 		'runner.started': new Subject(),
 		'runner.startNode.started': new Subject(),
-		'runner.input-received': new Subject(),
 		'runner.done': new Subject(),
 		'runner.interrupted': new Subject(),
 		'workflow.current.snapshot': new Subject(),
@@ -83,15 +82,16 @@ describe('LfNodePortRowComponent pulse', () => {
 	it('pulses the out anchor on output-emitted value, then clears', () => {
 		vi.useFakeTimers();
 		try {
-			raw['runner.output-emitted'].next({
-				kind: 'output-emitted',
-				runId: 'run-1',
-				nodeId: 'node-a',
-				portId: 'response',
-				state: 'value',
-				value: 'ok',
-				edgeIds: [],
-			});
+			raw['runner.port'].next([
+				'out',
+				'node-a',
+				'response',
+				'value',
+				'ok',
+			0,
+			[],
+			null,
+		]);
 			fixture.detectChanges();
 
 			expect(fixture.componentInstance.pulse()).toBe(true);
@@ -122,14 +122,16 @@ describe('LfNodePortRowComponent pulse', () => {
 			fixture.componentRef.setInput('runtimePortId', 'packet');
 			fixture.detectChanges();
 
-			raw['runner.input-received'].next({
-				kind: 'input-received',
-				runId: 'run-1',
-				nodeId: 'node-a',
-				portId: 'packet',
-				state: 'value',
-				value: 'claim',
-			});
+			raw['runner.port'].next([
+				'in',
+				'node-a',
+				'packet',
+				'value',
+				'claim',
+			0,
+			[],
+			null,
+		]);
 			fixture.detectChanges();
 
 			expect(fixture.componentInstance.pulse()).toBe(true);
@@ -149,15 +151,7 @@ describe('LfNodePortRowComponent pulse', () => {
 	});
 
 	it('ignores events for other ports', () => {
-		raw['runner.output-emitted'].next({
-			kind: 'output-emitted',
-			runId: 'run-1',
-			nodeId: 'node-a',
-			portId: 'other',
-			state: 'value',
-			value: 'x',
-			edgeIds: [],
-		});
+		raw['runner.port'].next(['out', 'node-a', 'other', 'value', 'x', 0, [], null]);
 		fixture.detectChanges();
 		expect(fixture.componentInstance.pulse()).toBe(false);
 	});

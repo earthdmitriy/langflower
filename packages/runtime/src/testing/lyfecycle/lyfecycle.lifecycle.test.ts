@@ -1,7 +1,7 @@
 import { filter, firstValueFrom } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { readOutputValue } from '../readOutputValue.js';
-import type { RuntimeRunnerEvent } from '../../types.js';
+import type { RunId } from '../../types.js';
 import { createAgentTestNode } from '../nodes/agent-node.js';
 import { createConstantTestNode } from '../nodes/constant-node.js';
 import { createDelayTestNode } from '../nodes/delay-node.js';
@@ -16,6 +16,7 @@ import {
 	waitForOutput,
 	wireEdge,
 	type RuntimeHarness,
+	edgeIdsFromPortEvent,
 } from '../workflows/workflow-events.js';
 
 async function runThenStop(runtime: RuntimeHarness): Promise<string> {
@@ -30,8 +31,8 @@ async function runToIdleViaFinish(runtime: RuntimeHarness): Promise<string> {
 	const donePromise = firstValueFrom(
 		runtime.runner.events$.pipe(
 			filter(
-				(event): event is { kind: 'done'; runId: string } =>
-					event.kind === 'done',
+				(event): event is ['done', RunId] =>
+					event[0] === 'done',
 			),
 		),
 	);
@@ -49,8 +50,8 @@ describe('lyfecycle — empty graph', () => {
 		const donePromise = firstValueFrom(
 			runtime.runner.events$.pipe(
 				filter(
-					(event): event is { kind: 'done'; runId: string } =>
-						event.kind === 'done',
+					(event): event is ['done', RunId] =>
+						event[0] === 'done',
 				),
 			),
 		);
@@ -61,7 +62,7 @@ describe('lyfecycle — empty graph', () => {
 		expect(runId).toMatch(
 			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
 		);
-		expect(done.runId).toBe(runId);
+		expect(done[1]).toBe(runId);
 		expect(await firstValueFrom(runtime.runner.status$)).toBe('idle');
 	});
 
@@ -116,10 +117,7 @@ describe('lyfecycle — empty graph', () => {
 		const outputPromise = waitForOutput(runtime, 'A', 'value');
 		const runId = runtime.runner.start();
 
-		expect(await outputPromise).toMatchObject({
-			runId,
-			value: 'alone',
-		});
+		expect((await outputPromise)[4]).toBe('alone');
 		expect(await firstValueFrom(runtime.runner.status$)).toBe('running');
 		expect(await noDoneWithin(runtime, 50, runId)).toBe(true);
 
@@ -208,7 +206,7 @@ describe('lyfecycle — graph mutations between runs', () => {
 
 		const outputPromise = waitForOutput(runtime, 'C', 'value');
 		runtime.runner.start();
-		expect(await outputPromise).toMatchObject({ value: 'hello' });
+		expect((await outputPromise)[4]).toBe('hello');
 
 		runtime.runner.interrupt('cancel');
 	});
@@ -262,13 +260,12 @@ describe('lyfecycle — graph mutations between runs', () => {
 		expect(
 			events.some(
 				(event) =>
-					event.kind === 'output-emitted' &&
-					event.nodeId === 'A' &&
-					event.runId === runId &&
-					event.edgeIds.length === 0,
+					event[0] === 'out' &&
+					event[1] === 'A' &&
+					edgeIdsFromPortEvent(event).length === 0,
 			),
 		).toBe(true);
-		expect(events.some((event) => event.kind === 'done')).toBe(false);
+		expect(events.some((event) => event[0] === 'done')).toBe(false);
 		expect(
 			await readOutputValue(runtime.editor.getNode('A')!.outputs.value),
 		).toBe('x');

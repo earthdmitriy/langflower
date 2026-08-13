@@ -136,13 +136,13 @@ describe('execute checkpoint resume (WS bridge)', () => {
 		expect(bootstrapCheckpoints.workflowId).toBe('checkpoint-resume');
 
 		const stageAValues: unknown[] = [];
-		const stageASub = client['runner.output-emitted'].subscribe((event) => {
+		const stageASub = client['runner.port'].subscribe((event) => {
 			if (
-				event.kind === 'output-emitted' &&
-				event.nodeId === 'stage-a' &&
-				event.state === 'value'
+				event[0] === 'out' &&
+				event[1] === 'stage-a' &&
+				event[3] === 'value'
 			) {
-				stageAValues.push(event.value);
+				stageAValues.push(event[4]);
 			}
 		});
 
@@ -169,8 +169,8 @@ describe('execute checkpoint resume (WS bridge)', () => {
 		]);
 
 		expect(resumeRunId).toBeTruthy();
-		expect(previewB.value).toBe('checkpoint-ok');
-		expect(done.runId).toBe(resumeRunId);
+		expect(previewB[4]).toBe('checkpoint-ok');
+		expect(done[1]).toBe(resumeRunId);
 		// Snapshot replay may emit stage-a once; a full re-run would also
 		// wait on the delay — assert we did not get a second live activation
 		// beyond the single resume overlay emission.

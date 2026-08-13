@@ -138,6 +138,14 @@ export default defineConfig({
 				ROOT,
 				'packages/websocket-bridge/dist/create-client.js',
 			),
+			'@langflower/websocket-bridge/bridge-codec': path.join(
+				ROOT,
+				'packages/websocket-bridge/dist/bridge-codec.js',
+			),
+			'@langflower/websocket-bridge/bridge-codec.js': path.join(
+				ROOT,
+				'packages/websocket-bridge/dist/bridge-codec.js',
+			),
 			'@langflower/websocket-bridge': path.join(
 				ROOT,
 				'packages/websocket-bridge/dist/bridge-types.js',

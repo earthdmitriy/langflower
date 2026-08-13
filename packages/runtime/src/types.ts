@@ -128,48 +128,36 @@ export type RuntimeRunnerStatus = 'idle' | 'running' | 'stopped';
 
 export type RuntimePortSignalState = 'pending' | 'value' | 'error';
 
-export type RuntimeOutputEmittedEvent = {
-	readonly kind: 'output-emitted';
-	readonly runId: RunId;
-	readonly nodeId: NodeId;
-	readonly portId: string | symbol;
-	readonly portIdx: number;
-	readonly edgeIds: EdgeId[];
-	readonly state: RuntimePortSignalState;
-	readonly value: unknown;
-	/** Resolved author feed contract carried with the runtime fact. */
-	readonly feed?: RuntimeFeedPortMeta;
-};
-export type RuntimeInputReceivedEvent = {
-	readonly kind: 'input-received';
-	readonly runId: RunId;
-	readonly nodeId: NodeId;
-	readonly portId: string | symbol;
-	readonly portIdx: number;
-	readonly edgeIds: EdgeId[];
-	readonly state: RuntimePortSignalState;
-	readonly value: unknown;
-	/** Resolved author feed contract carried with the runtime fact. */
-	readonly feed?: RuntimeFeedPortMeta;
-};
+/**
+ * Port signal tuple — `portDir` `'out'` = output emitted, `'in'` = input received.
+ * No per-frame `runId`; session snapshots own run correlation.
+ */
+export type PortTelemetry = readonly [
+	portDir: 'in' | 'out',
+	nodeId: NodeId,
+	portId: string,
+	state: RuntimePortSignalState,
+	value: unknown,
+	portIdx: number,
+	edgeIds: readonly EdgeId[],
+	/** Absent feed meta — use `null` (never `undefined`; JSON arrays drop undefined). */
+	feed: RuntimeFeedPortMeta | null,
+];
 
-export type RuntimeRunnerEvent =
-	| RuntimeOutputEmittedEvent
-	| RuntimeInputReceivedEvent
-	| {
-			/**
-			 * Run ended naturally — sets {@link RuntimeRunnerStatus} to `'idle'`.
-			 *
-			 * Emitted when:
-			 * - the graph is **empty** on {@link RuntimeRunner.start}, or
-			 * - a node with {@link RuntimeNode.stopsRun} emits on a watched output.
-			 *
-			 * Otherwise the run stays `'running'` until
-			 * {@link RuntimeRunner.interrupt}.
-			 */
-			readonly kind: 'done';
-			readonly runId: RunId;
-	  };
+/** Run ended — `runId` at index 1 when replay needs explicit correlation. */
+export type RuntimeDoneTelemetry = readonly ['done'] | readonly ['done', RunId];
+
+export type RuntimeRunnerEvent = PortTelemetry | RuntimeDoneTelemetry;
+
+export const isPortTelemetry = (
+	event: RuntimeRunnerEvent,
+): event is PortTelemetry =>
+	Array.isArray(event) && (event[0] === 'in' || event[0] === 'out');
+
+export const isRuntimeDone = (
+	event: RuntimeRunnerEvent,
+): event is RuntimeDoneTelemetry =>
+	Array.isArray(event) && event[0] === 'done';
 
 /** Seed value pushed into an input port slot on {@link RuntimeRunner.start}. */
 export type RuntimeSeedPortValue = {

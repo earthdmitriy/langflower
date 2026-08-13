@@ -81,30 +81,30 @@ describe('string → finish: no empty-object value leak', () => {
 
 		const stringValues = events.filter(
 			(e) =>
-				e.kind === 'output-emitted' &&
-				e.nodeId === 'string-1' &&
-				e.portId === 'value',
+				e[0] === 'out' &&
+				e[1] === 'string-1' &&
+				e[2] === 'value',
 		);
 
-		const valueStates = stringValues.filter((e) => e.state === 'value');
-		expect(valueStates.map((e) => e.value)).toEqual(['Hello']);
+		const valueStates = stringValues.filter((e) => e[3] === 'value');
+		expect(valueStates.map((e) => e[4])).toEqual(['Hello']);
 
 		const emptyObjectValues = valueStates.filter(
 			(e) =>
-				typeof e.value === 'object' &&
-				e.value !== null &&
-				!Array.isArray(e.value) &&
-				Object.keys(e.value).length === 0,
+				typeof e[4] === 'object' &&
+				e[4] !== null &&
+				!Array.isArray(e[4]) &&
+				Object.keys(e[4]).length === 0,
 		);
 		expect(emptyObjectValues).toEqual([]);
 
 		const finishInputs = events.filter(
 			(e) =>
-				e.kind === 'input-received' &&
-				e.nodeId === 'finish-1' &&
-				e.portId === 'value' &&
-				e.state === 'value',
+				e[0] === 'in' &&
+				e[1] === 'finish-1' &&
+				e[2] === 'value' &&
+				e[3] === 'value',
 		);
-		expect(finishInputs.map((e) => e.value)).toEqual(['Hello']);
+		expect(finishInputs.map((e) => e[4])).toEqual(['Hello']);
 	});
 });

@@ -1,11 +1,7 @@
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type {
-	WsBridgeError,
-	WsBridgeStatus,
-} from '@langflower/websocket-bridge';
-import { BehaviorSubject, Subject, Subscription } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { attachBridgeEventLog } from './bridge-event-log.js';
 import type {
@@ -39,8 +35,19 @@ afterEach(async () => {
 	);
 });
 
+const parseFrames = (
+	text: string,
+): ReadonlyArray<
+	readonly [string, 'in' | 'out', string, unknown]
+> =>
+	text
+		.trim()
+		.split('\n')
+		.filter((line) => line.length > 0)
+		.map((line) => JSON.parse(line) as readonly [string, 'in' | 'out', string, unknown]);
+
 describe('attachBridgeEventLog', () => {
-	it('records inbound, broadcast, unicast, lifecycle, and error records with secrets redacted', async () => {
+	it('records inbound, broadcast, and unicast BridgeFrame tuples', async () => {
 		const projectDir = await createTemporaryProject();
 		const inbound = new Subject<{
 			readonly clientId: string;
@@ -48,16 +55,12 @@ describe('attachBridgeEventLog', () => {
 		}>();
 		const broadcast = new Subject<unknown>();
 		const connections = new Subject<LangflowerClient>();
-		const status = new BehaviorSubject<WsBridgeStatus>('connecting');
-		const errors = new Subject<WsBridgeError>();
 		const rootSubscription = new Subscription();
 		const log = attachBridgeEventLog(
 			asBridge({
 				'langflower.config.save.requested': inbound,
 				'workflow.current.snapshot': broadcast,
 				connections$: connections,
-				status$: status,
-				errors$: errors,
 			}),
 			projectDir,
 			rootSubscription,
@@ -72,76 +75,44 @@ describe('attachBridgeEventLog', () => {
 
 		inbound.next({
 			clientId: 'client-1',
-			payload: {
-				providerApiKeys: { openai: 'never-write-this' },
-				ordinary: 'retained',
-			},
+			payload: { ordinary: 'retained' },
 		});
-		broadcast.next({ token: 'never-write-this-either' });
+		broadcast.next({ token: 'broadcast-payload' });
 		connections.next(client);
-		unicast.next({ apiKey: 'also-not-written', value: 'snapshot' });
+		unicast.next({ value: 'snapshot' });
 		disconnected.next();
-		status.next('connected');
-		errors.next({
-			code: 'INVALID_FRAME',
-			message: 'Malformed input',
-			cause: new Error('frame detail'),
-		});
 
 		log.writeServerClosing();
 		rootSubscription.unsubscribe();
 		await log.flush();
 
 		const text = await fs.readFile(log.filePath, 'utf8');
-		const records = text
-			.trim()
-			.split('\n')
-			.map((line) => JSON.parse(line) as Record<string, unknown>);
+		const frames = parseFrames(text);
 
 		expect(log.filePath).toMatch(/\.langflower[\\/]logs[\\/].+\.log$/);
-		expect(records).toEqual(
+		expect(frames).toEqual(
 			expect.arrayContaining([
-				expect.objectContaining({
-					kind: 'frame',
-					direction: 'inbound',
-					clientId: 'client-1',
-					type: 'langflower.config.save.requested',
-				}),
-				expect.objectContaining({
-					kind: 'frame',
-					direction: 'outbound',
-					scope: 'broadcast',
-					type: 'workflow.current.snapshot',
-				}),
-				expect.objectContaining({
-					kind: 'frame',
-					direction: 'outbound',
-					scope: 'client',
-					clientId: 'client-1',
-					type: 'workflow.current.snapshot',
-				}),
-				expect.objectContaining({
-					kind: 'connection',
-					clientId: 'client-1',
-				}),
-				expect.objectContaining({
-					kind: 'disconnection',
-					clientId: 'client-1',
-				}),
-				expect.objectContaining({
-					kind: 'status',
-					status: 'connected',
-				}),
-				expect.objectContaining({
-					kind: 'error',
-					error: expect.objectContaining({ code: 'INVALID_FRAME' }),
-				}),
-				expect.objectContaining({ kind: 'server-closing' }),
+				[
+					expect.any(String),
+					'in',
+					'langflower.config.save.requested',
+					{ ordinary: 'retained' },
+				],
+				[
+					expect.any(String),
+					'out',
+					'workflow.current.snapshot',
+					{ token: 'broadcast-payload' },
+				],
+				[
+					expect.any(String),
+					'out',
+					'workflow.current.snapshot',
+					{ value: 'snapshot' },
+				],
 			]),
 		);
-		expect(text).not.toContain('never-write-this');
-		expect(text).not.toContain('also-not-written');
-		expect(text).toContain('[REDACTED]');
+		expect(frames.every((frame) => frame.length === 4)).toBe(true);
 	});
 
 	it('reports a directory failure once without throwing from bridge event handling', async () => {
@@ -150,6 +121,7 @@ describe('attachBridgeEventLog', () => {
 			path.join(projectDir, '.langflower'),
 			'not a directory',
 		);
+		const broadcast = new Subject<unknown>();
 		const rootSubscription = new Subscription();
 		const stderr = vi
 			.spyOn(process.stderr, 'write')
@@ -157,13 +129,13 @@ describe('attachBridgeEventLog', () => {
 		const log = attachBridgeEventLog(
 			asBridge({
 				connections$: new Subject<LangflowerClient>(),
-				status$: new Subject<WsBridgeStatus>(),
-				errors$: new Subject<WsBridgeError>(),
+				'workflow.current.snapshot': broadcast,
 			}),
 			projectDir,
 			rootSubscription,
 		);
 
+		broadcast.next({ probe: true });
 		log.writeServerClosing();
 		rootSubscription.unsubscribe();
 		await expect(log.flush()).resolves.toBeUndefined();
@@ -177,35 +149,38 @@ describe('attachBridgeEventLog', () => {
 
 	it('skips writes while disabled and resumes when re-enabled', async () => {
 		const projectDir = await createTemporaryProject();
-		const status = new Subject<WsBridgeStatus>();
+		const broadcast = new Subject<unknown>();
 		const rootSubscription = new Subscription();
 		const log = attachBridgeEventLog(
 			asBridge({
 				connections$: new Subject<LangflowerClient>(),
-				status$: status,
-				errors$: new Subject<WsBridgeError>(),
+				'workflow.current.snapshot': broadcast,
 			}),
 			projectDir,
 			rootSubscription,
 			{ enabled: false },
 		);
 
-		status.next('connected');
+		broadcast.next({ first: true });
 		await log.flush();
 		await expect(fs.access(log.filePath)).rejects.toMatchObject({
 			code: 'ENOENT',
 		});
 
 		log.setEnabled(true);
-		status.next('disconnected');
+		broadcast.next({ second: true });
 		log.writeServerClosing();
 		rootSubscription.unsubscribe();
 		await log.flush();
 
 		const text = await fs.readFile(log.filePath, 'utf8');
-		expect(text).toContain('"kind":"status"');
-		expect(text).toContain('"status":"disconnected"');
-		expect(text).not.toContain('"status":"connected"');
-		expect(text).toContain('"kind":"server-closing"');
+		const frames = parseFrames(text);
+		expect(frames).toHaveLength(1);
+		expect(frames[0]).toEqual([
+			expect.any(String),
+			'out',
+			'workflow.current.snapshot',
+			{ second: true },
+		]);
 	});
 });

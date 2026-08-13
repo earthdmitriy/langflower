@@ -53,13 +53,13 @@ describe('execute fake-llm debate loop (WS bridge)', () => {
 		});
 
 		const softFirst = firstValueFrom(
-			client['runner.output-emitted'].pipe(
+			client['runner.port'].pipe(
 				filter((event: RuntimeRunnerEvent) => {
 					if (
-						event.kind !== 'output-emitted' ||
-						event.state !== 'value' ||
-						event.nodeId !== 'soft' ||
-						event.portId !== 'response'
+						event[0] !== 'out' ||
+						event[3] !== 'value' ||
+						event[1] !== 'soft' ||
+						event[2] !== 'response'
 					) {
 						return false;
 					}
@@ -73,7 +73,7 @@ describe('execute fake-llm debate loop (WS bridge)', () => {
 
 		await startRunner(client);
 		const soft1 = await softFirst;
-		expect(String(soft1.value)).toContain('Final:');
+		expect(String(soft1[4])).toContain('Final:');
 		expect(doneSeen).toBe(false);
 
 		await interruptRunner(client).catch(() => {

@@ -92,23 +92,23 @@ describe('common-fake-llm debate loop (soft↔hard smoke)', () => {
 			runtime.runner.events$.pipe(
 				filter((event) => {
 					if (
-						event.kind !== 'output-emitted' ||
-						event.state !== 'value' ||
-						event.portId !== 'response'
+						event[0] !== 'out' ||
+						event[3] !== 'value' ||
+						event[2] !== 'response'
 					) {
 						return false;
 					}
 
-					if (event.nodeId === 'soft') {
-						softResponses.push(String(event.value));
+					if (event[1] === 'soft') {
+						softResponses.push(String(event[4]));
 						// Sync interrupt — Soft↔Hard would otherwise keep
 						// turning; tokenDelayMs>0 lets teardown win a tick.
 						runtime.runner.interrupt('cancel');
 						return true;
 					}
 
-					if (event.nodeId === 'hard') {
-						hardResponses.push(String(event.value));
+					if (event[1] === 'hard') {
+						hardResponses.push(String(event[4]));
 					}
 
 					return false;
@@ -178,15 +178,15 @@ describe('common-fake-llm debate loop (soft↔hard smoke)', () => {
 			runtime.runner.events$.pipe(
 				filter((event) => {
 					if (
-						event.kind !== 'output-emitted' ||
-						event.state !== 'value' ||
-						event.portId !== 'response' ||
-						event.nodeId !== 'soft'
+						event[0] !== 'out' ||
+						event[3] !== 'value' ||
+						event[2] !== 'response' ||
+						event[1] !== 'soft'
 					) {
 						return false;
 					}
 
-					softResponses.push(String(event.value));
+					softResponses.push(String(event[4]));
 					return softResponses.length >= 2;
 				}),
 			),
@@ -206,10 +206,10 @@ describe('common-fake-llm debate loop (soft↔hard smoke)', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'error' &&
-						event.nodeId === 'soft' &&
-						event.portId === 'response',
+						event[0] === 'out' &&
+						event[3] === 'error' &&
+						event[1] === 'soft' &&
+						event[2] === 'response',
 				),
 			),
 		);
@@ -221,9 +221,9 @@ describe('common-fake-llm debate loop (soft↔hard smoke)', () => {
 
 		expect(softResponses.length).toBe(2);
 		expect(softResponses[1]).toContain('feedback');
-		expect(errorEvent.kind).toBe('output-emitted');
-		if (errorEvent.kind === 'output-emitted') {
-			expect(String(errorEvent.value)).toMatch(/maxFeedbackTurns/);
+		expect(errorEvent[0]).toBe('out');
+		if (errorEvent[0] === 'out') {
+			expect(String(errorEvent[4])).toMatch(/maxFeedbackTurns/);
 		}
 
 		runtime.runner.dispose();

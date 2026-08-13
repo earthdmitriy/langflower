@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { NodeId } from '@langflower/runtime';
 import {
 	appendEventLogFrame,
 	applyFeedSnapshot,
@@ -11,37 +12,26 @@ import {
 } from './execution-feed-tail.js';
 import type { RuntimeRunnerEvent } from './runtime-event-types.js';
 
-const output = (runId: string): RuntimeRunnerEvent => ({
-	kind: 'output-emitted',
-	runId,
-	nodeId: 'n1',
-	portId: 'out',
-	portIdx: 0,
-	edgeIds: [],
-	state: 'value',
-	value: 'x',
-});
+const output = (): RuntimeRunnerEvent =>
+	['out', 'n1' as NodeId, 'out', 'value', 'x', 0, [], null];
 
-const done = (runId: string): RuntimeRunnerEvent => ({
-	kind: 'done',
-	runId,
-});
+const done = (runId: string): RuntimeRunnerEvent => ['done', runId];
 
 describe('execution-feed-tail', () => {
 	it('accepts eventLog kinds', () => {
-		expect(isEventLogAppendKind(output('r1'))).toBe(true);
+		expect(isEventLogAppendKind(output())).toBe(true);
 		expect(isEventLogAppendKind(done('r1'))).toBe(true);
 		expect(
-			isEventLogAppendKind({
-				kind: 'input-received',
-				runId: 'r1',
-				nodeId: 'n1',
-				portId: 'in',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: true,
-			}),
+			isEventLogAppendKind([
+				'in',
+				'n1' as NodeId,
+				'in',
+				'value',
+				true,
+				0,
+				[],
+				null,
+			]),
 		).toBe(true);
 	});
 
@@ -51,9 +41,9 @@ describe('execution-feed-tail', () => {
 			runId: 'r1',
 			workflowId: 'wf',
 			status: 'running',
-			events: [output('r1')],
+			events: [output()],
 		});
-		state = appendEventLogFrame(state, output('r1'));
+		state = appendEventLogFrame(state, output());
 		const tail = buildExecutionFeedTail(state, 10);
 		expect(tail.total).toBe(2);
 		expect(tail.events).toHaveLength(2);
@@ -65,10 +55,10 @@ describe('execution-feed-tail', () => {
 			runId: 'old',
 			workflowId: 'wf',
 			status: 'completed',
-			events: [output('old'), done('old')],
+			events: [output(), done('old')],
 		});
 		state = applyRunStarted(state, 'new');
-		state = appendEventLogFrame(state, output('new'));
+		state = appendEventLogFrame(state, output());
 		const tail = buildExecutionFeedTail(state, 20);
 		expect(tail.runId).toBe('new');
 		expect(tail.status).toBe('running');
@@ -77,14 +67,14 @@ describe('execution-feed-tail', () => {
 
 	it('sets stopped on interrupt (not idle from missing done)', () => {
 		let state = applyRunStarted(createExecutionFeedTailState(), 'r1');
-		state = appendEventLogFrame(state, output('r1'));
+		state = appendEventLogFrame(state, output());
 		state = applyRunInterrupted(state);
 		expect(buildExecutionFeedTail(state, 5).status).toBe('stopped');
 	});
 
 	it('derives settle status from idle gate + events after done', () => {
 		let state = applyRunStarted(createExecutionFeedTailState(), 'r1');
-		state = appendEventLogFrame(state, output('r1'));
+		state = appendEventLogFrame(state, output());
 		state = appendEventLogFrame(state, done('r1'));
 		expect(buildExecutionFeedTail(state, 5).status).toBe('completed');
 	});
@@ -94,7 +84,7 @@ describe('execution-feed-tail', () => {
 			runId: 'r1',
 			workflowId: 'wf',
 			status: 'running',
-			events: [output('r1')],
+			events: [output()],
 		});
 		state = applyRunnerSnapshot(state, {
 			status: 'stopped',

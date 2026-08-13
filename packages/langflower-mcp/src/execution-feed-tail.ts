@@ -9,17 +9,20 @@ import type {
 	RuntimeRunnerStatus,
 } from './runtime-event-types.js';
 
-/**
- * Snapshot-canonical MCP feed projection (ADR-024).
- * Base = last `executionFeed.snapshot`; live appends = eventLog kinds only.
- * Progress status comes from runner gate (snapshot / start / interrupt / done),
- * not from inferring idle solely via `kind === 'done'`.
- */
+const isPortTelemetry = (
+	event: RuntimeRunnerEvent,
+): event is Extract<RuntimeRunnerEvent, readonly ['in' | 'out', ...unknown[]]> =>
+	Array.isArray(event) && (event[0] === 'in' || event[0] === 'out');
+
+const isRuntimeDone = (
+	event: RuntimeRunnerEvent,
+): event is Extract<RuntimeRunnerEvent, readonly ['done', ...unknown[]]> =>
+	Array.isArray(event) && event[0] === 'done';
+
 export type ExecutionFeedTailState = {
 	readonly snapshot: ExecutionFeedSnapshotPayload | null;
 	readonly liveAppends: readonly RuntimeRunnerEvent[];
 	readonly runnerGate: RuntimeRunnerStatus | null;
-	/** Set when a run starts before a new feed snapshot arrives. */
 	readonly liveRunId: string | null;
 };
 
@@ -38,11 +41,8 @@ const emptyState = (): ExecutionFeedTailState => ({
 	liveRunId: null,
 });
 
-/** Kinds persisted in `RuntimeRunner.eventLog` / `executionFeed.snapshot`. */
 export const isEventLogAppendKind = (event: RuntimeRunnerEvent): boolean =>
-	event.kind === 'output-emitted' ||
-	event.kind === 'input-received' ||
-	event.kind === 'done';
+	isPortTelemetry(event) || isRuntimeDone(event);
 
 export const createExecutionFeedTailState = (): ExecutionFeedTailState =>
 	emptyState();
@@ -91,15 +91,18 @@ export const appendEventLogFrame = (
 		return state;
 	}
 
-	const nextGate: RuntimeRunnerStatus | null =
-		event.kind === 'done' ? 'idle' : state.runnerGate;
+	const nextGate: RuntimeRunnerStatus | null = isRuntimeDone(event)
+		? 'idle'
+		: state.runnerGate;
 
 	return {
 		...state,
 		liveAppends: [...state.liveAppends, event],
 		runnerGate: nextGate,
 		liveRunId:
-			typeof event.runId === 'string' ? event.runId : state.liveRunId,
+			isRuntimeDone(event) && event[1] !== undefined
+				? String(event[1])
+				: state.liveRunId,
 	};
 };
 

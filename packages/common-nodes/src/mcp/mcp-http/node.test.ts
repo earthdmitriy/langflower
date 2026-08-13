@@ -41,10 +41,10 @@ describe('common-mcp-http connect errors (S5)', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'error' &&
-						event.nodeId === 'mcp-http-1' &&
-						event.portId === 'mcpTransport',
+						event[0] === 'out' &&
+						event[3] === 'error' &&
+						event[1] === 'mcp-http-1' &&
+						event[2] === 'mcpTransport',
 				),
 			),
 		);
@@ -66,9 +66,9 @@ describe('common-mcp-http connect errors (S5)', () => {
 		});
 
 		const failed = await errorPromise;
-		expect(String(failed.value)).toMatch(/MCP http connect failed/);
-		expect(String(failed.value)).toContain('mcp-http-1');
-		expect(String(failed.value)).toContain('fetch failed');
+		expect(String(failed[4])).toMatch(/MCP http connect failed/);
+		expect(String(failed[4])).toContain('mcp-http-1');
+		expect(String(failed[4])).toContain('fetch failed');
 		expect(buildMock).not.toHaveBeenCalled();
 
 		runtime.runner.interrupt('cancel');
@@ -92,9 +92,9 @@ describe('common-mcp-http connect errors (S5)', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'error' &&
-						event.nodeId === 'mcp-http-1',
+						event[0] === 'out' &&
+						event[3] === 'error' &&
+						event[1] === 'mcp-http-1',
 				),
 				timeout({ first: 200 }),
 				catchError(() => EMPTY),

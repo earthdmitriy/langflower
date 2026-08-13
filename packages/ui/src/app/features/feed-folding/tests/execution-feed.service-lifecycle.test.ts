@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PortStreamItem } from '../types';
+import type { RuntimeRunnerEvent } from '@langflower/runtime';
 import {
 	createExecutionFeedHarness,
 	outputEvent,
@@ -15,7 +16,7 @@ describe('ExecutionFeedService lifecycle', () => {
 	it('updates an already-unwrapped port stream from later bridge frames', () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
-		harness.raw.outputEmitted$.next(outputEvent('agent', 'draft', 'first'));
+		harness.raw.runnerPort$.next(outputEvent('agent', 'draft', 'first'));
 
 		const seen: Array<readonly PortStreamItem[]> = [];
 		let innerSubscription: { unsubscribe(): void } | undefined;
@@ -29,7 +30,7 @@ describe('ExecutionFeedService lifecycle', () => {
 				}
 			});
 
-		harness.raw.outputEmitted$.next(
+		harness.raw.runnerPort$.next(
 			outputEvent('agent', 'draft', 'second'),
 		);
 
@@ -41,14 +42,14 @@ describe('ExecutionFeedService lifecycle', () => {
 	it('drops symbol ports and lifecycle done frames', () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
-		harness.raw.outputEmitted$.next({
-			...outputEvent('agent', 'draft', 'hidden'),
-			portId: Symbol('bypass'),
-		});
-		harness.raw.outputEmitted$.next({
-			kind: 'done',
-			runId: runId(),
-		});
+		harness.raw.runnerPort$.next([
+			'out',
+			'agent',
+			Symbol('bypass'),
+			'value',
+			'hidden',
+		] as unknown as RuntimeRunnerEvent);
+		harness.raw.runnerPort$.next(['done', runId()] as RuntimeRunnerEvent);
 
 		expect(harness.latestNodes()).toEqual([]);
 	});

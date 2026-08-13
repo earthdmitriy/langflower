@@ -72,10 +72,9 @@ class MockNgDiagramViewportService {
 function createRaw() {
 	return {
 		'executionFeed.snapshot': new Subject(),
-		'runner.output-emitted': new Subject(),
+		'runner.port': new Subject(),
 		'runner.started': new Subject(),
 		'runner.startNode.started': new Subject(),
-		'runner.input-received': new Subject(),
 		'runner.done': new Subject(),
 		'runner.interrupted': new Subject(),
 		'workflow.current.snapshot': new Subject(),
@@ -108,21 +107,21 @@ function makeNode(id: string, selected = false): SimpleNode<LfNodeData> {
 	};
 }
 
-function outputPending(runId: string, nodeId: string, edgeIds: string[] = []) {
-	return {
-		kind: 'output-emitted' as const,
-		runId,
+function outputPending(_runId: string, nodeId: string, edgeIds: string[] = []) {
+	return [
+		'out',
 		nodeId,
-		portId: 'response',
-		portIdx: 0,
+		'response',
+		'pending',
+		undefined,
+		0,
 		edgeIds,
-		state: 'pending' as const,
-		value: undefined,
-	};
+		null,
+	] as const;
 }
 
 function outputValue(
-	runId: string,
+	_runId: string,
 	nodeId: string,
 	options: {
 		readonly edgeIds?: string[];
@@ -130,32 +129,26 @@ function outputValue(
 		readonly streaming?: boolean;
 	} = {},
 ) {
-	return {
-		kind: 'output-emitted' as const,
-		runId,
-		nodeId,
-		portId: options.portId ?? 'response',
-		portIdx: 0,
-		edgeIds: options.edgeIds ?? [],
-		state: 'value' as const,
-		value: 'x',
-		...(options.streaming === true
-			? { feed: { streaming: true as const } }
-			: {}),
-	};
+	const portId = options.portId ?? 'response';
+	const edgeIds = options.edgeIds ?? [];
+	const feed =
+		options.streaming === true
+			? ({ role: 'draft' as const, streaming: true as const } as const)
+			: null;
+	return ['out', nodeId, portId, 'value', 'x', 0, edgeIds, feed] as const;
 }
 
-function outputError(runId: string, nodeId: string, edgeIds: string[] = []) {
-	return {
-		kind: 'output-emitted' as const,
-		runId,
+function outputError(_runId: string, nodeId: string, edgeIds: string[] = []) {
+	return [
+		'out',
 		nodeId,
-		portId: 'response',
-		portIdx: 0,
+		'response',
+		'error',
+		undefined,
+		0,
 		edgeIds,
-		state: 'error' as const,
-		value: undefined,
-	};
+		null,
+	] as const;
 }
 
 describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
@@ -223,7 +216,7 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 	}
 
 	it('is pending (yellow) while an output is pending', () => {
-		raw['runner.output-emitted'].next(outputPending('run-1', 'node-a'));
+		raw['runner.port'].next(outputPending('run-1', 'node-a'));
 		fixture.detectChanges();
 
 		expect(chromeEl().classList.contains('lf-node-chrome--pending')).toBe(
@@ -232,16 +225,16 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 	});
 
 	it('is pending on input-received alone', () => {
-		raw['runner.input-received'].next({
-			kind: 'input-received',
-			runId: 'run-1',
-			nodeId: 'node-a',
-			portId: 'prompt',
-			portIdx: 0,
-			edgeIds: [],
-			state: 'value',
-			value: 'hi',
-		});
+		raw['runner.port'].next([
+			'in',
+			'node-a',
+			'prompt',
+			'value',
+			'hi',
+			0,
+			[],
+			null,
+		]);
 		fixture.detectChanges();
 
 		expect(chromeEl().classList.contains('lf-node-chrome--pending')).toBe(
@@ -250,7 +243,7 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 	});
 
 	it('stays pending for streaming output value', () => {
-		raw['runner.output-emitted'].next(
+		raw['runner.port'].next(
 			outputValue('run-1', 'node-a', {
 				portId: 'draft',
 				streaming: true,
@@ -267,7 +260,7 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 	});
 
 	it('is error (red) when the output errors', () => {
-		raw['runner.output-emitted'].next(outputError('run-1', 'node-a'));
+		raw['runner.port'].next(outputError('run-1', 'node-a'));
 		fixture.detectChanges();
 
 		expect(chromeEl().classList.contains('lf-node-chrome--error')).toBe(
@@ -276,13 +269,13 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 	});
 
 	it('keeps settled chrome on run done', () => {
-		raw['runner.output-emitted'].next(outputValue('run-1', 'node-a'));
+		raw['runner.port'].next(outputValue('run-1', 'node-a'));
 		fixture.detectChanges();
 		expect(chromeEl().classList.contains('lf-node-chrome--value')).toBe(
 			true,
 		);
 
-		raw['runner.done'].next({ kind: 'done', runId: 'run-1' });
+		raw['runner.done'].next(['done', 'run-1' ]);
 		fixture.detectChanges();
 		expect(chromeEl().classList.contains('lf-node-chrome--value')).toBe(
 			true,
@@ -290,11 +283,11 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 	});
 
 	it('keeps amber after done when only streaming outputs fired', () => {
-		raw['runner.output-emitted'].next(
+		raw['runner.port'].next(
 			outputValue('run-1', 'node-a', { streaming: true }),
 		);
 		fixture.detectChanges();
-		raw['runner.done'].next({ kind: 'done', runId: 'run-1' });
+		raw['runner.done'].next(['done', 'run-1' ]);
 		fixture.detectChanges();
 
 		expect(chromeEl().classList.contains('lf-node-chrome--pending')).toBe(
@@ -305,7 +298,7 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 	it('flashes the pulse class on a delivered value, then clears it', () => {
 		vi.useFakeTimers();
 		try {
-			raw['runner.output-emitted'].next(outputValue('run-1', 'node-a'));
+			raw['runner.port'].next(outputValue('run-1', 'node-a'));
 			fixture.detectChanges();
 
 			expect(chromeEl().classList.contains('lf-node-chrome--pulse')).toBe(
@@ -324,7 +317,7 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 	});
 
 	it('applies selected class alongside pending (CSS cascade: selected wins)', () => {
-		raw['runner.output-emitted'].next(outputPending('run-1', 'node-a'));
+		raw['runner.port'].next(outputPending('run-1', 'node-a'));
 		fixture.componentRef.setInput('node', makeNode('node-a', true));
 		fixture.detectChanges();
 
@@ -334,7 +327,7 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 	});
 
 	it('applies hovered class alongside value (CSS cascade: hovered wins)', () => {
-		raw['runner.output-emitted'].next(outputValue('run-1', 'node-a'));
+		raw['runner.port'].next(outputValue('run-1', 'node-a'));
 		hover.set('node-a');
 		fixture.detectChanges();
 

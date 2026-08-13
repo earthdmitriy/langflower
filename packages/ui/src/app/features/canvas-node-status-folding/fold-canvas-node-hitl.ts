@@ -1,4 +1,5 @@
-import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type { PortTelemetry, RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import { isPortTelemetry } from '@langflower/runtime';
 import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
 import { combineLatest, merge, type Observable } from 'rxjs';
 import { filter, map, scan, shareReplay, startWith } from 'rxjs/operators';
@@ -22,6 +23,7 @@ type HitlComposerState = {
 	readonly events: readonly RuntimeRunnerEvent[];
 	readonly catalog: FeedCatalog | null;
 	readonly state: NodeHitlAwaitState;
+	readonly runId: RunId | null;
 };
 
 type HitlComposerAction =
@@ -29,7 +31,7 @@ type HitlComposerAction =
 			readonly type: 'snapshot';
 			readonly snap: ExecutionFeedSnapshotPayload | null;
 	  }
-	| { readonly type: 'port'; readonly event: RuntimeRunnerEvent }
+	| { readonly type: 'port'; readonly event: PortTelemetry }
 	| { readonly type: 'catalog'; readonly catalog: FeedCatalog }
 	| { readonly type: 'reset'; readonly runId: RunId };
 
@@ -37,6 +39,7 @@ const emptyHitlComposer = (): HitlComposerState => ({
 	events: [],
 	catalog: null,
 	state: emptyNodeHitlAwaitState(),
+	runId: null,
 });
 
 const foldHitlComposer = (
@@ -50,7 +53,7 @@ const foldHitlComposer = (
 				? composer.state
 				: rebuildNodeHitlAwaitState(
 						composer.events,
-						composer.state.runId,
+						composer.runId,
 						action.catalog,
 						nodeId,
 					);
@@ -62,11 +65,13 @@ const foldHitlComposer = (
 				events: [],
 				catalog: composer.catalog,
 				state: emptyNodeHitlAwaitState(),
+				runId: null,
 			};
 		}
 		return {
 			events: eventsForNode(action.snap.events, nodeId),
 			catalog: composer.catalog,
+			runId: action.snap.runId,
 			state: replayNodeHitlFromSnapshot(
 				action.snap,
 				nodeId,
@@ -83,17 +88,20 @@ const foldHitlComposer = (
 			events: [],
 			catalog: composer.catalog,
 			state,
+			runId: action.runId,
 		};
 	}
 	const events = [...composer.events, action.event];
 	return {
 		events,
 		catalog: composer.catalog,
+		runId: composer.runId,
 		state: applyNodeHitlFrame(
 			composer.state,
 			action.event,
 			composer.catalog,
 			nodeId,
+			composer.runId,
 		),
 	};
 };
@@ -104,8 +112,7 @@ export const foldSingleNodeHitlAwaiting = (
 	sources: Pick<
 		CanvasNodeStatusBridgeSources,
 		| 'executionFeedSnapshot$'
-		| 'outputEmitted$'
-		| 'inputReceived$'
+		| 'runnerPort$'
 		| 'runnerStarted$'
 		| 'runnerStartNodeStarted$'
 		| 'workflowSnapshot$'
@@ -126,25 +133,13 @@ export const foldSingleNodeHitlAwaiting = (
 		shareReplay({ bufferSize: 1, refCount: true }),
 	);
 
-	const forNode = (event: RuntimeRunnerEvent): boolean => {
-		if (
-			event.kind !== 'output-emitted' &&
-			event.kind !== 'input-received'
-		) {
-			return false;
-		}
-		return event.nodeId === nodeId;
-	};
+	const forNode = (event: PortTelemetry): boolean => event[1] === nodeId;
 
 	return merge(
 		sources.executionFeedSnapshot$.pipe(
 			map((snap): HitlComposerAction => ({ type: 'snapshot', snap })),
 		),
-		sources.outputEmitted$.pipe(
-			filter(forNode),
-			map((event): HitlComposerAction => ({ type: 'port', event })),
-		),
-		sources.inputReceived$.pipe(
+		sources.runnerPort$.pipe(
 			filter(forNode),
 			map((event): HitlComposerAction => ({ type: 'port', event })),
 		),

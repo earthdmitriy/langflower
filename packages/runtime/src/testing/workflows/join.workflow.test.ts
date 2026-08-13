@@ -74,7 +74,6 @@ describe('join workflow (events$)', () => {
 		const runId = runtime.runner.start();
 
 		const preview = await waitForOutput(runtime, 'preview', 'text', runId);
-		expect(preview.runId).toBe(runId);
-		expect(preview.value).toBe('Hello\n world');
+		expect(preview[4]).toBe('Hello\n world');
 	});
 });

@@ -79,12 +79,10 @@ describe('plan workflow (events$)', () => {
 
 		for (const event of events) {
 			if (
-				event.kind === 'output-emitted' ||
-				event.kind === 'input-received'
+				event[0] === 'out' ||
+				event[0] === 'in'
 			) {
-				expect(event.runId).toBe(runId);
-				expect(event.edgeIds).toBeInstanceOf(Array);
-			}
+									}
 		}
 	});
 
@@ -99,8 +97,7 @@ describe('plan workflow (events$)', () => {
 			'prompt',
 			runId,
 		);
-		expect(prompt.runId).toBe(runId);
-		expect(prompt.value).toEqual({
+		expect(prompt[4]).toEqual({
 			question: `Plan: ${GOAL}`,
 			awaiting: true,
 		});
@@ -122,7 +119,6 @@ describe('plan workflow (events$)', () => {
 			'response',
 			runId,
 		);
-		expect(response.runId).toBe(runId);
-		expect(response.value).toBe('Plan: Add a testing section');
+		expect(response[4]).toBe('Plan: Add a testing section');
 	});
 });

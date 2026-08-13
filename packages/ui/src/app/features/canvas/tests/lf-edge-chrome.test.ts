@@ -45,10 +45,9 @@ class MockNgDiagramModelService {
 function createRaw() {
 	return {
 		'executionFeed.snapshot': new Subject(),
-		'runner.output-emitted': new Subject(),
+		'runner.port': new Subject(),
 		'runner.started': new Subject(),
 		'runner.startNode.started': new Subject(),
-		'runner.input-received': new Subject(),
 		'runner.done': new Subject(),
 		'runner.interrupted': new Subject(),
 		'workflow.current.snapshot': new Subject(),
@@ -79,30 +78,30 @@ function makeEdge(
 	};
 }
 
-function outputPending(runId: string, edgeIds: string[]) {
-	return {
-		kind: 'output-emitted' as const,
-		runId,
-		nodeId: 'n1',
-		portId: 'response',
-		portIdx: 0,
+function outputPending(_runId: string, edgeIds: string[]) {
+	return [
+		'out',
+		'n1',
+		'response',
+		'pending',
+		undefined,
+		0,
 		edgeIds,
-		state: 'pending' as const,
-		value: undefined,
-	};
+		null,
+	] as const;
 }
 
-function outputValue(runId: string, edgeIds: string[]) {
-	return {
-		kind: 'output-emitted' as const,
-		runId,
-		nodeId: 'n1',
-		portId: 'response',
-		portIdx: 0,
+function outputValue(_runId: string, edgeIds: string[]) {
+	return [
+		'out',
+		'n1',
+		'response',
+		'value',
+		'x',
+		0,
 		edgeIds,
-		state: 'value' as const,
-		value: 'x',
-	};
+		null,
+	] as const;
 }
 
 describe('LfEdgeChromeComponent execution chrome (signal-driven DOM)', () => {
@@ -154,7 +153,7 @@ describe('LfEdgeChromeComponent execution chrome (signal-driven DOM)', () => {
 	});
 
 	it('is pending (dark yellow) while the source output is pending', () => {
-		raw['runner.output-emitted'].next(outputPending('run-1', ['edge-1']));
+		raw['runner.port'].next(outputPending('run-1', ['edge-1']));
 		fixture.detectChanges();
 
 		expect(service.wireStatus('edge-1')).toBe('pending');
@@ -164,7 +163,7 @@ describe('LfEdgeChromeComponent execution chrome (signal-driven DOM)', () => {
 	});
 
 	it('is value (green) once the source emits a value', () => {
-		raw['runner.output-emitted'].next(outputValue('run-1', ['edge-1']));
+		raw['runner.port'].next(outputValue('run-1', ['edge-1']));
 		fixture.detectChanges();
 
 		expect(service.wireStatus('edge-1')).toBe('value');
@@ -174,11 +173,11 @@ describe('LfEdgeChromeComponent execution chrome (signal-driven DOM)', () => {
 	});
 
 	it('keeps settled chrome on run done', () => {
-		raw['runner.output-emitted'].next(outputPending('run-1', ['edge-1']));
+		raw['runner.port'].next(outputPending('run-1', ['edge-1']));
 		fixture.detectChanges();
 		expect(service.wireStatus('edge-1')).toBe('pending');
 
-		raw['runner.done'].next({ kind: 'done', runId: 'run-1' });
+		raw['runner.done'].next(['done', 'run-1' ]);
 		fixture.detectChanges();
 
 		expect(service.wireStatus('edge-1')).toBe('pending');
@@ -190,7 +189,7 @@ describe('LfEdgeChromeComponent execution chrome (signal-driven DOM)', () => {
 	it('flashes the pulse class on a delivered value, then clears it', () => {
 		vi.useFakeTimers();
 		try {
-			raw['runner.output-emitted'].next(outputValue('run-1', ['edge-1']));
+			raw['runner.port'].next(outputValue('run-1', ['edge-1']));
 			fixture.detectChanges();
 
 			expect(fixture.componentInstance.pulse()).toBe(true);

@@ -1,15 +1,11 @@
 import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import { isPortTelemetry } from '@langflower/runtime';
 import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
 import {
 	definitionForNode,
 	type FeedCatalog,
 } from '../../../services/execution-catalog';
 import type { CanvasNodeFoldStatus, NodeChromeFoldState } from '../types';
-
-type PortFrame = Extract<
-	RuntimeRunnerEvent,
-	{ kind: 'output-emitted' | 'input-received' }
->;
 
 export const emptyNodeChromeFoldState = (): NodeChromeFoldState => ({
 	seen: false,
@@ -34,80 +30,83 @@ export const foldStatusFromNodeState = (
 };
 
 const isStreamingPort = (
-	event: PortFrame,
+	event: RuntimeRunnerEvent,
 	catalog: FeedCatalog | null,
 ): boolean => {
-	if (event.feed?.streaming === true) {
+	if (!isPortTelemetry(event)) {
+		return false;
+	}
+	const [, nodeId, portId, , , , , feedMeta] = event;
+	if (feedMeta?.streaming === true) {
 		return true;
 	}
-	if (catalog === null || typeof event.portId !== 'string') {
+	if (catalog === null || typeof portId !== 'string') {
 		return false;
 	}
 	const definition = definitionForNode(
 		catalog.paletteByType,
 		catalog.nodeTypeById,
-		event.nodeId,
+		nodeId,
 	);
 	const configs =
-		event.kind === 'output-emitted'
-			? definition?.outputsConfigs
-			: definition?.inputsConfigs;
-	const config = configs?.find((entry) => entry.portId === event.portId);
+		event[0] === 'out' ? definition?.outputsConfigs : definition?.inputsConfigs;
+	const config = configs?.find((entry) => entry.portId === portId);
 	return config?.feed?.streaming === true;
 };
 
-/** Append one already-filtered (this node) port frame into single-node state. */
 export const appendNodeChromeFrame = (
 	state: NodeChromeFoldState,
 	event: RuntimeRunnerEvent,
 	catalog: FeedCatalog | null,
+	runId: RunId | null,
 ): NodeChromeFoldState => {
-	if (event.kind !== 'output-emitted' && event.kind !== 'input-received') {
+	if (!isPortTelemetry(event)) {
 		return state;
 	}
-	if (typeof event.portId === 'symbol') {
+	const [portDir, , portId, eventState] = event;
+	if (typeof portId === 'symbol') {
 		return state;
 	}
 	if (
-		event.state !== 'value' &&
-		event.state !== 'pending' &&
-		event.state !== 'error'
+		eventState !== 'value' &&
+		eventState !== 'pending' &&
+		eventState !== 'error'
 	) {
 		return state;
 	}
-	if (event.state === 'error' && event.kind === 'output-emitted') {
+	if (eventState === 'error' && portDir === 'out') {
 		return {
 			seen: true,
 			hasError: true,
 			hasNonStreamingValue: state.hasNonStreamingValue,
-			runId: event.runId,
+			runId: runId ?? state.runId,
 		};
 	}
 	if (
-		event.kind === 'output-emitted' &&
-		event.state === 'value' &&
+		portDir === 'out' &&
+		eventState === 'value' &&
 		!isStreamingPort(event, catalog)
 	) {
 		return {
 			seen: true,
 			hasError: state.hasError,
 			hasNonStreamingValue: true,
-			runId: event.runId,
+			runId: runId ?? state.runId,
 		};
 	}
-	if (event.kind === 'input-received') {
+	if (portDir === 'in') {
 		return {
 			seen: true,
 			hasError: state.hasError,
 			hasNonStreamingValue: false,
-			runId: event.runId,
+			runId: runId ?? state.runId,
 		};
 	}
 	return {
 		seen: true,
 		hasError: state.hasError,
 		hasNonStreamingValue: state.hasNonStreamingValue,
-		runId: event.runId,
+		runId: runId ?? state.runId,
 	};
 };
 
@@ -115,17 +114,10 @@ export const eventsForNode = (
 	events: readonly RuntimeRunnerEvent[],
 	nodeId: string,
 ): readonly RuntimeRunnerEvent[] =>
-	events.filter((event) => {
-		if (
-			event.kind !== 'output-emitted' &&
-			event.kind !== 'input-received'
-		) {
-			return false;
-		}
-		return event.nodeId === nodeId;
-	});
+	events.filter(
+		(event) => isPortTelemetry(event) && event[1] === nodeId,
+	);
 
-/** Replay snapshot events belonging to one node only. */
 export const replayNodeChromeFromSnapshot = (
 	snapshot: ExecutionFeedSnapshotPayload | null,
 	nodeId: string,
@@ -139,7 +131,7 @@ export const replayNodeChromeFromSnapshot = (
 		runId: snapshot.runId,
 	};
 	for (const event of eventsForNode(snapshot.events, nodeId)) {
-		state = appendNodeChromeFrame(state, event, catalog);
+		state = appendNodeChromeFrame(state, event, catalog, snapshot.runId);
 	}
 	return state;
 };
@@ -154,7 +146,6 @@ export const resetNodeChromeFoldState = (
 	return { ...emptyNodeChromeFoldState(), runId };
 };
 
-/** Re-apply retained node-filtered events when catalog arrives/changes. */
 export const rebuildNodeChromeFoldState = (
 	events: readonly RuntimeRunnerEvent[],
 	runId: RunId | null,
@@ -165,7 +156,7 @@ export const rebuildNodeChromeFoldState = (
 		runId,
 	};
 	for (const event of events) {
-		state = appendNodeChromeFrame(state, event, catalog);
+		state = appendNodeChromeFrame(state, event, catalog, runId);
 	}
 	return state;
 };

@@ -17,13 +17,13 @@ describe('ExecutionFeedService HITL', () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ review: 'review' }, [review]);
 
-		harness.raw.outputEmitted$.next(
+		harness.raw.runnerPort$.next(
 			outputEvent('review', 'draft', 'before'),
 		);
-		harness.raw.inputReceived$.next(
+		harness.raw.runnerPort$.next(
 			inputEvent('review', 'reply', 'continue'),
 		);
-		harness.raw.outputEmitted$.next(
+		harness.raw.runnerPort$.next(
 			outputEvent('review', 'draft', 'after'),
 		);
 
@@ -55,9 +55,9 @@ describe('ExecutionFeedService HITL', () => {
 	it('keeps replies isolated across parallel HITL nodes', async () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ left: 'review', right: 'review' }, [review]);
-		harness.raw.outputEmitted$.next(outputEvent('left', 'draft', 'L'));
-		harness.raw.outputEmitted$.next(outputEvent('right', 'draft', 'R'));
-		harness.raw.inputReceived$.next(
+		harness.raw.runnerPort$.next(outputEvent('left', 'draft', 'L'));
+		harness.raw.runnerPort$.next(outputEvent('right', 'draft', 'R'));
+		harness.raw.runnerPort$.next(
 			inputEvent('left', 'reply', 'left only'),
 		);
 

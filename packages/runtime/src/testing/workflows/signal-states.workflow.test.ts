@@ -103,12 +103,11 @@ describe('port signal states (pending / error via pipe(tap) typeguards)', () => 
 		const states = events
 			.filter(
 				(event) =>
-					event.kind === 'output-emitted' &&
-					event.runId === runId &&
-					event.nodeId === 'p1' &&
-					event.portId === 'value',
+					event[0] === 'out' &&
+					event[1] === 'p1' &&
+					event[2] === 'value',
 			)
-			.map((event) => event.state);
+			.map((event) => event[3]);
 
 		expect(states).toContain('pending');
 		expect(states).toContain('value');
@@ -131,15 +130,14 @@ describe('port signal states (pending / error via pipe(tap) typeguards)', () => 
 
 		const errorEvent = events.find(
 			(event) =>
-				event.kind === 'output-emitted' &&
-				event.runId === runId &&
-				event.nodeId === 'e1' &&
-				event.portId === 'value' &&
-				event.state === 'error',
+				event[0] === 'out' &&
+				event[1] === 'e1' &&
+				event[2] === 'value' &&
+				event[3] === 'error',
 		);
 
 		expect(errorEvent).toBeDefined();
-		expect((errorEvent as { value: unknown }).value).toBe('boom');
+		expect(errorEvent[4]).toBe('boom');
 	});
 
 	it('does not forward output error state to downstream nodes', async () => {
@@ -160,20 +158,18 @@ describe('port signal states (pending / error via pipe(tap) typeguards)', () => 
 
 		const sourceError = events.find(
 			(event) =>
-				event.kind === 'output-emitted' &&
-				event.runId === runId &&
-				event.nodeId === 'e1' &&
-				event.state === 'error',
+				event[0] === 'out' &&
+				event[1] === 'e1' &&
+				event[3] === 'error',
 		);
 		expect(sourceError).toBeDefined();
 
 		const sinkErrors = events.filter(
 			(event) =>
-				(event.kind === 'output-emitted' ||
-					event.kind === 'input-received') &&
-				event.runId === runId &&
-				event.nodeId === 'sink' &&
-				event.state === 'error',
+				(event[0] === 'out' ||
+					event[0] === 'in') &&
+				event[1] === 'sink' &&
+				event[3] === 'error',
 		);
 		expect(sinkErrors).toEqual([]);
 	});

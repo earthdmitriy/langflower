@@ -101,11 +101,11 @@ describe('common-openai-llm', () => {
 		const chunks: Array<{ portId: string; value: unknown }> = [];
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
-				event.kind === 'output-emitted' &&
-				event.state === 'value' &&
-				event.nodeId === 'llm-1'
+				event[0] === 'out' &&
+				event[3] === 'value' &&
+				event[1] === 'llm-1'
 			) {
-				chunks.push({ portId: event.portId, value: event.value });
+				chunks.push({ portId: event[2], value: event[4] });
 			}
 		});
 
@@ -113,10 +113,10 @@ describe('common-openai-llm', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'preview-1' &&
-						event.portId === 'text',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'preview-1' &&
+						event[2] === 'text',
 				),
 			),
 		);
@@ -199,7 +199,7 @@ describe('common-openai-llm', () => {
 			.join('');
 		expect(draftText).toBe('Cherry blossoms fall');
 		expect(
-			previewEvent.kind === 'output-emitted' && previewEvent.value,
+			previewEvent[0] === 'out' && previewEvent[4],
 		).toBe('Cherry blossoms fall');
 
 		expect(captured).toHaveLength(1);
@@ -243,10 +243,10 @@ describe('common-openai-llm', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'llm-1' &&
-						event.portId === 'response',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'llm-1' &&
+						event[2] === 'response',
 				),
 			),
 		);
@@ -327,9 +327,9 @@ describe('common-openai-llm', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'error' &&
-						event.nodeId === 'llm-1',
+						event[0] === 'out' &&
+						event[3] === 'error' &&
+						event[1] === 'llm-1',
 				),
 			),
 		);
@@ -360,10 +360,10 @@ describe('common-openai-llm', () => {
 		});
 
 		const failed = await failedPromise;
-		expect(failed.kind).toBe('output-emitted');
-		if (failed.kind === 'output-emitted' && failed.state === 'error') {
-			expect(String(failed.value)).toMatch(/Provider is required/);
-			expect(String(failed.value)).not.toMatch(/sk-|apiKey/);
+		expect(failed[0]).toBe('out');
+		if (failed[0] === 'out' && failed[3] === 'error') {
+			expect(String(failed[4])).toMatch(/Provider is required/);
+			expect(String(failed[4])).not.toMatch(/sk-|apiKey/);
 		}
 
 		runtime.runner.interrupt('cancel');
@@ -466,10 +466,10 @@ describe('common-openai-llm', () => {
 				runtime.runner.events$.pipe(
 					filter(
 						(event) =>
-							event.kind === 'output-emitted' &&
-							event.state === 'value' &&
-							event.nodeId === 'llm-a' &&
-							event.portId === 'response',
+							event[0] === 'out' &&
+							event[3] === 'value' &&
+							event[1] === 'llm-a' &&
+							event[2] === 'response',
 					),
 				),
 			),
@@ -477,10 +477,10 @@ describe('common-openai-llm', () => {
 				runtime.runner.events$.pipe(
 					filter(
 						(event) =>
-							event.kind === 'output-emitted' &&
-							event.state === 'value' &&
-							event.nodeId === 'llm-b' &&
-							event.portId === 'response',
+							event[0] === 'out' &&
+							event[3] === 'value' &&
+							event[1] === 'llm-b' &&
+							event[2] === 'response',
 					),
 				),
 			),
@@ -627,10 +627,10 @@ describe('common-openai-llm', () => {
 				runtime.runner.events$.pipe(
 					filter((event) => {
 						if (
-							event.kind !== 'output-emitted' ||
-							event.state !== 'value' ||
-							event.nodeId !== 'llm-1' ||
-							event.portId !== 'response'
+							event[0] !== 'out' ||
+							event[3] !== 'value' ||
+							event[1] !== 'llm-1' ||
+							event[2] !== 'response'
 						) {
 							return false;
 						}
@@ -745,10 +745,10 @@ describe('common-openai-llm', () => {
 				runtime.runner.events$.pipe(
 					filter((event) => {
 						if (
-							event.kind !== 'output-emitted' ||
-							event.state !== 'value' ||
-							event.nodeId !== 'llm-1' ||
-							event.portId !== 'response'
+							event[0] !== 'out' ||
+							event[3] !== 'value' ||
+							event[1] !== 'llm-1' ||
+							event[2] !== 'response'
 						) {
 							return false;
 						}

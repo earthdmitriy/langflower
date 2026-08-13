@@ -75,10 +75,10 @@ const waitLlmResponse = (runtime: RuntimeFacade, nth: number) => {
 		runtime.runner.events$.pipe(
 			filter((event) => {
 				if (
-					event.kind !== 'output-emitted' ||
-					event.state !== 'value' ||
-					event.nodeId !== 'llm-1' ||
-					event.portId !== 'response'
+					event[0] !== 'out' ||
+					event[3] !== 'value' ||
+					event[1] !== 'llm-1' ||
+					event[2] !== 'response'
 				) {
 					return false;
 				}

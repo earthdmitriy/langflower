@@ -9,6 +9,7 @@ import {
 	runAndCollectEvents,
 	waitForOutput,
 	wireEdge,
+	edgeIdsFromPortEvent,
 } from './workflow-events.js';
 
 function createRouterChannelsScenario(): RuntimeHarness {
@@ -99,10 +100,8 @@ describe('router workflow (events$)', () => {
 		const branchA = await waitForOutput(runtime, 'sink-a', 'value', runId);
 		const branchB = await waitForOutput(runtime, 'sink-b', 'value', runId);
 
-		expect(branchA.runId).toBe(runId);
-		expect(branchB.runId).toBe(runId);
-		expect(branchA.value).toBe('alpha');
-		expect(branchB.value).toBe('beta');
+		expect(branchA[4]).toBe('alpha');
+		expect(branchB[4]).toBe('beta');
 	});
 
 	it('fans out one router channel to multiple downstream nodes', async () => {
@@ -115,10 +114,8 @@ describe('router workflow (events$)', () => {
 		const branchA = await waitForOutput(runtime, 'd1', 'value', runId);
 		const branchB = await waitForOutput(runtime, 'd2', 'value', runId);
 
-		expect(branchA.runId).toBe(runId);
-		expect(branchB.runId).toBe(runId);
-		expect(branchA.value).toBe('ping');
-		expect(branchB.value).toBe('ping');
+		expect(branchA[4]).toBe('ping');
+		expect(branchB[4]).toBe('ping');
 	});
 
 	it('delivers to slot 0 even when slot 1 source never emits', async () => {
@@ -161,8 +158,7 @@ describe('router workflow (events$)', () => {
 
 		const result = await waitForOutput(runtime, 'sink', 'value', runId);
 
-		expect(result.runId).toBe(runId);
-		expect(result.value).toBe('hello');
+		expect(result[4]).toBe('hello');
 	});
 
 	it('slot 1 delivers after slot 0 upstream is removed', async () => {
@@ -203,7 +199,7 @@ describe('router workflow (events$)', () => {
 		// First run — slot 1 delivers
 		const runId1 = runtime.runner.start();
 		const r1 = await waitForOutput(runtime, 'sink', 'value', runId1);
-		expect(r1.value).toBe('data');
+		expect(r1[4]).toBe('data');
 
 		// Stop, remove stall → router edge, run again
 		runtime.runner.interrupt('cancel');
@@ -222,8 +218,7 @@ describe('router workflow (events$)', () => {
 
 		const runId2 = runtime.runner.start();
 		const r2 = await waitForOutput(runtime, 'sink', 'value', runId2);
-		expect(r2.runId).toBe(runId2);
-		expect(r2.value).toBe('data');
+		expect(r2[4]).toBe('data');
 	});
 
 	it('rewires emit from slot 1 to slot 0 after removing both edges', async () => {
@@ -263,7 +258,7 @@ describe('router workflow (events$)', () => {
 		// First run — slot 1 delivers
 		const runId1 = runtime.runner.start();
 		const r1 = await waitForOutput(runtime, 'sink', 'value', runId1);
-		expect(r1.value).toBe('payload');
+		expect(r1[4]).toBe('payload');
 
 		runtime.runner.interrupt('cancel');
 
@@ -321,8 +316,7 @@ describe('router workflow (events$)', () => {
 
 		const runId2 = runtime.runner.start();
 		const r2 = await waitForOutput(runtime, 'sink', 'value', runId2);
-		expect(r2.runId).toBe(runId2);
-		expect(r2.value).toBe('payload');
+		expect(r2[4]).toBe('payload');
 	});
 
 	it('emits output-emitted telemetry with edgeIds for bypass outputs (BUG CASE 1)', async () => {
@@ -342,9 +336,8 @@ describe('router workflow (events$)', () => {
 
 		const routerEmits = events.filter(
 			(event) =>
-				event.kind === 'output-emitted' &&
-				event.runId === runId &&
-				event.nodeId === 'router',
+				event[0] === 'out' &&
+				event[1] === 'router',
 		);
 
 		// Bypass outputs must emit telemetry so downstream wires can highlight.
@@ -352,7 +345,7 @@ describe('router workflow (events$)', () => {
 
 		for (const emit of routerEmits) {
 			expect(
-				emit.edgeIds,
+				edgeIdsFromPortEvent(emit),
 				'router output-emitted carries outgoing edgeIds',
 			).toEqual(expect.arrayContaining(routerEdgeIds));
 		}

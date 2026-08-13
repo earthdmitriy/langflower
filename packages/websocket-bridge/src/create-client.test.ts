@@ -42,7 +42,9 @@ describe('defaultWsBridgeCodec', () => {
 		};
 
 		expect(
-			defaultWsBridgeCodec.decode(defaultWsBridgeCodec.encode(event)),
+			defaultWsBridgeCodec.decode(
+				defaultWsBridgeCodec.encode(event, 'out'),
+			),
 		).toEqual(event);
 	});
 });

@@ -83,7 +83,7 @@ describe('execute agent-swarm (WS bridge)', () => {
 				portId: 'text',
 			});
 
-			expect(String(output.value)).toContain('Swarm done');
+			expect(String(output[4])).toContain('Swarm done');
 		});
 	});
 });

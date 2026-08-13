@@ -1,12 +1,10 @@
-import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type { PortTelemetry, RunId } from '@langflower/runtime';
+import { isPortTelemetry } from '@langflower/runtime';
 import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
 import { merge, type Observable } from 'rxjs';
 import { filter, map, scan, shareReplay, startWith } from 'rxjs/operators';
 
-type OutputEmittedEvent = Extract<
-	RuntimeRunnerEvent,
-	{ kind: 'output-emitted' }
->;
+type OutputPortTelemetry = PortTelemetry & { readonly 0: 'out' };
 
 type LivenessAction =
 	| { readonly type: 'reset' }
@@ -49,7 +47,6 @@ const foldLivenessState = (
 	return next;
 };
 
-/** Nodes that emitted in the snapshot (reconnect approximation for active work). */
 const nodeIdsFromFeedSnapshot = (
 	snap: ExecutionFeedSnapshotPayload | null,
 ): readonly string[] => {
@@ -58,20 +55,15 @@ const nodeIdsFromFeedSnapshot = (
 	}
 	const ids = new Set<string>();
 	for (const event of snap.events) {
-		if (event.kind === 'output-emitted') {
-			ids.add(event.nodeId);
+		if (isPortTelemetry(event) && event[0] === 'out') {
+			ids.add(String(event[1]));
 		}
 	}
 	return [...ids];
 };
 
-/**
- * Client wall-clock last `output-emitted` per nodeId. Snapshot replay does not
- * invent historical times — after hydrate, stamp `Date.now()` once for nodes
- * present in the snapshot log (fills gaps until the next live emission).
- */
 export const createLastActivityByNode$ = (deps: {
-	readonly outputEmitted$: Observable<OutputEmittedEvent>;
+	readonly outputEmitted$: Observable<OutputPortTelemetry>;
 	readonly runnerStarted$: Observable<RunId>;
 	readonly runnerStartNodeStarted$: Observable<RunId>;
 	readonly executionFeedSnapshot$: Observable<ExecutionFeedSnapshotPayload | null>;
@@ -98,10 +90,10 @@ export const createLastActivityByNode$ = (deps: {
 	);
 
 	const output$ = deps.outputEmitted$.pipe(
-		filter((event) => typeof event.portId === 'string'),
+		filter((event) => typeof event[2] === 'string'),
 		map((event): LivenessAction => ({
 			type: 'output',
-			nodeId: event.nodeId,
+			nodeId: String(event[1]),
 			atMs: now(),
 		})),
 	);

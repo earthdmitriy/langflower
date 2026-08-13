@@ -143,7 +143,7 @@ describe('execute research-fanout (WS bridge)', () => {
 			);
 
 			const packets = await packetsReady;
-			const parsed: unknown = JSON.parse(String(packets.value));
+			const parsed: unknown = JSON.parse(String(packets[4]));
 			expect(Array.isArray(parsed)).toBe(true);
 			expect((parsed as string[]).length).toBeGreaterThanOrEqual(2);
 
@@ -162,7 +162,7 @@ describe('execute research-fanout (WS bridge)', () => {
 			const finish = await finishPromise;
 			await donePromise;
 
-			expect(String(finish.value)).toContain('Reconciled brief');
+			expect(String(finish[4])).toContain('Reconciled brief');
 		}, 20_000);
 	});
 });

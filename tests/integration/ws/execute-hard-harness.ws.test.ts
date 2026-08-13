@@ -50,7 +50,7 @@ describe('execute hard-harness Assert+IF (WS bridge)', () => {
 			portId: 'text',
 		});
 
-		expect(output.value).toBe('plan-ok');
+		expect(output[4]).toBe('plan-ok');
 
 		await interruptRunner(client);
 	});

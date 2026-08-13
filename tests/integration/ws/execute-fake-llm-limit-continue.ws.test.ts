@@ -84,7 +84,7 @@ describe('execute fake-llm maxIterations continue (WS bridge)', () => {
 			askSub.unsubscribe();
 			allowSub.unsubscribe();
 
-			expect(String(output.value)).toContain('continued after allow');
+			expect(String(output[4])).toContain('continued after allow');
 			expect(
 				asks.some((ask) => ask.toolId === 'agent.maxIterations'),
 			).toBe(true);

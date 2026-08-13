@@ -81,8 +81,7 @@ describe('coder workflow (events$)', () => {
 			'prompt',
 			runId,
 		);
-		expect(prompt.runId).toBe(runId);
-		expect(prompt.value).toEqual({
+		expect(prompt[4]).toEqual({
 			question: `Coder: ${GOAL}`,
 			awaiting: true,
 		});
@@ -104,7 +103,6 @@ describe('coder workflow (events$)', () => {
 			'response',
 			runId,
 		);
-		expect(response.runId).toBe(runId);
-		expect(response.value).toBe('Coder: Use TDD');
+		expect(response[4]).toBe('Coder: Use TDD');
 	});
 });

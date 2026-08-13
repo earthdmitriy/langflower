@@ -75,15 +75,15 @@ describe('common-read-file', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'error' &&
-						event.nodeId === 'read-1',
+						event[0] === 'out' &&
+						event[3] === 'error' &&
+						event[1] === 'read-1',
 				),
 			),
 		);
 
 		runtime.runner.start();
 		const errorEvent = await errorPromise;
-		expect(String(errorEvent.value)).toMatch(/non-empty path/);
+		expect(String(errorEvent[4])).toMatch(/non-empty path/);
 	});
 });

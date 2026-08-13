@@ -198,10 +198,12 @@ describe('ws bridge transport', () => {
 		await new Promise<void>((resolve) => {
 			rawClient.on('open', () => {
 				rawClient.send(
-					JSON.stringify({
-						type: 'unknown.event',
-						payload: { ok: true },
-					}),
+					JSON.stringify([
+						new Date().toISOString(),
+						'in',
+						'unknown.event',
+						{ ok: true },
+					]),
 				);
 				resolve();
 			});

@@ -100,14 +100,14 @@ describe('execute basic-coder pilot (WS bridge)', () => {
 			const allowSub = autoAllowPermissions(client);
 
 			const toolLogs: string[] = [];
-			const toolSub = client['runner.output-emitted'].subscribe(
+			const toolSub = client['runner.port'].subscribe(
 				(event: RuntimeRunnerEvent) => {
 					if (
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.portId === 'toolLog'
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[2] === 'toolLog'
 					) {
-						toolLogs.push(String(event.value));
+						toolLogs.push(String(event[4]));
 					}
 				},
 			);
@@ -135,7 +135,7 @@ describe('execute basic-coder pilot (WS bridge)', () => {
 			allowSub.unsubscribe();
 			toolSub.unsubscribe();
 
-			expect(String(output.value)).toContain('src/greet.ts');
+			expect(String(output[4])).toContain('src/greet.ts');
 			expect(asks.some((ask) => ask.toolId === 'write')).toBe(true);
 			expect(asks.some((ask) => ask.toolId === 'edit')).toBe(false);
 			expect(toolLogs.some((line) => line.includes('→ write'))).toBe(

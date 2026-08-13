@@ -12,10 +12,12 @@ import { createFinishTestNode } from './testing/nodes/finish-node.js';
 import {
 	type RuntimeHarness,
 	createRuntimeHarness,
+	edgeIdsFromPortEvent,
+	portDirLabel,
 	runAndCollectEvents,
 	waitForOutput,
 } from './testing/workflows/workflow-events.js';
-import type { RuntimeNode } from './types.js';
+import { isPortTelemetry, isRuntimeDone, type PortTelemetry } from './types.js';
 
 function createTypedSourceTestNode(options: {
 	readonly nodeId: string;
@@ -182,8 +184,8 @@ describe('Runtime (v2)', () => {
 		const donePromise = firstValueFrom(
 			runtime.runner.events$.pipe(
 				filter(
-					(event): event is { kind: 'done'; runId: string } =>
-						event.kind === 'done',
+					(event): event is readonly ['done', string] =>
+						isRuntimeDone(event) && event.length === 2,
 				),
 			),
 		);
@@ -191,7 +193,7 @@ describe('Runtime (v2)', () => {
 		const runId = runtime.runner.start();
 		const done = await donePromise;
 
-		expect(done.runId).toBe(runId);
+		expect(done[1]).toBe(runId);
 		expect(await firstValueFrom(runtime.runner.status$)).toBe('idle');
 	});
 
@@ -250,9 +252,8 @@ describe('Runtime (v2)', () => {
 
 		const output = await outputPromise;
 
-		expect(output.runId).toBe(runId);
-		expect(output.value).toBe('pushed');
-		expect(output.edgeIds).toEqual([]);
+		expect(output[4]).toBe('pushed');
+		expect(edgeIdsFromPortEvent(output)).toEqual([]);
 		expect(await firstValueFrom(runtime.runner.status$)).toBe('running');
 	});
 
@@ -273,7 +274,7 @@ describe('Runtime (v2)', () => {
 			throw new Error('Expected pushIntoInput to start a run');
 		}
 
-		expect((await firstOutputPromise).value).toBe('first');
+		expect((await firstOutputPromise)[4]).toBe('first');
 
 		const secondOutputPromise = waitForOutput(runtime, 'B', 'value', runId);
 		const activeRunId = runtime.runner.pushIntoInput({
@@ -283,7 +284,7 @@ describe('Runtime (v2)', () => {
 		});
 
 		expect(activeRunId).toBe(runId);
-		expect((await secondOutputPromise).value).toBe('second');
+		expect((await secondOutputPromise)[4]).toBe('second');
 	});
 
 	it('pushIntoInput starts a new scoped run after interrupt', async () => {
@@ -321,8 +322,7 @@ describe('Runtime (v2)', () => {
 		const output = await secondOutputPromise;
 
 		expect(secondRunId).not.toBe(firstRunId);
-		expect(output.runId).toBe(secondRunId);
-		expect(output.value).toBe('after interrupt');
+		expect(output[4]).toBe('after interrupt');
 	});
 
 	it('pushIntoInput delivers pause to single-mode steerControl during a run (ADR-032)', async () => {
@@ -365,17 +365,18 @@ describe('Runtime (v2)', () => {
 		if (runId === false) {
 			throw new Error('Expected pushIntoInput to start a run');
 		}
-		expect((await outputPromise).value).toBe('running');
+		expect((await outputPromise)[4]).toBe('running');
 		expect(runtime.runner.status).toBe('running');
 
 		const pauseReceived = firstValueFrom(
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'input-received' &&
-						event.nodeId === 'helper' &&
-						event.portId === 'steerControl' &&
-						event.state === 'value',
+						isPortTelemetry(event) &&
+						event[0] === 'in' &&
+						event[1] === 'helper' &&
+						event[2] === 'steerControl' &&
+						event[3] === 'value',
 				),
 			),
 		);
@@ -387,7 +388,7 @@ describe('Runtime (v2)', () => {
 
 		expect(pauseRunId).toBe(runId);
 		const event = await pauseReceived;
-		expect(event.kind === 'input-received' && event.value).toEqual({
+		expect(isPortTelemetry(event) && event[0] === 'in' && event[4]).toEqual({
 			kind: 'pause',
 		});
 	});
@@ -401,16 +402,15 @@ describe('Runtime (v2)', () => {
 		const events: { kind: string; nodeId: string; portId: string }[] = [];
 		const subscription = runtime.runner.events$.subscribe((event) => {
 			if (
-				(event.kind === 'input-received' ||
-					event.kind === 'output-emitted') &&
-				event.state === 'value' &&
-				event.nodeId === 'gate' &&
-				event.portId === 'value'
+				isPortTelemetry(event) &&
+				event[3] === 'value' &&
+				event[1] === 'gate' &&
+				event[2] === 'value'
 			) {
 				events.push({
-					kind: event.kind,
-					nodeId: event.nodeId,
-					portId: String(event.portId),
+					kind: portDirLabel(event),
+					nodeId: String(event[1]),
+					portId: String(event[2]),
 				});
 			}
 		});
@@ -571,7 +571,7 @@ describe('Runtime (v2)', () => {
 
 		const orphanEvents: unknown[] = [];
 		const subscription = runtime.runner.events$.subscribe((event) => {
-			if (event.kind === 'output-emitted' && event.nodeId === 'O') {
+			if (isPortTelemetry(event) && event[0] === 'out' && event[1] === 'O') {
 				orphanEvents.push(event);
 			}
 		});
@@ -581,7 +581,7 @@ describe('Runtime (v2)', () => {
 
 		subscription.unsubscribe();
 
-		expect(output.value).toBe('upstream');
+		expect(output[4]).toBe('upstream');
 		expect(orphanEvents).toEqual([]);
 	});
 
@@ -648,12 +648,11 @@ describe('Runtime (v2)', () => {
 
 		expect(runtime.runner.eventLog.length).toBeGreaterThan(0);
 		expect(
-			runtime.runner.eventLog.every((event) => event.runId === runId),
-		).toBe(true);
-		expect(
 			runtime.runner.eventLog.some(
 				(event) =>
-					event.kind === 'output-emitted' && event.nodeId === 'B',
+					isPortTelemetry(event) &&
+					event[0] === 'out' &&
+					event[1] === 'B',
 			),
 		).toBe(true);
 	});
@@ -706,22 +705,18 @@ describe('Runtime (v2)', () => {
 		);
 
 		const outputEvents = events.filter(
-			(e) =>
-				e.kind === 'output-emitted' &&
-				e.nodeId === 'A' &&
-				e.runId === runId,
+			(e): e is PortTelemetry =>
+				isPortTelemetry(e) && e[0] === 'out' && e[1] === 'A',
 		);
 		const inputEvents = events.filter(
-			(e) =>
-				e.kind === 'input-received' &&
-				e.nodeId === 'B' &&
-				e.runId === runId,
+			(e): e is PortTelemetry =>
+				isPortTelemetry(e) && e[0] === 'in' && e[1] === 'B',
 		);
 
 		expect(outputEvents.length).toBeGreaterThan(0);
 		expect(inputEvents.length).toBeGreaterThan(0);
-		expect(outputEvents[0]!.edgeIds).toEqual([edge!.edgeId]);
-		expect(inputEvents[0]!.edgeIds).toEqual([edge!.edgeId]);
+		expect(edgeIdsFromPortEvent(outputEvents[0]!)).toEqual([edge!.edgeId]);
+		expect(edgeIdsFromPortEvent(inputEvents[0]!)).toEqual([edge!.edgeId]);
 	});
 
 	it('edgeIds is empty array for seeds', async () => {
@@ -737,7 +732,7 @@ describe('Runtime (v2)', () => {
 
 		const output = await outputPromise;
 
-		expect(output.edgeIds).toEqual([]);
+		expect(edgeIdsFromPortEvent(output)).toEqual([]);
 	});
 
 	it('rejects static output connected to mismatched static input', () => {

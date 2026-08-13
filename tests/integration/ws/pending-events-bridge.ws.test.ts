@@ -1,4 +1,4 @@
-import type { NodeId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type { NodeId, PortTelemetry, RuntimeRunnerEvent } from '@langflower/runtime';
 import { filter, firstValueFrom, take } from 'rxjs';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -58,7 +58,7 @@ describe('runner pending events reach WS bridge', () => {
 		);
 
 		const allEvents: RuntimeRunnerEvent[] = [];
-		const sub = client['runner.output-emitted'].subscribe((event) => {
+		const sub = client['runner.port'].subscribe((event) => {
 			allEvents.push(event);
 		});
 
@@ -70,17 +70,17 @@ describe('runner pending events reach WS bridge', () => {
 		sub.unsubscribe();
 
 		const outputEvents = allEvents.filter(
-			(e) => e.kind === 'output-emitted',
+			(e) => e[0] === 'out',
 		);
 
-		const nodeIds = new Set(outputEvents.map((e) => e.nodeId));
+		const nodeIds = new Set(outputEvents.map((e) => e[1]));
 		expect(nodeIds.has('string-1' as NodeId)).toBe(true);
 		expect(nodeIds.has('finish-1' as NodeId)).toBe(true);
 
 		for (const nodeId of nodeIds) {
 			const states = outputEvents
-				.filter((e) => e.nodeId === nodeId)
-				.map((e) => e.state);
+				.filter((e) => e[1] === nodeId)
+				.map((e) => e[3]);
 			expect(states).toContain('value');
 		}
 	});
@@ -89,26 +89,19 @@ describe('runner pending events reach WS bridge', () => {
 		await seedWorkflowFromDisk(client, projectDir, delayPreviewWorkflow());
 
 		const allEvents: RuntimeRunnerEvent[] = [];
-		const sub = client['runner.output-emitted'].subscribe((event) => {
+		const sub = client['runner.port'].subscribe((event) => {
 			allEvents.push(event);
 		});
 
 		const outputPromise = firstValueFrom(
-			client['runner.output-emitted'].pipe(
+			client['runner.port'].pipe(
 				filter(
 					(
 						event,
-					): event is Extract<
-						RuntimeRunnerEvent,
-						{
-							kind: 'output-emitted';
-							state: 'value';
-							nodeId: 'preview-1';
-						}
-					> =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'preview-1',
+					): event is PortTelemetry & { readonly 0: 'out'; readonly 3: 'value'; readonly 1: 'preview-1' } =>
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'preview-1',
 				),
 				take(1),
 			),
@@ -121,12 +114,12 @@ describe('runner pending events reach WS bridge', () => {
 
 		const delayEvents = allEvents.filter(
 			(e) =>
-				e.kind === 'output-emitted' &&
-				e.nodeId === 'delay-1' &&
-				e.portId === 'value',
+				e[0] === 'out' &&
+				e[1] === 'delay-1' &&
+				e[2] === 'value',
 		);
 
-		const states = delayEvents.map((e) => e.state);
+		const states = delayEvents.map((e) => e[3]);
 		expect(states).toContain('pending');
 		expect(states).toContain('value');
 		expect(states.indexOf('pending')).toBeLessThan(states.indexOf('value'));
@@ -144,29 +137,22 @@ describe('runner pending events reach WS bridge', () => {
 
 		const eventsA: RuntimeRunnerEvent[] = [];
 		const eventsB: RuntimeRunnerEvent[] = [];
-		const subA = client['runner.output-emitted'].subscribe((e) =>
+		const subA = client['runner.port'].subscribe((e) =>
 			eventsA.push(e),
 		);
-		const subB = clientB['runner.output-emitted'].subscribe((e) =>
+		const subB = clientB['runner.port'].subscribe((e) =>
 			eventsB.push(e),
 		);
 
 		const valuePromise = firstValueFrom(
-			client['runner.output-emitted'].pipe(
+			client['runner.port'].pipe(
 				filter(
 					(
 						event,
-					): event is Extract<
-						RuntimeRunnerEvent,
-						{
-							kind: 'output-emitted';
-							state: 'value';
-							nodeId: 'preview-1';
-						}
-					> =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'preview-1',
+					): event is PortTelemetry & { readonly 0: 'out'; readonly 3: 'value'; readonly 1: 'preview-1' } =>
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'preview-1',
 				),
 				take(1),
 			),
@@ -183,11 +169,11 @@ describe('runner pending events reach WS bridge', () => {
 			events
 				.filter(
 					(e) =>
-						e.kind === 'output-emitted' &&
-						e.nodeId === nodeId &&
-						e.portId === 'value',
+						e[0] === 'out' &&
+						e[1] === nodeId &&
+						e[2] === 'value',
 				)
-				.map((e) => e.state);
+				.map((e) => e[3]);
 
 		expect(statesOf(eventsA, 'delay-1')).toContain('pending');
 		expect(statesOf(eventsB, 'delay-1')).toContain('pending');

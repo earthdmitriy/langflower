@@ -1,8 +1,16 @@
 import { filter, firstValueFrom } from 'rxjs';
+import {
+	isPortTelemetry,
+	isRuntimeDone,
+	type EdgeId,
+	type PortTelemetry,
+	type RunId,
+	type RuntimeEdge,
+	type RuntimeRunnerEvent,
+} from '../../types.js';
 import { RuntimeEditor } from '../../runtime-editor.js';
 import { RuntimeRunner } from '../../runtime-runner.js';
 import { type RuntimeOptions } from '../../runtime.js';
-import type { RunId, RuntimeEdge, RuntimeRunnerEvent } from '../../types.js';
 
 export type RuntimeHarness = {
 	readonly editor: RuntimeEditor;
@@ -35,41 +43,34 @@ export function wireEdge(
 	}
 }
 
-export type OutputEmittedEvent = Extract<
-	RuntimeRunnerEvent,
-	{ kind: 'output-emitted' }
->;
+export type OutputEmittedEvent = PortTelemetry & { readonly 0: 'out' };
 
-function isOutputEmitted(
-	event: RuntimeRunnerEvent,
-): event is OutputEmittedEvent {
-	return event.kind === 'output-emitted' && event.state === 'value';
-}
+const isOutputValue = (event: RuntimeRunnerEvent): event is OutputEmittedEvent =>
+	isPortTelemetry(event) && event[0] === 'out' && event[3] === 'value';
 
 export function outputValues(
 	events: readonly RuntimeRunnerEvent[],
 	nodeId: string,
 	portId: string,
-	runId?: string,
+	_runId?: string,
 ): unknown[] {
 	return events
 		.filter(
 			(event): event is OutputEmittedEvent =>
-				isOutputEmitted(event) &&
-				event.nodeId === nodeId &&
-				event.portId === portId &&
-				(runId === undefined || event.runId === runId),
+				isOutputValue(event) &&
+				event[1] === nodeId &&
+				event[2] === portId,
 		)
-		.map((event) => event.value);
+		.map((event) => event[4]);
 }
 
 export async function waitForOutput(
 	runtime: RuntimeRunner | RuntimeHarness,
 	nodeId: string,
 	portId: string,
-	runId?: string,
+	_runId?: string,
 ): Promise<OutputEmittedEvent> {
-	return waitForOutputMatching(runtime, nodeId, portId, () => true, runId);
+	return waitForOutputMatching(runtime, nodeId, portId, () => true, _runId);
 }
 
 async function waitForOutputMatching(
@@ -77,7 +78,7 @@ async function waitForOutputMatching(
 	nodeId: string,
 	portId: string,
 	predicate: (value: unknown) => boolean,
-	runId?: string,
+	_runId?: string,
 ): Promise<OutputEmittedEvent> {
 	const runner = resolveRunner(runtime);
 
@@ -85,11 +86,10 @@ async function waitForOutputMatching(
 		runner.events$.pipe(
 			filter(
 				(event): event is OutputEmittedEvent =>
-					isOutputEmitted(event) &&
-					event.nodeId === nodeId &&
-					event.portId === portId &&
-					(runId === undefined || event.runId === runId) &&
-					predicate(event.value),
+					isOutputValue(event) &&
+					event[1] === nodeId &&
+					event[2] === portId &&
+					predicate(event[4]),
 			),
 		),
 	);
@@ -120,24 +120,6 @@ export async function runAndCollectEvents(
 	return { runId, events };
 }
 
-async function collectEventsForMs(
-	runtime: RuntimeRunner | RuntimeHarness,
-	ms: number,
-): Promise<readonly RuntimeRunnerEvent[]> {
-	const events: RuntimeRunnerEvent[] = [];
-	const runner = resolveRunner(runtime);
-	const subscription = runner.events$.subscribe((event) => {
-		events.push(event);
-	});
-
-	await new Promise((resolve) => {
-		setTimeout(resolve, ms);
-	});
-
-	subscription.unsubscribe();
-	return events;
-}
-
 export async function noDoneWithin(
 	runtime: RuntimeRunner | RuntimeHarness,
 	ms: number,
@@ -149,9 +131,10 @@ export async function noDoneWithin(
 		firstValueFrom(
 			runner.events$.pipe(
 				filter(
-					(event): event is { kind: 'done'; runId: RunId } =>
-						event.kind === 'done' &&
-						(runId === undefined || event.runId === runId),
+					(event): event is readonly ['done', RunId] =>
+						isRuntimeDone(event) &&
+						event.length === 2 &&
+						(runId === undefined || event[1] === runId),
 				),
 			),
 		).then(() => 'done' as const),
@@ -162,3 +145,11 @@ export async function noDoneWithin(
 
 	return result === 'timeout';
 }
+
+export const edgeIdsFromPortEvent = (event: PortTelemetry): readonly EdgeId[] =>
+	event[6];
+
+export const portDirLabel = (
+	event: PortTelemetry,
+): 'input-received' | 'output-emitted' =>
+	event[0] === 'out' ? 'output-emitted' : 'input-received';

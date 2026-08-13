@@ -138,10 +138,10 @@ describe('common-critique', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'review-1' &&
-						event.portId === 'feedback',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'review-1' &&
+						event[2] === 'feedback',
 				),
 			),
 		);
@@ -149,12 +149,12 @@ describe('common-critique', () => {
 		const responseEmissions: unknown[] = [];
 		const responseSub = runtime.runner.events$.subscribe((event) => {
 			if (
-				event.kind === 'output-emitted' &&
-				event.state === 'value' &&
-				event.nodeId === 'review-1' &&
-				event.portId === 'response'
+				event[0] === 'out' &&
+				event[3] === 'value' &&
+				event[1] === 'review-1' &&
+				event[2] === 'response'
 			) {
-				responseEmissions.push(event.value);
+				responseEmissions.push(event[4]);
 			}
 		});
 
@@ -203,10 +203,7 @@ describe('common-critique', () => {
 		});
 
 		const feedbackEvent = await feedbackPromise;
-		expect(feedbackEvent).toMatchObject({
-			kind: 'output-emitted',
-			value: 'Rewrite the intro',
-		});
+		expect(feedbackEvent).toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), 'Rewrite the intro']));
 		expect(responseEmissions).toHaveLength(0);
 
 		responseSub.unsubscribe();
@@ -277,10 +274,10 @@ describe('common-critique', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'review-1' &&
-						event.portId === 'response',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'review-1' &&
+						event[2] === 'response',
 				),
 			),
 		);
@@ -329,10 +326,7 @@ describe('common-critique', () => {
 		});
 
 		const responseEvent = await responsePromise;
-		expect(responseEvent).toMatchObject({
-			kind: 'output-emitted',
-			value: 'Accepted artifact body',
-		});
+		expect(responseEvent).toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), 'Accepted artifact body']));
 		expect(captured).toHaveLength(1);
 		expect(
 			captured[0]?.tools?.some((t) => t.function.name === 'accept'),
@@ -421,19 +415,19 @@ describe('common-critique', () => {
 		const responseEmissions: unknown[] = [];
 		const eventsSub = runtime.runner.events$.subscribe((event) => {
 			if (
-				event.kind !== 'output-emitted' ||
-				event.state !== 'value' ||
-				event.nodeId !== 'review-1'
+				event[0] !== 'out' ||
+				event[3] !== 'value' ||
+				event[1] !== 'review-1'
 			) {
 				return;
 			}
 
-			if (event.portId === 'toolLog') {
-				toolLogTexts.push(String(event.value));
+			if (event[2] === 'toolLog') {
+				toolLogTexts.push(String(event[4]));
 			}
 
-			if (event.portId === 'response') {
-				responseEmissions.push(event.value);
+			if (event[2] === 'response') {
+				responseEmissions.push(event[4]);
 			}
 		});
 
@@ -441,10 +435,10 @@ describe('common-critique', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'review-1' &&
-						event.portId === 'feedback',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'review-1' &&
+						event[2] === 'feedback',
 				),
 			),
 		);
@@ -497,10 +491,7 @@ describe('common-critique', () => {
 		expect(
 			toolLogTexts.some((text) => text.includes(REVIEW_TOOL_REMINDER)),
 		).toBe(true);
-		expect(feedbackEvent).toMatchObject({
-			kind: 'output-emitted',
-			value: 'Need more detail',
-		});
+		expect(feedbackEvent).toEqual(expect.arrayContaining(['out', expect.anything(), expect.anything(), expect.anything(), 'Need more detail']));
 		expect(responseEmissions).toHaveLength(0);
 
 		eventsSub.unsubscribe();
@@ -580,10 +571,10 @@ describe('common-critique', () => {
 				runtime.runner.events$.pipe(
 					filter((event) => {
 						if (
-							event.kind !== 'output-emitted' ||
-							event.state !== 'value' ||
-							event.nodeId !== 'critique-1' ||
-							event.portId !== 'feedback'
+							event[0] !== 'out' ||
+							event[3] !== 'value' ||
+							event[1] !== 'critique-1' ||
+							event[2] !== 'feedback'
 						) {
 							return false;
 						}

@@ -1,30 +1,35 @@
-import type { WsBridgeCodec, WsBridgeEvent } from './bridge-types.js';
+import type { BridgeFrame, WsBridgeCodec, WsBridgeEvent } from './bridge-types.js';
+
+const isBridgeFrame = (value: unknown): value is BridgeFrame =>
+	Array.isArray(value) &&
+	value.length === 4 &&
+	typeof value[0] === 'string' &&
+	(value[1] === 'in' || value[1] === 'out') &&
+	typeof value[2] === 'string';
+
+export const encodeBridgeFrame = (
+	transportDir: 'in' | 'out',
+	busType: string,
+	payload: unknown,
+	ts = new Date().toISOString(),
+): string =>
+	JSON.stringify([ts, transportDir, busType, payload] satisfies BridgeFrame);
 
 export const defaultWsBridgeCodec: WsBridgeCodec = {
-	encode(event: WsBridgeEvent): string {
-		return JSON.stringify(event);
+	encode(event: WsBridgeEvent, transportDir: 'in' | 'out'): string {
+		return encodeBridgeFrame(transportDir, event.type, event.payload);
 	},
 	decode(raw: string): WsBridgeEvent | null {
 		try {
 			const parsed: unknown = JSON.parse(raw);
 
-			if (
-				typeof parsed !== 'object' ||
-				parsed === null ||
-				Array.isArray(parsed)
-			) {
-				return null;
-			}
-
-			const record = parsed as Record<string, unknown>;
-
-			if (typeof record['type'] !== 'string' || !('payload' in record)) {
+			if (!isBridgeFrame(parsed)) {
 				return null;
 			}
 
 			return {
-				type: record['type'],
-				payload: record['payload'],
+				type: parsed[2],
+				payload: parsed[3],
 			};
 		} catch {
 			return null;

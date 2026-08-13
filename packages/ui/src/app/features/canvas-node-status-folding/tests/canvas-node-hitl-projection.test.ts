@@ -45,18 +45,10 @@ describe('canvas-node-hitl-projection (single-node)', () => {
 	it('opens on non-HITL wired input-received', () => {
 		const next = applyNodeHitlFrame(
 			emptyNodeHitlAwaitState(),
-			{
-				kind: 'input-received',
-				runId,
-				nodeId,
-				portId: 'prompt',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: 'hi',
-			},
+			['in', nodeId, 'prompt', 'value', 'hi', 0, [], null],
 			catalog(),
 			nodeId,
+			runId,
 		);
 		expect(next.awaiting).toBe(true);
 	});
@@ -64,33 +56,17 @@ describe('canvas-node-hitl-projection (single-node)', () => {
 	it('closes on HITL reply input-received', () => {
 		let state = applyNodeHitlFrame(
 			emptyNodeHitlAwaitState(),
-			{
-				kind: 'input-received',
-				runId,
-				nodeId,
-				portId: 'prompt',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: 'hi',
-			},
+			['in', nodeId, 'prompt', 'value', 'hi', 0, [], null],
 			catalog(),
 			nodeId,
+			runId,
 		);
 		state = applyNodeHitlFrame(
 			state,
-			{
-				kind: 'input-received',
-				runId,
-				nodeId,
-				portId: 'reply',
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: 'answer',
-			},
+			['in', nodeId, 'reply', 'value', 'answer', 0, [], null],
 			catalog(),
 			nodeId,
+			runId,
 		);
 		expect(state.awaiting).toBe(false);
 	});
@@ -98,35 +74,37 @@ describe('canvas-node-hitl-projection (single-node)', () => {
 	it('opens on steerControl pause and closes on steer', () => {
 		let state = applyNodeHitlFrame(
 			emptyNodeHitlAwaitState(),
-			{
-				kind: 'input-received',
-				runId,
+			[
+				'in',
 				nodeId,
-				portId: STEER_CONTROL_PORT_ID,
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: { kind: 'pause' },
-			},
+				STEER_CONTROL_PORT_ID,
+				'value',
+				{ kind: 'pause' },
+				0,
+				[],
+				null,
+			],
 			catalog(),
 			nodeId,
+			runId,
 		);
 		expect(state.awaiting).toBe(true);
 
 		state = applyNodeHitlFrame(
 			state,
-			{
-				kind: 'input-received',
-				runId,
+			[
+				'in',
 				nodeId,
-				portId: STEER_CONTROL_PORT_ID,
-				portIdx: 0,
-				edgeIds: [],
-				state: 'value',
-				value: { kind: 'steer', text: 'go' },
-			},
+				STEER_CONTROL_PORT_ID,
+				'value',
+				{ kind: 'steer', text: 'go' },
+				0,
+				[],
+				null,
+			],
 			catalog(),
 			nodeId,
+			runId,
 		);
 		expect(state.awaiting).toBe(false);
 	});
@@ -138,26 +116,8 @@ describe('canvas-node-hitl-projection (single-node)', () => {
 				workflowId: 'wf-1',
 				status: 'running',
 				events: [
-					{
-						kind: 'input-received',
-						runId,
-						nodeId,
-						portId: 'prompt',
-						portIdx: 0,
-						edgeIds: [],
-						state: 'value',
-						value: 'hi',
-					},
-					{
-						kind: 'input-received',
-						runId,
-						nodeId: 'other' as NodeId,
-						portId: 'prompt',
-						portIdx: 0,
-						edgeIds: [],
-						state: 'value',
-						value: 'ignore',
-					},
+					['in', nodeId, 'prompt', 'value', 'hi', 0, [], null],
+					['in', 'other' as NodeId, 'prompt', 'value', 'ignore', 0, [], null],
 				],
 			},
 			nodeId,

@@ -1,4 +1,5 @@
-import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type { PortTelemetry, RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import { isPortTelemetry } from '@langflower/runtime';
 import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
 import { combineLatest, merge, type Observable } from 'rxjs';
 import { filter, map, scan, shareReplay, startWith } from 'rxjs/operators';
@@ -26,6 +27,7 @@ type ComposerState = {
 	readonly events: readonly RuntimeRunnerEvent[];
 	readonly catalog: FeedCatalog | null;
 	readonly state: NodeChromeFoldState;
+	readonly runId: RunId | null;
 };
 
 type ComposerAction =
@@ -33,7 +35,7 @@ type ComposerAction =
 			readonly type: 'snapshot';
 			readonly snap: ExecutionFeedSnapshotPayload | null;
 	  }
-	| { readonly type: 'port'; readonly event: RuntimeRunnerEvent }
+	| { readonly type: 'port'; readonly event: PortTelemetry }
 	| { readonly type: 'catalog'; readonly catalog: FeedCatalog }
 	| { readonly type: 'reset'; readonly runId: RunId };
 
@@ -41,6 +43,7 @@ const emptyComposer = (): ComposerState => ({
 	events: [],
 	catalog: null,
 	state: emptyNodeChromeFoldState(),
+	runId: null,
 });
 
 const foldComposer = (
@@ -54,7 +57,7 @@ const foldComposer = (
 				? composer.state
 				: rebuildNodeChromeFoldState(
 						composer.events,
-						composer.state.runId,
+						composer.runId,
 						action.catalog,
 					);
 		return {
@@ -69,12 +72,14 @@ const foldComposer = (
 				events: [],
 				catalog: composer.catalog,
 				state: emptyNodeChromeFoldState(),
+				runId: null,
 			};
 		}
 		const events = eventsForNode(action.snap.events, nodeId);
 		return {
 			events,
 			catalog: composer.catalog,
+			runId: action.snap.runId,
 			state: replayNodeChromeFromSnapshot(
 				action.snap,
 				nodeId,
@@ -91,31 +96,29 @@ const foldComposer = (
 			events: [],
 			catalog: composer.catalog,
 			state,
+			runId: action.runId,
 		};
 	}
 	const events = [...composer.events, action.event];
 	return {
 		events,
 		catalog: composer.catalog,
+		runId: composer.runId,
 		state: appendNodeChromeFrame(
 			composer.state,
 			action.event,
 			composer.catalog,
+			composer.runId,
 		),
 	};
 };
 
-/**
- * Filter bridge facts to one node, then append-only fold to chrome status.
- * Live frames are O(1); snapshot/catalog rebuild once for that node only.
- */
 export const foldSingleNodeCanvasStatus = (
 	nodeId: string,
 	sources: Pick<
 		CanvasNodeStatusBridgeSources,
 		| 'executionFeedSnapshot$'
-		| 'outputEmitted$'
-		| 'inputReceived$'
+		| 'runnerPort$'
 		| 'runnerStarted$'
 		| 'runnerStartNodeStarted$'
 		| 'workflowSnapshot$'
@@ -136,15 +139,7 @@ export const foldSingleNodeCanvasStatus = (
 		shareReplay({ bufferSize: 1, refCount: true }),
 	);
 
-	const forNode = (event: RuntimeRunnerEvent): boolean => {
-		if (
-			event.kind !== 'output-emitted' &&
-			event.kind !== 'input-received'
-		) {
-			return false;
-		}
-		return event.nodeId === nodeId;
-	};
+	const forNode = (event: PortTelemetry): boolean => event[1] === nodeId;
 
 	return merge(
 		sources.executionFeedSnapshot$.pipe(
@@ -153,11 +148,7 @@ export const foldSingleNodeCanvasStatus = (
 				snap,
 			})),
 		),
-		sources.outputEmitted$.pipe(
-			filter(forNode),
-			map((event): ComposerAction => ({ type: 'port', event })),
-		),
-		sources.inputReceived$.pipe(
+		sources.runnerPort$.pipe(
 			filter(forNode),
 			map((event): ComposerAction => ({ type: 'port', event })),
 		),

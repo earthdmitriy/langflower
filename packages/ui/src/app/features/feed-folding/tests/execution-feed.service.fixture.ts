@@ -1,5 +1,12 @@
 import { DestroyRef, Injector, runInInjectionContext } from '@angular/core';
-import type { NodeId, RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type {
+	EdgeId,
+	NodeId,
+	PortTelemetry,
+	RunId,
+	RuntimeFeedPortMeta,
+	RuntimeRunnerEvent,
+} from '@langflower/runtime';
 import type {
 	CustomPaletteSnapshotPayload,
 	ExecutionFeedSnapshotPayload,
@@ -19,43 +26,56 @@ import type { NodeFeedItem, PortStreamItem } from '../types';
 export const runId = (value = 'run-1'): RunId => value as RunId;
 const nodeId = (value: string): NodeId => value as NodeId;
 
+const buildPortTelemetry = (
+	portDir: 'in' | 'out',
+	node: string,
+	portId: string,
+	value: unknown,
+	options: {
+		readonly state?: 'pending' | 'value' | 'error';
+		readonly portIdx?: number;
+		readonly edgeIds?: readonly EdgeId[];
+		readonly feed?: RuntimeFeedPortMeta;
+	} = {},
+): PortTelemetry =>
+	[
+		portDir,
+		nodeId(node),
+		portId,
+		options.state ?? 'value',
+		value,
+		options.portIdx ?? 0,
+		options.edgeIds ?? [],
+		options.feed ?? null,
+	] as PortTelemetry;
+
 export const outputEvent = (
 	node: string,
 	portId: string,
 	value: unknown,
 	options: {
-		readonly run?: string;
 		readonly state?: 'pending' | 'value' | 'error';
+		readonly edgeIds?: readonly EdgeId[];
+		readonly feed?: RuntimeFeedPortMeta;
 	} = {},
-): Extract<RuntimeRunnerEvent, { kind: 'output-emitted' }> => ({
-	kind: 'output-emitted',
-	runId: runId(options.run),
-	nodeId: nodeId(node),
-	portId,
-	portIdx: 0,
-	edgeIds: [],
-	state: options.state ?? 'value',
-	value,
-});
+): PortTelemetry & { readonly 0: 'out' } =>
+	buildPortTelemetry('out', node, portId, value, options) as PortTelemetry & {
+		readonly 0: 'out';
+	};
 
 export const inputEvent = (
 	node: string,
 	portId: string,
 	value: unknown,
 	options: {
-		readonly run?: string;
 		readonly state?: 'pending' | 'value' | 'error';
+		readonly edgeIds?: readonly EdgeId[];
+		readonly feed?: RuntimeFeedPortMeta;
 	} = {},
-): Extract<RuntimeRunnerEvent, { kind: 'input-received' }> => ({
-	kind: 'input-received',
-	runId: runId(options.run),
-	nodeId: nodeId(node),
-	portId,
-	portIdx: 0,
-	edgeIds: [],
-	state: options.state ?? 'value',
-	value,
-});
+): PortTelemetry & { readonly 0: 'in' } =>
+	buildPortTelemetry('in', node, portId, value, options) as PortTelemetry & {
+		readonly 0: 'in';
+	};
 
 type PortSpec = {
 	readonly portId: string;
@@ -167,8 +187,8 @@ type ExecutionFeedRaw = {
 	readonly workflowSnapshot$: Subject<WorkflowCurrentSnapshotPayload>;
 	readonly paletteSnapshot$: Subject<PaletteConfigPayload>;
 	readonly customPaletteSnapshot$: Subject<CustomPaletteSnapshotPayload>;
-	readonly outputEmitted$: Subject<RuntimeRunnerEvent>;
-	readonly inputReceived$: Subject<RuntimeRunnerEvent>;
+	readonly runnerPort$: Subject<RuntimeRunnerEvent>;
+	readonly runnerStarted$: Subject<RunId>;
 	readonly permissionAsk$: Subject<RunnerPermissionAskPayload>;
 	readonly permissionAccepted$: Subject<RunnerPermissionReplyPayload>;
 };
@@ -180,24 +200,34 @@ export type ExecutionFeedHarness = {
 	readonly seedCatalog: (
 		nodes: Readonly<Record<string, string>>,
 		definitions: readonly PaletteNodeDefinition[],
+		options?: { readonly startRun?: boolean | RunId },
 	) => void;
 };
 
+export const startRun = (
+	harness: ExecutionFeedHarness,
+	id: RunId | string = 'run-1',
+): void => {
+	harness.raw.runnerStarted$.next(runId(id));
+};
+
 export const createExecutionFeedHarness = (): ExecutionFeedHarness => {
+	const runnerPort$ = new Subject<RuntimeRunnerEvent>();
+	const runnerStarted$ = new Subject<RunId>();
 	const raw: ExecutionFeedRaw = {
 		executionFeedSnapshot$: new Subject(),
 		workflowSnapshot$: new Subject(),
 		paletteSnapshot$: new Subject(),
 		customPaletteSnapshot$: new Subject(),
-		outputEmitted$: new Subject(),
-		inputReceived$: new Subject(),
+		runnerPort$,
+		runnerStarted$,
 		permissionAsk$: new Subject(),
 		permissionAccepted$: new Subject(),
 	};
 	const bridge = {
 		raw: {
-			'runner.output-emitted': raw.outputEmitted$,
-			'runner.input-received': raw.inputReceived$,
+			'runner.port': runnerPort$,
+			'runner.started': runnerStarted$,
 			'runner.permission.ask': raw.permissionAsk$,
 			'runner.permission.accepted': raw.permissionAccepted$,
 		},
@@ -227,10 +257,17 @@ export const createExecutionFeedHarness = (): ExecutionFeedHarness => {
 		service,
 		raw,
 		latestNodes: () => nodes,
-		seedCatalog: (workflowNodes, definitions) => {
+		seedCatalog: (workflowNodes, definitions, options) => {
 			raw.customPaletteSnapshot$.next(emptyCustomPaletteSnapshot);
 			raw.paletteSnapshot$.next({ nodes: definitions });
 			raw.workflowSnapshot$.next(workflowSnapshot(workflowNodes));
+			if (options?.startRun !== false) {
+				const id =
+					typeof options?.startRun === 'string'
+						? options.startRun
+						: 'run-1';
+				runnerStarted$.next(runId(id));
+			}
 		},
 	};
 };

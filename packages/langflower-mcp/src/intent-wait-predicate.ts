@@ -98,12 +98,11 @@ const matchRunId =
 
 const matchHitlInputReceived =
 	(nodeId: string, portId: string): WaitPredicate =>
-	(event) => {
-		if (!isRecord(event) || event['kind'] !== 'input-received') {
-			return false;
-		}
-		return event['nodeId'] === nodeId && event['portId'] === portId;
-	};
+	(event) =>
+		Array.isArray(event) &&
+		event[0] === 'in' &&
+		event[1] === nodeId &&
+		event[2] === portId;
 
 const matchExecutionFeedCleared = (): WaitPredicate => (event) => {
 	if (event === null) {

@@ -121,10 +121,10 @@ describe('crawl + merge path', () => {
 			runtime.runner.events$.pipe(
 				filter(
 					(event) =>
-						event.kind === 'output-emitted' &&
-						event.state === 'value' &&
-						event.nodeId === 'preview-1' &&
-						event.portId === 'text',
+						event[0] === 'out' &&
+						event[3] === 'value' &&
+						event[1] === 'preview-1' &&
+						event[2] === 'text',
 				),
 			),
 		);

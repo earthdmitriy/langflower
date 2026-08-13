@@ -149,7 +149,7 @@ describe('ExecutionFeedService port-stream collapse', () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
 		for (const value of ['Think', 'ing', '…']) {
-			harness.raw.outputEmitted$.next(
+			harness.raw.runnerPort$.next(
 				outputEvent('agent', 'reasoning', value),
 			);
 		}
@@ -174,7 +174,7 @@ describe('ExecutionFeedService port-stream collapse', () => {
 		const live = createExecutionFeedHarness();
 		live.seedCatalog({ agent: 'agent' }, [agent]);
 		for (const event of events) {
-			live.raw.outputEmitted$.next(event);
+			live.raw.runnerPort$.next(event);
 		}
 
 		const snapshot = createExecutionFeedHarness();
@@ -201,10 +201,10 @@ describe('ExecutionFeedService port-stream collapse', () => {
 	it('does not invent tool pairs when interactionId is missing', async () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
-		harness.raw.outputEmitted$.next(
+		harness.raw.runnerPort$.next(
 			outputEvent('agent', 'tool', 'request-ish'),
 		);
-		harness.raw.outputEmitted$.next(
+		harness.raw.runnerPort$.next(
 			outputEvent('agent', 'tool', 'response-ish'),
 		);
 
@@ -226,7 +226,7 @@ describe('ExecutionFeedService port-stream collapse', () => {
 			outputEvent('a', 'draft', '1'),
 			outputEvent('b', 'draft', '2'),
 		]) {
-			harness.raw.outputEmitted$.next(event);
+			harness.raw.runnerPort$.next(event);
 		}
 
 		const [visitA, visitB] = harness.latestNodes();

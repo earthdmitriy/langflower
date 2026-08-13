@@ -1,21 +1,23 @@
+import type { NodeId, PortTelemetry, RunId } from '@langflower/runtime';
 import { describe, expect, it } from 'vitest';
-import type { NodeId, RunId, RuntimeRunnerEvent } from '@langflower/runtime';
+import type { RuntimeRunnerEvent } from '@langflower/runtime';
 import {
 	deriveExecutionProgressStatus,
 	formatRunSettleLine,
 	terminalExecutionProgressStatus,
 } from './derive-run-settle-outcome.js';
 
-const output = (state: 'value' | 'error' | 'pending'): RuntimeRunnerEvent => ({
-	kind: 'output-emitted',
-	runId: 'run-1' as RunId,
-	nodeId: 'n1' as NodeId,
-	portId: 'out',
-	portIdx: 0,
-	edgeIds: [],
-	state,
-	value: state === 'error' ? new Error('boom') : 'ok',
-});
+const output = (state: 'value' | 'error' | 'pending'): RuntimeRunnerEvent =>
+	[
+		'out',
+		'n1' as NodeId,
+		'out',
+		state,
+		state === 'error' ? new Error('boom') : 'ok',
+		0,
+		[],
+		null,
+	];
 
 describe('deriveExecutionProgressStatus', () => {
 	it('passes through running and stopped', () => {

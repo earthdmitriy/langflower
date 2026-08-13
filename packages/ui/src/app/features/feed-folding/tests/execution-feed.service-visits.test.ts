@@ -31,8 +31,8 @@ describe('ExecutionFeedService visit reuse', () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ concat: 'concat' }, [concat]);
 
-		harness.raw.outputEmitted$.next(outputEvent('concat', 'text', 'one'));
-		harness.raw.outputEmitted$.next(outputEvent('concat', 'text', 'two'));
+		harness.raw.runnerPort$.next(outputEvent('concat', 'text', 'one'));
+		harness.raw.runnerPort$.next(outputEvent('concat', 'text', 'two'));
 
 		expect(harness.latestNodes()).toHaveLength(1);
 		expect(
@@ -46,13 +46,13 @@ describe('ExecutionFeedService visit reuse', () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
 
-		harness.raw.inputReceived$.next(
+		harness.raw.runnerPort$.next(
 			inputEvent('agent', 'userPrompt', 'hi'),
 		);
-		harness.raw.outputEmitted$.next(
+		harness.raw.runnerPort$.next(
 			outputEvent('agent', 'reasoning', 'think'),
 		);
-		harness.raw.outputEmitted$.next(
+		harness.raw.runnerPort$.next(
 			outputEvent('agent', 'result', 'hello'),
 		);
 
@@ -73,16 +73,16 @@ describe('ExecutionFeedService visit reuse', () => {
 			agent,
 		]);
 
-		harness.raw.inputReceived$.next(
+		harness.raw.runnerPort$.next(
 			inputEvent('orchestrator', 'tools', ['glob']),
 		);
-		harness.raw.inputReceived$.next(
+		harness.raw.runnerPort$.next(
 			inputEvent('orchestrator', 'userPrompt', 'go'),
 		);
-		harness.raw.outputEmitted$.next(
+		harness.raw.runnerPort$.next(
 			outputEvent('explorer', 'draft', 'explore'),
 		);
-		harness.raw.outputEmitted$.next(
+		harness.raw.runnerPort$.next(
 			outputEvent('orchestrator', 'reasoning', 'think'),
 		);
 
@@ -109,7 +109,7 @@ describe('ExecutionFeedService visit reuse', () => {
 			outputEvent('b', 'draft', 'B1'),
 			outputEvent('a', 'draft', 'A2'),
 		]) {
-			harness.raw.outputEmitted$.next(event);
+			harness.raw.runnerPort$.next(event);
 		}
 
 		expect(harness.latestNodes().map((node) => node.nodeId)).toEqual([
@@ -138,7 +138,7 @@ describe('ExecutionFeedService visit reuse', () => {
 			outputEvent('agent', 'tool', 't1'),
 			outputEvent('agent', 'reasoning', 'r2'),
 		]) {
-			harness.raw.outputEmitted$.next(event);
+			harness.raw.runnerPort$.next(event);
 		}
 
 		const visit = harness.latestNodes()[0]!;
@@ -163,7 +163,7 @@ describe('ExecutionFeedService visit reuse', () => {
 			outputEvent('agent', 'draft', 'd2'),
 			outputEvent('agent', 'result', 'final'),
 		]) {
-			harness.raw.outputEmitted$.next(event);
+			harness.raw.runnerPort$.next(event);
 		}
 
 		const visit = harness.latestNodes()[0]!;
@@ -191,7 +191,7 @@ describe('ExecutionFeedService visit reuse', () => {
 			outputEvent('agent', 'draft', 'a1'),
 			outputEvent('concat', 'text', 'c2'),
 		]) {
-			harness.raw.outputEmitted$.next(event);
+			harness.raw.runnerPort$.next(event);
 		}
 
 		const visits = harness.latestNodes();

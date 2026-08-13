@@ -3,10 +3,12 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import type {
 	EdgeId,
 	NodeId,
+	PortTelemetry,
 	RunId,
 	RuntimePortSignalState,
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
+import { isPortTelemetry } from '@langflower/runtime';
 import type {
 	PaletteNodeDefinition,
 	RunnerPermissionAskPayload,
@@ -38,7 +40,7 @@ import {
 	nodeLabelsFromWorkflow,
 	nodeTypeByIdFromWorkflow,
 } from './execution-catalog';
-import { createEdgeStates$ } from './execution-chrome-fold';
+import { createEdgeStates$, type OutputPortTelemetry } from './execution-chrome-fold';
 import { createHitlTriggeredNodes$ } from './execution-hitl-fold';
 import { createPendingPermissionAsks$ } from './execution-permission-fold';
 import { createIsRunning$ } from './execution-run-gate-fold';
@@ -54,14 +56,11 @@ import {
 import { LangflowerBridgeService } from './langflower-bridge.service';
 import { ExecutionFeedService } from '../features/feed-folding/execution-feed.service';
 
-type OutputEmittedEvent = Extract<
-	RuntimeRunnerEvent,
-	{ kind: 'output-emitted' }
->;
-type InputReceivedEvent = Extract<
-	RuntimeRunnerEvent,
-	{ kind: 'input-received' }
->;
+type InputPortTelemetry = PortTelemetry & {
+	readonly 0: 'in';
+	readonly 2: string;
+	readonly 3: 'value';
+};
 
 /**
  * Cross-feature execution façade: feed, edges, composer HITL, run gate.
@@ -93,17 +92,22 @@ export class WorkflowExecutionService {
 		this.bridge.cached['workflow.current.snapshot'];
 	private readonly executionFeedSnapshot$ =
 		this.bridge.cached['executionFeed.snapshot'];
-	private readonly outputEmitted$ = this.bridge.raw[
-		'runner.output-emitted'
-	].pipe(filter((e): e is OutputEmittedEvent => e.kind === 'output-emitted'));
-	private readonly inputReceived$ = this.bridge.raw[
-		'runner.input-received'
-	].pipe(
+	private readonly runnerPort$: Observable<PortTelemetry> =
+		this.bridge.raw['runner.port'].pipe(
+			filter(
+				(event: RuntimeRunnerEvent): event is PortTelemetry =>
+					isPortTelemetry(event),
+			),
+		);
+	private readonly outputEmitted$ = this.runnerPort$.pipe(
+		filter((event): event is OutputPortTelemetry => event[0] === 'out'),
+	);
+	private readonly inputReceived$ = this.runnerPort$.pipe(
 		filter(
-			(e): e is InputReceivedEvent & { portId: string } =>
-				e.kind === 'input-received' &&
-				typeof e.portId === 'string' &&
-				e.state === 'value',
+			(event): event is InputPortTelemetry =>
+				event[0] === 'in' &&
+				typeof event[2] === 'string' &&
+				event[3] === 'value',
 		),
 	);
 	private readonly runnerStarted$ = this.bridge.raw['runner.started'].pipe(
@@ -234,29 +238,22 @@ export class WorkflowExecutionService {
 					const next = new Map<string, unknown>();
 					for (const event of action.events) {
 						if (
-							event.kind === 'output-emitted' &&
-							typeof event.portId === 'string' &&
-							event.state === 'value'
+							isPortTelemetry(event) &&
+							event[0] === 'out' &&
+							typeof event[2] === 'string' &&
+							event[3] === 'value'
 						) {
-							next.set(
-								`${event.nodeId}:${event.portId}`,
-								event.value,
-							);
+							next.set(`${event[1]}:${event[2]}`, event[4]);
 						}
 					}
 					return next;
 				}
-				if (
-					typeof action.event.portId !== 'string' ||
-					action.event.state !== 'value'
-				) {
+				const [, nodeId, portId, state, value] = action.event;
+				if (typeof portId !== 'string' || state !== 'value') {
 					return values;
 				}
 				const next = new Map(values);
-				next.set(
-					`${action.event.nodeId}:${action.event.portId}`,
-					action.event.value,
-				);
+				next.set(`${nodeId}:${portId}`, value);
 				return next;
 			}, new Map<string, unknown>()),
 		),
@@ -583,9 +580,9 @@ export class WorkflowExecutionService {
 		return this.edgeStates().get(edgeId as EdgeId) ?? 'inactive';
 	}
 
-	getEventsForEdge(edgeId: string): Observable<OutputEmittedEvent> {
+	getEventsForEdge(edgeId: string): Observable<OutputPortTelemetry> {
 		return this.outputEmitted$.pipe(
-			filter((e) => (e.edgeIds ?? []).includes(edgeId as EdgeId)),
+			filter((event) => event[6].some((id) => id === edgeId)),
 		);
 	}
 
@@ -596,22 +593,28 @@ export class WorkflowExecutionService {
 	getEventsForPort(
 		nodeId: string,
 		portId: string,
-	): Observable<OutputEmittedEvent> {
-		return this.outputEmitted$.pipe(
-			filter((e) => e.nodeId === nodeId && e.portId === portId),
+	): Observable<OutputPortTelemetry> {
+		return this.runnerPort$.pipe(
+			filter(
+				(event): event is OutputPortTelemetry =>
+					event[0] === 'out' &&
+					event[1] === nodeId &&
+					event[2] === portId,
+			),
 		);
 	}
 
-	/**
-	 * Live `input-received` value events for one runtime input port (bare
-	 * `portId`, not diagram `in:…`).
-	 */
 	getInputEventsForPort(
 		nodeId: string,
 		portId: string,
-	): Observable<InputReceivedEvent & { portId: string }> {
-		return this.inputReceived$.pipe(
-			filter((e) => e.nodeId === nodeId && e.portId === portId),
+	): Observable<InputPortTelemetry> {
+		return this.runnerPort$.pipe(
+			filter(
+				(event): event is InputPortTelemetry =>
+					event[0] === 'in' &&
+					event[1] === nodeId &&
+					event[2] === portId,
+			),
 		);
 	}
 }

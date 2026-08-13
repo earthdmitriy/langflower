@@ -40,11 +40,12 @@ export function toObservables(
 
 export function wireOutgoingSubjects(
 	subjects: Record<string, Subject<unknown>>,
-	send: (event: WsBridgeEvent) => void,
+	send: (event: WsBridgeEvent, transportDir: 'in' | 'out') => void,
+	transportDir: 'in' | 'out',
 ): Subscription[] {
 	return Object.entries(subjects).map(([type, subject]) =>
 		subject.subscribe((payload) => {
-			send({ type, payload });
+			send({ type, payload }, transportDir);
 		}),
 	);
 }

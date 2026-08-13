@@ -70,7 +70,7 @@ describe('cold cycle (no unwired outputs)', () => {
 		expect(await firstValueFrom(harness.runner.status$)).toBe('running');
 		expect(outputValues(events, 'a', 'value', runId)).toEqual([]);
 		expect(outputValues(events, 'b', 'value', runId)).toEqual([]);
-		expect(events.some((event) => event.kind === 'done')).toBe(false);
+		expect(events.some((event) => event[0] === 'done')).toBe(false);
 
 		harness.runner.interrupt('cancel');
 		expect(await firstValueFrom(harness.runner.status$)).toBe('stopped');
