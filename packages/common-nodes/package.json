@@ -15,24 +15,24 @@
 			"import": "./dist/test-nodes/test-index.js"
 		},
 		"./ai/llm-role-preset": {
-			"types": "./dist/ai/llm-role-preset.d.ts",
-			"import": "./dist/ai/llm-role-preset.js"
+			"types": "./dist/ai/features/llm-role-preset.d.ts",
+			"import": "./dist/ai/features/llm-role-preset.js"
 		},
 		"./ai/sub-agent-protocol": {
-			"types": "./dist/ai/sub-agent-protocol.d.ts",
-			"import": "./dist/ai/sub-agent-protocol.js"
+			"types": "./dist/ai/features/sub-agent-protocol.d.ts",
+			"import": "./dist/ai/features/sub-agent-protocol.js"
 		},
 		"./ai/run-host-services": {
-			"types": "./dist/ai/run-host-services.d.ts",
-			"import": "./dist/ai/run-host-services.js"
+			"types": "./dist/ai/features/run-host-services.d.ts",
+			"import": "./dist/ai/features/run-host-services.js"
 		},
 		"./ai/openai/create-chat-completion-stream": {
-			"types": "./dist/ai/openai/create-chat-completion-stream.d.ts",
-			"import": "./dist/ai/openai/create-chat-completion-stream.js"
+			"types": "./dist/ai/features/openai/create-chat-completion-stream.d.ts",
+			"import": "./dist/ai/features/openai/create-chat-completion-stream.js"
 		},
 		"./ai/openai/list-provider-models": {
-			"types": "./dist/ai/openai/list-provider-models.d.ts",
-			"import": "./dist/ai/openai/list-provider-models.js"
+			"types": "./dist/ai/features/openai/list-provider-models.d.ts",
+			"import": "./dist/ai/features/openai/list-provider-models.js"
 		}
 	},
 	"scripts": {

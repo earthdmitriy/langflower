@@ -2,7 +2,7 @@ import { contextSymbol } from '@langflower/node-sdk';
 import { RuntimeFacade } from '@langflower/runtime';
 import { describe, expect, it } from 'vitest';
 import { filter, firstValueFrom, map, of } from 'rxjs';
-import { fakeLlmNode } from '../../ai/fake-llm/node.js';
+import { fakeLlmNode } from '../../ai/nodes/fake-llm/node.js';
 import { previewNode } from '../../output/preview/node.js';
 import { stringNode } from '../../primitives/string/node.js';
 import { loopNode } from './node.js';

@@ -8,11 +8,11 @@ import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
 import type {
 	ChatCompletionToolCall,
 	ChatCompletionToolDefinition,
-} from '../ai/chat-completion-stream.js';
+} from '../ai/features/chat-completion-stream.js';
 import type {
 	SubAgentRegistration,
 	SubAgentSpawnPayload,
-} from '../ai/sub-agent-protocol.js';
+} from '../ai/features/sub-agent-protocol.js';
 
 export const SPAWN_SUBAGENT_TOOL = 'spawn_subagent';
 

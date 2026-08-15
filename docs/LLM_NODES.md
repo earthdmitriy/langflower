@@ -254,7 +254,7 @@ There is **one** LLM node type pair (`common-fake-llm` / `common-openai-llm`).
 Multiple LLM nodes on the canvas = multiple roles side by side, each with its
 own `params` (`rolePreset`, `providerId`, `model`, `skillId`, …).
 
-Shared panel floor lives in `packages/common-nodes/src/ai/llm-panel-ui-schema.ts`
+Shared panel floor lives in `packages/common-nodes/src/ai/features/ui-schema/llm-panel-ui-schema.ts`
 (`llmPanelUiSchema`, `llmMaxIterationsUiField`). Nodes may expand after the
 floor (Fake `tokenDelayMs`, Sub-Agent identity, compaction/recovery) but must
 not omit floor fields. Review/Critique replace only the `maxIterations` field
@@ -390,7 +390,7 @@ to continue. Runner telemetry unwraps `combineStatefulObservables` error tuples
 
 ## OpenAI-compatible LLM (phase 5)
 
-Node type: `common-openai-llm` (`packages/common-nodes/src/ai/openai-llm/`).
+Node type: `common-openai-llm` (`packages/common-nodes/src/ai/nodes/openai-llm/`).
 
 | Concern     | Behaviour                                                                                                                |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -402,8 +402,8 @@ Node type: `common-openai-llm` (`packages/common-nodes/src/ai/openai-llm/`).
 
 ## Review node (epic 03 / phase 7)
 
-Node type: `common-review` (`packages/common-nodes/src/ai/review/`).
-Adversarial sibling: `common-critique` (`packages/common-nodes/src/ai/critique/`)
+Node type: `common-review` (`packages/common-nodes/src/ai/nodes/review/`).
+Adversarial sibling: `common-critique` (`packages/common-nodes/src/ai/nodes/critique/`)
 — same path-choice tools, ports `assignment` / `packet` (attack framing).
 `defineLlmNode`, `McpHandle`, and `ToolHandle` live in
 `@langflower/node-sdk`.

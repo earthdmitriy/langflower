@@ -3,7 +3,7 @@ import { createCrawlContext } from '@langflower/tools/create-crawl-context';
 import { createWebFetch } from '@langflower/tools/create-web-fetch';
 import { runBfsCrawl } from '@langflower/tools/run-bfs-crawl';
 import { from, mergeMap, throwError } from 'rxjs';
-import { getRunHostServices } from '../../ai/run-host-services.js';
+import { getRunHostServices } from '../../ai/features/run-host-services.js';
 
 const normalizeLimit = (
 	value: unknown,

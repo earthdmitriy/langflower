@@ -411,15 +411,15 @@ value/`done` lockstep needs one tagged session.
 
 Production references:
 
-| Pattern                            | Example                                  |
-| ---------------------------------- | ---------------------------------------- |
-| Pass-through + delay               | `common-nodes/.../flow/delay/node.ts`    |
-| Paced repeat + demux outs          | `common-nodes/.../flow/repeat/node.ts`   |
-| Map-collect loop                   | `common-nodes/.../flow/loop/node.ts`     |
-| Multi string join                  | `common-nodes/.../text/concat/node.ts`   |
-| Params + streaming cycle (imitate) | `common-nodes/.../ai/fake-llm/node.ts`   |
-| Agent session + history (real)     | `common-nodes/.../ai/openai-llm/node.ts` |
-| `stopsRun` sink                    | `common-nodes/.../output/finish/node.ts` |
+| Pattern                            | Example                                        |
+| ---------------------------------- | ---------------------------------------------- |
+| Pass-through + delay               | `common-nodes/.../flow/delay/node.ts`          |
+| Paced repeat + demux outs          | `common-nodes/.../flow/repeat/node.ts`         |
+| Map-collect loop                   | `common-nodes/.../flow/loop/node.ts`           |
+| Multi string join                  | `common-nodes/.../text/concat/node.ts`         |
+| Params + streaming cycle (imitate) | `common-nodes/.../ai/nodes/fake-llm/node.ts`   |
+| Agent session + history (real)     | `common-nodes/.../ai/nodes/openai-llm/node.ts` |
+| `stopsRun` sink                    | `common-nodes/.../output/finish/node.ts`       |
 
 ### LLM init vs feedback turns
 

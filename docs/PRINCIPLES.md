@@ -136,7 +136,7 @@ direction; do not introduce FSD layer names or public-api barrels for ceremony.
 - **Package** — deploy/build boundary under `packages/`, with dependencies
   declared in `package.json`.
 - **Slice** — a cohesive product/domain capability inside a package
-  (`features/editor/`, `ai/openai-llm/`, `kb/`). It owns implementation, tests,
+  (`features/editor/`, `ai/nodes/openai-llm/`, `ai/features/llm-loop/`, `kb/`). It owns implementation, tests,
   local contracts, and feature-specific projections.
 - **Unit** — the smallest colocated implementation cluster: usually one
   consumer file plus its test and, only when needed, sibling helpers/components.

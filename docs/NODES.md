@@ -42,6 +42,11 @@ parts, or architectural decisions worth documenting.
 **Exports:** exactly one named export from `node.ts` — the node const. No
 re-exports, no barrel files for individual nodes.
 
+**AI exception:** built-in LLM catalog nodes live under
+`packages/common-nodes/src/ai/nodes/<node>/` (not `ai/<node>/`). Shared loop,
+session, path-choice, and OpenAI adapters live under `ai/features/` as named
+slices. Other categories stay `category/<node>/`.
+
 ### SDK factories (`@langflower/node-sdk`)
 
 The same **one folder = one unit** rule applies to **node factory functions**
@@ -90,12 +95,17 @@ packages/common-nodes/src/
 │   │   └── node.ts
 │   └── ...
 └── ai/
-    ├── agent-nodes.ts         # shared agent presets (used by multiple agents)
-    ├── coder-agent/
-    │   └── node.ts            # import ... from '../agent-nodes.js'
-    ├── plan-agent/
-    │   └── node.ts
-    └── ...
+    ├── NODE.md                # category note
+    ├── nodes/
+    │   ├── openai-llm/
+    │   │   └── node.ts        # catalog entry — thin bind()
+    │   ├── fake-llm/
+    │   │   └── node.ts
+    │   └── ...
+    └── features/
+        ├── llm-loop/          # shared generation + recovery
+        ├── llm-session/
+        └── openai/            # unbound HTTP factory
 ```
 
 ### When to create a context group

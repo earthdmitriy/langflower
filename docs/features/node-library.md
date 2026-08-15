@@ -364,7 +364,7 @@ anti-criteria and [LLM_NODES.md](../LLM_NODES.md) § Review.
 ### 5.2b Critique — `common-critique`
 
 **Category:** AI · **Mode:** reactive · **Status:** done · **Server:** same
-path-choice kernel as Review (`ai/path-choice/`), different framing ports
+path-choice kernel as Review (`ai/features/path-choice/`), different framing ports
 
 | Direction | Port                | Type             | Notes                                   |
 | --------- | ------------------- | ---------------- | --------------------------------------- |
@@ -1248,8 +1248,8 @@ workflow → RuntimeFacade → common-fake-llm
 
 Implementation and coverage:
 
-- `packages/common-nodes/src/ai/fake-llm/node.ts`
-- `packages/common-nodes/src/ai/fake-llm/node.test.ts`
+- `packages/common-nodes/src/ai/nodes/fake-llm/node.ts`
+- `packages/common-nodes/src/ai/nodes/fake-llm/node.test.ts`
 - `tests/integration/ws/execute-fake-llm.ws.test.ts`
 - `tests/integration/ws/execute-fake-llm-debate-loop.ws.test.ts`
 
@@ -1459,6 +1459,6 @@ Cite URLs. Separate facts from inference.
 | HITL inject (bridge)       | `packages/server/src/bridge/wire-runner-handlers.ts` (`runner.hitl.event`) |
 | Harness capabilities       | `packages/tools/src/`                                                      |
 | Bootstrap sample workflows | `packages/server/src/bootstrap/project-bootstrap.service.ts`               |
-| Fake LLM node              | `packages/common-nodes/src/ai/fake-llm/node.ts`                            |
+| Fake LLM node              | `packages/common-nodes/src/ai/nodes/fake-llm/node.ts`                      |
 | Fake LLM integration tests | `tests/integration/ws/execute-fake-llm.ws.test.ts`                         |
 | Palette UI                 | `packages/ui/src/app/features/palette/`                                    |

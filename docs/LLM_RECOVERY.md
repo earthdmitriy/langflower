@@ -336,7 +336,7 @@ Highest first:
 ## Policy knobs
 
 Authoritative types: `LlmRecoveryPolicy` in
-`packages/common-nodes/src/ai/llm-loop/llm-loop-types.ts`. Inspector:
+`packages/common-nodes/src/ai/features/llm-loop/llm-loop-types.ts`. Inspector:
 `llmRecoveryUiSchema`.
 
 Shipped today: `streamIdleTimeoutMs`, `maxTransientRetries`, tool /
@@ -366,17 +366,17 @@ No ENV vars and no new WS event types. Recovery stays on the existing
 
 ## Code map
 
-| Piece                                                              | Role                                                                                    |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `llm-loop/dead-loop-detector.ts`                                   | **Private** node state; not a package export; not used by compaction                    |
-| `observe-provider-stream.ts`                                       | Idle / pause / cancel; **immediate abort** + detector on the **main** generation stream |
-| `run-llm-loop.ts` / `reduceLlmLoop`                                | Shared core: Agent, Critique, Review, Sub-Agent all enter here                          |
-| `llm-session-shell.ts` + Critique / Review / Sub-Agent `recovery$` | Demux `recoveryNotice` → `recovery` port (**must forward timing fields**)               |
-| `classify-llm-failure.ts`                                          | 429 / 5xx / network / auth vs recoverable                                               |
-| `create-chat-completion-stream.ts`                                 | Full `messages[]` + `signal`. **No** detector wrap (compaction shares it)               |
-| `recovery-notice.ts` (`@langflower/node-sdk/llm`)                  | `code: 'retry' \| 'suspended'` + timing fields; port already `feed.role: 'recovery'`    |
-| Work-log recovery banner                                           | Tick attempt / last / next from **port events**; local clock                            |
-| `@langflower/server` / runtime / WS                                | Unchanged — no autokick APIs                                                            |
+| Piece                                                                                   | Role                                                                                    |
+| --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `features/llm-loop/dead-loop-detector.ts`                                               | **Private** node state; not a package export; not used by compaction                    |
+| `observe-provider-stream.ts`                                                            | Idle / pause / cancel; **immediate abort** + detector on the **main** generation stream |
+| `run-llm-loop.ts` / `reduceLlmLoop`                                                     | Shared core: Agent, Critique, Review, Sub-Agent all enter here                          |
+| `features/llm-session/llm-session-shell.ts` + Critique / Review / Sub-Agent `recovery$` | Demux `recoveryNotice` → `recovery` port (**must forward timing fields**)               |
+| `classify-llm-failure.ts`                                                               | 429 / 5xx / network / auth vs recoverable                                               |
+| `create-chat-completion-stream.ts`                                                      | Full `messages[]` + `signal`. **No** detector wrap (compaction shares it)               |
+| `recovery-notice.ts` (`@langflower/node-sdk/llm`)                                       | `code: 'retry' \| 'suspended'` + timing fields; port already `feed.role: 'recovery'`    |
+| Work-log recovery banner                                                                | Tick attempt / last / next from **port events**; local clock                            |
+| `@langflower/server` / runtime / WS                                                     | Unchanged — no autokick APIs                                                            |
 
 ## Related
 

@@ -393,7 +393,7 @@ Mechanics: merged deny/ask/allow against project config; gate in
 
 Product meaning: [Role preset](#role-preset).
 
-Mechanics: `packages/common-nodes/src/ai/llm-role-preset.ts`; overlay in
+Mechanics: `packages/common-nodes/src/ai/features/llm-role-preset.ts`; overlay in
 `build-execution-context` materializes tool permissions without rewriting
 skill text.
 

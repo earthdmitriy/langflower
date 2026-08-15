@@ -1,7 +1,7 @@
 import { defineReactiveNode } from '@langflower/node-sdk';
 import { createProjectFilesContext } from '@langflower/tools/create-project-files-context';
 import { from, mergeMap, throwError } from 'rxjs';
-import { getRunHostServices } from '../../ai/run-host-services.js';
+import { getRunHostServices } from '../../ai/features/run-host-services.js';
 
 /**
  * Read a project-relative text file via `createProjectFilesContext` (no permission ask).

@@ -828,16 +828,16 @@ conversation history on the real OpenAI node.
 
 **Consequences:**
 
-- `packages/common-nodes/src/ai/openai-llm/node.ts` — session + history.
-- `packages/common-nodes/src/ai/fake-llm/node.ts` — minimal split for demos.
-- `packages/common-nodes/src/ai/llm-session-shell.ts` — shared
+- `packages/common-nodes/src/ai/nodes/openai-llm/node.ts` — session + history.
+- `packages/common-nodes/src/ai/nodes/fake-llm/node.ts` — minimal split for demos.
+- `packages/common-nodes/src/ai/features/llm-session/llm-session-shell.ts` — shared
   `createLlmSessionCycle$` for **all** LLM nodes (openai / fake / critique /
   review); `maxFeedbackTurns` → continue HITL then Deny → `toolLog` + stream
   error; path-choice turn drivers use `primeTurn0: false` + `historySync`
   chunks.
-- `packages/common-nodes/src/ai/openai/prepare-chat-completion.ts` —
+- `packages/common-nodes/src/ai/features/openai/prepare-chat-completion.ts` —
   shared pre-stream compaction runner for both tool loops.
-- `packages/common-nodes/src/ai/critique/node.ts` /
+- `packages/common-nodes/src/ai/nodes/critique/node.ts` /
   `review/node.ts` — must not invent a second history mechanism.
 - [HOW_TO_WRITE_REACTIVE_NODES.md](HOW_TO_WRITE_REACTIVE_NODES.md) — init vs
   turns; feedback `startWith` carve-out; no fake events / no silent refusals.
@@ -1162,8 +1162,8 @@ Wire consts for custom nodes:
 - Normative detail:
   [MECHANICS-tool-execution.md](DONE/EPICS/MECHANICS-tool-execution.md#sub-agent-registration--spawn-target).
 - Product summary: [PRODUCT.md](PRODUCT.md#sub-agent-spawn-target).
-- Evolve `packages/common-nodes/src/ai/sub-agent/` + LLM ports; update
-  [NODE.md](../packages/common-nodes/src/ai/sub-agent/NODE.md).
+- Evolve `packages/common-nodes/src/ai/nodes/sub-agent/` + LLM ports; update
+  [NODE.md](../packages/common-nodes/src/ai/nodes/sub-agent/NODE.md).
 - Revisit when runtime gains non-bypass dynamic outputs or nested workflows —
   may drop `nodeId` broadcast filter.
 - Layered extensions (swarm concurrency, nested spawn, Monte Carlo via Loop):
@@ -1493,7 +1493,7 @@ result-ported.
   Review-specific echo hacks in UI until this ADR moves to `accepted` /
   `proposed` with a chosen alternative.
 - Keep documenting today’s contract in
-  [NODE.md](../packages/common-nodes/src/ai/review/NODE.md) /
+  [NODE.md](../packages/common-nodes/src/ai/nodes/review/NODE.md) /
   [LLM_NODES.md](LLM_NODES.md) (passthrough on accept).
 - Revisit when locking adversarial / review Work log UX, or when
   `accept.notes` must be visible as a first-class decision.

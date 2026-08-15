@@ -1,12 +1,12 @@
 import type { ReactiveNodeDefinition } from '@langflower/node-sdk';
-import { fakeLlmNode } from './ai/fake-llm/node.js';
-import { openAiLlmNode } from './ai/openai-llm/node.js';
+import { fakeLlmNode } from './ai/nodes/fake-llm/node.js';
+import { openAiLlmNode } from './ai/nodes/openai-llm/node.js';
 import { mcpHttpNode } from './mcp/mcp-http/node.js';
 import { mcpStdioNode } from './mcp/mcp-stdio/node.js';
 import { chatInputNode } from './hitl/chat-input/node.js';
-import { reviewNode } from './ai/review/node.js';
-import { critiqueNode } from './ai/critique/node.js';
-import { subAgentNode } from './ai/sub-agent/node.js';
+import { reviewNode } from './ai/nodes/review/node.js';
+import { critiqueNode } from './ai/nodes/critique/node.js';
+import { subAgentNode } from './ai/nodes/sub-agent/node.js';
 import { checkpointNode } from './flow/checkpoint/node.js';
 import { delayNode } from './flow/delay/node.js';
 import { loopNode } from './flow/loop/node.js';

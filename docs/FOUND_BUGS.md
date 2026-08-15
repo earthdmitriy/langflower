@@ -122,7 +122,7 @@ Newest first.
 | **Root cause**         | (1) LLM `feedback` was unintentionally single-slot; two edges both targeting `proposer.feedback[0]` failed `addEdge` occupancy. (2) `workflow.load.requested` discarded bind/load Results and always re-emitted the current snapshot. |
 | **Fix**                | Restore `feedback` `multi: 'merge'`; distinct slots in `agents-dialog`; emit unicast `workflow.load.failed`; activate rolls back previous bind on failure.                                                                            |
 | **Design flaw signal** | Multi fan-in needs `multi` + distinct slots in persisted graphs; expected failures must surface as bus facts (`Result` → client event), not silent success-shaped snapshots.                                                          |
-| **Regression test**    | `packages/common-nodes/src/ai/openai-llm/node.test.ts` (dual feedback slots); load Result path in `load-workflow-into-session` / handler.                                                                                             |
+| **Regression test**    | `packages/common-nodes/src/ai/nodes/openai-llm/node.test.ts` (dual feedback slots); load Result path in `load-workflow-into-session` / handler.                                                                                       |
 
 ### BUG-2026-07-28 — Custom peer-only pack load fails without project node_modules
 
@@ -150,7 +150,7 @@ Newest first.
 | **Root cause**         | Stream adapter ignored `finish_reason`; classifier marked `unknown` (and stream-without-done protocol) as non-recoverable, so failures either looked like success or hard-stopped the Observable.                                                                            |
 | **Fix**                | Plumb `finishReason` on `done` / `provider.done`; treat length / incomplete tool JSON as `output-truncation` (no tool run; compact+retry or Steer); mark `unknown` and stream-without-done as recoverable with mandatory `toolLog` then retry/Steer. Auth/config stay fatal. |
 | **Design flaw signal** | **Silent success on truncated provider output** and **opaque failure as Observable death** — anything not clearly auth/config must surface diagnostics and enter retry → Steer, never silent complete or silent kill.                                                        |
-| **Regression test**    | `ai/openai/create-chat-completion-stream.test.ts` (`mapFinishReason`), `ai/llm-loop/run-agent-loop.test.ts` (length → no tools + Steer; unknown → Steer; 401 fatal), `ai/llm-loop/llm-loop-reducer.test.ts` (unknown recoverable)                                            |
+| **Regression test**    | `ai/features/openai/create-chat-completion-stream.test.ts` (`mapFinishReason`), `ai/features/llm-loop/run-agent-loop.test.ts` (length → no tools + Steer; unknown → Steer; 401 fatal), `ai/features/llm-loop/llm-loop-reducer.test.ts` (unknown recoverable)                 |
 
 ### BUG-2026-07-25d — Empty `providerId` hides live catalog models
 
@@ -360,7 +360,7 @@ Newest first.
 | **Root cause**         | Removing the `preview` passthrough left `result` consumed only via `withLatestFrom` on Approve. Wired upstream edges need a lasting subscriber on the target input/output chain; without `preview`, nothing pulled `result`, so the LLM `response` edge stayed cold.               |
 | **Fix**                | Restore `configureOutput('preview', result)` and HITL `promptFrom: 'preview'` on approve / request-changes.                                                                                                                                                                        |
 | **Design flaw signal** | **Passthrough / prompt outputs are demand drivers, not just UI.** Dropping an “unused” output can silently stop pulling upstream reactive edges. `withLatestFrom` alone does not create run-lifetime demand — now **forbidden** without human OK ([REACTIVITY.md](REACTIVITY.md)). |
-| **Regression test**    | `packages/common-nodes/src/ai/fake-llm/node.test.ts` — `emits response when Review Gate feedback is wired`                                                                                                                                                                         |
+| **Regression test**    | `packages/common-nodes/src/ai/nodes/fake-llm/node.test.ts` — `emits response when Review Gate feedback is wired`                                                                                                                                                                   |
 
 ### BUG-2026-07-21c — Fake LLM final response appeared missing
 
@@ -374,7 +374,7 @@ Newest first.
 | **Root cause**         | The fake provider delayed every whitespace token in two deliberately long text blocks. The terminal `response` is emitted only after both streams finish, so the 40 ms default accumulated into a long silent wait for downstream ports. |
 | **Fix**                | Stream sentence-sized chunks instead of whitespace tokens. The visible stream remains paced at 40 ms, while the terminal response follows promptly.                                                                                      |
 | **Design flaw signal** | **Per-token demo pacing is an end-to-end latency contract.** When terminal work is sequenced after a stream, token granularity controls downstream completion time, not merely UI animation.                                             |
-| **Regression test**    | `packages/common-nodes/src/ai/fake-llm/node.test.ts` — standard Fake LLM stream test now runs with the default delay and requires `response`.                                                                                            |
+| **Regression test**    | `packages/common-nodes/src/ai/nodes/fake-llm/node.test.ts` — standard Fake LLM stream test now runs with the default delay and requires `response`.                                                                                      |
 
 ### BUG-2026-07-21b — HITL replies missing from feed after tab reload
 
@@ -477,17 +477,17 @@ Newest first.
 
 ### BUG-2026-07-19 — Soft↔Hard debate loop never materializes (wired feedback)
 
-| Field                  | Value                                                                                                                                                                                          |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Date**               | 2026-07-19                                                                                                                                                                                     |
-| **Area**               | execution · common-nodes                                                                                                                                                                       |
-| **Status**             | fixed                                                                                                                                                                                          |
-| **Symptom**            | Soft↔Hard debate (`soft-vs-hard-harness` / fake-llm debate-loop) starts `running` but Soft never emits `response` / reasoning; UI looks stuck.                                                 |
-| **Repro**              | Topic → Soft.userPrompt; Soft.response → Hard.userPrompt; Hard.response → Soft.feedback; no finish. Run with `common-fake-llm` (`tokenDelayMs: 0`).                                            |
-| **Root cause**         | Soft `combineInputs` included `feedback`. Wiring Hard→Soft.feedback marked the slot wired, so `applyPortDefaults` skipped `defaultValue: ''`. Soft waited for Hard; Hard waited for Soft.      |
-| **Fix**                | ADR-016: init combine without feedback; feedback turn stream with `startWith` outside init (`openai-llm` + minimal split on `fake-llm`).                                                       |
-| **Design flaw signal** | **`defaultValue` is not a cycle primer when the port is wired.** Loop-back turns need an explicit turn stream, not inventory-port defaults.                                                    |
-| **Regression test**    | `packages/common-nodes/src/ai/fake-llm/debate-loop.node.test.ts`; `tests/integration/ws/execute-fake-llm-debate-loop.ws.test.ts`; openai multi-turn/init-recreate in `openai-llm/node.test.ts` |
+| Field                  | Value                                                                                                                                                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**               | 2026-07-19                                                                                                                                                                                           |
+| **Area**               | execution · common-nodes                                                                                                                                                                             |
+| **Status**             | fixed                                                                                                                                                                                                |
+| **Symptom**            | Soft↔Hard debate (`soft-vs-hard-harness` / fake-llm debate-loop) starts `running` but Soft never emits `response` / reasoning; UI looks stuck.                                                       |
+| **Repro**              | Topic → Soft.userPrompt; Soft.response → Hard.userPrompt; Hard.response → Soft.feedback; no finish. Run with `common-fake-llm` (`tokenDelayMs: 0`).                                                  |
+| **Root cause**         | Soft `combineInputs` included `feedback`. Wiring Hard→Soft.feedback marked the slot wired, so `applyPortDefaults` skipped `defaultValue: ''`. Soft waited for Hard; Hard waited for Soft.            |
+| **Fix**                | ADR-016: init combine without feedback; feedback turn stream with `startWith` outside init (`openai-llm` + minimal split on `fake-llm`).                                                             |
+| **Design flaw signal** | **`defaultValue` is not a cycle primer when the port is wired.** Loop-back turns need an explicit turn stream, not inventory-port defaults.                                                          |
+| **Regression test**    | `packages/common-nodes/src/ai/nodes/fake-llm/debate-loop.node.test.ts`; `tests/integration/ws/execute-fake-llm-debate-loop.ws.test.ts`; openai multi-turn/init-recreate in `openai-llm/node.test.ts` |
 
 ### BUG-2026-07-17d — delete active workflow crashed UI on null graph
 
@@ -1245,7 +1245,7 @@ Newest first.
 | **Root cause**         | Two imperative async-IIFE Observable bodies consumed provider streams with `for await`; exceptions called `subscriber.error`, permanently terminating the StatefulObservable cycle, while no idle boundary existed. Session history/counters were separately mutated in `tap` / closures. |
 | **Fix**                | Shared `runLlmLoop` `expand` machine + typed provider RxJS facts, idle watchdog, checkpointed retries/suspension, sanitized diagnostics, bounded sequential tool/Sub-Agent effects; shared `runLlmSessionMachine` `mergeScan` owns history and queued turns.                              |
 | **Design flaw signal** | **Recoverable domain failure encoded as stream death** — external provider availability is a loop fact, not automatically an Observable terminal error. Commit history only at explicit checkpoints and reserve the error lane for fatal authentication/configuration/protocol failures.  |
-| **Regression test**    | `ai/llm-loop/operators/observe-provider-stream.test.ts` (idle/Pause/500), `ai/llm-loop/run-agent-loop.test.ts` (500 → Steer → continue), `ai/llm-session/run-session-machine.test.ts` (queued immutable history), migrated Review/tool-loop tests.                                        |
+| **Regression test**    | `ai/features/llm-loop/operators/observe-provider-stream.test.ts` (idle/Pause/500), `ai/features/llm-loop/run-agent-loop.test.ts` (500 → Steer → continue), `ai/features/llm-session/run-session-machine.test.ts` (queued immutable history), migrated Review/tool-loop tests.             |
 
 ### BUG-2026-07-28 — double stream.done orphans tool_calls and breaks compaction
 
@@ -1259,4 +1259,4 @@ Newest first.
 | **Root cause**         | On `provider.done` with `tool_calls`, `providerFactAction` reduced `stream.done` in the scan **and** `decisionPackets` `run-tools` reduced `stream.done` again. Tools closed only the second assistant block; the first orphan stayed incomplete and failed `toBlocks`. Compaction errors were classified as recoverable `unknown` and uselessly retried. |
 | **Fix**                | Scan skips `stream.done` when tool calls are present (policy owns the sole commit); path-choice builds synthetic history from `roundCheckpoint`; empty-pending tools roll back to checkpoint; `Cannot compact history:` → `protocol` with Steer and no transient retries.                                                                                 |
 | **Design flaw signal** | **Duplicate reduce of the same provider fact** — scan + policy must not both append the same assistant/`tool_calls` block; structural history failures are not transient provider outages.                                                                                                                                                                |
-| **Regression test**    | `ai/llm-loop/run-agent-loop.test.ts` (single closed tool block; compaction protocol → Steer without retries), `ai/llm-loop/llm-loop-reducer.test.ts` (classify), `ai/path-choice/run-path-choice-tool-loop.test.ts` (historySync pair), `ai/openai/llm-context-compaction.test.ts` (incomplete block reject)                                              |
+| **Regression test**    | `ai/features/llm-loop/run-agent-loop.test.ts` (single closed tool block; compaction protocol → Steer without retries), `ai/features/llm-loop/llm-loop-reducer.test.ts` (classify), `ai/features/path-choice/run-path-choice-tool-loop.test.ts` (historySync pair), `ai/features/openai/llm-context-compaction.test.ts` (incomplete block reject)          |

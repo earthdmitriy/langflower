@@ -1,22 +1,25 @@
-# Agent nodes
+# AI category
 
-|              |                                                                                    |
-| ------------ | ---------------------------------------------------------------------------------- |
-| **Types**    | `common-agent`, `common-agent-plan`, `common-agent-coder`, `common-agent-explorer` |
-| **Category** | AI                                                                                 |
+|              |                                                                                                |
+| ------------ | ---------------------------------------------------------------------------------------------- |
+| **Types**    | `common-openai-llm`, `common-fake-llm`, `common-critique`, `common-review`, `common-sub-agent` |
+| **Category** | AI                                                                                             |
 
-## Summary
+## Layout
 
-LLM agent nodes: принимают `userPrompt` (и опционально system/tools), вызывают server `executeAgent`, эмитят `response` и stream events. Специализации (plan/coder/explorer) — preset system prompts и tool sets.
+Catalog entry points live under `nodes/<name>/` (`node.ts` + `NODE.md` + tests).
+Shared LLM core lives under `features/` as named slices — not a junk drawer:
 
-## Inputs
+- `features/llm-loop/` — generation + stuck / dead-loop recovery
+- `features/llm-session/` — session machine + Agent session demux
+- `features/path-choice/` — Critique / Review control-tool loop
+- `features/openai/` — unbound HTTP factory (server binds secrets)
+- `features/ui-schema/` — Inspector panel / recovery / compaction fragments
+- `features/prompt/` — system prompt, max-iterations, provider/model resolve
 
-`userPrompt`, optional context ports per variant.
+One-file published modules stay at `features/` root (`llm-role-preset.ts`,
+`sub-agent-protocol.ts`, `run-host-services.ts`). Specifiers in
+`package.json` `exports` are unchanged.
 
-## Outputs
-
-`response` (string/stream), tool-call side channels.
-
----
-
-_Implementation removed — agents live in `@langflower/node-sdk` (`define-agent-node`)._
+Plan / Coder / Explorer are **instance presets** on `common-openai-llm` /
+`common-fake-llm` — not separate palette types.

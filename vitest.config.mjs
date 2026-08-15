@@ -37,21 +37,21 @@ export default defineConfig({
 			),
 			'@langflower/common-nodes/ai/llm-role-preset': path.join(
 				ROOT,
-				'packages/common-nodes/src/ai/llm-role-preset.ts',
+				'packages/common-nodes/src/ai/features/llm-role-preset.ts',
 			),
 			'@langflower/common-nodes/ai/run-host-services': path.join(
 				ROOT,
-				'packages/common-nodes/src/ai/run-host-services.ts',
+				'packages/common-nodes/src/ai/features/run-host-services.ts',
 			),
 			'@langflower/common-nodes/ai/openai/create-chat-completion-stream':
 				path.join(
 					ROOT,
-					'packages/common-nodes/src/ai/openai/create-chat-completion-stream.ts',
+					'packages/common-nodes/src/ai/features/openai/create-chat-completion-stream.ts',
 				),
 			'@langflower/common-nodes/ai/openai/list-provider-models':
 				path.join(
 					ROOT,
-					'packages/common-nodes/src/ai/openai/list-provider-models.ts',
+					'packages/common-nodes/src/ai/features/openai/list-provider-models.ts',
 				),
 			'@langflower/common-nodes': path.join(
 				ROOT,

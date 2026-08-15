@@ -1,12 +1,12 @@
 import type { ToolHandle } from '@langflower/node-sdk';
 import type { Harness } from '@langflower/tools/create-project-harness';
-import type { CreateChatCompletionStreamArgs } from '../ai/chat-completion-stream.js';
+import type { CreateChatCompletionStreamArgs } from '../ai/features/chat-completion-stream.js';
 import { describe, expect, it, vi } from 'vitest';
 import { firstValueFrom, ReplaySubject, toArray } from 'rxjs';
 import { SPAWN_SUBAGENT_TOOL } from './inventory-tool-round.js';
-import { runAgentLoop as runInternalToolLoop } from '../ai/llm-loop/run-agent-loop.js';
-import type { SubAgentRegistration } from '../ai/sub-agent-protocol.js';
-import { SUMMARY_SYSTEM_PROMPT } from '../ai/openai/llm-context-compaction.js';
+import { runAgentLoop as runInternalToolLoop } from '../ai/features/llm-loop/run-agent-loop.js';
+import type { SubAgentRegistration } from '../ai/features/sub-agent-protocol.js';
+import { SUMMARY_SYSTEM_PROMPT } from '../ai/features/openai/llm-context-compaction.js';
 
 const handle = (toolId: string, invoke: ToolHandle['invoke']): ToolHandle => ({
 	toolId,

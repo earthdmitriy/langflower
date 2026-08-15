@@ -10,8 +10,8 @@ Concrete modules only — **no `index.ts`** (forbidden repo-wide). Subpaths in
 - `src/catalog.ts` — `getCommonNodeDefinition(s)`, `getResolvedCommonNode`
 - `src/resolve-workflow-node-definition.ts` — type → reactive definition lookup
 - `src/test-nodes/test-index.ts` — harness registry (when populated)
-- `src/ai/openai/` — unbound OpenAI chat/list-models factories (server binds secrets)
-- `src/ai/sub-agent-protocol.ts` — Sub-Agent wire consts + payloads
+- `src/ai/features/openai/` — unbound OpenAI chat/list-models factories (server binds secrets)
+- `src/ai/features/sub-agent-protocol.ts` — Sub-Agent wire consts + payloads
   (`@langflower/common-nodes/ai/sub-agent-protocol`) for custom nodes talking to
   common LLM / Sub-Agent ports
 
@@ -26,7 +26,7 @@ facade; run-scoped host capabilities come from `ctx.*`. Pack nodes import
 Crawl HTML helpers are owned by `@langflower/tools/html`; BFS crawl by
 `@langflower/tools/run-bfs-crawl` — do not duplicate under `src/crawl/`.
 
-**Growth rule:** unbound provider HTTP adapters (e.g. `ai/openai/`) live here;
+**Growth rule:** unbound provider HTTP adapters (e.g. `ai/features/openai/`) live here;
 server only binds secrets. Do **not** put SSRF or MCP stdio bodies
 in this package or in server — those belong in `@langflower/tools`
 ([PRINCIPLES.md § Thin server](../../docs/PRINCIPLES.md#thin-server--do-not-grow-domain-here)).
@@ -35,28 +35,31 @@ this package — import `@langflower/tools/build-mcp-handle` (etc.) inside nodes
 
 ## Internal layout
 
-| Path                                      | Purpose                                                                             |
-| ----------------------------------------- | ----------------------------------------------------------------------------------- |
-| `src/catalog.ts`                          | Node catalog (source of truth for shipped common nodes)                             |
-| `src/resolve-workflow-node-definition.ts` | Type → reactive definition lookup (`getCommonReactiveNode`)                         |
-| `src/ai/`                                 | LLM nodes + shared `llm-session` mergeScan fold and `llm-loop` expand/operators     |
-| `src/tools/`                              | Runtime tool inventory helpers (not author factories)                               |
-| `src/mcp/`                                | Wire MCP nodes only (`mcp-stdio`, `mcp-http`) — helpers live in `@langflower/tools` |
-| `src/hitl/`                               | Review Gate + Chat Input                                                            |
-| `src/output/`                             | Run output surfaced in the work log                                                 |
-| `src/primitives/`                         | Scalar literals and JSON field helpers                                              |
-| `src/logic/`                              | Branching, comparison, routing                                                      |
-| `src/text/`                               | String templating and manipulation                                                  |
-| `src/memory/`                             | `memory-tools` pack via `defineToolRegistrations` only                              |
-| `src/crawl/`                              | Crawl nodes + `crawl-tools` via `defineToolRegistrations`                           |
-| `src/test-nodes/`                         | Demo and harness fixtures (not in default registry)                                 |
+| Path                                      | Purpose                                                                                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `src/catalog.ts`                          | Node catalog (source of truth for shipped common nodes)                                                                        |
+| `src/resolve-workflow-node-definition.ts` | Type → reactive definition lookup (`getCommonReactiveNode`)                                                                    |
+| `src/ai/`                                 | LLM catalog under `ai/nodes/<node>/`; shared core under `ai/features/` (`llm-loop`, `llm-session`, `path-choice`, `openai`, …) |
+| `src/tools/`                              | Runtime tool inventory helpers (not author factories)                                                                          |
+| `src/mcp/`                                | Wire MCP nodes only (`mcp-stdio`, `mcp-http`) — helpers live in `@langflower/tools`                                            |
+| `src/hitl/`                               | Review Gate + Chat Input                                                                                                       |
+| `src/output/`                             | Run output surfaced in the work log                                                                                            |
+| `src/primitives/`                         | Scalar literals and JSON field helpers                                                                                         |
+| `src/logic/`                              | Branching, comparison, routing                                                                                                 |
+| `src/text/`                               | String templating and manipulation                                                                                             |
+| `src/memory/`                             | `memory-tools` pack via `defineToolRegistrations` only                                                                         |
+| `src/crawl/`                              | Crawl nodes + `crawl-tools` via `defineToolRegistrations`                                                                      |
+| `src/test-nodes/`                         | Demo and harness fixtures (not in default registry)                                                                            |
 
 Author factories: `defineNode` / `defineReactiveNode` /
 `defineToolRegistrations` from `@langflower/node-sdk`; `defineLlmNode`
 from `@langflower/node-sdk/llm`; `McpHandle` from
 `@langflower/node-sdk/mcp`. `ToolHandle` stays on the main entry.
 
-Each node is self-contained — helper logic is inlined into the consuming node file.
+Each node is self-contained — helper logic is inlined into the consuming node
+file. **AI exception:** catalog nodes under `src/ai/nodes/` stay thin `bind()`
+entry points and call named slices in `src/ai/features/` (shared loop, session,
+path-choice, OpenAI HTTP). Do not copy detector / autokick into a node folder.
 
 ## Reactive `bind()` (see `@langflower/node-sdk`)
 

@@ -2,7 +2,7 @@ import { defineReactiveNode } from '@langflower/node-sdk';
 import { createWebFetch } from '@langflower/tools/create-web-fetch';
 import { from, map, mergeMap, throwError } from 'rxjs';
 import { htmlToText } from '@langflower/tools/html';
-import { getRunHostServices } from '../../ai/run-host-services.js';
+import { getRunHostServices } from '../../ai/features/run-host-services.js';
 
 type FetchedPage = {
 	readonly html: string;
