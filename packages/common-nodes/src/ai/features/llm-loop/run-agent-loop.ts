@@ -56,6 +56,7 @@ export const runAgentLoop = (args: {
 	readonly model: string;
 	readonly messages: readonly ChatCompletionMessage[];
 	readonly tools: readonly ToolHandle[];
+	readonly getTools?: () => readonly ToolHandle[];
 	readonly harness?: Harness;
 	readonly toolCtx?: ToolHandlerContext;
 	readonly maxIterations: number;
@@ -85,6 +86,7 @@ export const runAgentLoop = (args: {
 				: []),
 		],
 		inventoryTools: args.tools,
+		...(args.getTools !== undefined ? { getTools: args.getTools } : {}),
 		maxIterations: args.maxIterations,
 		compaction: args.compaction ?? DISABLED_COMPACTION_CONFIG,
 		recovery: args.recovery ?? DEFAULT_LLM_RECOVERY_POLICY,

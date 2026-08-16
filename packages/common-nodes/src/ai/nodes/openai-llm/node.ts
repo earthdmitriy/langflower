@@ -61,6 +61,9 @@ const runOpenAiTurn = (
 		model: context.model,
 		messages: [...messages],
 		tools: context.tools,
+		...(context.getTools !== undefined
+			? { getTools: context.getTools }
+			: {}),
 		toolCtx: context.toolCtx,
 		maxIterations: context.maxIterations,
 		compaction: context.compaction,

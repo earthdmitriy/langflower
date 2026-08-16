@@ -87,11 +87,17 @@ Project product data for Langflower lives under **`.langflower/`**.
 ## Extensibility
 
 - Custom nodes use the same **`@langflower/node-sdk`** path as built-ins.
-- **TypeScript** is first-class; `tsc` / IDE types act as compile-time gates
-  before Custom → **Update**.
+- **TypeScript** is first-class; `tsc` / IDE types act as compile-time gates.
+  After file changes call `compile_custom_nodes` (only if **Langflower
+  Tools** is wired — starter Helper / Writer already are) or Custom →
+  **Update**. Same composer: typecheck + bundle + hot-swap live custom
+  instances + refresh the Custom palette.
+  Stop is not required for already-placed custom types.
+  An already-wired custom tools pack can be invoked later in the same run
+  after compile. Do not auto-place or auto-wire a new type mid-run.
 - Plain JS / Go / Python are not the authoring path. Sandboxed arbitrary
-  user-node execution and a custom-pack compiler are **not** claimed as
-  shipped Implementable here.
+  user-node execution is **not** shipped. Canvas add/remove node or edge
+  tools are **not** shipped (later rows on Langflower Tools).
 
 ## What stays local
 

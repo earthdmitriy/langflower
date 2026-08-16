@@ -1,9 +1,9 @@
 import type { ReactiveNodeDefinition } from '@langflower/node-sdk';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { bundleEntry } from './bundle-pack.js';
-import { computePackCacheKey } from './cache-key.js';
 import type {
 	CompilePackError,
 	CompileProjectNodesResult,
@@ -21,6 +21,33 @@ import {
 const cacheRoot = (projectDir: string): string =>
 	path.join(projectDir, '.langflower', '.cache', 'nodes');
 
+const wipeCacheRoot = async (
+	projectDir: string,
+): Promise<
+	| { readonly ok: true }
+	| { readonly ok: false; readonly error: CompilePackError }
+> => {
+	try {
+		await fs.rm(cacheRoot(projectDir), { recursive: true, force: true });
+		return { ok: true };
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+
+		return {
+			ok: false,
+			error: formatCompilePackError(
+				'.cache/nodes',
+				[
+					{
+						message: `Failed to delete custom-node cache: ${message}`,
+					},
+				],
+				projectDir,
+			),
+		};
+	}
+};
+
 const loadBundledDefault = async (
 	outfile: string,
 	entryPath: string,
@@ -30,9 +57,17 @@ const loadBundledDefault = async (
 	| { readonly ok: true; readonly nodes: readonly ReactiveNodeDefinition[] }
 	| { readonly ok: false; readonly error: CompilePackError }
 > => {
-	const href = `${pathToFileURL(outfile).href}?t=${Date.now()}`;
+	const loadFile = path.join(
+		os.tmpdir(),
+		`lf-node-load-${process.hrtime.bigint()}.mjs`,
+	);
 
 	try {
+		// Stable outfile stays at `<pack>/<entry>.mjs` for git diff. Import a
+		// unique temp copy so Node / Vitest ESM cache cannot reuse the previous
+		// module for that path (query strings are not enough under Vitest).
+		await fs.copyFile(outfile, loadFile);
+		const href = `${pathToFileURL(loadFile).href}?t=${Date.now()}`;
 		const mod: unknown = await import(href);
 		const defaultExport =
 			typeof mod === 'object' && mod !== null && 'default' in mod
@@ -82,15 +117,13 @@ const compileEntry = async (
 	| { readonly ok: true; readonly nodes: readonly ReactiveNodeDefinition[] }
 	| { readonly ok: false; readonly error: CompilePackError }
 > => {
-	const cacheKey = await computePackCacheKey(pack.packDir, [entryPath]);
-	const relative = relativeEntry(pack.packDir, entryPath).replace(
-		/[\\/]/g,
-		'__',
-	);
+	const relative = relativeEntry(pack.packDir, entryPath)
+		.replace(/[\\/]/g, '__')
+		.replace(/\.tsx$/u, '')
+		.replace(/\.ts$/u, '');
 	const outfile = path.join(
 		cacheRoot(projectDir),
 		pack.packageName.replace(/[^\w.-]+/g, '_'),
-		cacheKey,
 		`${relative}.mjs`,
 	);
 
@@ -182,12 +215,18 @@ export const hasCustomNodePacks = async (
  * Scan `.langflower/nodes/`. Each pack runs independently; within a pack each
  * `export default` entry is typechecked then esbuilt only if clean.
  * Returns all successful definitions plus all failures (partial success OK).
- * Empty / missing `nodes/` is a no-op (no cache dir).
+ * Always deletes `.langflower/.cache/nodes/` first. Empty / missing `nodes/`
+ * does not recreate the cache dir.
  */
 export const compileProjectNodes = async (
 	projectDir: string,
 ): Promise<CompileProjectNodesResult> => {
 	const packs = await discoverPacks(projectDir);
+	const wiped = await wipeCacheRoot(projectDir);
+
+	if (!wiped.ok) {
+		return { nodes: [], errors: [wiped.error] };
+	}
 
 	if (packs.length === 0) {
 		return { nodes: [], errors: [] };

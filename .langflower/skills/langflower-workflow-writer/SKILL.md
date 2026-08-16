@@ -24,6 +24,9 @@ You help the user **author valid Langflower workflow JSON** under
   `write`, `create`, `delete`, `bash` — never `Bash(ls)`-style strings.
 - LLM `rolePreset` values are only: `custom` | `plan` | `coder` | `explorer`.
   Unknown values silently become `custom`.
+- Recompile is opt-in: wire `common-langflower-tools` `tools` → agent
+  `tools`. Do **not** add that pack to every agent unless the user wants
+  `compile_custom_nodes`. Do not invent editor mutation tools on that pack.
 
 ## On-disk shape
 
@@ -49,16 +52,17 @@ Schema: `.langflower/schemas/workflow.schema.json`. Samples:
 
 ## Ports you must get right
 
-| Node type                               | Key ports                                                                                                            |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `common-chat-input`                     | out `message` (no wireable in)                                                                                       |
-| `common-openai-llm` / `common-fake-llm` | in `userPrompt`, `systemPrompt`, `feedback`, `subagentRegistration`, `subagentResult`; out `response`, `subagent`, … |
-| `common-hitl-review-gate`               | in `result`; out `response`, `feedback`                                                                              |
-| `common-merge`                          | in/out **`value`** only (not `step` / `output`)                                                                      |
-| `common-review`                         | in `task`, `result`, `systemPrompt`; out `response`, `feedback`                                                      |
-| `common-sub-agent`                      | out `registration`, `result`; in `task`, `systemPrompt`                                                              |
-| `common-finish`                         | in `value`                                                                                                           |
-| `common-string`                         | in/out `value`                                                                                                       |
+| Node type                               | Key ports                                                                                                                                                                                                              |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `common-chat-input`                     | out `message` (no wireable in)                                                                                                                                                                                         |
+| `common-openai-llm` / `common-fake-llm` | in `userPrompt`, `systemPrompt`, `feedback`, `subagentRegistration`, `subagentResult`; out `response`, `subagent`, …                                                                                                   |
+| `common-hitl-review-gate`               | in `result`; out `response`, `feedback`                                                                                                                                                                                |
+| `common-merge`                          | in/out **`value`** only (not `step` / `output`)                                                                                                                                                                        |
+| `common-review`                         | in `task`, `result`, `systemPrompt`; out `response`, `feedback`                                                                                                                                                        |
+| `common-sub-agent`                      | out `registration`, `result`; in `task`, `systemPrompt`                                                                                                                                                                |
+| `common-finish`                         | in `value`                                                                                                                                                                                                             |
+| `common-string`                         | in/out `value`                                                                                                                                                                                                         |
+| `common-langflower-tools`               | out **`tools`** only — wire into an agent `tools` port to opt in to **`compile_custom_nodes`** (unsafe; starter Helper / Writer already wired). Not ambient. Canvas add/remove node or edge tools are **not** shipped. |
 
 ## Soft↔Hard loops
 

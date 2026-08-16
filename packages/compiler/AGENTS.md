@@ -7,7 +7,8 @@ Writes pack `COMPILATION_ERRORS.md` on failure (no silent fails).
 ## Boundary
 
 - **Owns:** pack discovery (`export default` entries), esbuild ESM bundle,
-  content-hash cache under `.langflower/.cache/nodes/`, structured compile
+  cache under `.langflower/.cache/nodes/<pack>/<entry>.mjs` (wipe the cache
+  root before every compile; stable paths for `git diff`), structured compile
   errors + on-disk markdown parity.
 - **Must not depend on:** server, UI, common-nodes, shared, websocket-bridge.
 - **May depend on:** `esbuild`, `@langflower/node-sdk` (validation / author API).
@@ -36,16 +37,20 @@ Host peers resolve from **this package’s install tree** (`import.meta.resolve`
 - package.json `types` / `exports.types` for tsc; same resolve → `file://` in
   the esbuild artifact for runtime load), not from the user project. Peer-only
   packs typecheck **and** load without project/pack `node_modules` (global
-  `langflower` OK). Cache keys include a host runtime stamp so install upgrades
-  and the rewrite policy invalidate stale bare-import artifacts.
+  `langflower` OK). Each compile deletes `.langflower/.cache/nodes/` first,
+  then writes stable `<pack>/<entry>.mjs` files and loads them via a unique
+  temp `import()` so Node ESM / Vitest cannot reuse the previous module.
 
 ## Compile pipeline
 
-Per **pack**, then per **`export default` entry** (independent):
+Delete `.langflower/.cache/nodes/` once per `compileProjectNodes` (fail the
+compile if wipe fails). Then per **pack**, then per **`export default` entry**
+(independent):
 
 1. If `tsconfig.json` exists → `tsc --noEmit` (programmatic). Entry-file
    diagnostics fail only that entry; shared non-entry errors fail all entries
    in the pack. Host peers / `@types/node` come from the compiler host.
-2. esbuild only entries that passed typecheck.
+2. esbuild only entries that passed typecheck, to
+   `.langflower/.cache/nodes/<pack>/<entry>.mjs`.
 3. Return `{ nodes, errors }` (partial success OK). Pack
    `COMPILATION_ERRORS.md` lists failed entries only.

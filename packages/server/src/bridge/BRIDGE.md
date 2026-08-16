@@ -88,35 +88,35 @@ There is no separate `viewport.snapshot` event — pan/zoom reconnects from
 
 ## Intent → wire → domain → outbound
 
-| Intent                                 | Wire file                         | Domain                           | Typical outbound                                                                  |
-| -------------------------------------- | --------------------------------- | -------------------------------- | --------------------------------------------------------------------------------- |
-| `workflow.list.requested`              | `wire-workflow-handlers`          | `workflowService.list`           | `workflow.list.snapshot`                                                          |
-| `workflow.load.requested`              | `wire-workflow-handlers`          | `loadWorkflowIntoSession`        | `workflow.current.snapshot` (+ `workflow.load.failed` / `workflow.load.repaired`) |
-| `workflow.saveCurrent.requested`       | `wire-workflow-handlers`          | `buildSaveCurrentPayload` + save | current (+ list if catalog changed)                                               |
-| `workflow.renameCurrent.requested`     | `wire-workflow-handlers`          | `renameActiveWorkflow`           | current (+ list)                                                                  |
-| `workflow.create.requested`            | `wire-workflow-handlers`          | `createEmptyWorkflowInSession`   | `workflow.current.snapshot`                                                       |
-| `workflow.copy.requested`              | `wire-workflow-handlers`          | `copyWorkflowToSession`          | current (+ list)                                                                  |
-| `workflow.delete.requested`            | `wire-workflow-handlers`          | `workflowService.delete`         | current + list                                                                    |
-| `palette.reload.requested`             | `wire-palette-handlers`           | `paletteService.reload`          | `palette.snapshot` (system)                                                       |
-| `customPalette.update.requested`       | `wire-custom-palette-handlers`    | `customPaletteService.update`    | `customPalette.snapshot`                                                          |
-| `langflower.config.save.requested`     | `wire-config-handlers`            | `writeSettings` + merge          | `langflower.config.snapshot` + `langflower.models.catalog.snapshot`               |
-| `project.bootstrap.requested`          | `wire-project-bootstrap-handlers` | `bootstrapProject` force seed    | `project.bootstrap.result` + workflow/customPalette snapshots                     |
-| `editor.addNode.requested`             | `wire-editor-handlers`            | `applyEditorAddNode`             | `editor.addNodes`, status                                                         |
-| `editor.updateNode.requested`          | `wire-editor-handlers`            | `applyEditorUpdateNode`          | `editor.updateNodes`, status, selection                                           |
-| `editor.addEdge.requested`             | `wire-editor-handlers`            | `applyEditorAddEdge`             | add/delete edges, status                                                          |
-| `editor.paste.requested`               | `wire-editor-handlers`            | `applyEditorPaste`               | `editor.addNodes` then `addEdges`, status                                         |
-| `editor.removeEdge.requested`          | `wire-editor-handlers`            | `applyEditorRemoveEdge`          | `editor.deleteEdges`, status                                                      |
-| `editor.removeNode.requested`          | `wire-editor-handlers`            | `applyEditorRemoveNode`          | `editor.deleteNodes`, status                                                      |
-| `editor.viewport.requested`            | `wire-editor-handlers`            | session graph viewport           | `editor.viewport.delta`, status                                                   |
-| `editor.dividers.requested`            | `wire-editor-handlers`            | session + config persist         | `editor.dividers.snapshot`                                                        |
-| `editor.settings.requested`            | `wire-editor-handlers`            | session settings chrome          | `editor.settings.snapshot`                                                        |
-| `editor.selectNode.requested`          | `wire-editor-handlers`            | `buildSelectedNodePayload`       | `editor.settings.snapshot` (if closing) + `editor.nodeSelected`                   |
-| `runner.start.requested`               | `wire-runner-handlers`            | `runner.start`                   | `runner.started` (broadcast) + live                                               |
-| `runner.startNode.requested`           | `wire-runner-handlers`            | `runner.startNode`               | `runner.startNode.started` (broadcast)                                            |
-| `runner.interrupt.requested`           | `wire-runner-handlers`            | `runner.interrupt`               | `runner.interrupted` (broadcast)                                                  |
-| `runner.hitl.event`                    | `wire-runner-handlers`            | `pushIntoInput`                  | runtime events (+ cold-start `started`)                                           |
-| `runner.permission.reply`              | `wire-runner-handlers`            | `permissionAsks.reply`           | (ask cleared)                                                                     |
-| `runner.executionFeed.clear.requested` | `wire-runner-handlers`            | `clearEventLog` (idle only)      | `executionFeed.snapshot`                                                          |
+| Intent                                 | Wire file                         | Domain                                                            | Typical outbound                                                                  |
+| -------------------------------------- | --------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `workflow.list.requested`              | `wire-workflow-handlers`          | `workflowService.list`                                            | `workflow.list.snapshot`                                                          |
+| `workflow.load.requested`              | `wire-workflow-handlers`          | `loadWorkflowIntoSession`                                         | `workflow.current.snapshot` (+ `workflow.load.failed` / `workflow.load.repaired`) |
+| `workflow.saveCurrent.requested`       | `wire-workflow-handlers`          | `buildSaveCurrentPayload` + save                                  | current (+ list if catalog changed)                                               |
+| `workflow.renameCurrent.requested`     | `wire-workflow-handlers`          | `renameActiveWorkflow`                                            | current (+ list)                                                                  |
+| `workflow.create.requested`            | `wire-workflow-handlers`          | `createEmptyWorkflowInSession`                                    | `workflow.current.snapshot`                                                       |
+| `workflow.copy.requested`              | `wire-workflow-handlers`          | `copyWorkflowToSession`                                           | current (+ list)                                                                  |
+| `workflow.delete.requested`            | `wire-workflow-handlers`          | `workflowService.delete`                                          | current + list                                                                    |
+| `palette.reload.requested`             | `wire-palette-handlers`           | `paletteService.reload`                                           | `palette.snapshot` (system)                                                       |
+| `customPalette.update.requested`       | `wire-custom-palette-handlers`    | `compileAndHotSwapCustomNodes` (UI Update + Langflower Tools RPC) | `editor.deleteEdges` + status (if pruned), then `customPalette.snapshot`          |
+| `langflower.config.save.requested`     | `wire-config-handlers`            | `writeSettings` + merge                                           | `langflower.config.snapshot` + `langflower.models.catalog.snapshot`               |
+| `project.bootstrap.requested`          | `wire-project-bootstrap-handlers` | `bootstrapProject` force seed                                     | `project.bootstrap.result` + workflow/customPalette snapshots                     |
+| `editor.addNode.requested`             | `wire-editor-handlers`            | `applyEditorAddNode`                                              | `editor.addNodes`, status                                                         |
+| `editor.updateNode.requested`          | `wire-editor-handlers`            | `applyEditorUpdateNode`                                           | `editor.updateNodes`, status, selection                                           |
+| `editor.addEdge.requested`             | `wire-editor-handlers`            | `applyEditorAddEdge`                                              | add/delete edges, status                                                          |
+| `editor.paste.requested`               | `wire-editor-handlers`            | `applyEditorPaste`                                                | `editor.addNodes` then `addEdges`, status                                         |
+| `editor.removeEdge.requested`          | `wire-editor-handlers`            | `applyEditorRemoveEdge`                                           | `editor.deleteEdges`, status                                                      |
+| `editor.removeNode.requested`          | `wire-editor-handlers`            | `applyEditorRemoveNode`                                           | `editor.deleteNodes`, status                                                      |
+| `editor.viewport.requested`            | `wire-editor-handlers`            | session graph viewport                                            | `editor.viewport.delta`, status                                                   |
+| `editor.dividers.requested`            | `wire-editor-handlers`            | session + config persist                                          | `editor.dividers.snapshot`                                                        |
+| `editor.settings.requested`            | `wire-editor-handlers`            | session settings chrome                                           | `editor.settings.snapshot`                                                        |
+| `editor.selectNode.requested`          | `wire-editor-handlers`            | `buildSelectedNodePayload`                                        | `editor.settings.snapshot` (if closing) + `editor.nodeSelected`                   |
+| `runner.start.requested`               | `wire-runner-handlers`            | `runner.start`                                                    | `runner.started` (broadcast) + live                                               |
+| `runner.startNode.requested`           | `wire-runner-handlers`            | `runner.startNode`                                                | `runner.startNode.started` (broadcast)                                            |
+| `runner.interrupt.requested`           | `wire-runner-handlers`            | `runner.interrupt`                                                | `runner.interrupted` (broadcast)                                                  |
+| `runner.hitl.event`                    | `wire-runner-handlers`            | `pushIntoInput`                                                   | runtime events (+ cold-start `started`)                                           |
+| `runner.permission.reply`              | `wire-runner-handlers`            | `permissionAsks.reply`                                            | (ask cleared)                                                                     |
+| `runner.executionFeed.clear.requested` | `wire-runner-handlers`            | `clearEventLog` (idle only)                                       | `executionFeed.snapshot`                                                          |
 
 Lifecycle gate (`runner.started` / `startNode.started` / `interrupted` /
 `resume.started`) uses **`bridgeEmit`** so every open tab updates Run/Stop.

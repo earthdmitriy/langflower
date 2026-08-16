@@ -710,6 +710,64 @@ export const applyEditorRemoveNode = (
 	return nodeSnapshot !== undefined ? [nodeSnapshot] : [];
 };
 
+/**
+ * Replace live editor instances whose persisted `type` is in `customTypes`.
+ * Types missing from the set keep the old instance. Allowed while locked.
+ */
+export const swapCustomNodesInEditor = (
+	session: LangflowerSession,
+	projectDir: string,
+	resolveDefinition: ResolveNodeDefinition,
+	customTypes: ReadonlySet<string>,
+): readonly RuntimeEdge[] => {
+	const active = session.activeWorkflow;
+
+	if (active === null) {
+		return [];
+	}
+
+	const persistedById = new Map(
+		active.graph.nodes.map((node) => [node.id, node] as const),
+	);
+	const droppedEdges: RuntimeEdge[] = [];
+
+	for (const runtimeNode of session.runtime.editor.getNodes()) {
+		const persisted = persistedById.get(runtimeNode.nodeId);
+
+		if (persisted === undefined || !customTypes.has(persisted.type)) {
+			continue;
+		}
+
+		const next = materializeRuntimeNode(
+			projectDir,
+			persisted,
+			resolveDefinition,
+		);
+
+		if (next === undefined) {
+			continue;
+		}
+
+		const { nodeId: _nodeId, ...rest } = next;
+		const swapped = session.runtime.editor.swapNode(
+			runtimeNode.nodeId,
+			rest,
+		);
+
+		if (swapped === false) {
+			continue;
+		}
+
+		droppedEdges.push(...swapped.droppedEdges);
+	}
+
+	if (droppedEdges.length > 0) {
+		syncActiveWorkflowTopologyFromEditor(session);
+	}
+
+	return droppedEdges;
+};
+
 export type BindWorkflowResult =
 	| {
 			readonly ok: true;

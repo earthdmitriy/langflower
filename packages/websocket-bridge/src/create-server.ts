@@ -18,6 +18,8 @@ import type {
 	WsBridgeConnectedClientApi,
 	WsBridgeError,
 	WsBridgeServerApi,
+	WsBridgeServerInboundKey,
+	WsBridgeServerInboundPayload,
 	WsBridgeStatus,
 } from './bridge-types.js';
 
@@ -182,6 +184,21 @@ export function createServer<C extends WsBridgeConfig>(
 		connections$: connectionsSubject.asObservable(),
 		errors$: errorsSubject.asObservable(),
 		status$: statusSubject.asObservable(),
+		injectInbound<K extends WsBridgeServerInboundKey<C>>(
+			type: K,
+			payload: WsBridgeServerInboundPayload<C, K>,
+			clientId = 'in-process',
+		): void {
+			const routed = routeInboundEvent(
+				{ type, payload },
+				inboundSubjects,
+				clientId,
+			);
+
+			if (!routed) {
+				throw new Error(`Unknown inbound event: ${String(type)}`);
+			}
+		},
 		close(): void {
 			statusSubject.next('disconnected');
 

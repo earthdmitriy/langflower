@@ -41,7 +41,7 @@ import {
 import type { LlmCompactionConfig } from '../openai/normalize-compaction-params.js';
 import { normalizeCompactionConfig } from '../openai/normalize-compaction-params.js';
 import { resolveChatProviderModel } from '../prompt/resolve-chat-provider-model.js';
-import { getRunHostServices } from '../run-host-services.js';
+import { buildAgentToolCtx, getRunHostServices } from '../run-host-services.js';
 import {
 	AGENT_MAX_ITERATIONS_CAP,
 	DEFAULT_AGENT_MAX_ITERATIONS,
@@ -55,6 +55,7 @@ import { runLlmSessionMachine } from './run-session-machine.js';
 export type LlmAgentInventoryContext = {
 	readonly prompt: string;
 	readonly tools: readonly ToolHandle[];
+	readonly getTools?: () => readonly ToolHandle[];
 	readonly subagentRegistrations: readonly SubAgentRegistration[];
 	readonly providerId: string;
 	readonly model: string;
@@ -128,6 +129,42 @@ type LlmAgentEcSlice = {
 	readonly mcpHandles?: readonly import('@langflower/node-sdk/mcp').McpHandle[];
 };
 
+const asPortList = (value: unknown): readonly unknown[] => {
+	if (value === undefined || value === null) {
+		return [];
+	}
+
+	return Array.isArray(value) ? value : [value];
+};
+
+/**
+ * Close over live editor wired tools when the server hook is present;
+ * otherwise freeze the combineInputs snapshot (unit tests).
+ */
+const createAgentGetTools = (
+	ec: {
+		readonly nodeId: string;
+		readonly toolHandles?: readonly ToolHandle[];
+		readonly mcpHandles?: LlmAgentEcSlice['mcpHandles'];
+	},
+	toolList: unknown,
+	mcpList: unknown,
+): (() => readonly ToolHandle[]) => {
+	const hostServices = getRunHostServices(ec);
+	return () => {
+		const live = hostServices?.getLiveWiredTools?.(ec.nodeId);
+		return collectAgentToolHandles({
+			toolHandles: ec.toolHandles,
+			toolsPort:
+				live === undefined
+					? toolList
+					: [...asPortList(toolList), ...live],
+			mcpHandles: ec.mcpHandles,
+			mcpPort: mcpList,
+		});
+	};
+};
+
 type ReactiveBindHelpers = {
 	readonly makeInput: typeof makeInput;
 	readonly configureOutput: typeof configureOutput;
@@ -185,15 +222,12 @@ const assembleLlmAgentInventoryContext = (
 	const hostServices = getRunHostServices(ec);
 	const skillMarkdown = hostServices?.skillMarkdown ?? '';
 	const agentsMarkdown = hostServices?.agentsMarkdown ?? '';
+	const getTools = createAgentGetTools(ec, toolList, mcpList);
 
 	return {
 		prompt: String(prompt ?? ''),
-		tools: collectAgentToolHandles({
-			toolHandles: ec.toolHandles,
-			toolsPort: toolList,
-			mcpHandles: ec.mcpHandles,
-			mcpPort: mcpList,
-		}),
+		tools: getTools(),
+		getTools,
 		subagentRegistrations: flattenSubAgentRegistrations(subagentList),
 		...resolveChatProviderModel(ec.params, hostServices),
 		skillId,
@@ -206,19 +240,10 @@ const assembleLlmAgentInventoryContext = (
 			agentsMarkdown,
 			skillMarkdown,
 		}),
-		toolCtx: {
-			projectDir: ec.projectDir,
-			runId: ec.runId,
-			...(hostServices?.authorize !== undefined
-				? { authorize: hostServices.authorize }
-				: {}),
-			...(hostServices?.denyPaths !== undefined
-				? { denyPaths: hostServices.denyPaths }
-				: {}),
-			...(hostServices?.allowedHosts !== undefined
-				? { allowedHosts: hostServices.allowedHosts }
-				: {}),
-		},
+		toolCtx: buildAgentToolCtx(
+			{ projectDir: ec.projectDir, runId: ec.runId },
+			hostServices,
+		),
 		maxIterations: normalizeMaxIterationsParam(ec.params.maxIterations, {
 			fallback: DEFAULT_AGENT_MAX_ITERATIONS,
 			maxCap: AGENT_MAX_ITERATIONS_CAP,

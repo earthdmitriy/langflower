@@ -46,6 +46,12 @@ export const DOMAIN_PACK_TOOL_OPTIONS: Readonly<
 		{ value: 'update_memory_section', title: 'update_memory_section' },
 		{ value: 'create_memory_file', title: 'create_memory_file' },
 	],
+	'common-langflower-tools': [
+		{
+			value: 'compile_custom_nodes',
+			title: 'compile_custom_nodes',
+		},
+	],
 };
 
 const readToolMetaFromNode = (

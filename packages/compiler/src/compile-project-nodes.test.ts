@@ -138,6 +138,18 @@ describe('compileProjectNodes', () => {
 		expect(result.errors).toEqual([]);
 		expect(result.nodes).toHaveLength(1);
 		expect(result.nodes[0]?.type).toBe('fixture-echo');
+		await expect(
+			fs.access(
+				path.join(
+					projectDir,
+					'.langflower',
+					'.cache',
+					'nodes',
+					'good-pack',
+					'echo.mjs',
+				),
+			),
+		).resolves.toBeUndefined();
 	});
 
 	it('writes COMPILATION_ERRORS.md on syntax failure', async () => {
@@ -361,13 +373,9 @@ export default defineReactiveNode({
 			'nodes',
 			'peers-only',
 		);
-		const hashDirs = await fs.readdir(cachePackDir);
-		expect(hashDirs.length).toBeGreaterThan(0);
-		const artifactDir = path.join(cachePackDir, hashDirs[0] ?? '');
-		const artifacts = await fs.readdir(artifactDir);
-		const outfileName = artifacts.find((name) => name.endsWith('.mjs'));
-		expect(outfileName).toBeDefined();
-		const outfile = path.join(artifactDir, outfileName ?? '');
+		const artifacts = await fs.readdir(cachePackDir);
+		expect(artifacts).toEqual(['gate.mjs']);
+		const outfile = path.join(cachePackDir, 'gate.mjs');
 		const bundled = await fs.readFile(outfile, 'utf8');
 
 		expect(bundled).not.toMatch(/from\s+["']@langflower\/node-sdk["']/u);
@@ -437,5 +445,111 @@ export default defineNode({
 		expect(markdown).toContain(result.errors[0]?.message ?? '');
 		expect(result.errors[0]?.message).toContain('codee');
 		expect(result.errors[0]?.message).not.toContain('Typecheck failed');
+	});
+
+	it('wipes leftover cache when nodes/ has no packs', async () => {
+		const projectDir = await makeProject();
+		const leftover = path.join(
+			projectDir,
+			'.langflower',
+			'.cache',
+			'nodes',
+			'stale-pack',
+			'echo.mjs',
+		);
+		await fs.mkdir(path.dirname(leftover), { recursive: true });
+		await fs.writeFile(leftover, 'export default {}\n', 'utf8');
+
+		const result = await compileProjectNodes(projectDir);
+
+		expect(result).toEqual({ nodes: [], errors: [] });
+		await expect(
+			fs.access(path.join(projectDir, '.langflower', '.cache', 'nodes')),
+		).rejects.toMatchObject({ code: 'ENOENT' });
+	});
+
+	it('rewrites the same outfile and loads a fresh ESM module', async () => {
+		const projectDir = await makeProject();
+		const packDir = await writePack(projectDir, 'reload-pack', {
+			'echo.ts': validNode('fixture-echo', 'First Name'),
+		});
+		const outfile = path.join(
+			projectDir,
+			'.langflower',
+			'.cache',
+			'nodes',
+			'reload-pack',
+			'echo.mjs',
+		);
+
+		const first = await compileProjectNodes(projectDir);
+		expect(first.errors).toEqual([]);
+		expect(first.nodes[0]?.displayName).toBe('First Name');
+		await expect(fs.access(outfile)).resolves.toBeUndefined();
+
+		await fs.writeFile(
+			path.join(packDir, 'echo.ts'),
+			validNode('fixture-echo', 'Second Name'),
+			'utf8',
+		);
+
+		const second = await compileProjectNodes(projectDir);
+		expect(second.errors).toEqual([]);
+		expect(second.nodes[0]?.displayName).toBe('Second Name');
+		await expect(fs.access(outfile)).resolves.toBeUndefined();
+
+		const cachePackDir = path.dirname(outfile);
+		expect(await fs.readdir(cachePackDir)).toEqual(['echo.mjs']);
+	});
+
+	it('reloads when only a non-entry helper file changes', async () => {
+		const projectDir = await makeProject();
+		const packDir = await writePack(projectDir, 'helper-pack', {
+			'helper.ts': "export const LABEL = 'Helper V1';\n",
+			'echo.ts': `import { LABEL } from './helper.js';
+import { defineNode } from '@langflower/node-sdk';
+
+export default defineNode({
+	type: 'fixture-helper',
+	displayName: LABEL,
+	category: 'Text',
+	uiSchema: [] as const,
+	inputs: {
+		trigger: { wireType: 'any', required: true, dynamic: true },
+	},
+	outputs: {
+		out: { wireType: 'string' },
+	},
+	execute() {
+		return { out: LABEL };
+	},
+});
+`,
+		});
+		const outfile = path.join(
+			projectDir,
+			'.langflower',
+			'.cache',
+			'nodes',
+			'helper-pack',
+			'echo.mjs',
+		);
+
+		const first = await compileProjectNodes(projectDir);
+		expect(first.errors).toEqual([]);
+		expect(first.nodes[0]?.displayName).toBe('Helper V1');
+
+		await fs.writeFile(
+			path.join(packDir, 'helper.ts'),
+			"export const LABEL = 'Helper V2';\n",
+			'utf8',
+		);
+
+		const second = await compileProjectNodes(projectDir);
+		expect(second.errors).toEqual([]);
+		expect(second.nodes[0]?.displayName).toBe('Helper V2');
+		const bundled = await fs.readFile(outfile, 'utf8');
+		expect(bundled).toContain('Helper V2');
+		expect(bundled).not.toContain('Helper V1');
 	});
 });

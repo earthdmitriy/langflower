@@ -117,7 +117,7 @@ export const attachLangflowerBridge = (
 	// 3. Intent handlers (bus namespaces)
 	rootSubscription.add(wireWorkflowHandlers(bridge, context, session));
 	rootSubscription.add(wirePaletteHandlers(bridge, context));
-	rootSubscription.add(wireCustomPaletteHandlers(bridge, context));
+	rootSubscription.add(wireCustomPaletteHandlers(bridge, context, session));
 	rootSubscription.add(
 		wireConfigHandlers(bridge, context, session, draftController, {
 			onEffectiveConfig: (config) => {

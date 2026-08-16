@@ -64,6 +64,27 @@ describe('ws bridge transport', () => {
 		});
 	});
 
+	it('injectInbound delivers to the same inbound observable', async () => {
+		const received = firstValueFrom(
+			server['ping.sent'].pipe(
+				filter((event) => event.payload.nonce === 'injected'),
+				take(1),
+				timeout(5_000),
+			),
+		);
+
+		server.injectInbound(
+			'ping.sent',
+			{ nonce: 'injected' },
+			'langflower-tools',
+		);
+
+		await expect(received).resolves.toEqual({
+			clientId: 'langflower-tools',
+			payload: { nonce: 'injected' },
+		});
+	});
+
 	it('routes message-specific observables only for their event type', async () => {
 		const serverPing = firstValueFrom(
 			server['ping.sent'].pipe(take(1), timeout(5_000)),

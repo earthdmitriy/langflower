@@ -133,9 +133,46 @@ describe('bootstrapProject', () => {
 
 		const starter = JSON.parse(
 			await readUtf8(path.join(workflowsDir, 'starter.json')),
-		) as { metadata: { name: string }; $schema?: string };
+		) as {
+			metadata: { name: string };
+			$schema?: string;
+			graph: {
+				nodes: readonly { id: string; type: string }[];
+				edges: readonly {
+					fromNodeId: string;
+					toNodeId: string;
+					fromPort: readonly [string, number];
+					toPort: readonly [string, number];
+				}[];
+			};
+		};
 		expect(starter.metadata.name).toBe('Starter');
 		expect(starter.$schema).toBe('../schemas/workflow.schema.json');
+		expect(
+			starter.graph.nodes.some(
+				(node) =>
+					node.id === 'compile' &&
+					node.type === 'common-langflower-tools',
+			),
+		).toBe(true);
+		expect(
+			starter.graph.edges.some(
+				(edge) =>
+					edge.fromNodeId === 'compile' &&
+					edge.toNodeId === 'helper' &&
+					edge.fromPort[0] === 'tools' &&
+					edge.toPort[0] === 'tools',
+			),
+		).toBe(true);
+		expect(
+			starter.graph.edges.some(
+				(edge) =>
+					edge.fromNodeId === 'compile' &&
+					edge.toNodeId === 'writer' &&
+					edge.fromPort[0] === 'tools' &&
+					edge.toPort[0] === 'tools',
+			),
+		).toBe(true);
 
 		expect(
 			(

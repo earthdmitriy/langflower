@@ -15,8 +15,10 @@ Thumbs.db
 tests/tmp/*
 !tests/tmp/.gitignore
 
-# Langflower node bundler cache (esbuild)
-**/.langflower/**/.cache/
+# Langflower node bundler cache (esbuild) — keep `.cache/nodes` trackable
+**/.langflower/**/.cache/*
+!**/.langflower/**/.cache/nodes/
+!**/.langflower/**/.cache/nodes/**
 
 # Generated custom-node compile diagnostics
 **/.langflower/nodes/**/COMPILATION_ERRORS.md

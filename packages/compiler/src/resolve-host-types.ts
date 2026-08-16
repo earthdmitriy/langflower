@@ -85,16 +85,6 @@ export const resolveHostPackageEntry = (
 ): string | undefined => resolvePackageEntry(specifier);
 
 /**
- * Stable stamp of resolved host peer roots for cache invalidation when the
- * Langflower install tree moves or upgrades.
- */
-export const hostRuntimeEntryStamp = (): string =>
-	HOST_PEER_PACKAGES.map((name) => {
-		const entry = resolveHostPackageEntry(name);
-		return `${name}=${entry === undefined ? '' : toPosix(entry)}`;
-	}).join('\n');
-
-/**
  * Prefer `exports` types conditions (import → require → default), then
  * top-level `types` / `typings`.
  */

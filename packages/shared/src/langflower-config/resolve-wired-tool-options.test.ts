@@ -54,6 +54,41 @@ describe('resolveWiredToolOptions', () => {
 		);
 	});
 
+	it('expands langflower tools pack into compile_custom_nodes', () => {
+		const options = resolveWiredToolOptions(
+			{
+				nodes: [
+					{
+						id: 'compile',
+						type: 'common-langflower-tools',
+						params: {},
+						inputs: {},
+						ui: { position: { x: 0, y: 0 } },
+					},
+					{
+						id: 'llm',
+						type: 'common-fake-llm',
+						params: {},
+						inputs: {},
+						ui: { position: { x: 0, y: 0 } },
+					},
+				],
+				edges: [
+					{
+						edgeId: 'e1' as EdgeId,
+						fromNodeId: 'compile' as NodeId,
+						fromPort: ['tools', 0],
+						toNodeId: 'llm' as NodeId,
+						toPort: ['tools', 0],
+					},
+				],
+			},
+			'llm',
+		);
+
+		expect(options.map((o) => o.value)).toEqual(['compile_custom_nodes']);
+	});
+
 	it('maps wired tool-registration edges to select options with description', () => {
 		const options = resolveWiredToolOptions(
 			{

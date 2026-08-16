@@ -199,9 +199,10 @@ even though Langflower bundles with esbuild for load.
 2. `export default defineNode({ … })`, `defineToolRegistrations({ … })` for an
    LLM `tools` pack, **or** `defineReactiveNode({ … })` when exclusive `ok` /
    `fail` (or other silent-branch) ports are required.
-3. Run `npm install` in the pack if peers or deps changed.
-4. In the editor Custom section, click **Update** (or reconnect) — the node
-   appears under **Custom**.
+3. Run `npm install` in the pack if author deps changed.
+4. Call **`compile_custom_nodes`** (starter Helper / Writer) or Custom →
+   **Update**. The type appears under **Custom**. Already-placed instances
+   hot-swap (no Stop). Place **new** types on the canvas yourself.
 
 ## Second shareable pack
 

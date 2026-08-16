@@ -301,7 +301,7 @@ clear internal types before adding that surface.
 
 ## ADR-007 — esbuild for custom node packages
 
-**Status:** accepted · **Date:** 2026-06-16 · **Updated:** 2026-07-28
+**Status:** accepted · **Date:** 2026-06-16 · **Updated:** 2026-08-15
 
 **Context:** User node packs may import npm deps; load path needs a single ESM
 artifact per entry (or pack) for palette metadata and later execution. Pack
@@ -315,20 +315,24 @@ layout / npm model: [ADR-030](#adr-030--custom-node-pack-layout--npm-model).
 - **Dynamic `import()` of user TS without bundle** — requires user ts-node/tsx;
   inconsistent UX.
 
-**Decision:** esbuild bundle to ESM; cache in `.langflower/.cache/nodes/` by content
-hash. Owned by `@langflower/compiler` (`compileProjectNodes`), not grown as
-server domain logic. Discovery: each pack `*.ts` / `*.tsx` with `export default`
-(definition or array); **no** required `index.ts`. Port metadata comes from the
-definition object (`inputs` / `outputs` / `bind` probe) — **not** from a
-TypeScript Compiler API scan of `execute` signatures.
+**Decision:** esbuild bundle to ESM; cache in `.langflower/.cache/nodes/` at
+stable `<pack>/<entry>.mjs` paths. Each `compileProjectNodes` **deletes** that
+cache root first (fail loud if wipe fails), then rewrites the same files so
+`git diff` shows bundle content. Load uses a unique temp copy of the stable
+`.mjs` so the ESM module cache cannot pin the git path. Owned by
+`@langflower/compiler` (`compileProjectNodes`), not grown as server domain
+logic. Discovery: each pack `*.ts` / `*.tsx` with `export default` (definition
+or array); **no** required `index.ts`. Port metadata comes from the definition
+object (`inputs` / `outputs` / `bind` probe) — **not** from a TypeScript
+Compiler API scan of `execute` signatures.
 
-**Compile pipeline (per pack, per entry):** (1) when the pack has
-`tsconfig.json`, run `tsc --noEmit` and attribute errors to individual
-`export default` entry files (shared non-entry errors fail all entries in that
-pack); (2) esbuild only entries that passed typecheck. One pack or one entry
-failing does not block siblings. Failures write `COMPILATION_ERRORS.md` in the
-pack and surface on `customPalette.snapshot` (`partial` when some nodes still
-loaded).
+**Compile pipeline (per pack, per entry):** (0) wipe `.langflower/.cache/nodes/`
+before any write; (1) when the pack has `tsconfig.json`, run `tsc --noEmit` and
+attribute errors to individual `export default` entry files (shared non-entry
+errors fail all entries in that pack); (2) esbuild only entries that passed
+typecheck, to stable `<pack>/<entry>.mjs`. One pack or one entry failing does
+not block siblings. Failures write `COMPILATION_ERRORS.md` in the pack and
+surface on `customPalette.snapshot` (`partial` when some nodes still loaded).
 
 **Host peer types for `tsc`:** resolve `@langflower/node-sdk`, `rxjs`, and
 `@rx-evo/stateful-observable` from the **compiler’s install tree**
@@ -342,10 +346,11 @@ packs therefore typecheck without a pack-local `npm install`; author
 **Host peer runtime for load:** the same peers stay **external** in the esbuild
 artifact (shared module identity with the host), but bare specifiers are
 rewritten to absolute `file://` URLs resolved from the compiler install tree.
-Native `import()` of `.langflower/.cache/nodes/.../*.mjs` therefore works in an
-empty project with no project/`pack` `node_modules`. Cache keys include a host
-runtime stamp so upgrades and the rewrite policy invalidate stale bare-import
-artifacts.
+Native `import()` of a unique temp copy of
+`.langflower/.cache/nodes/<pack>/<entry>.mjs` therefore works in an empty
+project with no project/`pack` `node_modules`. Each compile wipes that cache
+directory so install upgrades and the rewrite policy cannot leave a stale
+bundle on disk.
 
 **Tradeoffs accepted:**
 
@@ -354,7 +359,8 @@ artifacts.
 - (+) Pack `tsconfig.json` gates Update via `tsc --noEmit` before esbuild.
 - (+) Peer-only packs work with global Langflower and an empty project tree
   (typecheck **and** runtime load).
-- (−) Cache invalidation tied to hash logic — must include all inputs in hash.
+- (−) Wipe-then-rewrite of the same path; compile fails if the cache dir cannot
+  be deleted (e.g. Windows file lock).
 - (−) Shared (non-entry) type errors fail every entry in that pack.
 - (−) Cache `.mjs` embeds absolute host paths (local machine / install layout).
 

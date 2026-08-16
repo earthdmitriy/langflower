@@ -5,10 +5,12 @@ import {
 	toolPermissionsToEnabledIds,
 } from '@langflower/common-nodes/ai/llm-role-preset';
 import { attachRunHostServices } from '@langflower/common-nodes/ai/run-host-services';
+import type { LangflowerBusRequest } from '@langflower/common-nodes/ai/run-host-services';
 import {
 	contextSymbol,
 	type CtxError,
 	type ExecutionContext,
+	type ToolHandle,
 } from '@langflower/node-sdk';
 import type { LlmExecutionCaps } from '@langflower/node-sdk/llm';
 import type { McpHandle } from '@langflower/node-sdk/mcp';
@@ -59,6 +61,8 @@ type BuildHarnessHooks = {
 	readonly nodeId: string;
 	readonly requestPermission: LangflowerSession['permissionAsks']['requestPermission'];
 	readonly emitPermissionAsk: (payload: RunnerPermissionAskPayload) => void;
+	readonly requestLangflowerBus?: LangflowerBusRequest;
+	readonly getLiveWiredTools?: (agentNodeId: string) => readonly ToolHandle[];
 };
 
 const createToolHarness = (options: {
@@ -86,6 +90,14 @@ const createToolHarness = (options: {
 			: {}),
 	});
 };
+
+const LIVE_WIRED_TOOLS_NODE_TYPES = new Set([
+	'common-openai-llm',
+	'common-fake-llm',
+	'common-review',
+	'common-critique',
+	'common-sub-agent',
+]);
 
 export const buildExecutionContext = async (
 	context: ExecutionContextDeps,
@@ -213,8 +225,40 @@ export const buildExecutionContext = async (
 		...(config.harness?.allowedHosts !== undefined
 			? { allowedHosts: config.harness.allowedHosts }
 			: {}),
+		...(hooks?.requestLangflowerBus !== undefined &&
+		node.type === 'common-langflower-tools'
+			? { requestLangflowerBus: hooks.requestLangflowerBus }
+			: {}),
+		...(hooks?.getLiveWiredTools !== undefined &&
+		LIVE_WIRED_TOOLS_NODE_TYPES.has(node.type)
+			? { getLiveWiredTools: hooks.getLiveWiredTools }
+			: {}),
 	});
 };
+
+/** Host `contextSymbol` vs compiled-pack duplicate (`file://` / Vitest alias). */
+const contextPortLabel = String(contextSymbol);
+
+const resolveLiveContextPortId = (
+	session: LangflowerSession,
+	nodeId: string,
+): string | symbol => {
+	const node = session.runtime.editor.getNode(nodeId as NodeId);
+
+	if (node === false || node.inputs[contextSymbol] !== undefined) {
+		return contextSymbol;
+	}
+
+	const match = Object.getOwnPropertySymbols(node.inputs).find(
+		(portId) => String(portId) === contextPortLabel,
+	);
+
+	return match ?? contextSymbol;
+};
+
+const isContextSeedPort = (portId: string | symbol): boolean =>
+	portId === contextSymbol ||
+	(typeof portId === 'symbol' && String(portId) === contextPortLabel);
 
 const ctxErrorFromFailures = (
 	failures: ReturnType<typeof filterMcpFailuresForNode>,
@@ -237,10 +281,11 @@ export const applyObservableContextSeeds = (
 		const kept: RuntimeSeedPortValue[] = [];
 
 		for (const seed of list) {
-			if (seed.portId === contextSymbol && isObservable(seed.value)) {
+			if (isContextSeedPort(seed.portId) && isObservable(seed.value)) {
 				const node = session.runtime.editor.getNode(nodeId as NodeId);
+				const portId = resolveLiveContextPortId(session, nodeId);
 				const connection =
-					node === false ? undefined : node.inputs[contextSymbol];
+					node === false ? undefined : node.inputs[portId];
 
 				if (connection !== undefined) {
 					connection.connect(seed.value as Observable<never>);
@@ -265,6 +310,8 @@ export const buildContextSeeds = async (
 	context: ExecutionContextDeps,
 	runId: string,
 	emitPermissionAsk: (payload: RunnerPermissionAskPayload) => void,
+	requestLangflowerBus?: LangflowerBusRequest,
+	getLiveWiredTools?: (agentNodeId: string) => readonly ToolHandle[],
 ): Promise<Record<string, ReadonlyArray<RuntimeSeedPortValue>>> => {
 	const workflow = session.activeWorkflow;
 
@@ -299,7 +346,7 @@ export const buildContextSeeds = async (
 			const error = ctxErrorFromFailures(nodeFailures);
 			seeds[node.id] = [
 				{
-					portId: contextSymbol,
+					portId: resolveLiveContextPortId(session, node.id),
 					slotIndex: 0,
 					value: throwError(() => error),
 				},
@@ -316,12 +363,24 @@ export const buildContextSeeds = async (
 				nodeId: node.id,
 				requestPermission: session.permissionAsks.requestPermission,
 				emitPermissionAsk,
+				...(requestLangflowerBus !== undefined
+					? { requestLangflowerBus }
+					: {}),
+				...(getLiveWiredTools !== undefined
+					? { getLiveWiredTools }
+					: {}),
 			},
 			config,
 			runMcp?.handles,
 		);
 
-		seeds[node.id] = [{ portId: contextSymbol, slotIndex: 0, value: ctx }];
+		seeds[node.id] = [
+			{
+				portId: resolveLiveContextPortId(session, node.id),
+				slotIndex: 0,
+				value: ctx,
+			},
+		];
 	}
 
 	return seeds;

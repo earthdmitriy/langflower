@@ -57,5 +57,12 @@ server['edge.create.requested'].next({
 	toPortId: 'input',
 });
 
+server.injectInbound('edge.create.requested', {
+	fromNodeId: 'source',
+	fromPortId: 'result',
+	toNodeId: 'target',
+	toPortId: 'input',
+});
+
 // @ts-expect-error unknown message key
 const _unknownClientChannel: Subject<unknown> = client['unknown.message'];

@@ -16,6 +16,7 @@ import {
 	RuntimeNode,
 	type EdgeId,
 	type NodeId,
+	type SwapNodeResult,
 } from './types.js';
 
 export class RuntimeEditor implements RuntimeEditorApi {
@@ -166,6 +167,32 @@ export class RuntimeEditor implements RuntimeEditorApi {
 		this.refreshClusters();
 
 		return occupying;
+	}
+
+	/**
+	 * Replace the live instance at `nodeId` with `next`. Allowed while locked.
+	 */
+	swapNode(
+		nodeId: NodeId,
+		next: Omit<RuntimeNode, 'nodeId'>,
+	): SwapNodeResult | false {
+		if (this.disposed) {
+			return false;
+		}
+
+		if (!this.nodes.has(nodeId)) {
+			return false;
+		}
+
+		const runtimeNode = materializeBypassNodeOnAdd({
+			...next,
+			nodeId,
+		} as RuntimeNode);
+		this.nodes.set(nodeId, runtimeNode);
+		const droppedEdges = this.cleanupInvalidEdges();
+		this.refreshClusters();
+
+		return { node: runtimeNode, droppedEdges };
 	}
 
 	removeNode(nodeId: NodeId): RuntimeNode | false {

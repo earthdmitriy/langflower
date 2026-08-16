@@ -37,5 +37,10 @@ describe('wired-tool-options parity (tools owner ↔ shared inspector catalogs)'
 			optionValues(DOMAIN_PACK_TOOL_OPTIONS['common-memory-tools'] ?? []),
 		).toEqual(configToolIds(MEMORY_TOOL_CONFIGS));
 		expect(DOMAIN_PACK_TOOL_OPTIONS['common-kb-tools']).toBeUndefined();
+		expect(
+			optionValues(
+				DOMAIN_PACK_TOOL_OPTIONS['common-langflower-tools'] ?? [],
+			),
+		).toEqual(['compile_custom_nodes']);
 	});
 });

@@ -283,6 +283,11 @@ export type RuntimeOptions = {
 	readonly log?: boolean;
 };
 
+export type SwapNodeResult = {
+	readonly node: RuntimeNode;
+	readonly droppedEdges: readonly RuntimeEdge[];
+};
+
 export type RuntimeEditorApi = {
 	/**
 	 * Register a node and its port observables (handler already bound).
@@ -322,6 +327,19 @@ export type RuntimeEditorApi = {
 	 * graph is locked. Does not cascade-remove other edges.
 	 */
 	replaceEdge(edge: Omit<RuntimeEdge, 'edgeId'>): RuntimeEdge | false;
+
+	/**
+	 * Replace the live instance at `nodeId` with `next`. Keeps `nodeId`.
+	 * Drops incident edges whose ports vanished or whose wire types are no
+	 * longer compatible (same rules as {@link addEdge}).
+	 *
+	 * Allowed while the graph is locked. Does not call {@link addNode} /
+	 * {@link removeNode}. Returns `false` when disposed or `nodeId` is missing.
+	 */
+	swapNode(
+		nodeId: NodeId,
+		next: Omit<RuntimeNode, 'nodeId'>,
+	): SwapNodeResult | false;
 
 	/** Must fail while runner status is `'running'`.
 	 *

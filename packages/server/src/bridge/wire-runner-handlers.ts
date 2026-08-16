@@ -22,6 +22,8 @@ import {
 	buildContextSeeds,
 	applyObservableContextSeeds,
 } from './build-execution-context.js';
+import { getLiveWiredTools } from './get-live-wired-tools.js';
+import { createLangflowerToolsRpc } from './langflower-tools-rpc.js';
 import { bridgeEmit, clientEmit } from './bridge-outbound.js';
 import { findClientById } from './client-index.js';
 import { isInboundEvent } from './inbound-guards.js';
@@ -80,6 +82,10 @@ export const wireRunnerHandlers = (
 	const emitPermissionAsk = (payload: RunnerPermissionAskPayload): void => {
 		bridgeEmit(bridge, 'runner.permission.ask', payload);
 	};
+
+	const requestLangflowerBus = createLangflowerToolsRpc(bridge);
+	const liveWiredTools = (agentNodeId: string) =>
+		getLiveWiredTools(session, agentNodeId);
 
 	subscription.add(
 		session.runtime.runner.events$.subscribe((event) => {
@@ -166,6 +172,8 @@ export const wireRunnerHandlers = (
 						context,
 						resolvedRunId,
 						emitPermissionAsk,
+						requestLangflowerBus,
+						liveWiredTools,
 					),
 				);
 
@@ -224,6 +232,8 @@ export const wireRunnerHandlers = (
 						context,
 						resolvedRunId,
 						emitPermissionAsk,
+						requestLangflowerBus,
+						liveWiredTools,
 					),
 				);
 
@@ -382,6 +392,8 @@ export const wireRunnerHandlers = (
 						context,
 						checkpoint.runId as RunId,
 						emitPermissionAsk,
+						requestLangflowerBus,
+						liveWiredTools,
 					),
 				);
 
@@ -471,6 +483,8 @@ export const wireRunnerHandlers = (
 							context,
 							resolvedRunId,
 							emitPermissionAsk,
+							requestLangflowerBus,
+							liveWiredTools,
 						),
 					);
 

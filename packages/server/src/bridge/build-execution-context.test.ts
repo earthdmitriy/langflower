@@ -353,4 +353,122 @@ describe('buildExecutionContext', () => {
 		).rejects.toThrow();
 		expect(asks).toEqual(['bash']);
 	});
+
+	it('attaches requestLangflowerBus only on Langflower Tools', async () => {
+		const requestLangflowerBus = async () => ({
+			status: 'ok',
+		});
+
+		const llmCtx = await buildExecutionContext(
+			{
+				projectDir,
+				resolveDefinition: () => undefined,
+				langflowerConfigService: new LangflowerConfigService(
+					projectDir,
+				),
+			},
+			'run-1',
+			{
+				id: 'node-1',
+				type: 'common-fake-llm',
+				params: {},
+			},
+			{
+				runId: 'run-1',
+				nodeId: 'node-1',
+				requestPermission: async () => 'allow' as const,
+				emitPermissionAsk: () => undefined,
+				requestLangflowerBus,
+			},
+		);
+		const toolsCtx = await buildExecutionContext(
+			{
+				projectDir,
+				resolveDefinition: () => undefined,
+				langflowerConfigService: new LangflowerConfigService(
+					projectDir,
+				),
+			},
+			'run-1',
+			{
+				id: 'lf-tools-1',
+				type: 'common-langflower-tools',
+				params: {},
+			},
+			{
+				runId: 'run-1',
+				nodeId: 'lf-tools-1',
+				requestPermission: async () => 'allow' as const,
+				emitPermissionAsk: () => undefined,
+				requestLangflowerBus,
+			},
+		);
+
+		expect(
+			getRunHostServices(llmCtx)?.requestLangflowerBus,
+		).toBeUndefined();
+		expect(getRunHostServices(toolsCtx)?.requestLangflowerBus).toBe(
+			requestLangflowerBus,
+		);
+	});
+
+	it('attaches getLiveWiredTools from harness hooks onto RunHostServices', async () => {
+		const getLiveWiredTools = () => [];
+
+		const ctx = await buildExecutionContext(
+			{
+				projectDir,
+				resolveDefinition: () => undefined,
+				langflowerConfigService: new LangflowerConfigService(
+					projectDir,
+				),
+			},
+			'run-1',
+			{
+				id: 'node-1',
+				type: 'common-fake-llm',
+				params: {},
+			},
+			{
+				runId: 'run-1',
+				nodeId: 'node-1',
+				requestPermission: async () => 'allow' as const,
+				emitPermissionAsk: () => undefined,
+				getLiveWiredTools,
+			},
+		);
+
+		expect(getRunHostServices(ctx)?.getLiveWiredTools).toBe(
+			getLiveWiredTools,
+		);
+	});
+
+	it('does not attach getLiveWiredTools on non-agent nodes', async () => {
+		const getLiveWiredTools = () => [];
+
+		const ctx = await buildExecutionContext(
+			{
+				projectDir,
+				resolveDefinition: () => undefined,
+				langflowerConfigService: new LangflowerConfigService(
+					projectDir,
+				),
+			},
+			'run-1',
+			{
+				id: 'text-1',
+				type: 'common-string',
+				params: {},
+			},
+			{
+				runId: 'run-1',
+				nodeId: 'text-1',
+				requestPermission: async () => 'allow' as const,
+				emitPermissionAsk: () => undefined,
+				getLiveWiredTools,
+			},
+		);
+
+		expect(getRunHostServices(ctx)?.getLiveWiredTools).toBeUndefined();
+	});
 });

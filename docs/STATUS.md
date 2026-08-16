@@ -34,17 +34,17 @@ Last aligned with `catalog.ts`, use-cases README, and features README
 
 ## Acceptance criteria
 
-| #   | Criterion                             | Status      | Key files                                                                                                 |
-| --- | ------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------- |
-| 1   | Web server starts, UI opens           | **partial** | `cli/start-command.ts`, `server/create-server.ts`                                                         |
-| 2   | Nodes created/connected/deleted in UI | **partial** | ngDiagram canvas, palette, WS node list                                                                   |
-| 3   | Configs in `.langflower`              | **partial** | project + Settings UI + global layer (epic 18); [settings-panel](use-cases/settings-panel.md) **Partial** |
-| 4   | Workflows stored as JSON              | **done**    | `workflow.service.ts`, `workflow.*` WS events                                                             |
-| 5   | Load/edit/delete workflows            | **partial** | toolbar, workflow-store, `workflow.*` bus events                                                          |
-| 6   | Reload nodes button                   | **partial** | system: `palette.reload.requested`; custom: `customPalette.update.requested`                              |
-| 7   | Palette compile errors                | **done**    | `customPalette.snapshot.errors` + pack `COMPILATION_ERRORS.md`                                            |
-| 8   | Project directory via CLI             | **done**    | `start-command.ts`, `lf-project-dir`                                                                      |
-| 9   | Inline primitive inputs on node body  | **done**    | `node-inline-inputs`, `lf-node.component.ts`                                                              |
+| #   | Criterion                             | Status      | Key files                                                                                                                                              |
+| --- | ------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Web server starts, UI opens           | **partial** | `cli/start-command.ts`, `server/create-server.ts`                                                                                                      |
+| 2   | Nodes created/connected/deleted in UI | **partial** | ngDiagram canvas, palette, WS node list                                                                                                                |
+| 3   | Configs in `.langflower`              | **partial** | project + Settings UI + global layer (epic 18); [settings-panel](use-cases/settings-panel.md) **Partial**                                              |
+| 4   | Workflows stored as JSON              | **done**    | `workflow.service.ts`, `workflow.*` WS events                                                                                                          |
+| 5   | Load/edit/delete workflows            | **partial** | toolbar, workflow-store, `workflow.*` bus events                                                                                                       |
+| 6   | Reload nodes button                   | **partial** | system: `palette.reload.requested` unchanged; custom: Update + Langflower Tools `compile_custom_nodes` (bus) + hot-swap + same-turn inventory **done** |
+| 7   | Palette compile errors                | **done**    | `customPalette.snapshot.errors` + pack `COMPILATION_ERRORS.md`                                                                                         |
+| 8   | Project directory via CLI             | **done**    | `start-command.ts`, `lf-project-dir`                                                                                                                   |
+| 9   | Inline primitive inputs on node body  | **done**    | `node-inline-inputs`, `lf-node.component.ts`                                                                                                           |
 
 ## By package
 

@@ -1,8 +1,11 @@
 # Epic 40 — Custom node recompile, hot-swap, compile tool
 
-**Status:** queued  
-**Depends on:** [epic 32](../../DONE/EPICS/32-langflower-compiler.md) (landed —
-compiler + `customPalette`); [epic 33](../../DONE/EPICS/33-bootstrap-skeleton-my-nodes.md)
+**Status:** landed  
+Follow-up: catalog type is `common-langflower-tools` (Langflower Tools);
+`compile_custom_nodes` is a bus RPC over `customPalette.update.requested`,
+not a `RunHostServices.compileCustomNodes` ctx hook.  
+**Depends on:** [epic 32](32-langflower-compiler.md) (landed —
+compiler + `customPalette`); [epic 33](33-bootstrap-skeleton-my-nodes.md)
 (landed — `starter` + `my-nodes` seed)  
 **Index:** [README.md](README.md)  
 **Do not mix with:** [epic 39](39-ai-package-restructure.md) (`ai/` layout only)
@@ -20,8 +23,10 @@ ESM module. The agent has no compile tool either.
 
 ## Problem
 
-1. **Stale disk / ESM:** `.langflower/.cache/nodes/<pack>/<contentHash>/` is
-   overwritten in place; Node can keep the previous `import()`.
+1. **Stale disk / ESM:** cache lives under a content-hash dir and is
+   overwritten in place; Node can keep the previous `import()`. Wipe-then-
+   rewrite at a **stable** path + ESM query bust is the fix — not uid folders
+   (those break `git diff` of compiled bundles).
 2. **Stale live graph:** `CustomNodeRegistry.setNodes` replaces the map;
    already-placed canvas nodes keep the old `definition.getInstance()`
    closures until a full workflow bind.
@@ -67,10 +72,13 @@ write pack .ts
   session via `switchMap`).
 - Changing harness `toolPermissions` keys (compile is a **wired** ToolHandle,
   not a builtin harness id).
+- Unique / stamp / content-hash cache directories per compile. Artifacts stay
+  at a stable path so `git diff` shows bundle content, not path churn.
 
 ## In scope
 
-- Unique compile cache + fresh ESM load (no overwrite of an imported `.mjs`).
+- Wipe previous node cache **before** compile, then write artifacts to the
+  **same stable paths** (git-diffable; no hash/uid dirs). Fresh ESM `import`.
 - **Hot-swap** live editor instances of custom types (idle **and** running).
 - Shared compile composer used by Palette Update **and** the compile tool.
 - Catalog node `common-compile-custom-nodes` (`defineToolRegistrations`)
@@ -86,16 +94,33 @@ write pack .ts
 
 ### A. Compiler cache + ESM
 
-Every `compileProjectNodes` with packs:
+Stable paths exist so compiled bundles can be reviewed with **`git diff`**
+(same file, changed contents — not delete+add of a new uid/hash folder).
 
-- Write artifacts under a **new stamp dir**:
-  `.langflower/.cache/nodes/<pack>/<cacheKey>-<compileStamp>/`.
-- Best-effort prune of previous pack dirs (`EBUSY` / `EPERM` ignored on
-  Windows).
-- `import()` that new file URL (query bust optional extra).
-- Never overwrite a `.mjs` Node already imported.
+Every `compileProjectNodes` **with packs**, **before** esbuild / typecheck
+write:
 
-Empty / missing `nodes/` stays a no-op (no cache dir).
+1. **Delete** the previous cache root
+   `.langflower/.cache/nodes/` (`fs.rm({ recursive: true, force: true })`
+   then `mkdir`). Wipe is **mandatory**, not best-effort prune. If delete
+   fails (`EBUSY` / `EPERM` on Windows because Node still maps a `.mjs`),
+   the compile **fails loud** — do not write on top of leftover files.
+2. Recreate the cache tree and bundle each entry to a **stable** outfile:
+   `.langflower/.cache/nodes/<pack>/<entry>.mjs`
+   (`<pack>` = sanitized `packageName`; `<entry>` = pack-relative path with
+   `/` → `__`, e.g. `git-diff-tool.ts` → `git-diff-tool.mjs`).
+   **No** content-hash segment, **no** compile stamp / uid folder.
+3. `import()` that same file URL with a cache-bust query (`?t=`) so Node
+   ESM does not reuse the previous module instance after the wipe+rewrite.
+
+Empty / missing `nodes/` stays a no-op (do not create a cache dir).
+
+**Git:** `**/.langflower/**/.cache/` currently ignores the cache. This epic
+must add a negation so **`.langflower/.cache/nodes/` is tracked** (other
+`.cache` trees stay ignored). Without that, `git diff` cannot see bundles.
+
+`computePackCacheKey` is no longer a directory name. Drop it from the
+outfile path; delete the helper if nothing else uses it.
 
 ### B. Hot-swap in runtime
 
@@ -211,8 +236,8 @@ placed custom nodes (hot-swap). Stop remains the way to cancel a run.
 
 ## Docs / skills on land
 
-- [packages/compiler/AGENTS.md](../../../packages/compiler/AGENTS.md) — stamp
-  cache + ESM reload.
+- [packages/compiler/AGENTS.md](../../../packages/compiler/AGENTS.md) — wipe
+  then stable-path rewrite + ESM `?t=` reload; git-tracked node cache.
 - [docs/STATUS.md](../../STATUS.md) row 6 Reload nodes — custom path done if
   AC green (system `palette.reload` unchanged).
 - Helper KB + `langflower-node-writer`: after file changes call
@@ -231,7 +256,7 @@ only this loop.
 
 | Area                                      | Touch?                  | Notes                                                                                                                     |
 | ----------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `packages/compiler`                       | **Yes**                 | Stamp dir, prune, fresh import                                                                                            |
+| `packages/compiler`                       | **Yes**                 | Mandatory wipe; stable outfile paths; ESM `?t=`; gitignore exception                                                      |
 | `packages/runtime`                        | **Yes**                 | Locked-graph hot-swap API                                                                                                 |
 | `packages/server` palette / bridge        | **Yes**                 | Shared composer; inject hook; Update + tool                                                                               |
 | `packages/common-nodes`                   | **Yes**                 | Compile tools node; loop `getTools`; catalog                                                                              |
@@ -244,10 +269,12 @@ only this loop.
 
 ## Acceptance criteria
 
-1. **Cache:** two compiles of the same pack write distinct artifact dirs;
-   second `import` is a new module (updated `displayName` / `execute` /
-   tool `handler`). Helper-only source edits reload. Stale dirs pruned
-   best-effort.
+1. **Cache:** compile **deletes** `.langflower/.cache/nodes/` first, then
+   writes the same stable paths as the previous compile (`<pack>/<entry>.mjs`,
+   no hash/uid). Second `import` is a new module (updated `displayName` /
+   `execute` / tool `handler`). Helper-only source edits reload. `git diff`
+   on a tracked artifact shows content changes, not a path rename. Wipe
+   failure fails the compile.
 2. **Hot-swap idle:** place custom node → run (old output) → edit source →
    Update or `compile_custom_nodes` → run again **without** `workflow.load`
    or server restart → **new** output.

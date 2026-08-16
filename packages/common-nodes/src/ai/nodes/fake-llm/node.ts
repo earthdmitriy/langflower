@@ -185,6 +185,7 @@ const runFakeToolLoopCycle = (
 		model: bundle.model.length > 0 ? bundle.model : 'fake',
 		messages: [...messages],
 		tools: bundle.tools,
+		...(bundle.getTools !== undefined ? { getTools: bundle.getTools } : {}),
 		toolCtx: bundle.toolCtx,
 		maxIterations: bundle.maxIterations,
 		compaction: DISABLED_COMPACTION_CONFIG,

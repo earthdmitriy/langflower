@@ -178,6 +178,15 @@ export type WsBridgeServer<C extends WsBridgeConfig> = {
 	readonly errors$: Observable<WsBridgeError>;
 	readonly status$: Observable<WsBridgeStatus>;
 	close(): void;
+	/**
+	 * Push a client-to-server event as if a socket sent it (in-process
+	 * hosts). Inbound channels stay Observables — not Subjects.
+	 */
+	injectInbound<K extends WsBridgeServerInboundKey<C>>(
+		type: K,
+		payload: WsBridgeServerInboundPayload<C, K>,
+		clientId?: string,
+	): void;
 };
 
 export type WsBridgeServerApi<C extends WsBridgeConfig> = WsBridgeServer<C> &

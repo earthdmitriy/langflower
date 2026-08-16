@@ -27,6 +27,7 @@ export type {
 	RuntimeRunnerStatus,
 	RuntimeSeedPortValue,
 	RuntimeWireType,
+	SwapNodeResult,
 } from './types.js';
 export { isPortTelemetry, isRuntimeDone } from './types.js';
 export type { RuntimeOptions };

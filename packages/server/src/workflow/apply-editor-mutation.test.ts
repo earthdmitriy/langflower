@@ -1,4 +1,5 @@
 import { resolveWorkflowNodeDefinition } from '@langflower/common-nodes';
+import { defineNode } from '@langflower/node-sdk';
 import type { EdgeId, NodeId, RuntimeEdge } from '@langflower/runtime';
 import type {
 	EditorAddEdgeRequestedPayload,
@@ -20,6 +21,7 @@ import {
 	applyEditorUpdateNode,
 	bindWorkflowToSessionEditor,
 	normalizeEditorUpdateNodePayload,
+	swapCustomNodesInEditor,
 } from './apply-editor-mutation.js';
 import type { ResolveNodeDefinition } from './workflow-document.js';
 
@@ -71,6 +73,7 @@ const seedActiveWorkflow = (
 	session: LangflowerSession,
 	nodes: readonly WorkflowNodePersisted[],
 	edges: readonly RuntimeEdge[] = [],
+	resolve: ResolveNodeDefinition = resolveDefinition,
 ): void => {
 	const document: WorkflowLoadedPayload = {
 		workflowId: 'test',
@@ -89,7 +92,7 @@ const seedActiveWorkflow = (
 		session.runtime.editor,
 		projectDir,
 		document,
-		resolveDefinition,
+		resolve,
 	);
 
 	if (!bindResult.ok) {
@@ -915,5 +918,161 @@ describe('editor ↔ session topology single-writer', () => {
 			resolveDefinition,
 		);
 		expectEditorSessionTopologyMatch(session);
+	});
+});
+
+const swapFixture = (outputs: {
+	readonly extra?: boolean;
+}): ReturnType<typeof defineNode> =>
+	defineNode({
+		type: 'swap-fixture',
+		displayName: 'Swap Fixture',
+		uiSchema: [] as const,
+		inputs: {
+			trigger: { wireType: 'any', required: true, dynamic: true },
+		},
+		outputs: {
+			out: { wireType: 'string' },
+			...(outputs.extra === true
+				? { extra: { wireType: 'string' } }
+				: {}),
+		},
+		execute() {
+			return outputs.extra === true
+				? { out: 'v1', extra: 'x' }
+				: { out: 'v2' };
+		},
+	});
+
+const resolveSwapFixture = (
+	fixture: ReturnType<typeof defineNode>,
+): ResolveNodeDefinition => {
+	return (node) => {
+		if (node.type === 'swap-fixture') {
+			return fixture;
+		}
+
+		return resolveDefinition(node);
+	};
+};
+
+describe('swapCustomNodesInEditor', () => {
+	beforeEach(async () => {
+		projectDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'lf-editor-swap-'),
+		);
+	});
+
+	afterEach(async () => {
+		await fs.rm(projectDir, { recursive: true, force: true });
+	});
+
+	it('drops vanished-port edges, keeps other nodes, works while locked', () => {
+		const session = new LangflowerSession();
+		const v1 = swapFixture({ extra: true });
+		seedActiveWorkflow(
+			session,
+			[
+				stringNode('string-1'),
+				{
+					id: 'swap-1',
+					type: 'swap-fixture',
+					params: {},
+					inputs: {},
+					ui: { position: { x: 240, y: 0 } },
+				},
+				previewNode('preview-1'),
+			],
+			[],
+			resolveSwapFixture(v1),
+		);
+
+		const trigger = applyEditorAddEdge(session, {
+			fromNodeId: 'string-1' as NodeId,
+			fromPort: ['value', 0],
+			toNodeId: 'swap-1' as NodeId,
+			toPort: ['trigger', 0],
+		});
+		const extra = applyEditorAddEdge(session, {
+			fromNodeId: 'swap-1' as NodeId,
+			fromPort: ['extra', 0],
+			toNodeId: 'preview-1' as NodeId,
+			toPort: ['text', 0],
+		});
+
+		expect(trigger.added).toHaveLength(1);
+		expect(extra.added).toHaveLength(1);
+
+		const stringRuntime = session.runtime.editor.getNode(
+			'string-1' as NodeId,
+		);
+		session.currentStatus = 'pristine';
+		session.runnerStatus = 'running';
+		session.runtime.editor.setLocked(true);
+
+		const dropped = swapCustomNodesInEditor(
+			session,
+			projectDir,
+			resolveSwapFixture(swapFixture({})),
+			new Set(['swap-fixture']),
+		);
+
+		expect(dropped.map((edge) => edge.edgeId)).toEqual(
+			extra.added.map((edge) => edge.edgeId),
+		);
+		expect(session.runtime.editor.getNode('string-1' as NodeId)).toBe(
+			stringRuntime,
+		);
+		expect(
+			session.activeWorkflow?.graph.edges.map((edge) => edge.edgeId),
+		).toEqual(trigger.added.map((edge) => edge.edgeId));
+		expect(session.currentStatus).toBe('dirty');
+		expectEditorSessionTopologyMatch(session);
+	});
+
+	it('skips vanished types and does not dirty a compatible swap', () => {
+		const session = new LangflowerSession();
+		const v1 = swapFixture({ extra: true });
+		seedActiveWorkflow(
+			session,
+			[
+				{
+					id: 'swap-1',
+					type: 'swap-fixture',
+					params: {},
+					inputs: {},
+					ui: { position: { x: 0, y: 0 } },
+				},
+				stringNode('string-1'),
+			],
+			[],
+			resolveSwapFixture(v1),
+		);
+		const before = session.runtime.editor.getNode('swap-1' as NodeId);
+		session.currentStatus = 'pristine';
+
+		const skipped = swapCustomNodesInEditor(
+			session,
+			projectDir,
+			resolveSwapFixture(v1),
+			new Set(),
+		);
+
+		expect(skipped).toEqual([]);
+		expect(session.runtime.editor.getNode('swap-1' as NodeId)).toBe(before);
+		expect(session.currentStatus).toBe('pristine');
+
+		const sameShape = swapCustomNodesInEditor(
+			session,
+			projectDir,
+			resolveSwapFixture(v1),
+			new Set(['swap-fixture']),
+		);
+
+		expect(sameShape).toEqual([]);
+		expect(session.runtime.editor.getNode('swap-1' as NodeId)).not.toBe(
+			before,
+		);
+		expect(session.currentStatus).toBe('pristine');
 	});
 });

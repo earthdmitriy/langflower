@@ -4,17 +4,30 @@
 		"name": "Starter",
 		"description": "Chat loop with an onboarding agent (skill langflower-helper) plus a Writer Sub-Agent (workflow-writer + node-writer). After bootstrap — product capabilities, workflows, editor chrome, and custom nodes.",
 		"createdAt": "2026-07-24T00:00:00.000Z",
-		"updatedAt": "2026-08-06T20:46:40.126Z"
+		"updatedAt": "2026-08-15T00:00:00.000Z"
 	},
 	"graph": {
 		"viewport": {
-			"x": 8.53314208984375,
-			"y": -92.80001068115234,
+			"x": -117.86676025390625,
+			"y": -161.066650390625,
 			"scale": 0.85,
-			"width": 728.0000610351562,
-			"height": 1005.3333740234375
+			"width": 719.0625,
+			"height": 1005.328125
 		},
 		"nodes": [
+			{
+				"id": "compile",
+				"type": "common-langflower-tools",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 40,
+						"y": 40
+					},
+					"label": "Langflower Tools"
+				}
+			},
 			{
 				"id": "chat",
 				"type": "common-chat-input",
@@ -34,8 +47,8 @@
 				"params": {
 					"rolePreset": "custom",
 					"skillId": "langflower-helper",
-					"providerId": "polza.ai",
-					"model": "deepseek/deepseek-v4-flash-0731",
+					"providerId": "",
+					"model": "",
 					"maxIterations": 8,
 					"maxFeedbackTurns": 4,
 					"toolPermissions": {
@@ -50,12 +63,12 @@
 					}
 				},
 				"inputs": {
-					"systemPrompt": "You are the Langflower onboarding assistant. Use the langflower-helper skill. The user already started Langflower and configured a provider — do not lead with CLI start or provider setup. Help with what Langflower can do, workflows, editor chrome, and custom nodes. Keep answers short and actionable.\n\nWhen the user asks to draft or edit a workflow JSON or a custom node pack, spawn_subagent the Writer specialist (skills langflower-workflow-writer and langflower-node-writer) with a clear task; then summarize the Writer result for the user."
+					"systemPrompt": "You are the Langflower onboarding assistant. Use the langflower-helper skill. The user already started Langflower and configured a provider — do not lead with CLI start or provider setup. Help with what Langflower can do, workflows, editor chrome, and custom nodes. Keep answers short and actionable.\n\nLangflower Tools is wired: after custom-node file changes (yours or Writer's), call compile_custom_nodes (no args). Do not send the user to Custom → Update as the only path. You cannot place a new type on the canvas mid-run; already-placed custom types hot-swap, and already-wired custom tools can be invoked later in this run.\n\nWhen the user asks to draft or edit a workflow JSON or a custom node pack, spawn_subagent the Writer specialist (skills langflower-workflow-writer and langflower-node-writer) with a clear task; then compile if nodes changed, and summarize for the user."
 				},
 				"ui": {
 					"position": {
-						"x": 320,
-						"y": 260
+						"x": 300,
+						"y": 240
 					},
 					"label": "Helper"
 				}
@@ -88,7 +101,7 @@
 					}
 				},
 				"inputs": {
-					"systemPrompt": "You are Writer. Follow langflower-workflow-writer and/or langflower-node-writer for the task. Prefer editing files under .langflower/workflows/ and .langflower/nodes/. Use only catalog node types and real ports. Return a short summary of files changed and any open risks."
+					"systemPrompt": "You are Writer. Follow langflower-workflow-writer and/or langflower-node-writer for the task. Prefer editing files under .langflower/workflows/ and .langflower/nodes/. Use only catalog node types and real ports. After writing or editing .langflower/nodes/ files, call compile_custom_nodes (no args) and report status / COMPILATION_ERRORS.md — do not only remind the user to click Update. Wire common-langflower-tools into an agent only when they should be allowed to recompile. Return a short summary of files changed and any open risks."
 				},
 				"ui": {
 					"position": {
@@ -113,6 +126,20 @@
 			}
 		],
 		"edges": [
+			{
+				"edgeId": "e-compile-helper",
+				"fromNodeId": "compile",
+				"fromPort": ["tools", 0],
+				"toNodeId": "helper",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "e-compile-writer",
+				"fromNodeId": "compile",
+				"fromPort": ["tools", 0],
+				"toNodeId": "writer",
+				"toPort": ["tools", 0]
+			},
 			{
 				"edgeId": "e-chat-helper",
 				"fromNodeId": "chat",

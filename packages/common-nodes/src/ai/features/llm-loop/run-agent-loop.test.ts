@@ -1134,4 +1134,97 @@ describe('runAgentLoop recovery', () => {
 			vi.useRealTimers();
 		}
 	});
+
+	it('re-reads getTools each iteration for invoke and provider tools', async () => {
+		let phase = 0;
+		const providerToolNames: string[][] = [];
+		const handleV1 = {
+			toolId: 'echo',
+			name: 'echo',
+			description: 'echo',
+			inputSchema: { type: 'object', properties: {} },
+			invoke: async () => {
+				phase = 1;
+				return 'v1';
+			},
+		};
+		const handleV2 = {
+			toolId: 'echo',
+			name: 'echo',
+			description: 'echo',
+			inputSchema: { type: 'object', properties: {} },
+			invoke: async () => 'v2',
+		};
+		const handleNew = {
+			toolId: 'new_tool',
+			name: 'new_tool',
+			description: 'new',
+			inputSchema: { type: 'object', properties: {} },
+			invoke: async () => 'new',
+		};
+
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async (args) => {
+					providerToolNames.push(
+						(args.tools ?? []).map((tool) => tool.function.name),
+					);
+					const round = providerToolNames.length;
+					if (round === 1 || round === 2) {
+						return (async function* () {
+							yield {
+								kind: 'done' as const,
+								text: '',
+								tool_calls: [
+									{
+										id: `c${round}`,
+										name: 'echo',
+										arguments: '{}',
+									},
+								],
+							};
+						})();
+					}
+
+					return (async function* () {
+						yield {
+							kind: 'done' as const,
+							text: 'done',
+						};
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [handleV1],
+				getTools: () =>
+					phase === 0 ? [handleV1] : [handleV2, handleNew],
+				toolCtx: { projectDir: '/tmp', runId: 'test' },
+				maxIterations: 5,
+			}).pipe(toArray()),
+		);
+
+		expect(providerToolNames[0]).toContain('echo');
+		expect(providerToolNames[0]).not.toContain('new_tool');
+		expect(providerToolNames[1]).toContain('echo');
+		expect(providerToolNames[1]).toContain('new_tool');
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'toolLog' &&
+					chunk.text.includes('← echo: v1'),
+			),
+		).toBe(true);
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'toolLog' &&
+					chunk.text.includes('← echo: v2'),
+			),
+		).toBe(true);
+		expect(chunks).toContainEqual({
+			kind: 'response',
+			text: 'done',
+		});
+	});
 });

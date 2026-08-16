@@ -47,6 +47,7 @@ import {
 	previewToolLogText,
 	resolveSpawnPayload,
 	SPAWN_SUBAGENT_TOOL,
+	toChatToolDefinitions,
 } from '../../../tools/inventory-tool-round.js';
 import type {
 	SubAgentRegistration,
@@ -120,6 +121,7 @@ export type RunLlmLoopOptions<Chunk> = {
 	readonly messages: readonly ChatCompletionMessage[];
 	readonly chatTools: readonly ChatCompletionToolDefinition[];
 	readonly inventoryTools: readonly ToolHandle[];
+	readonly getTools?: () => readonly ToolHandle[];
 	readonly harness?: Harness;
 	readonly toolCtx?: ToolHandlerContext;
 	readonly maxIterations: number;
@@ -139,6 +141,71 @@ export type RunLlmLoopOptions<Chunk> = {
 		callId: string,
 		signal: AbortSignal,
 	) => Promise<string>;
+};
+
+const inventoryChatName = (handle: ToolHandle): string =>
+	handle.toolId.length > 0 ? handle.toolId : handle.name;
+
+const resolveGetTools = <Chunk>(
+	options: RunLlmLoopOptions<Chunk>,
+): (() => readonly ToolHandle[]) | undefined => options.getTools;
+
+const resolveInventoryTools = <Chunk>(
+	options: RunLlmLoopOptions<Chunk>,
+): readonly ToolHandle[] => {
+	const getTools = resolveGetTools(options);
+	return getTools === undefined ? options.inventoryTools : getTools();
+};
+
+/**
+ * Rebuild provider `tools` from live inventory. Keep extras (Review
+ * accept/feedback, spawn_subagent) in their original positions; drop
+ * removed inventory ids; append brand-new ids.
+ */
+const resolveChatTools = <Chunk>(
+	options: RunLlmLoopOptions<Chunk>,
+): readonly ChatCompletionToolDefinition[] => {
+	if (resolveGetTools(options) === undefined) {
+		return options.chatTools;
+	}
+
+	const liveDefs = toChatToolDefinitions(resolveInventoryTools(options));
+	const originalInventoryNames = new Set(
+		options.inventoryTools.map(inventoryChatName),
+	);
+	const extraNames = new Set(
+		options.chatTools
+			.filter((tool) => !originalInventoryNames.has(tool.function.name))
+			.map((tool) => tool.function.name),
+	);
+	const liveByName = new Map(
+		liveDefs.map((def) => [def.function.name, def] as const),
+	);
+	const merged: ChatCompletionToolDefinition[] = [];
+	const usedLive = new Set<string>();
+
+	for (const tool of options.chatTools) {
+		const name = tool.function.name;
+		if (!originalInventoryNames.has(name)) {
+			merged.push(tool);
+			continue;
+		}
+
+		const liveDef = liveByName.get(name);
+		if (liveDef !== undefined) {
+			merged.push(liveDef);
+			usedLive.add(name);
+		}
+	}
+
+	for (const def of liveDefs) {
+		const name = def.function.name;
+		if (!usedLive.has(name) && !extraNames.has(name)) {
+			merged.push(def);
+		}
+	}
+
+	return merged;
 };
 
 type LlmLoopPacket<Chunk> =
@@ -448,9 +515,10 @@ const truncationRecoveryPackets = <Chunk>(
 		state.transientAttempts < options.recovery.maxTransientRetries
 	) {
 		const attempt = state.transientAttempts + 1;
+		const chatTools = resolveChatTools(options);
 		const targetTokens = resolveForceTargetTokens(
 			options.compaction,
-			estimateRequestTokens(state.roundCheckpoint, options.chatTools),
+			estimateRequestTokens(state.roundCheckpoint, chatTools),
 		);
 
 		return concat(
@@ -461,7 +529,7 @@ const truncationRecoveryPackets = <Chunk>(
 					providerId: options.providerId,
 					model: options.model,
 					messages: state.roundCheckpoint,
-					tools: options.chatTools,
+					tools: chatTools,
 					targetTokens,
 				}),
 			).pipe(
@@ -800,7 +868,7 @@ const prepareAndStream = <Chunk>(
 				providerId: options.providerId,
 				model: options.model,
 				messages: state.committedMessages,
-				tools: options.chatTools,
+				tools: resolveChatTools(options),
 				signal: attempt.signal,
 				compaction: options.compaction,
 				...(penalties === undefined
@@ -1025,7 +1093,7 @@ const invokeTool = <Chunk>(
 	const invocation$ = defer(() =>
 		invokeInventoryTool(
 			options.harness,
-			options.inventoryTools,
+			resolveInventoryTools(options),
 			call,
 			options.toolCtx,
 			invokeOptions,

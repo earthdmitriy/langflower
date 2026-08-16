@@ -27,11 +27,15 @@ contract.
 
 ## Load custom nodes
 
-In the editor Custom section, click **Update** (or reconnect). Langflower
-typechecks each pack (`tsc --noEmit` when `tsconfig.json` is present), then
-esbuild-bundles entries that passed. On success nodes appear under **Custom**.
-Failures write `COMPILATION_ERRORS.md` in the pack without dropping other
-successful custom nodes.
+Call **`compile_custom_nodes`** (no args) — on starter, Helper and Writer
+already have it because **Langflower Tools** is wired — or, in the editor
+Custom section, click **Update** (or reconnect). Same composer: typecheck
+each pack (`tsc --noEmit` when `tsconfig.json` is present), esbuild-bundle
+entries that passed, hot-swap live custom instances, refresh **Custom**.
+Stop is not required for already-placed custom types. Already-wired custom
+tools can be invoked later in the **same run**. New types are not auto-placed
+or auto-wired mid-run. Failures write `COMPILATION_ERRORS.md` in the pack
+without dropping other successful custom nodes.
 
 ## Gaps
 

@@ -5,7 +5,9 @@ Generic typed WebSocket bridge — event-driven RxJS API over a hidden transport
 ## Rules
 
 - No `index.ts` — import concrete modules via `package.json` exports.
-- No RPC — only `{ type, payload }` events.
+- No RPC — only `{ type, payload }` events. `injectInbound` on the server
+  API is in-process event injection onto the same inbound observables as a
+  socket (not request/response).
 - Payload contract is compile-time via shared `WsBridgeConfig`; runtime guards
   only validate envelope routing.
 - One config object for both `createClient` and `createServer`.

@@ -3,7 +3,6 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
 	hostPathMappings,
-	hostRuntimeEntryStamp,
 	isHostPeerSpecifier,
 	resolveHostPackageEntry,
 	resolveHostPackageTypes,
@@ -73,13 +72,6 @@ describe('resolveHostPackageEntry', () => {
 		const entry = resolveHostPackageEntry('@langflower/node-sdk/llm');
 		expect(entry).toBeDefined();
 		expect(fs.existsSync(entry ?? '')).toBe(true);
-	});
-
-	it('stamps host runtime roots for cache keys', () => {
-		const stamp = hostRuntimeEntryStamp();
-		expect(stamp).toContain('@langflower/node-sdk=');
-		expect(stamp).toContain('rxjs=');
-		expect(stamp).not.toMatch(/=\s*$/mu);
 	});
 
 	it('detects host peer bare names and subpaths', () => {
