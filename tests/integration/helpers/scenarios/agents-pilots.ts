@@ -755,8 +755,8 @@ export const researchFanoutWorkflow = (): WorkflowSavePayload => {
 };
 
 /**
- * ADR-021 L0 — agent swarm: main Fake LLM spawns Sub-Agent via registration /
- * spawn / subagentResult; Sub-Agent runs in-node chat (scripted in CI).
+ * ADR-021 — agent swarm: Explorer Sub-Agent announces one ToolHandle on
+ * `tools`; Main invokes it (scripted in CI). Sub-Agent runs in-node chat.
  * @see execute-agent-swarm.ws.test.ts
  */
 export const agentSwarmWorkflow = (): WorkflowSavePayload => {
@@ -764,7 +764,7 @@ export const agentSwarmWorkflow = (): WorkflowSavePayload => {
 		'agent-swarm',
 		scenarioMetadata(
 			'Agent swarm',
-			'Main spawns Sub-Agent via registration ports (in-node chat)',
+			'Main calls Explorer specialist tool (in-node chat)',
 		),
 		[
 			stringNode(
@@ -784,10 +784,8 @@ export const agentSwarmWorkflow = (): WorkflowSavePayload => {
 						{
 							toolCalls: [
 								{
-									name: 'spawn_subagent',
+									name: 'Explorer',
 									arguments: {
-										nodeId: 'explorer',
-										skillId: '',
 										task: 'Scout and report one finding.',
 									},
 								},
@@ -814,14 +812,12 @@ export const agentSwarmWorkflow = (): WorkflowSavePayload => {
 		[
 			edge('e-brief', 'brief', 'value', 'main', 'userPrompt'),
 			edge(
-				'e-reg',
+				'e-tools',
 				'explorer',
-				'registration',
+				'subagent-registration',
 				'main',
-				'subagentRegistration',
+				'tools',
 			),
-			edge('e-spawn', 'main', 'subagent', 'explorer', 'task'),
-			edge('e-result', 'explorer', 'result', 'main', 'subagentResult'),
 			edge('e-out', 'main', 'response', 'out', 'text'),
 		],
 	);

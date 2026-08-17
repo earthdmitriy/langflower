@@ -1,6 +1,6 @@
 {
 	"$schema": "./schemas/langflower-config.schema.json",
-	"currentWorkflowId": "test-review-gate",
+	"currentWorkflowId": "starter",
 	"provider": {
 		"1": {
 			"name": "1",

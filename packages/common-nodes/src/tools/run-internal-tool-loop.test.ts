@@ -3,9 +3,7 @@ import type { Harness } from '@langflower/tools/create-project-harness';
 import type { CreateChatCompletionStreamArgs } from '../ai/features/chat-completion-stream.js';
 import { describe, expect, it, vi } from 'vitest';
 import { firstValueFrom, ReplaySubject, toArray } from 'rxjs';
-import { SPAWN_SUBAGENT_TOOL } from './inventory-tool-round.js';
 import { runAgentLoop as runInternalToolLoop } from '../ai/features/llm-loop/run-agent-loop.js';
-import type { SubAgentRegistration } from '../ai/features/sub-agent-protocol.js';
 import { SUMMARY_SYSTEM_PROMPT } from '../ai/features/openai/llm-context-compaction.js';
 
 const handle = (toolId: string, invoke: ToolHandle['invoke']): ToolHandle => ({
@@ -313,137 +311,6 @@ describe('runInternalToolLoop allowlist', () => {
 			chunks.some(
 				(chunk) =>
 					chunk.kind === 'toolLog' && chunk.text.includes('wired-ok'),
-			),
-		).toBe(true);
-	});
-});
-
-describe('runInternalToolLoop spawn_subagent', () => {
-	const explorer: SubAgentRegistration = {
-		targetNodeId: 'explorer',
-		name: 'Explorer',
-		description: 'researches',
-		skills: [{ skillId: 'explore', description: 'explore' }],
-	};
-
-	it('emits spawn chunk and resumes with wait result', async () => {
-		let round = 0;
-		const factory = async (_args: CreateChatCompletionStreamArgs) => {
-			round += 1;
-			return (async function* () {
-				if (round === 1) {
-					yield {
-						kind: 'done' as const,
-						text: '',
-						tool_calls: [
-							{
-								id: 'call-1',
-								name: SPAWN_SUBAGENT_TOOL,
-								arguments: JSON.stringify({
-									nodeId: 'explorer',
-									skillId: 'explore',
-									task: 'find bugs',
-								}),
-							},
-						],
-					};
-					return;
-				}
-
-				yield {
-					kind: 'done' as const,
-					text: 'done after spawn',
-					tool_calls: [],
-				};
-			})();
-		};
-
-		const chunks = await firstValueFrom(
-			runInternalToolLoop({
-				factory,
-				providerId: 'mock',
-				model: 'mock',
-				messages: [{ role: 'user', content: 'hi' }],
-				tools: [],
-				harness: undefined,
-				maxIterations: 3,
-				subagentRegistrations: [explorer],
-				waitForSubagentResult: async (callId) => {
-					expect(callId).toBe('call-1');
-					return 'spawn body ok';
-				},
-			}).pipe(toArray()),
-		);
-
-		expect(
-			chunks.some(
-				(chunk) =>
-					chunk.kind === 'subagentSpawn' &&
-					chunk.payload.callId === 'call-1' &&
-					chunk.payload.nodeId === 'explorer',
-			),
-		).toBe(true);
-		expect(
-			chunks.some(
-				(chunk) =>
-					chunk.kind === 'response' &&
-					chunk.text === 'done after spawn',
-			),
-		).toBe(true);
-	});
-
-	it('rejects unknown nodeId without waiting', async () => {
-		const wait = vi.fn(async () => 'nope');
-		let round = 0;
-		const factory = async (_args: CreateChatCompletionStreamArgs) => {
-			round += 1;
-			return (async function* () {
-				if (round === 1) {
-					yield {
-						kind: 'done' as const,
-						text: '',
-						tool_calls: [
-							{
-								id: 'call-1',
-								name: SPAWN_SUBAGENT_TOOL,
-								arguments: JSON.stringify({
-									nodeId: 'missing',
-									task: 'x',
-								}),
-							},
-						],
-					};
-					return;
-				}
-
-				yield {
-					kind: 'done' as const,
-					text: 'recovered',
-					tool_calls: [],
-				};
-			})();
-		};
-
-		const chunks = await firstValueFrom(
-			runInternalToolLoop({
-				factory,
-				providerId: 'mock',
-				model: 'mock',
-				messages: [{ role: 'user', content: 'hi' }],
-				tools: [],
-				harness: undefined,
-				maxIterations: 3,
-				subagentRegistrations: [explorer],
-				waitForSubagentResult: wait,
-			}).pipe(toArray()),
-		);
-
-		expect(wait).not.toHaveBeenCalled();
-		expect(
-			chunks.some(
-				(chunk) =>
-					chunk.kind === 'toolLog' &&
-					chunk.text.includes('Unknown Sub-Agent'),
 			),
 		).toBe(true);
 	});

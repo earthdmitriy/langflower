@@ -165,16 +165,16 @@ export const buildExecutionContext = async (
 	};
 
 	const enabledToolIds = toolPermissionsToEnabledIds(toolPermissions);
-	const toolHandles = wrapBuiltinToolHandles(
+	const builtinHandles = wrapBuiltinToolHandles(
 		harness,
 		enabledToolIds,
 		permission,
 	);
-
-	const mcpHandles = filterMcpHandlesByIds(
+	const mcpTools = filterMcpHandlesByIds(
 		runMcpHandles ?? [],
 		parseEnabledMcpIds(node.params.enabledMcpIds),
-	);
+	).flatMap((handle) => handle.tools);
+	const toolHandles = [...builtinHandles, ...mcpTools];
 
 	const base: ExecutionContext<never, LlmExecutionCaps> = {
 		projectDir: context.projectDir,
@@ -189,7 +189,6 @@ export const buildExecutionContext = async (
 			LlmExecutionCaps
 		>['uiSchema'],
 		...(toolHandles.length > 0 ? { toolHandles } : {}),
-		...(mcpHandles.length > 0 ? { mcpHandles } : {}),
 	};
 
 	const defaultChat = parseDefaultChatModel(config.model);

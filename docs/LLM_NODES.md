@@ -143,17 +143,17 @@ immutable `mergeScan` fold. Per-node mutable or cold-start history is forbidden
 — otherwise Soft↔Hard / Critique / Review rediscover the same “agent forgot
 prior messages” bug.
 
-| Node                | Role                                                                                                                         |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `common-openai-llm` | Real session: init ports → context; turn driver = `feedback` (`primeTurn0`); history via assistant `response` chunks         |
-| `common-fake-llm`   | **Imitate** LLM for demos / feed UX; same init/turn split so Soft↔Hard loops run; **not** a history/mechanics test twin      |
-| `common-sub-agent`  | Same OpenAI session cycle as openai-llm **plus** `registration` / `task` / `result` (spawn turn driver; `primeTurn0: false`) |
-| `common-critique`   | Same cycle: init = `assignment` / system / inventory; turn driver = `packet` (no empty prime); history via `historySync`     |
-| `common-review`     | Same cycle: init = `task` / system / inventory; turn driver = `result`; history via `historySync`                            |
+| Node                | Role                                                                                                                                                             |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `common-openai-llm` | Real session: init ports → context; turn driver = `feedback` (`primeTurn0`); history via assistant `response` chunks                                             |
+| `common-fake-llm`   | **Imitate** LLM for demos / feed UX; same init/turn split so Soft↔Hard loops run; **not** a history/mechanics test twin                                          |
+| `common-sub-agent`  | Same OpenAI session cycle as openai-llm; turn driver is an **internal** invoke `Subject` (`primeTurn0: false`); OUT `subagent-registration` announces one handle |
+| `common-critique`   | Same cycle: init = `assignment` / system / inventory; turn driver = `packet` (no empty prime); history via `historySync`                                         |
+| `common-review`     | Same cycle: init = `task` / system / inventory; turn driver = `result`; history via `historySync`                                                                |
 
 Init input changes recreate the session (never ignored). For openai/fake,
 `startWith('')` primes turn 0 on the feedback turn stream only — never on
-`tools` / `mcp` / other init peers. Critique/Review do **not** empty-prime:
+`tools` / other init peers. Critique/Review do **not** empty-prime:
 the first non-empty `packet` / `result` is turn 0.
 
 Each turn uses one `runLlmLoop` `expand` machine shared by OpenAI, scripted
@@ -161,18 +161,21 @@ Fake, Sub-Agent, Review, and Critique. Policy changes only semantic completion:
 ordinary agents emit `response`; path-choice agents resolve
 `accept` / `feedback` or append a forced-tool reminder.
 
-**Shared inventory ports:** Fake LLM, OpenAI LLM, Review, and Sub-Agent are
-authored via `defineLlmNode` in `packages/common-nodes/src/ai/define-llm-node/`.
-That factory always installs `tools` / `mcp` / `subagentRegistration` /
-`subagentResult` inputs and `toolLog` / `subagent` outputs (extend, do not cut).
-Sub-Agent is an ordinary agent on those ports; the only extra product surface is
-`registration` / `task` / `result` for parent spawn (ADR-021).
+**Shared inventory ports:** Fake LLM, OpenAI LLM, Review, Critique, and Sub-Agent
+are authored via `defineLlmNode` in
+`packages/node-sdk/src/node-factory/define-llm-node/`.
+That factory always installs `tools` / `steerControl` inputs and `toolLog` /
+`recovery` outputs (`recovery` is **hidden** — feed only). Sub-Agent is an
+ordinary agent on those ports; the extra product surface is OUT
+`subagent-registration` — one specialist `ToolHandle` for the parent
+(ADR-021 / epic 41). Optional `common-tool-collection` can
+merge several `tools` wires into one; LLM `tools` stays **multi combine**.
 
 **Why the inventory is unified:** Review is not a yes/no stub. Besides
 port-routed `accept` / `feedback` (graph path choice), it must be able to
 investigate and delegate like a base agent — harness/domain tools, MCP, and
-subagents — when the author wires those ports. Do not invent a second, narrower
-port set for Review.
+Sub-Agent handles — when the author wires `tools`. Do not invent a second,
+narrower port set for Review.
 
 **Soft↔Hard storm guardrail (epic 08):** param `maxFeedbackTurns` caps feedback
 turns after turn 0 (`0` = unlimited). Further feedback after the cap emits a
@@ -338,18 +341,18 @@ Defaults: first-run seeds all builtins **allow**. On `ask`, the server emits
 
 ### MCP (optional)
 
-Agent nodes receive **ready** `McpHandle` values only. They never unwrap
+Agent nodes receive **ready** `ToolHandle[]` values only. They never unwrap
 server config, spawn clients, or apply enable filters.
 
-| Who            | Gets                                      | Does not                                                          |
-| -------------- | ----------------------------------------- | ----------------------------------------------------------------- |
-| MCP stdio/http | ports → connect → emit `mcp-handle`       | know about agents                                                 |
-| Server seed    | jsonc + `enabledMcpIds` → `EC.mcpHandles` | pass raw `mcp.servers` into the agent                             |
-| Agent          | `EC.mcpHandles` + port `mcp`              | read jsonc; spawn; resolve id→client; use `enabledMcpIds` in bind |
+| Who            | Gets                                       | Does not                                                          |
+| -------------- | ------------------------------------------ | ----------------------------------------------------------------- |
+| MCP stdio/http | ports → connect → emit `tools`             | know about agents                                                 |
+| Server seed    | jsonc + `enabledMcpIds` → `EC.toolHandles` | pass raw `mcp.servers` into the agent                             |
+| Agent          | `EC.toolHandles` ∪ port `tools`            | read jsonc; spawn; resolve id→client; use `enabledMcpIds` in bind |
 
-Two ingresses (context + wire) are normal; the agent merges both arrays.
-Inspector **Enabled MCP** (`enabledMcpIds`) stays on agent params — server
-applies it when building EC. Harness has **no** MCP API. Inventory ids:
+Two ingresses (context + wire) are normal; the agent merges both `ToolHandle`
+arrays. Inspector **Enabled MCP** (`enabledMcpIds`) stays on agent params —
+server applies it when building EC. Harness has **no** MCP API. Inventory ids:
 `<mcp_name>__<toolName>` (`mcp_name` = MCP `serverInfo.name`).
 
 See [use-cases/node-local-mcp.md](use-cases/node-local-mcp.md) and
@@ -367,16 +370,15 @@ must use that channel; do **not** invent placeholder values or swallow failures
 with `EMPTY`.
 
 **No fake events** on observability / inventory outs (`reasoning`,
-`draftResponse`, `toolLog`, `subagent`, …) — emit **only real facts**:
+`draftResponse`, `toolLog`, `recovery`, …) — emit **only real facts**:
 
 - API stream tokens (`delta.content` → `draftResponse`; `delta.reasoning` /
   `delta.reasoning_content` → `reasoning`)
 - Actual tool invoke / result lines on `toolLog`
-- Real `spawn_subagent` payloads on `subagent`
 
 Do **not** emit placeholders (`''`, synthetic config dumps, idle `of(null)` /
 `of('')`) just to clear loading. Pending / inactive chrome is the correct idle
-UI. Emit `toolLog` / `subagent` only for real tool facts and nested spawn.
+UI. Emit `toolLog` only for real tool facts.
 
 **No silent refusals:** when a real policy stops work (e.g. `maxFeedbackTurns`
 Deny after the continue ask, hard validation fail, unrecoverable provider/tool

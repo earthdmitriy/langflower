@@ -35,6 +35,7 @@ import { fetchUrlNode } from './crawl/fetch-url/node.js';
 import { savePageNode } from './crawl/save-page/node.js';
 import { memoryToolsNode } from './memory/memory-tools/node.js';
 import { langflowerToolsNode } from './langflower-tools/node.js';
+import { toolCollectionNode } from './tools/tool-collection/node.js';
 
 const COMMON_REACTIVE_NODES = [
 	booleanNode,
@@ -68,6 +69,7 @@ const COMMON_REACTIVE_NODES = [
 	switchNode,
 	memoryToolsNode,
 	langflowerToolsNode,
+	toolCollectionNode,
 	fetchUrlNode,
 	extractLinksNode,
 	savePageNode,

@@ -42,7 +42,7 @@ flowchart TB
 
 | Layer                | What                                                            | When                                                      |
 | -------------------- | --------------------------------------------------------------- | --------------------------------------------------------- |
-| **Authoring (1a)**   | `tools` / `mcp` init ports + `enabledToolIds`                   | Already shipped — registration/binding, not invoke wires  |
+| **Authoring (1a)**   | `tools` init port + `enabledToolIds`                            | Already shipped — registration/binding, not invoke wires  |
 | **Internal loop**    | Parse tool calls → execute → append results → re-complete       | Default for builtins and MCP tools mapped into inventory  |
 | **External (graph)** | Port-routed control tools; `feedback` handoff; Sub-Agent / Loop | Control, topology, or typed wire contracts leave the node |
 
@@ -95,20 +95,21 @@ INTERNAL (default)
 
 ## Class table
 
-| Class                                                               | Default                                             | Criteria                                                                                                                                                                                                        | Epic                                                                                                                   |
-| ------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Read-class** builtins (`read`, `glob`, `grep`; later search-like) | **Internal** + optional `postProcess`               | C1/C4; non-mutating                                                                                                                                                                                             | [01](01-tool-loop-builtins.md)                                                                                         |
-| **Mutating** builtins (`edit`, `write`, `create`, `delete`)         | **Internal**                                        | C1/C4; no `postProcess`                                                                                                                                                                                         | [01](01-tool-loop-builtins.md)                                                                                         |
-| `bash`                                                              | **Internal** + feed permission                      | C7 = feed ask; not read-class                                                                                                                                                                                   | [01](01-tool-loop-builtins.md), [02](02-runtime-permissions.md)                                                        |
-| MCP tools (typical)                                                 | **Internal** (mapped inventory)                     | Same path as builtins; C10 alone ≠ external                                                                                                                                                                     | [16](16-mcp-optional.md)                                                                                               |
-| MCP server config wire                                              | **Init / authoring**                                | Registration port, not invoke loop                                                                                                                                                                              | [16](16-mcp-optional.md)                                                                                               |
-| Domain packs (crawl / KB / Memory)                                  | **Internal** via `registration.handler`             | Handlers imported from `@langflower/tools/domain-tool-configs` and attached on the wire; **not** in `listBuiltinRegistrations` / harness toolId map — inventory only when wired from `common-*-tools`           | node-library §7 · [ADR-019](../../ADR.md#adr-019--tool-handlers-on-registration-not-harness-toolid-registry)           |
-| Review `accept` / `feedback`                                        | **External (port-routed)**                          | C1/C2/C3/C9 — **path choice on the graph**; optional wired inventory (tools/MCP/subagents) may run first — Review is a full agent, not a yes/no stub ([03](03-review-node.md), [LLM_NODES](../../LLM_NODES.md)) | [03](03-review-node.md)                                                                                                |
-| Soft↔Hard critique text                                             | **External via `feedback`**                         | C1 other agent; **text handoff only** — not an accept/reject path decision                                                                                                                                      | [08](08-adversarial-multi-llm.md)                                                                                      |
-| Sub-Agent spawn (registration + port-routed tool)                   | **Dual** — internal spawn tool + **external** ports | C2+C8; see [§ Sub-Agent](#sub-agent-registration--spawn-target)                                                                                                                                                 | [ADR-021](../../ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter), [07](07-swarm-primitives.md) |
-| Loop (map-collect N)                                                | **External**                                        | C2+C8 — dynamic body fan-out                                                                                                                                                                                    | [07](07-swarm-primitives.md)                                                                                           |
-| Palette harness node (e.g. standalone Read)                         | Outside agent loop                                  | Ordinary graph step; dual surface with tools                                                                                                                                                                    | node-library / future harness nodes                                                                                    |
-| Role presets allowlists                                             | Configure **internal** loop only                    | Not a loop mode                                                                                                                                                                                                 | [04](04-role-tool-profiles.md)                                                                                         |
+| Class                                                               | Default                                                                    | Criteria                                                                                                                                                                                                        | Epic                                                                                                                     |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Read-class** builtins (`read`, `glob`, `grep`; later search-like) | **Internal** + optional `postProcess`                                      | C1/C4; non-mutating                                                                                                                                                                                             | [01](01-tool-loop-builtins.md)                                                                                           |
+| **Mutating** builtins (`edit`, `write`, `create`, `delete`)         | **Internal**                                                               | C1/C4; no `postProcess`                                                                                                                                                                                         | [01](01-tool-loop-builtins.md)                                                                                           |
+| `bash`                                                              | **Internal** + feed permission                                             | C7 = feed ask; not read-class                                                                                                                                                                                   | [01](01-tool-loop-builtins.md), [02](02-runtime-permissions.md)                                                          |
+| MCP tools (typical)                                                 | **Internal** (mapped inventory)                                            | Same path as builtins; C10 alone ≠ external                                                                                                                                                                     | [16](16-mcp-optional.md)                                                                                                 |
+| MCP server config wire                                              | **Init / authoring**                                                       | `tools` registration port (`ToolHandle[]`), not invoke loop                                                                                                                                                     | [16](16-mcp-optional.md), [41](41-uniform-tool-shape.md)                                                                 |
+| Domain packs (crawl / KB / Memory)                                  | **Internal** via `registration.handler`                                    | Handlers imported from `@langflower/tools/domain-tool-configs` and attached on the wire; **not** in `listBuiltinRegistrations` / harness toolId map — inventory only when wired from `common-*-tools`           | node-library §7 · [ADR-019](../../ADR.md#adr-019--tool-handlers-on-registration-not-harness-toolid-registry)             |
+| Tool collection (`common-tool-collection`)                          | **Init / authoring**                                                       | Optional hub: combine `tools` slots → one `ToolHandle[]` (last-wins). LLM `tools` stays multi combine.                                                                                                          | [ADR-035](../../ADR.md#adr-035--uniform-inventory-wire--optional-tool-collection), [41](41-uniform-tool-shape.md)        |
+| Review `accept` / `feedback`                                        | **External (port-routed)**                                                 | C1/C2/C3/C9 — **path choice on the graph**; optional wired inventory (tools/MCP/subagents) may run first — Review is a full agent, not a yes/no stub ([03](03-review-node.md), [LLM_NODES](../../LLM_NODES.md)) | [03](03-review-node.md)                                                                                                  |
+| Soft↔Hard critique text                                             | **External via `feedback`**                                                | C1 other agent; **text handoff only** — not an accept/reject path decision                                                                                                                                      | [08](08-adversarial-multi-llm.md)                                                                                        |
+| Sub-Agent (canvas specialist as `ToolHandle`)                       | **Internal** invoke; **external** node + `subagent-registration` → `tools` | C2+C8; see [§ Sub-Agent](#sub-agent-as-toolhandle)                                                                                                                                                              | [ADR-021](../../ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter), [41](41-uniform-tool-shape.md) |
+| Loop (map-collect N)                                                | **External**                                                               | C2+C8 — dynamic body fan-out                                                                                                                                                                                    | [07](07-swarm-primitives.md)                                                                                             |
+| Palette harness node (e.g. standalone Read)                         | Outside agent loop                                                         | Ordinary graph step; dual surface with tools                                                                                                                                                                    | node-library / future harness nodes                                                                                      |
+| Role presets allowlists                                             | Configure **internal** loop only                                           | Not a loop mode                                                                                                                                                                                                 | [04](04-role-tool-profiles.md)                                                                                           |
 
 ## File-ops patterns (normative for epic 01)
 
@@ -199,105 +200,83 @@ resolve + permission → execute read-class → serialize to string
 matching lines) without a second tool round-trip; keeping it on read-class
 avoids inventing graph edges for transform (still internal — C4/C5).
 
-## Sub-Agent registration + spawn (L0 shipped)
+## Sub-Agent as ToolHandle (L0 shipped; 3-wire superseded)
 
-**Status:** **L0 implemented** — evolves `common-sub-agent` with body-on-canvas
-extras. Nested workflow/subgraph files remain far future.
+**Status:** **L0 implemented** — `common-sub-agent` stays a canvas node with
+in-node chat. The registration / spawn / result **wires are gone** (epic 41
+stage 2). Nested workflow/subgraph files remain far future.
 Canonical decision: [ADR-021](../../ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter).
 
-### Why dual (orchestrator control tool + external ports)
+### Why the node stays (invoke is internal)
 
-- **C2 / C8:** spawn changes executor identity — specialist is another node /
+- **C2 / C8:** invoke changes executor identity — specialist is another node /
   session, not the same LLM turn inventing agents off-canvas.
-- **C5:** authors must see Sub-Agent nodes and wires (skills, budgets, results).
-- **Orchestrator control tool:** `spawn_subagent` is the same class as Review
-  `accept` / `feedback` — not a harness/`ToolHandler`. When registrations are
-  wired, the tool loop emits on `subagent` out and waits for correlated
-  `subagentResult` via the agent-node **internal router**.
+- **C5:** authors must see Sub-Agent nodes (skills, budgets, feed).
+- **C9:** `ToolHandle.invoke` runs the specialist loop **inside** that node
+  and returns a string into the parent tool loop. Review `accept` / `feedback`
+  stay **external port-routed** (unchanged).
 
-Do **not** hide spawn inside one LLM session without Sub-Agent nodes.
+Do **not** hide specialists inside one LLM session without Sub-Agent nodes.
 
-### Ports (main LLM)
+### Ports (parent LLM)
 
-| Port                   | Direction | Multi       | Wire type               | Role                                                |
-| ---------------------- | --------- | ----------- | ----------------------- | --------------------------------------------------- |
-| `subagentRegistration` | in        | **combine** | `subagent-registration` | `SubAgentRegistration[]` — **not** `tools`          |
-| `subagent`             | out       | single      | `subagent-spawn`        | `SubAgentSpawnPayload` when `spawn_subagent` runs   |
-| `subagentResult`       | in        | **merge**   | `subagent-result`       | `{ callId, result }` — **≠** HITL / peer `feedback` |
+Shared `defineLlmNode` inventory: IN `tools` (combine) + `steerControl`; OUT
+`toolLog` + `recovery`. Sub-Agent handles arrive on `tools` like packs/MCP.
+There is no `spawn_subagent` chat tool.
 
 ### Ports (Sub-Agent node)
 
-| Port                      | Direction | Wire type               | Role                                              |
-| ------------------------- | --------- | ----------------------- | ------------------------------------------------- |
-| `registration`            | out       | `subagent-registration` | `SubAgentRegistration` (skills + `targetNodeId`)  |
-| `task`                    | in        | `subagent-spawn`        | Spawn payload; **ignore** if `nodeId` ≠ this node |
-| `result`                  | out       | `subagent-result`       | `{ callId, result }` → main `subagentResult`      |
-| LLM inventory + chat outs | in/out    | same as OpenAI LLM      | In-node tool loop (own provider/model/compaction) |
+| Port                      | Direction | Wire type     | Role                                              |
+| ------------------------- | --------- | ------------- | ------------------------------------------------- |
+| `tools`                   | out       | `tool-handle` | One specialist `ToolHandle[]` → parent `tools`    |
+| `tools` / `steerControl`  | in        | same as LLM   | Nested inventory for this node's loop             |
+| LLM chat outs + `toolLog` | out       | same as LLM   | In-node tool loop (own provider/model/compaction) |
 
-Inspector: **multiselect** skills from `.langflower/skills/*.md` (announced;
-main may use or skip).
+Inspector: **multiselect** skills from `.langflower/skills/*.md`. Those ids
+are the handle `inputSchema.skillId` enum (omitted when empty).
 
-### Spawn / result contracts
-
-```text
-Spawn:  { callId, nodeId, skillId, task }
-Result: { callId, result }
-```
-
-- **`nodeId`:** canvas id of the target Sub-Agent (broadcast + filter).
-- **`callId`:** agent-node router correlates result → tool result (serial L0).
-- Skills on one Sub-Agent are sequential in the tool description.
-- Nesting = graph: body LLM may also take `subagentRegistration`.
-
-### Result path
+### Invoke contract
 
 ```text
-Sub-Agent.result → main.subagentResult (multi:merge)
-                 → internal callId router → tool result → main loop
+invoke({ task, skillId? }) → string
 ```
 
-Do **not** reuse the peer/HITL `feedback` input for subagent returns.
-
-### Registration wire type
-
-**Separate** from `ToolRegistration` (`handler` \| `harness` on `tools` only).
-Sub-Agent announcements never enter `mergeToolInventory`. Named wires
-(`subagent-registration` / `subagent-spawn` / `subagent-result`) — **not**
-generic `json` — so canvas connection checks reject unrelated ports. Consts:
-`@langflower/common-nodes/ai/sub-agent-protocol`.
-
-### Loop vs Sub-Agent
-
-| Primitive     | Use                                                             |
-| ------------- | --------------------------------------------------------------- |
-| **Sub-Agent** | Registered specialist + spawn tool + skill multiselect          |
-| **Loop**      | Dynamic N≥2 map-collect over a list (no registration inventory) |
+- **`task`:** required.
+- **`skillId`:** optional when the enum exists; unknown id → `Error: …`.
+- Timeout: `recovery.subagentTimeoutMs` → error string (no hang).
+- Nesting = graph: child OUT `subagent-registration` → parent Sub-Agent IN `tools`.
 
 ### Graph sketch
 
 ```text
-Sub-Agent.registration ──combine──► Main.subagentRegistration
-Main.subagent (spawn out) ──fan-out──► Sub-Agent.task  (filter by nodeId)
-Sub-Agent.result ──merge──► Main.subagentResult → tool result → main loop
+Sub-Agent.subagent-registration ──combine──► Parent.tools → ToolHandle.invoke → in-node loop
+packs / MCP ──tools──► Sub-Agent.tools
 ```
+
+### Loop vs Sub-Agent
+
+| Primitive     | Use                                                           |
+| ------------- | ------------------------------------------------------------- |
+| **Sub-Agent** | Canvas specialist + one `tools` handle + skill multiselect    |
+| **Loop**      | Dynamic N≥2 map-collect over a list (no specialist inventory) |
 
 ### Sub-Agent layers (swarm, nested, Monte Carlo)
 
 Canonical: [ADR-022](../../ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo).
-Same L0 ports; no second spawn mythology.
+Same canvas node; no second spawn mythology.
 
-| Layer              | Focus                                              | Lock                                                                        |
-| ------------------ | -------------------------------------------------- | --------------------------------------------------------------------------- |
-| **L0**             | Registration + spawn + `nodeId` + `subagentResult` | ADR-021 (**shipped**)                                                       |
-| **L1 Swarm**       | N Sub-Agent nodes on one main                      | Default spawn concurrency **serial**. Opt-in `parallel-by-nodeId` later.    |
-| **L2 Nested**      | Specialist LLM also has registration → spawn       | Graph-controlled recursion; depth cap later. Nested **workflow file** = L∞. |
-| **L3 Monte Carlo** | Same-model repeated trials                         | **Loop** + `trialId` / `seed` envelope + reduce on graph.                   |
-| **Pending**        | Cross-model ensemble                               | **Not locked** — see ADR-022.                                               |
+| Layer              | Focus                                       | Lock                                                                       |
+| ------------------ | ------------------------------------------- | -------------------------------------------------------------------------- |
+| **L0**             | One `tools` handle + in-node loop + skills  | ADR-021 (**shipped**; 3-wire superseded)                                   |
+| **L1 Swarm**       | N Sub-Agent nodes on one parent `tools`     | Default invoke concurrency **serial**. Opt-in `parallel-by-nodeId` later   |
+| **L2 Nested**      | Specialist also takes `tools` from children | Graph-controlled recursion; depth cap later. Nested **workflow file** = L∞ |
+| **L3 Monte Carlo** | Same-model repeated trials                  | **Loop** + `trialId` / `seed` envelope + reduce on graph                   |
+| **Pending**        | Cross-model ensemble                        | **Not locked** — see ADR-022                                               |
 
 Guidance order: L0 → L1 serial → L3 trial fields → L2 depth caps → L∞.
 
-**Known L0 gap:** miswired graphs may hang waiting for `subagentResult`
-(inventory rejects unknown ids; no watchdog yet).
+**Superseded gap:** the old 3-wire wait-for-`subagentResult` hang is gone;
+unknown `skillId` and invoke timeout return error strings into the parent loop.
 
 ## Anti-criteria (do not use)
 

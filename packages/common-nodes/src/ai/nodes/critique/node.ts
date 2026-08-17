@@ -37,14 +37,8 @@ import type { LlmRecoveryPolicy } from '../../features/llm-loop/llm-loop-types.j
 import { normalizeLlmRecoveryPolicy } from '../../features/llm-loop/normalize-llm-recovery-policy.js';
 import { normalizeCompactionConfig } from '../../features/openai/normalize-compaction-params.js';
 import type { LlmCompactionConfig } from '../../features/openai/normalize-compaction-params.js';
-import {
-	flattenSubAgentRegistrations,
-	type SubAgentRegistration,
-	type SubAgentSpawnPayload,
-} from '../../features/sub-agent-protocol.js';
 import type { ToolHandle } from '@langflower/node-sdk';
 import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
-import { waitForSubagentResult } from '../../features/wait-for-subagent-result.js';
 import {
 	REVIEW_ACCEPT_TOOL,
 	REVIEW_FEEDBACK_TOOL,
@@ -78,7 +72,6 @@ type CritiqueContext = {
 		request: PermissionAskRequest,
 	) => Promise<'allow' | 'deny'>;
 	readonly tools: readonly ToolHandle[];
-	readonly subagentRegistrations: readonly SubAgentRegistration[];
 	readonly toolCtx: ToolHandlerContext;
 	readonly compaction: LlmCompactionConfig;
 	readonly recovery: LlmRecoveryPolicy;
@@ -144,7 +137,6 @@ const runCritiqueTurn = (
 	context: CritiqueContext,
 	packet: string,
 	history: readonly ChatCompletionMessage[],
-	subagentResult$: RxObservable<unknown>,
 ): RxObservable<CritiqueChunk> => {
 	const factory = context.factory;
 
@@ -179,19 +171,7 @@ const runCritiqueTurn = (
 		compaction: context.compaction,
 		recovery: context.recovery,
 		steerControl$: context.steerControl$,
-		subagentRegistrations: context.subagentRegistrations,
 		toolCtx: context.toolCtx,
-		...(context.subagentRegistrations.length > 0
-			? {
-					waitForSubagentResult: (callId, signal) =>
-						waitForSubagentResult(
-							subagentResult$,
-							callId,
-							signal,
-							context.recovery.subagentTimeoutMs,
-						),
-				}
-			: {}),
 	}).pipe(
 		map((chunk): CritiqueChunk => {
 			if (chunk.kind === 'accept') {
@@ -231,13 +211,7 @@ export const critiqueNode = defineLlmNode({
 		...llmRecoveryUiSchema,
 	] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }, inventory) {
-		const {
-			tools,
-			mcp,
-			subagentRegistration,
-			subagentResult,
-			steerControl,
-		} = inventory;
+		const { tools, steerControl } = inventory;
 		const assignment = makeInput<string>('assignment', {
 			name: 'assignment',
 			wireType: 'string',
@@ -259,15 +233,8 @@ export const critiqueNode = defineLlmNode({
 
 		// Init peers only — packet is the session turn driver (ADR-016).
 		const context$ = combineInputs(
-			[assignment, systemPrompt, tools, subagentRegistration, mcp, ctx],
-			([
-				assignmentValue,
-				systemPromptValue,
-				toolList,
-				subagentList,
-				mcpList,
-				ec,
-			]) => {
+			[assignment, systemPrompt, tools, ctx],
+			([assignmentValue, systemPromptValue, toolList, ec]) => {
 				const rolePreset = parseLlmRolePreset(ec.params.rolePreset);
 				const skillId = resolveEffectiveSkillId(
 					rolePreset,
@@ -310,11 +277,7 @@ export const critiqueNode = defineLlmNode({
 					tools: collectAgentToolHandles({
 						toolHandles: ec.toolHandles,
 						toolsPort: toolList,
-						mcpHandles: ec.mcpHandles,
-						mcpPort: mcpList,
 					}),
-					subagentRegistrations:
-						flattenSubAgentRegistrations(subagentList),
 					toolCtx: {
 						projectDir: ec.projectDir,
 						runId: ec.runId,
@@ -347,12 +310,7 @@ export const critiqueNode = defineLlmNode({
 				session: undefined,
 			}),
 			(context, turnPayload, history) =>
-				runCritiqueTurn(
-					context,
-					String(turnPayload ?? ''),
-					history,
-					subagentResult.value$,
-				),
+				runCritiqueTurn(context, String(turnPayload ?? ''), history),
 			{ primeTurn0: false },
 		);
 
@@ -404,14 +362,6 @@ export const critiqueNode = defineLlmNode({
 						.notes,
 			),
 		);
-		const subagent$ = cycle$.pipeValue(
-			demuxByKind(
-				'subagentSpawn',
-				(chunk): SubAgentSpawnPayload =>
-					(chunk as Extract<CritiqueChunk, { kind: 'subagentSpawn' }>)
-						.payload,
-			),
-		);
 
 		return {
 			inputs: [assignment, packet, systemPrompt],
@@ -433,7 +383,7 @@ export const critiqueNode = defineLlmNode({
 					feed: { role: 'result' },
 				}),
 			],
-			inventoryOutputs: { toolLog$, recovery$, subagent$ },
+			inventoryOutputs: { toolLog$, recovery$ },
 		};
 	},
 });

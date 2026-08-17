@@ -22,33 +22,31 @@ choice** via **node-private** control tools:
 OpenAI-style `tool_calls` only; prose or markdown `tool_code` fences do not
 route to `response` / `feedback`.
 
-Built with `defineLlmNode`: shared inventory ports (`tools`, `mcp`,
-`subagentRegistration`, `subagentResult`, `toolLog`, `subagent`) match
-Fake/OpenAI LLM — Review is a **full agent plus** the accept/feedback fork, not
-a yes/no stub.
+Built with `defineLlmNode`: shared inventory ports (`tools`, `steerControl`,
+`toolLog`, `recovery`) match Fake/OpenAI LLM — Review is a **full agent plus**
+the accept/feedback fork, not a yes/no stub. Sub-Agent specialists wire into
+`tools` like any other handle.
 
 ## Inputs
 
-| Port                   | Type                  | Notes                                          |
-| ---------------------- | --------------------- | ---------------------------------------------- |
-| `task`                 | string                | required — acceptance criteria                 |
-| `result`               | string                | required — artifact under review               |
-| `systemPrompt`         | string                | optional author criteria                       |
-| `tools`                | tool-registration     | multi — optional inventory (domain packs, …)   |
-| `mcp`                  | mcp-handle            | multi — ready handles (+ `EC.mcpHandles`)      |
-| `subagentRegistration` | subagent-registration | multi — Sub-Agent catalog for `spawn_subagent` |
-| `subagentResult`       | subagent-result       | merge — correlated spawn results               |
+| Port           | Type        | Notes                                               |
+| -------------- | ----------- | --------------------------------------------------- |
+| `task`         | string      | required — acceptance criteria                      |
+| `result`       | string      | required — artifact under review                    |
+| `systemPrompt` | string      | optional author criteria                            |
+| `tools`        | tool-handle | multi — packs / MCP / Sub-Agent handles / jsonc MCP |
+| `steerControl` | any         | hidden HITL Steer (ADR-032)                         |
 
 ## Outputs
 
-| Port            | Type           | Notes                                                                |
-| --------------- | -------------- | -------------------------------------------------------------------- |
-| `reasoning`     | string         | API reasoning tokens when provider emits them; feed role `reasoning` |
-| `draftResponse` | string         | streamed content tokens before a tool call; feed role `draft`        |
-| `toolLog`       | string         | tool lines + reminders; feed `tool`                                  |
-| `response`      | string         | on **accept** — passthrough of `result`                              |
-| `feedback`      | string         | on **feedback** — revision notes                                     |
-| `subagent`      | subagent-spawn | when Review calls `spawn_subagent`                                   |
+| Port            | Type   | Notes                                                                |
+| --------------- | ------ | -------------------------------------------------------------------- |
+| `reasoning`     | string | API reasoning tokens when provider emits them; feed role `reasoning` |
+| `draftResponse` | string | streamed content tokens before a tool call; feed role `draft`        |
+| `toolLog`       | string | tool lines + reminders; feed `tool`                                  |
+| `recovery`      | any    | recovery notices; **hidden** (feed only)                             |
+| `response`      | string | on **accept** — passthrough of `result`                              |
+| `feedback`      | string | on **feedback** — revision notes                                     |
 
 ## Params
 

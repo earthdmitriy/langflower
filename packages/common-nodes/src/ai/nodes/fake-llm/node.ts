@@ -17,7 +17,6 @@ import {
 } from '../../features/llm-loop/run-agent-loop.js';
 import { DISABLED_COMPACTION_CONFIG } from '../../features/openai/normalize-compaction-params.js';
 import type { ToolHandle } from '@langflower/node-sdk';
-import { waitForSubagentResult } from '../../features/wait-for-subagent-result.js';
 import {
 	createScriptedFactory,
 	parseScriptedTurns,
@@ -177,7 +176,6 @@ const runFakeToolLoopCycle = (
 	bundle: FakeLlmBundle,
 	messages: readonly ChatCompletionMessage[],
 	factory: CreateChatCompletionStream,
-	subagentResult$: Observable<unknown>,
 ): Observable<FakeLlmChunk> => {
 	return runAgentLoop({
 		factory,
@@ -190,18 +188,11 @@ const runFakeToolLoopCycle = (
 		maxIterations: bundle.maxIterations,
 		compaction: DISABLED_COMPACTION_CONFIG,
 		recovery: bundle.recovery,
-		subagentRegistrations: bundle.subagentRegistrations,
 		...(bundle.requestPermission !== undefined
 			? { requestPermission: bundle.requestPermission }
 			: {}),
 		...(bundle.steerControl$ !== undefined
 			? { steerControl$: bundle.steerControl$ }
-			: {}),
-		...(bundle.subagentRegistrations.length > 0
-			? {
-					waitForSubagentResult: (callId, signal) =>
-						waitForSubagentResult(subagentResult$, callId, signal),
-				}
 			: {}),
 	}) as Observable<ToolLoopChunk>;
 };
@@ -284,13 +275,7 @@ export const fakeLlmNode = defineLlmNode({
 					session: resolveSessionFactory(context),
 				};
 			},
-			runTurn: (
-				context,
-				feedback,
-				history,
-				subagentResult$,
-				sessionFactory,
-			) => {
+			runTurn: (context, feedback, history, sessionFactory) => {
 				const bundle = {
 					...context,
 					feedback: feedback ?? '',
@@ -301,7 +286,6 @@ export const fakeLlmNode = defineLlmNode({
 						bundle,
 						history,
 						sessionFactory,
-						subagentResult$,
 					);
 				}
 

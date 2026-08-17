@@ -148,18 +148,6 @@ export const reduceLlmLoop = (
 				pendingToolCalls,
 			};
 		}
-		case 'subagent.waiting':
-			return {
-				...state,
-				phase: 'waiting-subagent',
-				openSpawnCallId: action.callId,
-			};
-		case 'subagent.completed':
-			return {
-				...state,
-				phase: 'tools',
-				openSpawnCallId: undefined,
-			};
 		case 'retry.scheduled':
 			return {
 				...state,

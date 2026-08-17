@@ -158,6 +158,7 @@ subset is **production**; draft/test types stay out of the palette (see
 | OpenAI-compatible LLM     | `common-openai-llm`                                | reactive | **done** |
 | MCP stdio                 | `common-mcp-stdio`                                 | reactive | **done** |
 | MCP http                  | `common-mcp-http`                                  | reactive | **done** |
+| Tool collection           | `common-tool-collection`                           | reactive | **done** |
 | HITL Review Gate          | `common-hitl-review-gate`                          | reactive | **done** |
 | Chat Input                | `common-chat-input`                                | reactive | **done** |
 | Router                    | `common-router`                                    | reactive | **done** |
@@ -193,7 +194,7 @@ Router handles **stream fan-out / fan-in**.
 | `common-constant` (untyped string)                                         | `common-string`, `common-number`, `common-boolean`               |
 | `common-ask-user` / `common-hitl-ask-user` / `common-hitl-approval-choice` | `common-hitl-review-gate` (+ `common-chat-input` for cold-start) |
 | `common-fake-tool-registration`                                            | `common-*-tools` packs (KB / Crawl / Memory)                     |
-| `common-fake-mcp-server` / `common-mcp-server`                             | `common-mcp-stdio` / `common-mcp-http` (`mcp-transport`)         |
+| `common-fake-mcp-server` / `common-mcp-server`                             | `common-mcp-stdio` / `common-mcp-http` (`tools`)                 |
 
 ### 2.3 Draft/test — keep out of production registry
 
@@ -286,17 +287,16 @@ role presets) · **Server:** was `ctx.executeAgent`
 Replaces the retired batch `common-llm` node. Plain chat: `common-agent` with
 `enabledTools: []`.
 
-| Direction | Port            | Type              | Notes                                                        |
-| --------- | --------------- | ----------------- | ------------------------------------------------------------ |
-| In        | `systemPrompt`  | string            | optional, multiline                                          |
-| In        | `userPrompt`    | string            | required, multiline                                          |
-| In        | `feedback`      | string            | wire-only; feedback edge from Review / Review Gate           |
-| In        | `tools`         | tool-registration | **multi** — wired harness tool registrations                 |
-| In        | `mcp`           | mcp-transport     | **multi** — live MCP transports (wire nodes; init inventory) |
-| Out       | `reasoning`     | stream string     | reasoning stream                                             |
-| Out       | `draftResponse` | stream string     | partial assistant text while running                         |
-| Out       | `response`      | string            | final assistant text                                         |
-| Out       | `toolLog`       | json              | `[{ tool, input, output, error? }]`                          |
+| Direction | Port            | Type          | Notes                                                        |
+| --------- | --------------- | ------------- | ------------------------------------------------------------ |
+| In        | `systemPrompt`  | string        | optional, multiline                                          |
+| In        | `userPrompt`    | string        | required, multiline                                          |
+| In        | `feedback`      | string        | wire-only; feedback edge from Review / Review Gate           |
+| In        | `tools`         | tool-handle   | **multi** — packs, MCP nodes, jsonc MCP via `EC.toolHandles` |
+| Out       | `reasoning`     | stream string | reasoning stream                                             |
+| Out       | `draftResponse` | stream string | partial assistant text while running                         |
+| Out       | `response`      | string        | final assistant text                                         |
+| Out       | `toolLog`       | json          | `[{ tool, input, output, error? }]`                          |
 
 | Param              | Type         | Default                 | Notes                                |
 | ------------------ | ------------ | ----------------------- | ------------------------------------ |
@@ -323,21 +323,17 @@ Presets, permissions, and wired tools: see [§8.11](#811-agent-nodes---common-ag
 **Category:** AI · **Mode:** reactive · **Status:** done (epic 03 / phase 7) ·
 **Server:** shared chat factory + port-routed `accept`/`feedback` control tools
 
-| Direction | Port                   | Type                  | Notes                                             |
-| --------- | ---------------------- | --------------------- | ------------------------------------------------- |
-| In        | `systemPrompt`         | string                | optional                                          |
-| In        | `task`                 | string                | required — original task / acceptance criteria    |
-| In        | `result`               | string                | required — agent output to review                 |
-| In        | `tools`                | tool-registration     | **multi** — optional inventory (domain packs)     |
-| In        | `mcp`                  | mcp-transport         | **multi** — live MCP transports (init inventory)  |
-| In        | `subagentRegistration` | subagent-registration | **multi** — Sub-Agent catalog                     |
-| In        | `subagentResult`       | subagent-result       | **multi merge** — correlated spawn results        |
-| Out       | `reasoning`            | stream string         | short preamble                                    |
-| Out       | `draftResponse`        | stream string         | streamed tokens before a control tool             |
-| Out       | `response`             | string                | passthrough of `result` on **accept**             |
-| Out       | `feedback`             | string                | revision notes on **feedback** (not a node error) |
-| Out       | `toolLog`              | string                | control-tool lines + inventory / spawn logs       |
-| Out       | `subagent`             | subagent-spawn        | when Review calls `spawn_subagent`                |
+| Direction | Port            | Type          | Notes                                                |
+| --------- | --------------- | ------------- | ---------------------------------------------------- |
+| In        | `systemPrompt`  | string        | optional                                             |
+| In        | `task`          | string        | required — original task / acceptance criteria       |
+| In        | `result`        | string        | required — agent output to review                    |
+| In        | `tools`         | tool-handle   | **multi** — packs, MCP, Sub-Agent handles, jsonc MCP |
+| Out       | `reasoning`     | stream string | short preamble                                       |
+| Out       | `draftResponse` | stream string | streamed tokens before a control tool                |
+| Out       | `response`      | string        | passthrough of `result` on **accept**                |
+| Out       | `feedback`      | string        | revision notes on **feedback** (not a node error)    |
+| Out       | `toolLog`       | string        | control-tool lines + inventory logs                  |
 
 | Param           | Type   | Default | Notes                                             |
 | --------------- | ------ | ------- | ------------------------------------------------- |
@@ -348,8 +344,8 @@ Presets, permissions, and wired tools: see [§8.11](#811-agent-nodes---common-ag
 
 Wire `feedback` → agent `feedback` for Agent → Review → Fail → Agent loops.
 Control tools stay `accept` / `feedback` (port-routed). Inventory / MCP /
-Sub-Agent ports match the shared LLM contract (`defineLlmNode`) — Review is a
-**full agent with a path fork**, not a yes/no stub.
+Sub-Agent handles match the shared LLM `tools` contract (`defineLlmNode`) —
+Review is a **full agent with a path fork**, not a yes/no stub.
 
 **Anti-pattern:** do not use a peer `common-openai-llm` with a single `response`
 as an accept gate (fan-out the same text to «revise» and «done»). That node
@@ -366,14 +362,14 @@ anti-criteria and [LLM_NODES.md](../LLM_NODES.md) § Review.
 **Category:** AI · **Mode:** reactive · **Status:** done · **Server:** same
 path-choice kernel as Review (`ai/features/path-choice/`), different framing ports
 
-| Direction | Port                | Type             | Notes                                   |
-| --------- | ------------------- | ---------------- | --------------------------------------- |
-| In        | `systemPrompt`      | string           | optional attack rubric                  |
-| In        | `assignment`        | string           | required — original assignment / topic  |
-| In        | `packet`            | string           | required — artifact under attack        |
-| In        | `tools` / `mcp` / … | (same as Review) | optional inventory / MCP / Sub-Agent    |
-| Out       | `response`          | string           | passthrough of `packet` on **accept**   |
-| Out       | `feedback`          | string           | attack / revision notes on **feedback** |
+| Direction | Port           | Type             | Notes                                   |
+| --------- | -------------- | ---------------- | --------------------------------------- |
+| In        | `systemPrompt` | string           | optional attack rubric                  |
+| In        | `assignment`   | string           | required — original assignment / topic  |
+| In        | `packet`       | string           | required — artifact under attack        |
+| In        | `tools` / …    | (same as Review) | optional inventory / MCP / Sub-Agent    |
+| Out       | `response`     | string           | passthrough of `packet` on **accept**   |
+| Out       | `feedback`     | string           | attack / revision notes on **feedback** |
 
 Use Critique when the first string is **not** acceptance criteria to fulfill
 (e.g. adversarial red-team). Review keeps `task`/`result` for gate framing.
@@ -558,21 +554,22 @@ Statuses below match [STATUS.md](../STATUS.md) / `catalog.ts` (2026-07-19).
 - HITL. **Not shipped:** separate agent palette types, Chat Input, role tool
   profiles (epic 04).
 
-| Node                  | Type                      | P   | Status      | Description                                                                                                                            |
-| --------------------- | ------------------------- | --- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Fake LLM              | `common-fake-llm`         | —   | **done**    | Demo stream + scripted internal tool-loop                                                                                              |
-| OpenAI-compatible LLM | `common-openai-llm`       | —   | **done**    | Real chat; role presets; internal tool-loop (epic 01)                                                                                  |
-| MCP stdio             | `common-mcp-stdio`        | —   | **done**    | Node-owned stdio MCP → live `mcp-transport` ([node-local-mcp](../use-cases/node-local-mcp.md))                                         |
-| MCP http              | `common-mcp-http`         | —   | **done**    | Node-owned HTTP MCP → live `mcp-transport`                                                                                             |
-| Review Gate           | `common-hitl-review-gate` | —   | **done**    | HITL approve / request-changes                                                                                                         |
-| Review (LLM tools)    | `common-review`           | —   | **done**    | `accept` / `feedback` → ports — epic 03                                                                                                |
-| Critique (LLM tools)  | `common-critique`         | —   | **done**    | attack framing `assignment`/`packet` — path-choice                                                                                     |
-| Plan/Coder/Explorer   | _(presets on LLM)_        | —   | partial     | Prompts/skills today; tool profiles epic 04                                                                                            |
-| `common-agent-*`      | —                         | —   | planned     | **Superseded** — do not implement as separate types                                                                                    |
-| Chat Input            | `common-chat-input`       | P0  | **done**    | epic 13; see [hitl-chat.md](hitl-chat.md)                                                                                              |
-| Sub-Agent             | `common-sub-agent`        | P2  | **partial** | L0 registration+spawn+result shipped; L1+ open — [ADR-021](../ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter) |
-| Memory Tools          | `common-memory-tools`     | P2  | **done**    | Pack → `tools` (`memory_get`…`delete`); harness invoke                                                                                 |
-| Memory                | `common-memory`           | P2  | **done**    | Secondary graph I/O via `ctx.memory`                                                                                                   |
+| Node                  | Type                      | P   | Status      | Description                                                                                                                                          |
+| --------------------- | ------------------------- | --- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fake LLM              | `common-fake-llm`         | —   | **done**    | Demo stream + scripted internal tool-loop                                                                                                            |
+| OpenAI-compatible LLM | `common-openai-llm`       | —   | **done**    | Real chat; role presets; internal tool-loop (epic 01)                                                                                                |
+| MCP stdio             | `common-mcp-stdio`        | —   | **done**    | Node-owned stdio MCP → `tools` (`ToolHandle[]`) ([node-local-mcp](../use-cases/node-local-mcp.md))                                                   |
+| MCP http              | `common-mcp-http`         | —   | **done**    | Node-owned HTTP MCP → `tools` (`ToolHandle[]`)                                                                                                       |
+| Review Gate           | `common-hitl-review-gate` | —   | **done**    | HITL approve / request-changes                                                                                                                       |
+| Review (LLM tools)    | `common-review`           | —   | **done**    | `accept` / `feedback` → ports — epic 03                                                                                                              |
+| Critique (LLM tools)  | `common-critique`         | —   | **done**    | attack framing `assignment`/`packet` — path-choice                                                                                                   |
+| Plan/Coder/Explorer   | _(presets on LLM)_        | —   | partial     | Prompts/skills today; tool profiles epic 04                                                                                                          |
+| `common-agent-*`      | —                         | —   | planned     | **Superseded** — do not implement as separate types                                                                                                  |
+| Chat Input            | `common-chat-input`       | P0  | **done**    | epic 13; see [hitl-chat.md](hitl-chat.md)                                                                                                            |
+| Sub-Agent             | `common-sub-agent`        | P2  | **partial** | OUT `subagent-registration` + in-node loop shipped; L1+ open — [ADR-021](../ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter) |
+| Memory Tools          | `common-memory-tools`     | P2  | **done**    | Pack → `tools` (`memory_get`…`delete`); harness invoke                                                                                               |
+| Tool collection       | `common-tool-collection`  | P2  | **done**    | Optional hub: combine many `tools` → one `ToolHandle[]` (last-wins) — [ADR-035](../ADR.md#adr-035--uniform-inventory-wire--optional-tool-collection) |
+| Memory                | `common-memory`           | P2  | **done**    | Secondary graph I/O via `ctx.memory`                                                                                                                 |
 
 ### 7.4 Harness (filesystem, shell, web)
 
@@ -950,7 +947,7 @@ sections of this file — treat `catalog.ts` + this table as the palette SoT.
 | Section        | Nodes (shipped grouping)                                                    |
 | -------------- | --------------------------------------------------------------------------- |
 | **AI**         | OpenAI LLM, Fake LLM, Sub-Agent, Review, Critique                           |
-| **Tools**      | MCP stdio, MCP http, Memory Tools, Crawl Tools                              |
+| **Tools**      | MCP stdio, MCP http, Memory Tools, Crawl Tools, Tool collection             |
 | **Primitives** | String, Number, Boolean, Set Fields, JSON Parse/Stringify                   |
 | **Flow**       | Router only (primary)                                                       |
 | **Text**       | Template, Split, Replace, Regex Extract, Join                               |
@@ -959,11 +956,11 @@ sections of this file — treat `catalog.ts` + this table as the palette SoT.
 | **Advanced**   | `paletteSecondary: true` — Logic (all), Flow except Router, Crawl graph I/O |
 
 **Dual-surface / secondary (normative):** [ADR-023](../ADR.md#adr-023--palette-palettesecondary--collapsed-advanced).
-Primary **Tools** holds MCP wire nodes and tool registration packs
-(`memory-tools`, `crawl-tools`). Entire **Logic** and all **Flow** nodes
-except Router set `paletteSecondary: true` and appear under **Advanced**,
-subdivided by original `category`. Crawl graph I/O stays Advanced under
-**Crawl**. Prefer packs → agent `tools`
+Primary **Tools** holds MCP wire nodes, tool registration packs
+(`memory-tools`, `crawl-tools`), and optional **Tool collection**. Entire
+**Logic** and all **Flow** nodes except Router set `paletteSecondary: true`
+and appear under **Advanced**, subdivided by original `category`. Crawl graph
+I/O stays Advanced under **Crawl**. Prefer packs → agent `tools`
 ([MECHANICS C5](../DONE/EPICS/MECHANICS-tool-execution.md)).
 
 No **Debug** section in production palette.
@@ -1234,8 +1231,7 @@ common-string (question) → KB Search → LLM (userPrompt + context)
 
 `common-fake-llm` is a shipped reactive canvas stand-in. It streams
 deterministic `reasoning` and `draftResponse` values before its final
-`response`, and reports wired `tool-registration` / `mcp-transport`
-inventory in reasoning. It does not impersonate a provider or read a hidden
+`response`, and reports wired `tool-handle` inventory in reasoning. It does not impersonate a provider or read a hidden
 script file.
 
 Use it to exercise the real graph, runtime, WebSocket telemetry, work log, and

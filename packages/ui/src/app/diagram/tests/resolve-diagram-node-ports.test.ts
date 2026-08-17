@@ -165,6 +165,31 @@ describe('resolveNodePorts (canvas port resolution)', () => {
 		);
 	});
 
+	it('skips hidden outputs (feed-only ports such as recovery)', () => {
+		const config = portsConfig({
+			inputsConfigs: [],
+			outputsConfigs: [
+				{
+					dir: 'out',
+					portId: 'response',
+					name: 'response',
+					wireType: 'string',
+				},
+				{
+					dir: 'out',
+					portId: 'recovery',
+					name: 'recovery',
+					wireType: 'any',
+					hidden: true,
+				},
+			],
+		});
+
+		const { outputPorts } = resolveNodePorts(config, 'n1', []);
+
+		expect(outputPorts.map((port) => port.label)).toEqual(['response']);
+	});
+
 	it('skips hidden inputs and symbol portIds (e.g. the reactive context port)', () => {
 		const config = portsConfig({
 			inputsConfigs: [

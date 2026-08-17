@@ -1,6 +1,4 @@
 import type { ToolHandle } from '@langflower/node-sdk';
-import type { McpHandle } from '@langflower/node-sdk/mcp';
-import { flattenMcpHandles } from '../mcp/flatten-mcp-handles.js';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -21,7 +19,9 @@ const isToolHandle = (value: unknown): value is ToolHandle => {
 };
 
 /** Flatten multi-wire values that may be single handles or arrays (packs). */
-const flattenToolHandles = (wired: readonly unknown[]): readonly ToolHandle[] =>
+export const flattenToolHandles = (
+	wired: readonly unknown[],
+): readonly ToolHandle[] =>
 	wired.flatMap((item) => {
 		if (Array.isArray(item)) {
 			return item.filter(isToolHandle);
@@ -35,14 +35,13 @@ const flattenToolHandles = (wired: readonly unknown[]): readonly ToolHandle[] =>
 	});
 
 /**
- * Agent inventory: EC ∪ port for tools and MCP (flatten MCP → ToolHandle).
+ * Agent inventory: EC ∪ port for tools.
  * No catalog list, no enabledToolIds filter (server already filtered EC).
+ * Later `toolHandles` last-wins on `toolId` (jsonc MCP after builtins).
  */
 export const collectAgentToolHandles = (options: {
 	readonly toolHandles: readonly ToolHandle[] | undefined;
 	readonly toolsPort: unknown;
-	readonly mcpHandles: readonly McpHandle[] | undefined;
-	readonly mcpPort: unknown;
 }): readonly ToolHandle[] => {
 	const portTools = Array.isArray(options.toolsPort)
 		? flattenToolHandles(options.toolsPort as readonly unknown[])
@@ -60,15 +59,6 @@ export const collectAgentToolHandles = (options: {
 
 	for (const handle of options.toolHandles ?? []) {
 		byId.set(handle.toolId, handle);
-	}
-
-	for (const mcp of [
-		...(options.mcpHandles ?? []),
-		...flattenMcpHandles(options.mcpPort),
-	]) {
-		for (const handle of mcp.tools) {
-			byId.set(handle.toolId, handle);
-		}
 	}
 
 	return [...byId.values()];

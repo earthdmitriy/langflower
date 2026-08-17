@@ -28,7 +28,7 @@ the node calls `ExecutionContext.createChatCompletionStream` and never sees
 
 **Internal tool loop (epics 01 / 16):** allowlisted builtins from
 `ExecutionContext.harness` (`@langflower/tools`), wired registrations, and
-MCP tools (ready `McpHandle` values from `EC.mcpHandles` ∪ port `mcp`) are
+MCP tools (ready `ToolHandle[]` from `EC.toolHandles` ∪ port `tools`) are
 passed to the chat API as `tools`. The node never expands MCP server config.
 When the model returns `tool_calls`, the node invokes handlers / `ctx.harness`,
 appends tool results, and re-completes until final text or `maxIterations`.
@@ -40,32 +40,30 @@ separate palette entries.
 
 ## Inputs
 
-| Port                   | Type                    | Notes                                             |
-| ---------------------- | ----------------------- | ------------------------------------------------- |
-| `userPrompt`           | string                  | required; init — change recreates session         |
-| `systemPrompt`         | string                  | optional multiline; init                          |
-| `tools`                | tool-registration       | multi combine; merged with harness builtins       |
-| `subagentRegistration` | `subagent-registration` | multi combine; `SubAgentRegistration[]` (≠ tools) |
-| `subagentResult`       | `subagent-result`       | multi merge; `{ callId, result }` router          |
-| `mcp`                  | mcp-handle              | multi combine; ready handles (+ `EC.mcpHandles`)  |
-| `feedback`             | string                  | turn input (not init); advances history           |
+| Port           | Type        | Notes                                                         |
+| -------------- | ----------- | ------------------------------------------------------------- |
+| `userPrompt`   | string      | required; init — change recreates session                     |
+| `systemPrompt` | string      | optional multiline; init                                      |
+| `tools`        | tool-handle | multi combine; packs, MCP nodes, Sub-Agent handles, jsonc MCP |
+| `steerControl` | any         | hidden HITL Steer (ADR-032)                                   |
+| `feedback`     | string      | turn input (not init); advances history                       |
 
 ## Outputs
 
-| Port            | Type             | Notes                                                                                 |
-| --------------- | ---------------- | ------------------------------------------------------------------------------------- |
-| `reasoning`     | string           | API reasoning tokens (`delta.reasoning` / `reasoning_content`); feed role `reasoning` |
-| `draftResponse` | string           | streamed API content tokens; feed role `draft`                                        |
-| `toolLog`       | string           | real tool call/result lines only; feed role `tool`                                    |
-| `response`      | string           | final assembled text; feed role `result`                                              |
-| `subagent`      | `subagent-spawn` | `SubAgentSpawnPayload` when `spawn_subagent` runs                                     |
+| Port            | Type   | Notes                                                                                 |
+| --------------- | ------ | ------------------------------------------------------------------------------------- |
+| `reasoning`     | string | API reasoning tokens (`delta.reasoning` / `reasoning_content`); feed role `reasoning` |
+| `draftResponse` | string | streamed API content tokens; feed role `draft`                                        |
+| `toolLog`       | string | real tool call/result lines only; feed role `tool`                                    |
+| `recovery`      | any    | stuck / dead-loop / timeout notices; feed role `recovery`; **hidden** (feed only)     |
+| `response`      | string | final assembled text; feed role `result`                                              |
 
 No fake emissions; Deny after continue HITL (e.g. `maxFeedbackTurns`) errors
 the cycle — see
 [LLM_NODES.md](../../../../../../docs/LLM_NODES.md) § Port events.
 
-Custom Sub-Agent peers: import wire consts from
-`@langflower/common-nodes/ai/sub-agent-protocol`.
+Wire a Sub-Agent `subagent-registration` output into this `tools` input — the specialist is a
+normal `ToolHandle` (epic 41). Do **not** look for `spawn_subagent` ports.
 
 ## Params
 

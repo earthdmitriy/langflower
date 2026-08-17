@@ -8,13 +8,20 @@ import {
 	toLlmRecoveryPortValue,
 } from '@langflower/node-sdk/llm';
 import {
+	TOOL_HANDLE_WIRE_TYPE,
+	type ToolHandle,
+	type ToolHandlerContext,
+} from '@langflower/node-sdk';
+import { randomUUID } from 'node:crypto';
+import {
+	catchError,
 	concat,
-	EMPTY,
 	filter,
+	map,
 	mergeMap,
 	Observable,
 	of,
-	type Observable as RxObservable,
+	Subject,
 } from 'rxjs';
 import { llmPanelUiSchema } from '../../features/ui-schema/llm-panel-ui-schema.js';
 import { llmCompactionUiSchema } from '../../features/ui-schema/llm-compaction-ui-schema.js';
@@ -34,17 +41,6 @@ import {
 	runAgentLoop,
 	type ToolLoopChunk,
 } from '../../features/llm-loop/run-agent-loop.js';
-import { waitForSubagentResult } from '../../features/wait-for-subagent-result.js';
-import {
-	flattenSubAgentRegistrations,
-	isSubAgentSpawnPayload,
-	SUBAGENT_REGISTRATION_WIRE_TYPE,
-	SUBAGENT_RESULT_WIRE_TYPE,
-	SUBAGENT_SPAWN_WIRE_TYPE,
-	type SubAgentRegistration,
-	type SubAgentResultPayload,
-	type SubAgentSpawnPayload,
-} from '../../features/sub-agent-protocol.js';
 import { collectAgentToolHandles } from '../../../tools/collect-agent-tool-handles.js';
 import {
 	parseLlmRolePreset,
@@ -61,17 +57,26 @@ import {
 	type ScriptedTurn,
 } from '../../features/scripted-chat-completion-stream.js';
 
+type InvokeTurn = {
+	readonly requestId: string;
+	readonly task: string;
+	readonly skillId: string;
+};
+
 type SubAgentChunk =
 	| ToolLoopChunk
 	| {
-			readonly kind: 'subagentResult';
-			readonly payload: SubAgentResultPayload;
+			readonly kind: 'invokeDone';
+			readonly requestId: string;
+			readonly text: string;
 	  };
 
 type SubAgentContext = LlmAgentInventoryContext & {
 	readonly factory: CreateChatCompletionStream | undefined;
 	readonly scriptedTurns: readonly ScriptedTurn[] | undefined;
 	readonly nodeId: string;
+	readonly displayName: string;
+	readonly inspectorDescription: string;
 	readonly skillIds: readonly string[];
 };
 
@@ -85,32 +90,70 @@ const normalizeSkillIds = (raw: unknown): readonly string[] => {
 		.filter((entry) => entry.length > 0);
 };
 
-const acceptSpawn = (
-	raw: unknown,
-	nodeId: string,
-	skillIds: readonly string[],
-): SubAgentSpawnPayload | null => {
-	if (!isSubAgentSpawnPayload(raw)) {
-		return null;
+const slugToolId = (name: string, nodeId: string): string => {
+	const slug = (raw: string): string =>
+		raw
+			.replace(/[^a-zA-Z0-9_-]+/g, '_')
+			.replace(/^_+|_+$/g, '')
+			.slice(0, 64);
+
+	const fromName = slug(name.trim());
+	if (fromName.length > 0) {
+		return fromName;
 	}
 
-	if (raw.nodeId !== nodeId) {
-		return null;
-	}
-
-	if (raw.skillId.length > 0 && !skillIds.includes(raw.skillId)) {
-		return null;
-	}
-
-	return raw;
+	const fromNode = slug(nodeId);
+	return fromNode.length > 0 ? fromNode : 'subagent';
 };
 
-const formatSpawnUserContent = (spawn: SubAgentSpawnPayload): string => {
-	if (spawn.skillId.length === 0) {
-		return spawn.task;
+const formatSpawnUserContent = (task: string, skillId: string): string => {
+	if (skillId.length === 0) {
+		return task;
 	}
 
-	return `[skill:${spawn.skillId}]\n${spawn.task}`;
+	return `[skill:${skillId}]\n${task}`;
+};
+
+const buildSpecialistDescription = (
+	name: string,
+	description: string,
+	skillIds: readonly string[],
+): string => {
+	const parts = [`Canvas Sub-Agent «${name}».`];
+	if (description.trim().length > 0) {
+		parts.push(description.trim());
+	}
+
+	if (skillIds.length > 0) {
+		parts.push(`Skills: ${skillIds.join(', ')}.`);
+	}
+
+	parts.push('Call with a task to run this specialist in-node.');
+	return parts.join(' ');
+};
+
+const buildSpecialistInputSchema = (skillIds: readonly string[]): object => {
+	const properties: Record<string, object> = {
+		task: {
+			type: 'string',
+			description: 'Task for this specialist',
+		},
+	};
+
+	if (skillIds.length > 0) {
+		properties.skillId = {
+			type: 'string',
+			enum: [...skillIds],
+			description:
+				'Optional skill announced by this Sub-Agent Inspector selector',
+		};
+	}
+
+	return {
+		type: 'object',
+		properties,
+		required: ['task'],
+	};
 };
 
 const resolveTurnFactory = (
@@ -123,44 +166,60 @@ const resolveTurnFactory = (
 	return context.factory;
 };
 
-const requireChatConfig = (
+const chatConfigError = (
 	providerId: string,
 	model: string,
 	scripted: boolean,
-): void => {
+): string | undefined => {
 	if (scripted) {
-		return;
+		return undefined;
 	}
 
 	if (providerId.trim().length === 0) {
-		throw new Error('Provider is required for Sub-Agent chat');
+		return 'Error: Provider is required for Sub-Agent chat';
 	}
 
 	if (model.trim().length === 0) {
-		throw new Error('Model is required for Sub-Agent chat');
+		return 'Error: Model is required for Sub-Agent chat';
 	}
+
+	return undefined;
 };
 
 const runSubAgentTurn = (
 	context: SubAgentContext,
-	spawn: SubAgentSpawnPayload,
+	turn: InvokeTurn,
 	history: readonly ChatCompletionMessage[],
-	subagentResult$: RxObservable<unknown>,
-): RxObservable<SubAgentChunk> => {
+): Observable<SubAgentChunk> => {
+	const fail = (text: string): Observable<SubAgentChunk> =>
+		of(
+			{ kind: 'response' as const, text },
+			{
+				kind: 'invokeDone' as const,
+				requestId: turn.requestId,
+				text,
+			},
+		);
+
 	const scripted = context.scriptedTurns !== undefined;
 	const factory = resolveTurnFactory(context);
 
 	if (factory === undefined) {
-		return new Observable((subscriber) => {
-			subscriber.error(
-				new Error(
-					'Sub-Agent chat is only available during server workflow runs',
-				),
-			);
-		});
+		return fail(
+			'Error: Sub-Agent chat is only available during server workflow runs',
+		);
 	}
 
-	requireChatConfig(context.providerId, context.model, scripted);
+	const configError = chatConfigError(
+		context.providerId,
+		context.model,
+		scripted,
+	);
+	if (configError !== undefined) {
+		return fail(configError);
+	}
+
+	const userContent = formatSpawnUserContent(turn.task, turn.skillId);
 
 	return concat(
 		of({
@@ -169,7 +228,7 @@ const runSubAgentTurn = (
 				...history,
 				{
 					role: 'user' as const,
-					content: formatSpawnUserContent(spawn),
+					content: userContent,
 				},
 			],
 		}),
@@ -181,54 +240,83 @@ const runSubAgentTurn = (
 			model: scripted
 				? context.model.trim() || 'scripted'
 				: context.model,
-			messages: [
-				...history,
-				{ role: 'user', content: formatSpawnUserContent(spawn) },
-			],
+			messages: [...history, { role: 'user', content: userContent }],
 			tools: context.tools,
 			toolCtx: context.toolCtx,
 			maxIterations: context.maxIterations,
 			compaction: context.compaction,
 			recovery: context.recovery,
-			subagentRegistrations: context.subagentRegistrations,
 			...(context.requestPermission !== undefined
 				? { requestPermission: context.requestPermission }
 				: {}),
 			...(context.steerControl$ !== undefined
 				? { steerControl$: context.steerControl$ }
 				: {}),
-			...(context.subagentRegistrations.length > 0
-				? {
-						waitForSubagentResult: (callId, signal) =>
-							waitForSubagentResult(
-								subagentResult$,
-								callId,
-								signal,
-								context.recovery.subagentTimeoutMs,
-							),
-					}
-				: {}),
 		}).pipe(
-			mergeMap((chunk): RxObservable<SubAgentChunk> => {
+			mergeMap((chunk): Observable<SubAgentChunk> => {
 				if (chunk.kind !== 'response') {
 					return of(chunk);
 				}
 
 				return of(chunk, {
-					kind: 'subagentResult' as const,
-					payload: {
-						callId: spawn.callId,
-						result: chunk.text,
-					},
+					kind: 'invokeDone' as const,
+					requestId: turn.requestId,
+					text: chunk.text,
 				});
+			}),
+			catchError((error: unknown) => {
+				const text =
+					error instanceof Error
+						? `Error: ${error.message}`
+						: 'Error: Sub-Agent turn failed.';
+				return fail(text);
 			}),
 		),
 	);
 };
 
+const parseInvokeTurn = (
+	raw: unknown,
+	skillIds: readonly string[],
+):
+	| { readonly ok: true; readonly turn: InvokeTurn }
+	| { readonly ok: false; readonly text: string } => {
+	if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+		return {
+			ok: false,
+			text: 'Error: Sub-Agent invoke payload is invalid.',
+		};
+	}
+
+	const record = raw as Readonly<Record<string, unknown>>;
+	const requestId =
+		typeof record.requestId === 'string' && record.requestId.length > 0
+			? record.requestId
+			: randomUUID();
+	const task = typeof record.task === 'string' ? record.task.trim() : '';
+	const skillId =
+		typeof record.skillId === 'string' ? record.skillId.trim() : '';
+
+	if (task.length === 0) {
+		return {
+			ok: false,
+			text: 'Error: Sub-Agent requires a non-empty task.',
+		};
+	}
+
+	if (skillId.length > 0 && !skillIds.includes(skillId)) {
+		return {
+			ok: false,
+			text: `Error: Skill «${skillId}» is not announced by this Sub-Agent.`,
+		};
+	}
+
+	return { ok: true, turn: { requestId, task, skillId } };
+};
+
 /**
- * Sub-Agent: ordinary OpenAI-compatible agent plus `registration` announce.
- * Parent spawn arrives on `task`; final text returns on `result` with callId.
+ * Sub-Agent: ordinary OpenAI-compatible agent that announces one ToolHandle
+ * on `tools`. Parent invoke runs this node's in-node loop.
  * @see docs/ADR.md ADR-021
  */
 export const subAgentNode = defineLlmNode({
@@ -236,7 +324,7 @@ export const subAgentNode = defineLlmNode({
 	displayName: 'Sub-Agent',
 	category: 'AI',
 	description:
-		'OpenAI-compatible specialist agent that announces via registration and answers parent spawns on task → result.',
+		'OpenAI-compatible specialist agent. Wire `tools` into a parent agent; invoke runs this node in-graph.',
 	uiSchema: [
 		{
 			field: 'name',
@@ -261,44 +349,41 @@ export const subAgentNode = defineLlmNode({
 		...llmRecoveryUiSchema,
 	] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }, inventory) {
-		const {
-			tools,
-			mcp,
-			subagentRegistration,
-			subagentResult,
-			steerControl,
-		} = inventory;
+		const { tools, steerControl } = inventory;
 		const systemPrompt = makeInput<string>('systemPrompt', {
 			name: 'systemPrompt',
 			wireType: 'string',
 			inline: 'text-multiline',
 			defaultValue: '',
 		});
-		const task = makeInput<unknown>('task', {
-			name: 'task',
-			wireType: SUBAGENT_SPAWN_WIRE_TYPE,
-			required: true,
-		});
 
-		const registration$ = combineInputs([ctx], ([ec]) => {
-			const skillIds = normalizeSkillIds(ec.params.skillIds);
-			const name = String(ec.params.name ?? 'Sub-Agent').trim();
-			const description = String(ec.params.description ?? '');
+		const invokeTurns$ = new Subject<InvokeTurn>();
+		let invokeTail: Promise<void> = Promise.resolve();
+		const pending = new Map<
+			string,
+			{
+				readonly resolve: (text: string) => void;
+				readonly timer: ReturnType<typeof setTimeout> | undefined;
+			}
+		>();
 
-			return {
-				targetNodeId: ec.nodeId,
-				name: name.length > 0 ? name : 'Sub-Agent',
-				description,
-				skills: skillIds.map((skillId) => ({
-					skillId,
-					description: skillId,
-				})),
-			} satisfies SubAgentRegistration;
-		});
+		const finishInvoke = (requestId: string, text: string): void => {
+			const waiter = pending.get(requestId);
+			if (waiter === undefined) {
+				return;
+			}
+
+			pending.delete(requestId);
+			if (waiter.timer !== undefined) {
+				clearTimeout(waiter.timer);
+			}
+
+			waiter.resolve(text);
+		};
 
 		const context$ = combineInputs(
-			[systemPrompt, tools, subagentRegistration, mcp, ctx],
-			([systemPromptValue, toolList, subagentList, mcpList, ec]) => {
+			[systemPrompt, tools, ctx],
+			([systemPromptValue, toolList, ec]) => {
 				const rolePreset = parseLlmRolePreset(ec.params.rolePreset);
 				const skillId = resolveEffectiveSkillId(
 					rolePreset,
@@ -307,17 +392,17 @@ export const subAgentNode = defineLlmNode({
 				const hostServices = getRunHostServices(ec);
 				const skillMarkdown = hostServices?.skillMarkdown ?? '';
 				const agentsMarkdown = hostServices?.agentsMarkdown ?? '';
+				const name = String(ec.params.name ?? 'Sub-Agent').trim();
+				const inspectorDescription = String(
+					ec.params.description ?? '',
+				);
 
 				return {
 					prompt: '',
 					tools: collectAgentToolHandles({
 						toolHandles: ec.toolHandles,
 						toolsPort: toolList,
-						mcpHandles: ec.mcpHandles,
-						mcpPort: mcpList,
 					}),
-					subagentRegistrations:
-						flattenSubAgentRegistrations(subagentList),
 					...resolveChatProviderModel(ec.params, hostServices),
 					skillId,
 					rolePreset,
@@ -368,6 +453,8 @@ export const subAgentNode = defineLlmNode({
 						],
 					),
 					nodeId: ec.nodeId,
+					displayName: name.length > 0 ? name : 'Sub-Agent',
+					inspectorDescription,
 					skillIds: normalizeSkillIds(ec.params.skillIds),
 				} satisfies SubAgentContext;
 			},
@@ -375,7 +462,7 @@ export const subAgentNode = defineLlmNode({
 
 		const cycle$ = createLlmSessionCycle$(
 			context$,
-			task.value$,
+			invokeTurns$,
 			(context) => ({
 				history: [
 					{
@@ -390,25 +477,96 @@ export const subAgentNode = defineLlmNode({
 				appendUserFeedbackToHistory: false,
 				session: undefined,
 			}),
-			(context, turnPayload, history, _session) => {
-				const spawn = acceptSpawn(
-					turnPayload,
-					context.nodeId,
-					context.skillIds,
-				);
+			(context, turnPayload, history) => {
+				const parsed = parseInvokeTurn(turnPayload, context.skillIds);
+				if (!parsed.ok) {
+					const requestId =
+						turnPayload !== null &&
+						typeof turnPayload === 'object' &&
+						!Array.isArray(turnPayload) &&
+						typeof (turnPayload as { requestId?: unknown })
+							.requestId === 'string'
+							? (turnPayload as { requestId: string }).requestId
+							: '';
+					if (requestId.length > 0) {
+						finishInvoke(requestId, parsed.text);
+					}
 
-				if (spawn === null) {
-					return EMPTY;
+					return of(
+						{ kind: 'response' as const, text: parsed.text },
+						{
+							kind: 'invokeDone' as const,
+							requestId,
+							text: parsed.text,
+						},
+					);
 				}
 
-				return runSubAgentTurn(
-					context,
-					spawn,
-					history,
-					subagentResult.value$,
+				return runSubAgentTurn(context, parsed.turn, history).pipe(
+					map((chunk) => {
+						if (chunk.kind === 'invokeDone') {
+							finishInvoke(chunk.requestId, chunk.text);
+						}
+
+						return chunk;
+					}),
 				);
 			},
 			{ primeTurn0: false },
+		);
+
+		const enqueueInvoke = (
+			context: SubAgentContext,
+			args: Readonly<Record<string, unknown>>,
+			_toolCtx: ToolHandlerContext,
+		): Promise<string> => {
+			const parsed = parseInvokeTurn(
+				{ ...args, requestId: randomUUID() },
+				context.skillIds,
+			);
+			if (!parsed.ok) {
+				return Promise.resolve(parsed.text);
+			}
+
+			const run = (): Promise<string> =>
+				new Promise((resolve) => {
+					const timeoutMs = context.recovery.subagentTimeoutMs;
+					const timer =
+						timeoutMs > 0
+							? setTimeout(() => {
+									pending.delete(parsed.turn.requestId);
+									resolve(
+										`Error: Sub-Agent timed out after ${timeoutMs}ms.`,
+									);
+								}, timeoutMs)
+							: undefined;
+					pending.set(parsed.turn.requestId, { resolve, timer });
+					invokeTurns$.next(parsed.turn);
+				});
+
+			const next = invokeTail.then(run, run);
+			invokeTail = next.then(
+				() => undefined,
+				() => undefined,
+			);
+			return next;
+		};
+
+		const specialistTools$ = context$.pipeValue(
+			map((context): readonly ToolHandle[] => [
+				{
+					toolId: slugToolId(context.displayName, context.nodeId),
+					name: context.displayName,
+					description: buildSpecialistDescription(
+						context.displayName,
+						context.inspectorDescription,
+						context.skillIds,
+					),
+					inputSchema: buildSpecialistInputSchema(context.skillIds),
+					invoke: (args, toolCtx) =>
+						enqueueInvoke(context, args, toolCtx),
+				},
+			]),
 		);
 
 		const reasoning$ = cycle$.pipeValue(
@@ -451,32 +609,13 @@ export const subAgentNode = defineLlmNode({
 						.text,
 			),
 		);
-		const result$ = cycle$.pipeValue(
-			demuxByKind(
-				'subagentResult',
-				(chunk) =>
-					(
-						chunk as Extract<
-							SubAgentChunk,
-							{ kind: 'subagentResult' }
-						>
-					).payload,
-			),
-		);
-		const nestedSubagent$ = cycle$.pipeValue(
-			demuxByKind(
-				'subagentSpawn',
-				(chunk) =>
-					(chunk as Extract<SubAgentChunk, { kind: 'subagentSpawn' }>)
-						.payload,
-			),
-		);
 
 		return {
-			inputs: [systemPrompt, task],
+			inputs: [systemPrompt],
 			outputs: [
-				configureOutput('registration', registration$, {
-					wireType: SUBAGENT_REGISTRATION_WIRE_TYPE,
+				configureOutput('subagent-registration', specialistTools$, {
+					name: 'subagent-registration',
+					wireType: TOOL_HANDLE_WIRE_TYPE,
 				}),
 				configureOutput('reasoning', reasoning$, {
 					wireType: 'string',
@@ -490,16 +629,10 @@ export const subAgentNode = defineLlmNode({
 					wireType: 'string',
 					feed: { role: 'result' },
 				}),
-				configureOutput('result', result$, {
-					wireType: SUBAGENT_RESULT_WIRE_TYPE,
-					// Protocol payload for parent wiring — not work-log content.
-					feed: { role: 'none' },
-				}),
 			],
 			inventoryOutputs: {
 				toolLog$,
 				recovery$,
-				subagent$: nestedSubagent$,
 			},
 		};
 	},

@@ -76,7 +76,10 @@ Project product data for Langflower lives under **`.langflower/`**.
 
 - LLM / agent nodes use **skills** and harness tools as wired in the graph.
 - **Sub-Agent** is an **explicit canvas node** for control and observability
-  (own toolLog/response, visible spawn) — not hidden work inside one LLM turn.
+  (own toolLog/response). Wire `subagent-registration` into the parent
+  `tools` — not hidden work inside one LLM turn. Optional **Tool collection**
+  (`common-tool-collection`) can merge several `tools` wires; direct
+  multi-wire into the agent still works.
 - **Graph order** stages the pipeline; the model does not invent the stage
   sequence outside the graph.
 - Project memory / wiki create is **queue-driven**: index with harness `glob`,

@@ -37,14 +37,8 @@ import type { LlmRecoveryPolicy } from '../../features/llm-loop/llm-loop-types.j
 import { normalizeLlmRecoveryPolicy } from '../../features/llm-loop/normalize-llm-recovery-policy.js';
 import { normalizeCompactionConfig } from '../../features/openai/normalize-compaction-params.js';
 import type { LlmCompactionConfig } from '../../features/openai/normalize-compaction-params.js';
-import {
-	flattenSubAgentRegistrations,
-	type SubAgentRegistration,
-	type SubAgentSpawnPayload,
-} from '../../features/sub-agent-protocol.js';
 import type { ToolHandle } from '@langflower/node-sdk';
 import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
-import { waitForSubagentResult } from '../../features/wait-for-subagent-result.js';
 import {
 	REVIEW_ACCEPT_TOOL,
 	REVIEW_FEEDBACK_TOOL,
@@ -78,7 +72,6 @@ type ReviewContext = {
 		request: PermissionAskRequest,
 	) => Promise<'allow' | 'deny'>;
 	readonly tools: readonly ToolHandle[];
-	readonly subagentRegistrations: readonly SubAgentRegistration[];
 	readonly toolCtx: ToolHandlerContext;
 	readonly compaction: LlmCompactionConfig;
 	readonly recovery: LlmRecoveryPolicy;
@@ -142,7 +135,6 @@ const runReviewTurn = (
 	context: ReviewContext,
 	result: string,
 	history: readonly ChatCompletionMessage[],
-	subagentResult$: RxObservable<unknown>,
 ): RxObservable<ReviewChunk> => {
 	const factory = context.factory;
 
@@ -177,19 +169,7 @@ const runReviewTurn = (
 		compaction: context.compaction,
 		recovery: context.recovery,
 		steerControl$: context.steerControl$,
-		subagentRegistrations: context.subagentRegistrations,
 		toolCtx: context.toolCtx,
-		...(context.subagentRegistrations.length > 0
-			? {
-					waitForSubagentResult: (callId, signal) =>
-						waitForSubagentResult(
-							subagentResult$,
-							callId,
-							signal,
-							context.recovery.subagentTimeoutMs,
-						),
-				}
-			: {}),
 	}).pipe(
 		map((chunk): ReviewChunk => {
 			if (chunk.kind === 'accept') {
@@ -234,13 +214,7 @@ export const reviewNode = defineLlmNode({
 		...llmRecoveryUiSchema,
 	] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }, inventory) {
-		const {
-			tools,
-			mcp,
-			subagentRegistration,
-			subagentResult,
-			steerControl,
-		} = inventory;
+		const { tools, steerControl } = inventory;
 		const task = makeInput<string>('task', {
 			name: 'task',
 			wireType: 'string',
@@ -262,15 +236,8 @@ export const reviewNode = defineLlmNode({
 
 		// Init peers only — result is the session turn driver (ADR-016).
 		const context$ = combineInputs(
-			[task, systemPrompt, tools, subagentRegistration, mcp, ctx],
-			([
-				taskValue,
-				systemPromptValue,
-				toolList,
-				subagentList,
-				mcpList,
-				ec,
-			]) => {
+			[task, systemPrompt, tools, ctx],
+			([taskValue, systemPromptValue, toolList, ec]) => {
 				const rolePreset = parseLlmRolePreset(ec.params.rolePreset);
 				const skillId = resolveEffectiveSkillId(
 					rolePreset,
@@ -313,11 +280,7 @@ export const reviewNode = defineLlmNode({
 					tools: collectAgentToolHandles({
 						toolHandles: ec.toolHandles,
 						toolsPort: toolList,
-						mcpHandles: ec.mcpHandles,
-						mcpPort: mcpList,
 					}),
-					subagentRegistrations:
-						flattenSubAgentRegistrations(subagentList),
 					toolCtx: {
 						projectDir: ec.projectDir,
 						runId: ec.runId,
@@ -350,12 +313,7 @@ export const reviewNode = defineLlmNode({
 				session: undefined,
 			}),
 			(context, turnPayload, history) =>
-				runReviewTurn(
-					context,
-					String(turnPayload ?? ''),
-					history,
-					subagentResult.value$,
-				),
+				runReviewTurn(context, String(turnPayload ?? ''), history),
 			{ primeTurn0: false },
 		);
 
@@ -404,14 +362,6 @@ export const reviewNode = defineLlmNode({
 					(chunk as Extract<ReviewChunk, { kind: 'feedback' }>).notes,
 			),
 		);
-		const subagent$ = cycle$.pipeValue(
-			demuxByKind(
-				'subagentSpawn',
-				(chunk): SubAgentSpawnPayload =>
-					(chunk as Extract<ReviewChunk, { kind: 'subagentSpawn' }>)
-						.payload,
-			),
-		);
 
 		return {
 			inputs: [task, result, systemPrompt],
@@ -433,7 +383,7 @@ export const reviewNode = defineLlmNode({
 					feed: { role: 'result' },
 				}),
 			],
-			inventoryOutputs: { toolLog$, recovery$, subagent$ },
+			inventoryOutputs: { toolLog$, recovery$ },
 		};
 	},
 });

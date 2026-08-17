@@ -53,7 +53,7 @@
 					"maxFeedbackTurns": 6
 				},
 				"inputs": {
-					"systemPrompt": "You answer questions about this project grounded in project memory.\n\nConvention: markdown under `.langflower/memory/` (built by the kb-create / Memory create workflow). Memory is also readable with harness file tools on `.langflower/memory/…`.\n\nBefore answering, use get_memory_tree / search_memory_grep / read_memory_section (yourself or via spawn_subagent Searcher). Prefer memory hits over guessing. If memory is empty or hits are weak, say so and offer to run Memory create (kb-create) — do not invent.\n\nWhen HITL feedback arrives, revise the answer — do not ignore it. Keep answers short and cite memory file paths / headings when available."
+					"systemPrompt": "You answer questions about this project grounded in project memory.\n\nConvention: markdown under `.langflower/memory/` (built by the kb-create / Memory create workflow). Memory is also readable with harness file tools on `.langflower/memory/…`.\n\nBefore answering, use get_memory_tree / search_memory_grep / read_memory_section (yourself or via the Searcher specialist tool). Prefer memory hits over guessing. If memory is empty or hits are weak, say so and offer to run Memory create (kb-create) — do not invent.\n\nWhen HITL feedback arrives, revise the answer — do not ignore it. Keep answers short and cite memory file paths / headings when available."
 				},
 				"ui": {
 					"position": {
@@ -126,27 +126,6 @@
 				"toPort": ["tools", 0]
 			},
 			{
-				"edgeId": "e-reg-searcher",
-				"fromNodeId": "searcher",
-				"fromPort": ["registration", 0],
-				"toNodeId": "navigator",
-				"toPort": ["subagentRegistration", 0]
-			},
-			{
-				"edgeId": "e-spawn-searcher",
-				"fromNodeId": "navigator",
-				"fromPort": ["subagent", 0],
-				"toNodeId": "searcher",
-				"toPort": ["task", 0]
-			},
-			{
-				"edgeId": "e-result-searcher",
-				"fromNodeId": "searcher",
-				"fromPort": ["result", 0],
-				"toNodeId": "navigator",
-				"toPort": ["subagentResult", 0]
-			},
-			{
 				"edgeId": "e-nav-review",
 				"fromNodeId": "navigator",
 				"fromPort": ["response", 0],
@@ -159,6 +138,13 @@
 				"fromPort": ["feedback", 0],
 				"toNodeId": "navigator",
 				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-tools-searcher",
+				"fromNodeId": "searcher",
+				"fromPort": ["subagent-registration", 0],
+				"toNodeId": "navigator",
+				"toPort": ["tools", 1]
 			}
 		]
 	}

@@ -791,7 +791,7 @@ conversation history on the real OpenAI node.
   `defaultValue` contract for inventory ports.
   **Decision:**
 
-1. **Init ports** (`userPrompt`, `systemPrompt`, `tools`, `mcp`, `ctx`):
+1. **Init ports** (`userPrompt`, `systemPrompt`, `tools`, `ctx`):
    `combineInputs` + `defaultValue` only. Any new init emission
    **`switchMap`s** a new session (empty history).
 2. **`feedback` is not an init peer.** Prime turn 0 with `startWith('')`, then
@@ -799,7 +799,7 @@ conversation history on the real OpenAI node.
    arriving mid-turn is queued while history/counters remain immutable owned
    state.
 3. **`startWith` carve-out is only for that feedback turn stream** — never on
-   `tools` / `mcp` / other init peers.
+   `tools` / other init peers.
 4. **`common-openai-llm` / Critique / Review** share LLM-summary context
    compaction (`prepareChatCompletion`): approx token budget from Inspector
    `contextSize`, optional `compactOnError` pre-stream retry, and
@@ -825,7 +825,7 @@ conversation history on the real OpenAI node.
 **Tradeoffs accepted:**
 
 - (+) Soft↔Hard and HITL feedback loops can start without runtime priming hacks.
-- (+) Reviewers keep a bright line: no `startWith([])` on `tools` / `mcp`.
+- (+) Reviewers keep a bright line: no `startWith([])` on `tools`.
 - (+) Init changes intentionally discard conversation state.
 - (+) Cap / policy stops are visible in feed + port chrome (not a “dead” canvas).
 - (−) Authors must learn two layers (init vs turn); HOW_TO must stay explicit.
@@ -1095,16 +1095,14 @@ hurt startup time. Pack layout: [ADR-030](#adr-030--custom-node-pack-layout--npm
 ## ADR-021 — Sub-Agent: registration + port-routed spawn (nodeId filter)
 
 **Status:** accepted · **Date:** 2026-07-20 · **Implementation:** partial
-(L0 shipped: registration + spawn + `subagentResult` router; body on canvas;
-serial spawn; nesting = graph wiring; depth caps later)
+(L0 canvas node + in-node loop shipped; **3-wire protocol superseded** by
+epic 41 stage 2 — one `tools` `ToolHandle[]` announcement)
 
-**Context:** Product wants main agents to **spawn** specialists with selected
-skills while keeping Sub-Agents as **first-class canvas nodes** (transparent to
-users and runtime). Nested workflow/subgraph runtime is far future. Runtime
-today can extend **outputs** dynamically only for bypass ports — not a clean
-per-target spawn fan-out from one LLM node. Hidden in-LLM spawn without graph
-nodes violates MECHANICS C2/C8 and the hard-harness product story
-([PRODUCT.md](PRODUCT.md)).
+**Context:** Product wants main agents to **delegate** to specialists with
+selected skills while keeping Sub-Agents as **first-class canvas nodes**
+(transparent to users and runtime). Nested workflow/subgraph runtime is far
+future. Hidden in-LLM spawn without graph nodes violates MECHANICS C2/C8 and
+the hard-harness product story ([PRODUCT.md](PRODUCT.md)).
 
 **Alternatives considered:**
 
@@ -1114,65 +1112,65 @@ nodes violates MECHANICS C2/C8 and the hard-harness product story
   (far future).
 - **Dynamic spawn outputs per Sub-Agent** — ideal routing; blocked until runtime
   output-extension exists beyond bypass ports.
-- **Wire-only handoff (no spawn tool)** — author draws every task edge; main
-  cannot choose skill/target at runtime; too weak for agent-driven delegate.
-- **Keep map-collect Sub-Agent forever** — useful for fixed body wiring; does not
-  expose registration/skills/spawn tool to the main LLM.
+- **3-wire registration / spawn / result** — L0 shipped, then **superseded**:
+  three edges cluttered the canvas; parent `spawn_subagent` plus `callId`
+  wait could hang on a missing result wire.
+- **Keep map-collect Sub-Agent forever** — useful for fixed body wiring; does
+  not expose the specialist to the main LLM as a tool.
 
 **Decision:**
 
 1. **Sub-Agent is a separate node** (`common-sub-agent`, evolve in place).
    Inspector: **multiselect** of skills from `.langflower/skills/*.md`.
-2. **Registration** — Sub-Agent emits `SubAgentRegistration` on `registration`
-   (`wireType: subagent-registration`). Main LLM has a dedicated
-   **`subagentRegistration`** input (**multi:combine**). This is **not**
-   `ToolHandle` / not merged into `tools`.
-3. **Spawn tool** — when that input is non-empty, the main LLM exposes an
-   orchestrator control tool `spawn_subagent` (same class as Review
-   `accept`/`feedback`). Calling it emits on a dedicated **`subagent`** output
-   (`wireType: subagent-spawn`).
-4. **Single spawn output** — one output fans out to Sub-Agent `task` inputs
-   (same `subagent-spawn` wire). Payload: `{ callId, nodeId, skillId, task }`.
-   Each Sub-Agent **ignores** tasks not addressed to its `nodeId`.
-5. **Result** — Sub-Agent emits `{ callId, result }` on `result`
-   (`wireType: subagent-result`) → main **`subagentResult`** (**multi:merge**).
-   The agent node’s **internal router** correlates `callId` and injects a tool
-   result into the turn. ≠ `feedback`. Do **not** use generic `json` for these
-   peer contracts — named wires keep RuntimeEditor connection checks useful.
+2. **One inventory wire** — Sub-Agent emits one `ToolHandle` on OUT
+   `subagent-registration` (`TOOL_HANDLE_WIRE_TYPE`). Parent LLM `tools` is
+   **multi:combine**.
+   `toolId`: slug of Inspector `name`, else `nodeId`. Duplicate `toolId`
+   last-wins (same as packs/MCP).
+3. **Skills on the handle** — `inputSchema.task` required; `inputSchema.skillId`
+   is a JSON Schema `enum` of Inspector `skillIds` when non-empty (omit the
+   property when empty). Description lists name + Inspector description +
+   skill ids.
+4. **`invoke` is the session** — calling the handle runs **this node's**
+   `runAgentLoop` and returns a **string** (success or `Error: …`). Unknown
+   `skillId` → error string. Timeout: `recovery.subagentTimeoutMs` inside
+   invoke. Serial per node (ADR-022 L0) — queue overlapping invokes.
+5. **No parent spawn ports** — LLM inventory is `tools` + `steerControl` +
+   `toolLog` / `recovery`. There is no `spawn_subagent` chat tool, no
+   `subagentRegistration` / `subagent` / `subagentResult`.
 6. **In-node chat** — Sub-Agent runs the same OpenAI-compatible tool loop /
    session cycle as `common-openai-llm` (own `providerId` / `model` /
-   compaction). Parent contract remains `registration` / `task` / `result`.
-   Nesting = wire further registrations into any LLM/`subagentRegistration`
-   inventory (graph-controlled). Body-on-canvas extras (`item` / `bodyResult`)
-   are **retired**.
-7. **Sequential skills / serial spawn** — skills on one Sub-Agent are sequential
-   in the spawn copy; default spawn concurrency is **serial**
+   compaction). Nesting = child OUT `subagent-registration` → parent
+   Sub-Agent IN `tools`.
+7. **Sequential skills / serial invoke** — default concurrency is **serial**
    ([ADR-022](#adr-022--sub-agent-layers-swarm-nested-monte-carlo)).
 8. **Loop** remains the primitive for dynamic N≥2 map-collect bodies; Sub-Agent
-   is the registration/spawn specialist path.
+   is the canvas specialist path.
 
-Wire consts for custom nodes:
-`@langflower/common-nodes/ai/sub-agent-protocol`.
+**Superseded (do not reintroduce):** `registration` / `task` / `result` canvas
+ports, `spawn_subagent`, `subagent-registration` / `subagent-spawn` /
+`subagent-result` wire types, `@langflower/common-nodes/ai/sub-agent-protocol`.
+User graphs that still list those edges lose them on load (`droppedEdgeIds`);
+there is no migrator.
 
 **Tradeoffs accepted:**
 
-- (+) Canvas-visible specialists + agent-chosen spawn (hard harness topology).
-- (+) Result is a normal tool result via internal router.
+- (+) Canvas-visible specialists + agent-chosen invoke (hard harness topology).
+- (+) Result is a normal tool result via `ToolHandle.invoke`.
 - (+) Works without nested workflows or dynamic outputs.
-- (−) Broadcast + `nodeId` filter is coarser than true routed edges.
-- (−) Miswired graphs can hang waiting for `subagentResult` (known L0 gap).
-- (−) Authors must wire registration, spawn, and result ports correctly.
+- (−) Same `tools` port id in vs out on Sub-Agent (inventory vs announce).
+- (−) Duplicate `toolId` last-wins may hide a misnamed specialist.
 
 **Consequences:**
 
 - Normative detail:
-  [MECHANICS-tool-execution.md](DONE/EPICS/MECHANICS-tool-execution.md#sub-agent-registration--spawn-target).
+  [MECHANICS-tool-execution.md](DONE/EPICS/MECHANICS-tool-execution.md#sub-agent-as-toolhandle).
 - Product summary: [PRODUCT.md](PRODUCT.md#sub-agent-spawn-target).
 - Evolve `packages/common-nodes/src/ai/nodes/sub-agent/` + LLM ports; update
   [NODE.md](../packages/common-nodes/src/ai/nodes/sub-agent/NODE.md).
-- Revisit when runtime gains non-bypass dynamic outputs or nested workflows —
-  may drop `nodeId` broadcast filter.
-- Layered extensions (swarm concurrency, nested spawn, Monte Carlo via Loop):
+- Revisit when nested workflows ship — still must not hide specialists
+  in-LLM-only.
+- Layered extensions (swarm concurrency, nested invoke, Monte Carlo via Loop):
   [ADR-022](#adr-022--sub-agent-layers-swarm-nested-monte-carlo).
 
 ---
@@ -1199,13 +1197,13 @@ parallelism must stay conservative.
 
 **Decision (locked):**
 
-| Layer  | Name                     | Rule                                                                                                                                                                                                                                                      |
-| ------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **L0** | ADR-021                  | Registration + spawn out + `nodeId` filter + `subagentResult` → tool result; skills sequential per Sub-Agent node                                                                                                                                         |
-| **L1** | Swarm                    | Multiple Sub-Agent nodes → one main registration inventory. Default spawn concurrency: **serial** (one outstanding spawn). Opt-in **`parallel-by-nodeId`** later, **low priority** (cloud). Reason: local LLM HW bound. Add `callId` when parallel lands. |
-| **L2** | Nested                   | Any LLM with a wired registration input may spawn (same ports recursively). Nesting is call ownership on a **flat** canvas, not a subgraph file. Depth cap TBD at implement time.                                                                         |
-| **L3** | Monte Carlo (same model) | Prefer **Loop** + trial envelope (`trialId` / `seed` in payload) + reduce/score on the graph. Same specialist template; dynamic N without cloning nodes.                                                                                                  |
-| **L∞** | Nested workflow file     | Far future (unchanged).                                                                                                                                                                                                                                   |
+| Layer  | Name                     | Rule                                                                                                                                                            |
+| ------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **L0** | ADR-021                  | Canvas Sub-Agent + one `tools` `ToolHandle`; `invoke` runs in-node loop; skills enum on the handle; serial per node                                             |
+| **L1** | Swarm                    | Multiple Sub-Agent nodes → one parent `tools` combine. Default invoke concurrency: **serial**. Opt-in **`parallel-by-nodeId`** later, **low priority** (cloud). |
+| **L2** | Nested                   | Child Sub-Agent OUT `subagent-registration` → parent Sub-Agent IN `tools`. Nesting is call ownership on a **flat** canvas, not a subgraph file. Depth cap TBD.  |
+| **L3** | Monte Carlo (same model) | Prefer **Loop** + trial envelope (`trialId` / `seed` in payload) + reduce/score on the graph. Same specialist template; dynamic N without cloning nodes.        |
+| **L∞** | Nested workflow file     | Far future (unchanged).                                                                                                                                         |
 
 **Implementation order (guidance):** L0 → L1 (`serial` only first) → L3 trial
 fields on Loop path → L2 depth enforcement → L∞.
@@ -1524,18 +1522,20 @@ the same consume path as project system servers.
 Drop jsonc system servers (rejected — authors still want project-wide MCP).
 Inspector checklist for wired tools (rejected — remove the wire instead).
 
-**Decision:** Both sources supply live **`McpHandle`** values; agents only consume
-(inventory + handler invoke). Harness has **no** MCP API. Agent nodes never
-receive MCP server config to expand, connect, or filter.
+**Decision:** Both sources still own a live **`McpHandle`** session internally
+(connect/close + `tools`). Agents only consume **`ToolHandle[]`** (inventory +
+handler invoke). Harness has **no** MCP API. Agent nodes never receive MCP
+server config to expand, connect, or filter. Canvas wire type is `tool-handle`
+(epic 41 stage 1) — not `mcp-handle`.
 
-| Source                                        | Lifecycle                            | Agent ingress           | Gate                                                      |
-| --------------------------------------------- | ------------------------------------ | ----------------------- | --------------------------------------------------------- |
-| Wire (`common-mcp-stdio` / `common-mcp-http`) | MCP node                             | `mcp` port              | Wire only                                                 |
-| Project (`langflower.jsonc` `mcp.servers`)    | Run spawn → per-node `EC.mcpHandles` | context (ready handles) | Server applies Inspector `enabledMcpIds` when building EC |
+| Source                                        | Lifecycle                                 | Agent ingress                 | Gate                                                      |
+| --------------------------------------------- | ----------------------------------------- | ----------------------------- | --------------------------------------------------------- |
+| Wire (`common-mcp-stdio` / `common-mcp-http`) | MCP node                                  | `tools` port (`ToolHandle[]`) | Wire only                                                 |
+| Project (`langflower.jsonc` `mcp.servers`)    | Run spawn → flatten into `EC.toolHandles` | context (`ToolHandle[]`)      | Server applies Inspector `enabledMcpIds` when building EC |
 
-Agent merges `EC.mcpHandles` ∪ port `mcp` (two arrays — OK; permanent dual
+Agent merges `EC.toolHandles` ∪ port `tools` (two arrays — OK; permanent dual
 ingress, not a temporary compromise). `enabledMcpIds` remains on agent `params`
-(Inspector) but the agent bind does **not** use it. Each `McpHandle.tools` is
+(Inspector) but the agent bind does **not** use it. Each handle’s `tools` is
 eager `ToolHandle[]` (no `listRegistrations`).
 
 `mcp.servers.<id>` uses the **same connect fields** as the MCP nodes
@@ -1973,7 +1973,7 @@ re-index pipelines into the base product.
    and append-only logs, atomic writes, heading-addressed updates (not line
    numbers / opaque chunk ids). Cross-file wiki links are plain Markdown only
    in v1 (richer vault linking deferred — see TBD Obsidian).
-5. **Wired ToolHandles skip `permission.ask`:** authoring a `tools` / `mcp`
+5. **Wired ToolHandles skip `permission.ask`:** authoring a `tools`
    edge is consent. OpenCode-style `permission` + HITL ask applies to harness
    **builtins** only.
 
@@ -2032,6 +2032,51 @@ direction metadata — doubling noise on streaming runs.
 - `@langflower/runtime/types.ts`, `@langflower/websocket-bridge` codec, all
   `runner.port` consumers (UI folds, MCP, integration tests).
 - Diagnostic log lines are raw `BridgeFrame` tuples only.
+
+---
+
+## ADR-035 — Uniform inventory wire + optional Tool collection
+
+**Status:** accepted · **Date:** 2026-08-17
+
+**Context:** After epic 41 stages 1–2, packs, MCP, and Sub-Agent all emit
+`ToolHandle[]` on `tool-handle`. LLM `tools` is already `multi: 'combine'`.
+Authors with many packs still get a fan-in of edges on the agent. A second
+registration type or forcing a hub would split the inventory again.
+
+**Alternatives considered:**
+
+- **Make LLM `tools` single-slot** — every graph needs a hub; extra node on
+  starter; rejected (collection must stay optional).
+- **Keep only LLM combine, no hub node** — works, but busy canvases have no
+  visual grouping of inventory.
+- **New wire type / `toolRegistration[]`** — duplicate of `ToolHandle`;
+  rejected.
+
+**Decision:**
+
+1. One canvas inventory wire: **`tool-handle` / `ToolHandle[]`**.
+2. Optional catalog node **`common-tool-collection`**: IN `tools`
+   (`multi: 'combine'`, default `[]`) → OUT `tools` (flattened;
+   later slot **last-wins** on `toolId`, same as
+   `collectAgentToolHandles`).
+3. LLM `tools` stays **`multi: 'combine'`**. Direct pack/MCP/Sub-Agent
+   wires remain valid.
+4. Skip junk handles; empty → `[]`. Do not throw.
+
+**Tradeoffs accepted:**
+
+- (+) One wire type; hub is opt-in; late MCP connect still merges.
+- (−) Duplicate `toolId` silently hides the earlier handle.
+- (−) Same port id `tools` in vs out on the collection node.
+
+**Consequences:**
+
+- Node: `packages/common-nodes/src/tools/tool-collection/`.
+- Amends [ADR-021](#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter)
+  inventory shape (already one `tools` handle) — does not change the canvas
+  Sub-Agent node.
+- Epic 41 part 3.
 
 ---
 

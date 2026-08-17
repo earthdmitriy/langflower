@@ -47,10 +47,10 @@ the public `@langflower/node-sdk` import path.
 | `ToolHandle`                   | Wire payload for agent tools                                             |
 | `ToolHandlerContext`           | Identity only (`projectDir` / `runId`) — see boundary below              |
 
-| Subpath | Symbols                                                                                  |
-| ------- | ---------------------------------------------------------------------------------------- |
-| `/llm`  | `defineLlmNode`, `LlmExecutionCaps` (`toolHandles` / `mcpHandles` only), inventory ports |
-| `/mcp`  | `McpHandle`, `MCP_HANDLE_WIRE_TYPE`                                                      |
+| Subpath | Symbols                                                                   |
+| ------- | ------------------------------------------------------------------------- |
+| `/llm`  | `defineLlmNode`, `LlmExecutionCaps` (`toolHandles` only), inventory ports |
+| `/mcp`  | `McpHandle` (internal session type — not a canvas wire)                   |
 
 Host I/O (`files` / `crawl` / chat stream / skills) is **not**
 on public `ExecutionContext`. Specialized common-nodes create it via
@@ -73,7 +73,7 @@ common-nodes/server bags over growing these facades.
 | Type                 | Allowed                                                        | Forbidden (put elsewhere)                                             |
 | -------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------- |
 | `ExecutionContext`   | `projectDir`, `runId`, `params` / panel, optional typed `Caps` | `files`, `crawl`, chat stream, skills, harness, authorize, `webFetch` |
-| `LlmExecutionCaps`   | `toolHandles`, `mcpHandles` only                               | Any host hook or I/O facade                                           |
+| `LlmExecutionCaps`   | `toolHandles` only                                             | Any host hook or I/O facade                                           |
 | `ToolHandlerContext` | `projectDir`, `runId` only                                     | `authorize`, `webFetch`, `denyPaths`, `allowedHosts`, harness         |
 
 **Rules for agents / PRs**

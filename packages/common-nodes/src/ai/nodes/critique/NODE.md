@@ -23,26 +23,24 @@ Built with `defineLlmNode` from `@langflower/node-sdk`.
 
 ## Inputs
 
-| Port                   | Type                  | Notes                                     |
-| ---------------------- | --------------------- | ----------------------------------------- |
-| `assignment`           | string                | required — original assignment / topic    |
-| `packet`               | string                | required — artifact under attack          |
-| `systemPrompt`         | string                | optional author attack rubric             |
-| `tools`                | tool-registration     | multi — optional inventory                |
-| `mcp`                  | mcp-handle            | multi — ready handles (+ `EC.mcpHandles`) |
-| `subagentRegistration` | subagent-registration | multi — Sub-Agent catalog                 |
-| `subagentResult`       | subagent-result       | merge — correlated spawn results          |
+| Port           | Type        | Notes                                               |
+| -------------- | ----------- | --------------------------------------------------- |
+| `assignment`   | string      | required — original assignment / topic              |
+| `packet`       | string      | required — artifact under attack                    |
+| `systemPrompt` | string      | optional author attack rubric                       |
+| `tools`        | tool-handle | multi — packs / MCP / Sub-Agent handles / jsonc MCP |
+| `steerControl` | any         | hidden HITL Steer (ADR-032)                         |
 
 ## Outputs
 
-| Port            | Type           | Notes                                                                |
-| --------------- | -------------- | -------------------------------------------------------------------- |
-| `reasoning`     | string         | API reasoning tokens when provider emits them; feed role `reasoning` |
-| `draftResponse` | string         | streamed content tokens before a tool call; feed role `draft`        |
-| `toolLog`       | string         | tool lines + reminders; feed `tool`                                  |
-| `response`      | string         | on **accept** — passthrough of `packet`                              |
-| `feedback`      | string         | on **feedback** — attack / revision notes                            |
-| `subagent`      | subagent-spawn | when Critique calls `spawn_subagent`                                 |
+| Port            | Type   | Notes                                                                |
+| --------------- | ------ | -------------------------------------------------------------------- |
+| `reasoning`     | string | API reasoning tokens when provider emits them; feed role `reasoning` |
+| `draftResponse` | string | streamed content tokens before a tool call; feed role `draft`        |
+| `toolLog`       | string | tool lines + reminders; feed `tool`                                  |
+| `recovery`      | any    | recovery notices; **hidden** (feed only)                             |
+| `response`      | string | on **accept** — passthrough of `packet`                              |
+| `feedback`      | string | on **feedback** — attack / revision notes                            |
 
 ## Params
 

@@ -33,8 +33,6 @@ export type DataTypeToTsType<D extends string> = D extends
 						| 'json'
 						| 'tool-handle'
 						| 'tool-registration'
-						| 'mcp-handle'
-						| 'mcp-transport'
 						| 'tool-id-list'
 						| 'tool-permission-table'
 						| 'any'

@@ -13,7 +13,7 @@ compaction seam). The **scripted / injected tool-loop** path accumulates
 assistant + feedback user messages like openai-llm (ADR-016).
 
 Streams tokenized **reasoning** and **draftResponse**, then a final **response**.
-Harness builtins + wired `tools` / `mcp` are listed in the reasoning text.
+Harness builtins + wired `tools` (including MCP nodes) are listed in the reasoning text.
 
 **Scripted tool loop (tests):** set param `scriptedToolTurns` to an array of
 `{ toolCalls: [...] }` / `{ text: "..." }` turns, or inject
@@ -34,32 +34,30 @@ planned in-process `mock-llm` provider path.
 
 ## Inputs
 
-| Port                   | Type                    | Notes                                             |
-| ---------------------- | ----------------------- | ------------------------------------------------- |
-| `userPrompt`           | string                  | required                                          |
-| `systemPrompt`         | string                  | optional multiline; overrides preset default      |
-| `tools`                | tool-registration       | multi combine; optional (default `[]`)            |
-| `subagentRegistration` | `subagent-registration` | multi combine; `SubAgentRegistration[]` (≠ tools) |
-| `subagentResult`       | `subagent-result`       | multi merge; `{ callId, result }` router          |
-| `mcp`                  | mcp-handle              | multi combine; ready handles (+ `EC.mcpHandles`)  |
-| `feedback`             | string                  | optional turn; revises draft / response text      |
+| Port           | Type        | Notes                                                         |
+| -------------- | ----------- | ------------------------------------------------------------- |
+| `userPrompt`   | string      | required                                                      |
+| `systemPrompt` | string      | optional multiline; overrides preset default                  |
+| `tools`        | tool-handle | multi combine; packs, MCP nodes, Sub-Agent handles, jsonc MCP |
+| `steerControl` | any         | hidden HITL Steer (ADR-032)                                   |
+| `feedback`     | string      | optional turn; revises draft / response text                  |
 
 ## Outputs
 
-| Port            | Type             | Notes                                             |
-| --------------- | ---------------- | ------------------------------------------------- |
-| `reasoning`     | string           | streaming feed role `reasoning`                   |
-| `draftResponse` | string           | streaming feed role `draft`                       |
-| `toolLog`       | string           | tool call/result lines; feed role `tool`          |
-| `response`      | string           | final text; feed role `result`                    |
-| `subagent`      | `subagent-spawn` | `SubAgentSpawnPayload` when `spawn_subagent` runs |
+| Port            | Type   | Notes                                                          |
+| --------------- | ------ | -------------------------------------------------------------- |
+| `reasoning`     | string | streaming feed role `reasoning`                                |
+| `draftResponse` | string | streaming feed role `draft`                                    |
+| `toolLog`       | string | tool call/result lines; feed role `tool`                       |
+| `recovery`      | any    | recovery notices; feed role `recovery`; **hidden** (feed only) |
+| `response`      | string | final text; feed role `result`                                 |
 
 No fake emissions; Deny after continue HITL (e.g. `maxFeedbackTurns`) errors
 the cycle — see
 [LLM_NODES.md](../../../../../../docs/LLM_NODES.md) § Port events.
 
-Custom Sub-Agent peers: import wire consts from
-`@langflower/common-nodes/ai/sub-agent-protocol`.
+Wire a Sub-Agent `subagent-registration` output into this `tools` input — the specialist is a
+normal `ToolHandle` (epic 41). Do **not** look for `spawn_subagent` ports.
 
 ## Params
 

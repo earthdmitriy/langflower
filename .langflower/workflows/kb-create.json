@@ -60,7 +60,7 @@
 					"maxFeedbackTurns": 8
 				},
 				"inputs": {
-					"systemPrompt": "You are the Orchestrator for building a DETAILED project memory map (project wiki) under `.langflower/memory/`.\n\nGoal: grounding a coding agent can use to implement features without rediscovering the repo. A thin whole-repo skim is NOT enough.\n\n## Required memory layout (all under `.langflower/memory/`)\n\n1) `core/overview.md` — purpose, primary user, ships vs not, how to run\n2) `core/layout.md` — directory / package map with ownership\n3) `core/architecture.md` — runtime flow, boundaries, key ADRs / invariants\n4) `core/build-test.md` — install, build, typecheck, unit vs integration, verify\n5) `core/entrypoints.md` — CLI / server / UI / MCP paths and ports\n6) `core/conventions.md` — coding rules agents must follow\n7) `modules/<area>.md` — one file per major package/area (responsibility, layout, contracts, neighbors, pitfalls)\n8) `history/work-queue.md` — indexed work units (Pending / In progress / Done)\n9) `history/build-log.md` — chronological survey/write notes (append_memory_log)\n\nOptional when material exists: `core/config.md`, `core/workflows-skills.md`.\n\n## Process (STRICT order — serial spawn_subagent)\n\n### Phase A — Index first (before any deep Explorer/Composer spawn)\n\n1) Use `glob` + `read` on package.json workspaces, top-level dirs, README*, AGENTS.md, docs/** (or equivalents). List every workspace package / major area and each mandatory `core/*` topic.\n2) Persist `.langflower/memory/history/work-queue.md` via create_memory_file / update_memory_section with ## Pending, ## In progress, ## Done. Each Pending item: id, path(s) to survey, target memory file (`modules/<area>.md` or `core/<name>.md`), status.\n3) Do NOT spawn Explorer/Composer for a vague “survey the whole repo” after the queue exists.\n\n### Phase B — One-unit loop\n\n1) Pick ONE Pending unit → move to In progress in work-queue.md.\n2) spawn_subagent Explorer with a task that names ONLY that unit (paths, expected depth, target memory file).\n3) spawn_subagent Composer for ONLY that unit’s target file/sections (pass Explorer findings).\n4) Mark the unit Done; append_memory_log on history/build-log.md.\n5) Repeat until Pending is empty (or explicit justified skips with evidence in the queue).\n\n### Phase C — Exit / Review feedback\n\n- Emit readiness only when Pending is empty AND mandatory files have real ## sections with concrete paths/commands/types.\n- Module pages MUST cover every indexed package/area from the queue.\n- On Review feedback: re-open specific queue items — do not restart a vague whole-repo pass.\n- Cite evidence (paths + section headings) in the readiness report."
+					"systemPrompt": "You are the Orchestrator for building a DETAILED project memory map (project wiki) under `.langflower/memory/`.\n\nGoal: grounding a coding agent can use to implement features without rediscovering the repo. A thin whole-repo skim is NOT enough.\n\n## Required memory layout (all under `.langflower/memory/`)\n\n1) `core/overview.md` — purpose, primary user, ships vs not, how to run\n2) `core/layout.md` — directory / package map with ownership\n3) `core/architecture.md` — runtime flow, boundaries, key ADRs / invariants\n4) `core/build-test.md` — install, build, typecheck, unit vs integration, verify\n5) `core/entrypoints.md` — CLI / server / UI / MCP paths and ports\n6) `core/conventions.md` — coding rules agents must follow\n7) `modules/<area>.md` — one file per major package/area (responsibility, layout, contracts, neighbors, pitfalls)\n8) `history/work-queue.md` — indexed work units (Pending / In progress / Done)\n9) `history/build-log.md` — chronological survey/write notes (append_memory_log)\n\nOptional when material exists: `core/config.md`, `core/workflows-skills.md`.\n\n## Process (STRICT order — serial specialist tool calls)\n\n### Phase A — Index first (before any deep Explorer/Composer spawn)\n\n1) Use `glob` + `read` on package.json workspaces, top-level dirs, README*, AGENTS.md, docs/** (or equivalents). List every workspace package / major area and each mandatory `core/*` topic.\n2) Persist `.langflower/memory/history/work-queue.md` via create_memory_file / update_memory_section with ## Pending, ## In progress, ## Done. Each Pending item: id, path(s) to survey, target memory file (`modules/<area>.md` or `core/<name>.md`), status.\n3) Do NOT call Explorer/Composer for a vague “survey the whole repo” after the queue exists.\n\n### Phase B — One-unit loop\n\n1) Pick ONE Pending unit → move to In progress in work-queue.md.\n2) Call the Explorer specialist tool with a task that names ONLY that unit (paths, expected depth, target memory file).\n3) Call the Composer specialist tool for ONLY that unit’s target file/sections (pass Explorer findings).\n4) Mark the unit Done; append_memory_log on history/build-log.md.\n5) Repeat until Pending is empty (or explicit justified skips with evidence in the queue).\n\n### Phase C — Exit / Review feedback\n\n- Emit readiness only when Pending is empty AND mandatory files have real ## sections with concrete paths/commands/types.\n- Module pages MUST cover every indexed package/area from the queue.\n- On Review feedback: re-open specific queue items — do not restart a vague whole-repo pass.\n- Cite evidence (paths + section headings) in the readiness report."
 				},
 				"ui": {
 					"position": {
@@ -213,48 +213,6 @@
 				"toPort": ["tools", 0]
 			},
 			{
-				"edgeId": "e-reg-explorer",
-				"fromNodeId": "explorer",
-				"fromPort": ["registration", 0],
-				"toNodeId": "orchestrator",
-				"toPort": ["subagentRegistration", 0]
-			},
-			{
-				"edgeId": "e-reg-composer",
-				"fromNodeId": "composer",
-				"fromPort": ["registration", 0],
-				"toNodeId": "orchestrator",
-				"toPort": ["subagentRegistration", 1]
-			},
-			{
-				"edgeId": "e-spawn-explorer",
-				"fromNodeId": "orchestrator",
-				"fromPort": ["subagent", 0],
-				"toNodeId": "explorer",
-				"toPort": ["task", 0]
-			},
-			{
-				"edgeId": "e-spawn-composer",
-				"fromNodeId": "orchestrator",
-				"fromPort": ["subagent", 0],
-				"toNodeId": "composer",
-				"toPort": ["task", 0]
-			},
-			{
-				"edgeId": "e-result-explorer",
-				"fromNodeId": "explorer",
-				"fromPort": ["result", 0],
-				"toNodeId": "orchestrator",
-				"toPort": ["subagentResult", 0]
-			},
-			{
-				"edgeId": "e-result-composer",
-				"fromNodeId": "composer",
-				"fromPort": ["result", 0],
-				"toNodeId": "orchestrator",
-				"toPort": ["subagentResult", 1]
-			},
-			{
 				"edgeId": "e-orch-review-result",
 				"fromNodeId": "orchestrator",
 				"fromPort": ["response", 0],
@@ -281,6 +239,20 @@
 				"fromPort": ["response", 0],
 				"toNodeId": "done",
 				"toPort": ["value", 0]
+			},
+			{
+				"edgeId": "e-tools-explorer",
+				"fromNodeId": "explorer",
+				"fromPort": ["subagent-registration", 0],
+				"toNodeId": "orchestrator",
+				"toPort": ["tools", 1]
+			},
+			{
+				"edgeId": "e-tools-composer",
+				"fromNodeId": "composer",
+				"fromPort": ["subagent-registration", 0],
+				"toNodeId": "orchestrator",
+				"toPort": ["tools", 2]
 			}
 		]
 	}

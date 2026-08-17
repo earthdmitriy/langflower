@@ -54,15 +54,7 @@ describe('materialize empty Fake LLM inputs', () => {
 			firstValueFrom(llm.inputs['tools']!.pipe(timeout(500))),
 		).resolves.toEqual([]);
 		await expect(
-			firstValueFrom(llm.inputs['mcp']!.pipe(timeout(500))),
-		).resolves.toEqual([]);
-		await expect(
 			firstValueFrom(llm.inputs['systemPrompt']!.pipe(timeout(500))),
 		).resolves.toBe('');
-		await expect(
-			firstValueFrom(
-				llm.inputs['subagentRegistration']!.pipe(timeout(500)),
-			),
-		).resolves.toEqual([]);
 	});
 });

@@ -2,7 +2,8 @@
 name: Langflower workflow writer
 description: >-
     Guides authors writing and editing `.langflower/workflows/*.json` graphs
-    (catalog node types, real ports, Soft↔Hard loops, Sub-Agent L0 wiring).
+    (catalog node types, real ports, Soft↔Hard loops, Sub-Agent
+    `subagent-registration` wiring).
 ---
 
 # Langflower workflow writer
@@ -55,11 +56,13 @@ Schema: `.langflower/schemas/workflow.schema.json`. Samples:
 | Node type                               | Key ports                                                                                                                                                                                                              |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `common-chat-input`                     | out `message` (no wireable in)                                                                                                                                                                                         |
-| `common-openai-llm` / `common-fake-llm` | in `userPrompt`, `systemPrompt`, `feedback`, `subagentRegistration`, `subagentResult`; out `response`, `subagent`, …                                                                                                   |
+| `common-openai-llm` / `common-fake-llm` | in `userPrompt`, `systemPrompt`, `feedback`, `tools`; out `response`, `toolLog`, …                                                                                                                                     |
+| `common-mcp-stdio` / `common-mcp-http`  | out **`tools`** — wire into an agent `tools` port (not a separate `mcp` port)                                                                                                                                          |
+| `common-tool-collection`                | in **`tools`** (multi combine) → out **`tools`** — optional hub; duplicate `toolId` last-wins. Direct pack → agent still OK                                                                                            |
 | `common-hitl-review-gate`               | in `result`; out `response`, `feedback`                                                                                                                                                                                |
 | `common-merge`                          | in/out **`value`** only (not `step` / `output`)                                                                                                                                                                        |
-| `common-review`                         | in `task`, `result`, `systemPrompt`; out `response`, `feedback`                                                                                                                                                        |
-| `common-sub-agent`                      | out `registration`, `result`; in `task`, `systemPrompt`                                                                                                                                                                |
+| `common-review`                         | in `task`, `result`, `systemPrompt`, `tools`; out `response`, `feedback`                                                                                                                                               |
+| `common-sub-agent`                      | out **`subagent-registration`** (one specialist handle) → parent `tools`; in `systemPrompt`, `tools`                                                                                                                   |
 | `common-finish`                         | in `value`                                                                                                                                                                                                             |
 | `common-string`                         | in/out `value`                                                                                                                                                                                                         |
 | `common-langflower-tools`               | out **`tools`** only — wire into an agent `tools` port to opt in to **`compile_custom_nodes`** (unsafe; starter Helper / Writer already wired). Not ambient. Canvas add/remove node or edge tools are **not** shipped. |
@@ -75,13 +78,14 @@ Typical HITL revise loop:
 Do **not** feed Merge output into both gates and LLM feedback on every tick
 without a clear phase split.
 
-## Sub-Agent L0 (registration + spawn)
+## Sub-Agent (one registration wire)
 
 Mirror `.langflower/workflows/kb-navigate.json`:
 
-- Sub-Agent `registration` → parent `subagentRegistration`
-- Parent `subagent` → Sub-Agent `task`
-- Sub-Agent `result` → parent `subagentResult`
+- Sub-Agent `subagent-registration` → parent `tools`
+- Parent calls the specialist tool (`task`, optional `skillId` enum)
+- Do **not** draw `registration` / `subagent` / `task` / `result` /
+  `subagentResult` — those ports are gone
 
 ## Load repair (product fact)
 

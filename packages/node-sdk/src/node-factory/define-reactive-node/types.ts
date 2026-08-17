@@ -3,7 +3,6 @@ import type {
 	StatefulConnection,
 	StatefulObservable,
 } from '@rx-evo/stateful-observable';
-import type { McpHandle } from '../define-mcp/mcp-handle.js';
 import type { ToolHandle } from '../define-tool-registrations/tool-handle.js';
 import type { CtxError } from './ctx-error.js';
 import {
@@ -23,7 +22,7 @@ import type {
 /**
  * Identity + panel only. Host I/O (files/kb/crawl/…) is owned by specialized
  * common-nodes internally — not part of the author ExecutionContext API.
- * LLM inventory arrives via {@link LlmExecutionCaps} (`toolHandles` / `mcpHandles`).
+ * LLM inventory arrives via {@link LlmExecutionCaps} (`toolHandles`).
  */
 export type ExecutionContext<
 	UI extends readonly UISchemaConstItem[] = readonly UISchemaConstItem[],
@@ -37,10 +36,9 @@ export type ExecutionContext<
 	readonly amendInput?: (patch: Readonly<Record<string, unknown>>) => void;
 } & Caps;
 
-/** Caps for {@link defineLlmNode} — outside world via ToolHandle / MCP only. */
+/** Caps for {@link defineLlmNode} — outside world via ToolHandle only. */
 export type LlmExecutionCaps = {
 	readonly toolHandles?: readonly ToolHandle[];
-	readonly mcpHandles?: readonly McpHandle[];
 };
 
 type ReactiveNodeBindResult = {

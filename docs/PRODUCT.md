@@ -60,23 +60,23 @@ startup fast. Custom packs are scanned and bundled by `@langflower/compiler`
 (epic 32 — not shipped yet). Sandboxed execution of arbitrary user-node code
 remains **out of scope** until explicitly planned.
 
-### Sub-Agent spawn (target)
+### Sub-Agent (target)
 
-Main agents may **spawn** canvas Sub-Agent nodes with selected skills — not
-hidden in-LLM agents. Sub-Agents register into the main’s tool inventory;
-spawn is an internal tool that emits on a dedicated main **output**; results
-return on a dedicated main **input** (not HITL/`feedback`) as a tool result.
-One spawn output fans out; payload carries `nodeId` so each Sub-Agent filters.
-Skills on one Sub-Agent run **sequentially**. Nested **workflow files** are far
-future; nested **spawn** (LLM→Sub-Agent→LLM) uses the same ports recursively.
+Main agents **invoke** canvas Sub-Agent nodes with selected skills — not
+hidden in-LLM agents. Each Sub-Agent announces one `ToolHandle` on `subagent-registration`;
+the parent wires that output into its `tools` inventory and calls it like any
+other tool. `invoke` runs the specialist in-node and returns a string.
+Skills on one Sub-Agent are an optional schema enum. Nested **workflow files**
+are far future; nested specialists use child `subagent-registration` → parent
+Sub-Agent `tools`.
 
 **Layers** ([ADR-022](ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo)):
-swarm defaults to **serial** spawns (local LLM HW); parallel-by-nodeId is
+swarm defaults to **serial** invokes (local LLM HW); parallel-by-nodeId is
 opt-in / low priority; same-model Monte Carlo uses **Loop** + trial envelope;
 **cross-model bake-off** = **N Sub-Agent** nodes (own provider/model each).
 
 Normative: [ADR-021](ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter),
-[MECHANICS](DONE/EPICS/MECHANICS-tool-execution.md#sub-agent-registration--spawn-target).
+[MECHANICS](DONE/EPICS/MECHANICS-tool-execution.md#sub-agent-as-toolhandle).
 
 ## Roadmap frame
 
@@ -121,6 +121,7 @@ TODO / epic queue. Promote to [ADR.md](ADR.md) when a direction is chosen.
 | [ARCHITECTURE.md](ARCHITECTURE.md)                                                 | System / transport architecture                                                     |
 | [STATUS.md](STATUS.md)                                                             | Package / capability implementation status                                          |
 | [CONFIG.md](CONFIG.md)                                                             | `langflower.jsonc` / providers                                                      |
-| [ADR-021](ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter) | Sub-Agent registration + spawn                                                      |
+| [ADR-021](ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter) | Sub-Agent canvas node + `subagent-registration` handle                              |
 | [ADR-022](ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo)               | Sub-Agent layers + N-Sub-Agent bake-off                                             |
+| [ADR-035](ADR.md#adr-035--uniform-inventory-wire--optional-tool-collection)        | One `tool-handle` inventory wire; optional Tool collection hub                      |
 | [spec.md](../spec.md)                                                              | Historical Stage-1 bootstrap spec — prefer this file + use-cases for product intent |

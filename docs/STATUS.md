@@ -198,11 +198,11 @@ shipped**.
 | Review Gate               | `common-hitl-review-gate` | **done**    | Reactive HITL (approve / request-changes; multi-await OK)                                   |
 | Fake LLM                  | `common-fake-llm`         | **done**    | Demo stream + scripted internal tool-loop                                                   |
 | OpenAI-compatible LLM     | `common-openai-llm`       | **done**    | Reactive stream/tool loop; idle/5xx retry → Steer; role tool profiles                       |
-| MCP stdio                 | `common-mcp-stdio`        | **done**    | Node-owned stdio MCP → live `mcp-transport`                                                 |
-| MCP http                  | `common-mcp-http`         | **done**    | Node-owned HTTP MCP (+ optional launch) → live `mcp-transport`                              |
+| MCP stdio                 | `common-mcp-stdio`        | **done**    | Node-owned stdio MCP → `tools` (`ToolHandle[]`)                                             |
+| MCP http                  | `common-mcp-http`         | **done**    | Node-owned HTTP MCP (+ optional launch) → `tools` (`ToolHandle[]`)                          |
 | Review (LLM tools)        | `common-review`           | **done**    | Shared reactive loop + forced `accept`/`feedback` policy                                    |
 | Critique (LLM tools)      | `common-critique`         | **done**    | Shared reactive loop + path-choice attack policy                                            |
-| Sub-Agent                 | `common-sub-agent`        | **partial** | L0 spawn/result with bounded wait + Pause/Steer; L1+ open                                   |
+| Sub-Agent                 | `common-sub-agent`        | **partial** | OUT `subagent-registration`; invoke in-node; L1+ open                                       |
 | Chat Input                | `common-chat-input`       | **done**    | Composer cold-start entry (epic 13)                                                         |
 | Assert                    | `common-assert`           | **done**    | Hard harness (epic 06)                                                                      |
 | IF                        | `common-if`               | **done**    | Hard harness (epic 06)                                                                      |
@@ -210,6 +210,7 @@ shipped**.
 | Compare                   | `common-compare`          | **done**    | Hard harness (epic 06)                                                                      |
 | Switch                    | `common-switch`           | **done**    | Hard harness (epic 06); static `pass`/`fail`/`default` ports                                |
 | Memory Tools              | `common-memory-tools`     | **done**    | ADR-033 — markdown tools under `.langflower/memory/`                                        |
+| Tool collection           | `common-tool-collection`  | **done**    | Optional hub: combine `tools` → one `ToolHandle[]` (last-wins; ADR-035)                     |
 | Fetch URL                 | `common-fetch-url`        | **done**    | Epic 12 — SSRF-guarded GET + HTML→text                                                      |
 | Extract Links             | `common-extract-links`    | **done**    | Epic 12 — HTML → absolute links                                                             |
 | Save Page                 | `common-save-page`        | **done**    | Epic 12 — persist under `.langflower/crawl/{runId}/`                                        |
@@ -230,7 +231,7 @@ shipped**.
 | Crawl research nodes               | fetch/extract/crawl/save                      | **done**                                             | epic 12                                                                                                     |
 | Runtime `permission.ask` ladder    | feed Allow/Deny for **builtins** in tool loop | **done**                                             | epic 02; wired packs/MCP skip ask (ADR-033)                                                                 |
 | Tools package + permission adapter | `@langflower/tools`, `server/src/harness/`    | **done**                                             | epics 01 / 02                                                                                               |
-| MCP client / inventory map         | `@langflower/tools` mcp/, LLM `mcp` init port | **done** (fixture/scripted); **live model unproven** | epic 16; [TESTING live checklist](TESTING.md#live-openai-compatible--mcp-tool-calling-gap)                  |
+| MCP client / inventory map         | `@langflower/tools` mcp/, LLM `tools` port    | **done** (fixture/scripted); **live model unproven** | epic 16 / 41 stage 1; [TESTING live checklist](TESTING.md#live-openai-compatible--mcp-tool-calling-gap)     |
 
 ## Out of scope (deferred)
 

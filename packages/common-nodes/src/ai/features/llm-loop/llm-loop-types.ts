@@ -40,7 +40,6 @@ type LlmLoopPhase =
 	| 'prepare'
 	| 'streaming'
 	| 'tools'
-	| 'waiting-subagent'
 	| 'suspended'
 	| 'complete'
 	| 'failed'
@@ -62,7 +61,6 @@ export type LlmLoopState = {
 	/** Kick-mode autokicks only; HTTP join does not bump penalties. */
 	readonly autokickKickAttempts: number;
 	readonly lastAutokickAt?: number | undefined;
-	readonly openSpawnCallId?: string | undefined;
 	readonly suspendedBy?: LlmSuspendReason | undefined;
 	readonly failure?: LlmFailure | undefined;
 };
@@ -92,8 +90,6 @@ export type LlmLoopAction =
 			readonly call: ChatCompletionToolCall;
 			readonly result: string;
 	  }
-	| { readonly type: 'subagent.waiting'; readonly callId: string }
-	| { readonly type: 'subagent.completed' }
 	| { readonly type: 'retry.scheduled' }
 	| {
 			readonly type: 'autokick.scheduled';

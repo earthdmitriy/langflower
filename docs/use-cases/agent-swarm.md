@@ -5,10 +5,11 @@ Mock-testable topology only.
 
 ## Value
 
-Feel orchestration as **graph topology**: Main registers and **spawns** an
-Explorer Sub-Agent on the canvas (ADR-021 L0). The Sub-Agent is an ordinary
-agent with its own provider/model/role — then Main resumes. Toward a swarm, not
-a single chat persona. **Not** multi-specialist fan-out / Concat merge (that is
+Feel orchestration as **graph topology**: Main wires Explorer Sub-Agent
+`tools` into Main `tools` and **invokes** the specialist (ADR-021). The
+Sub-Agent is an ordinary agent with its own provider/model/role — then Main
+resumes. Toward a swarm, not a single chat persona. **Not** multi-specialist
+fan-out / Concat merge (that is
 [research-fanout-merge](./research-fanout-merge.md)).
 
 ## UX scenarios
@@ -29,30 +30,28 @@ to be a team in a single thread.
 - Run MUST exercise Brief → Main → Sub-Agent Explorer → Preview (not a
   single-node self-role-switch turn).
 - In the [feed](../features/feed-panel.md), Main and Explorer MUST appear as
-  **distinct node-labeled** activity. Main’s spawn / resume turns and Explorer’s
+  **distinct node-labeled** activity. Main’s invoke / resume turns and Explorer’s
   scout turn MUST both be attributable without reading raw node ids.
 - [Workflow execution](../features/workflow-execution.md) MUST show Main vs
   Explorer activity on the canvas for the same run.
 
-### S2 — Main MUST spawn Explorer on registration ports
+### S2 — Main MUST call Explorer on one `tools` wire
 
-**Who:** Same developer watching the first spawn.
+**Who:** Same developer watching the first specialist call.
 
-**Want:** Spawn topology on the canvas (registration / `subagent` / `result`) —
-not an off-screen manager.
+**Want:** Specialist topology on the canvas (one inventory edge) — not an
+off-screen manager.
 
-**Do:** Let Main call `spawn_subagent` for the registered Explorer Sub-Agent;
-observe `registration` → Main, Main `subagent` → Explorer `task`, Explorer
-`result` → Main `subagentResult`.
+**Do:** Let Main call the Explorer specialist tool; observe Explorer
+`subagent-registration` → Main `tools`.
 
 **Expect:**
 
-- Sub-Agent MUST be a `common-sub-agent` node with registration wired into Main
-  `subagentRegistration` (ADR-021 L0).
-- Main MUST spawn: traffic MUST leave Main via the `subagent` port into
-  Explorer `task` — MUST NOT complete the scout as in-LLM-only role-play with
-  no Sub-Agent node.
-- Explorer `result` MUST resume Main on `subagentResult`.
+- Sub-Agent MUST be a `common-sub-agent` node with `subagent-registration`
+  wired into Main `tools` (ADR-021).
+- Main MUST invoke Explorer as a tool — MUST NOT complete the scout as
+  in-LLM-only role-play with no Sub-Agent node.
+- Explorer `invoke` MUST resume Main as a normal tool result.
 
 ### S3 — Explorer runs under its own chat config
 
@@ -62,7 +61,8 @@ observe `registration` → Main, Main `subagent` → Explorer `task`, Explorer
 model — not Main restating an “Explorer:” persona in one prompt, and not a
 separate body LLM behind hub ports.
 
-**Do:** Let Explorer accept spawn on `task`, run in-node chat, emit `result`.
+**Do:** Let Explorer accept `invoke({ task })`, run in-node chat, return a
+string to Main.
 
 **Expect:**
 
@@ -82,7 +82,7 @@ separate body LLM behind hub ports.
 
 **Expect:**
 
-- After `subagentResult`, Main MUST emit a final `response` into Preview.
+- After the Explorer tool result, Main MUST emit a final `response` into Preview.
 - Preview MUST show Main’s final answer (CI Fake path contains `Swarm done`).
 - Feed MUST show Main’s post-spawn answer as Main activity — not as a
   continuation of the Explorer block.
@@ -104,18 +104,18 @@ prompt.
 
 ## UI specs
 
-| Spec                                                    | Scenarios covered                                                                                                                                                                                                                                   |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Feed panel](../features/feed-panel.md)                 | [S1](#s1--start-the-agent-swarm-demo), [S2](#s2--main-must-spawn-explorer-on-registration-ports), [S3](#s3--explorer-runs-under-its-own-chat-config), [S4](#s4--main-answers-after-the-sub-agent-result), [S5](#s5--re-run-the-same-spawn-topology) |
-| [Workflow execution](../features/workflow-execution.md) | [S1](#s1--start-the-agent-swarm-demo), [S2](#s2--main-must-spawn-explorer-on-registration-ports), [S3](#s3--explorer-runs-under-its-own-chat-config), [S5](#s5--re-run-the-same-spawn-topology)                                                     |
+| Spec                                                    | Scenarios covered                                                                                                                                                                                                                              |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Feed panel](../features/feed-panel.md)                 | [S1](#s1--start-the-agent-swarm-demo), [S2](#s2--main-must-call-explorer-on-one-tools-wire), [S3](#s3--explorer-runs-under-its-own-chat-config), [S4](#s4--main-answers-after-the-sub-agent-result), [S5](#s5--re-run-the-same-spawn-topology) |
+| [Workflow execution](../features/workflow-execution.md) | [S1](#s1--start-the-agent-swarm-demo), [S2](#s2--main-must-call-explorer-on-one-tools-wire), [S3](#s3--explorer-runs-under-its-own-chat-config), [S5](#s5--re-run-the-same-spawn-topology)                                                     |
 
 ## Runtime requirements
 
-| Need                                                            | Why (scenario)                                                                                                        | Today            |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| `common-sub-agent` registration → spawn → `result` (ADR-021 L0) | On-canvas spawn ([S2](#s2--main-must-spawn-explorer-on-registration-ports))                                           | Landed (epic 07) |
-| Sub-Agent in-node chat + own role/provider/model                | Distinct specialist ([S3](#s3--explorer-runs-under-its-own-chat-config))                                              | Landed           |
-| Real LLM on Main + Sub-Agent (demo); Fake/scripted (CI)         | End-user vs Mock-testable ([S1](#s1--start-the-agent-swarm-demo), [S4](#s4--main-answers-after-the-sub-agent-result)) | Landed           |
+| Need                                                                  | Why (scenario)                                                                                                        | Today                    |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `common-sub-agent` `subagent-registration` → parent `tools` (ADR-021) | On-canvas specialist ([S2](#s2--main-must-call-explorer-on-one-tools-wire))                                           | Landed (epic 41 stage 2) |
+| Sub-Agent in-node chat + own role/provider/model                      | Distinct specialist ([S3](#s3--explorer-runs-under-its-own-chat-config))                                              | Landed                   |
+| Real LLM on Main + Sub-Agent (demo); Fake/scripted (CI)               | End-user vs Mock-testable ([S1](#s1--start-the-agent-swarm-demo), [S4](#s4--main-answers-after-the-sub-agent-result)) | Landed                   |
 
 ## Workflow shape
 
@@ -129,9 +129,7 @@ flowchart LR
   Fin[Preview]
 
   Brief --> Main
-  Sub -->|registration| Main
-  Main -->|subagent spawn| Sub
-  Sub -->|result| Main
+  Sub -->|subagent-registration| Main
   Main --> Fin
 ```
 
@@ -141,9 +139,9 @@ Dynamic N same-template workers / fan-out→merge live in
 ## Status
 
 **Partial** — demo graph and CI Fake path landed. Fake Main + scripted Sub-Agent
-`spawn_subagent` is **Mock-testable** only (registration / spawn / resume
+tool call is **Mock-testable** only (one `tools` wire / invoke / resume
 topology). **Implementable** when S1–S5 Expects pass on the current demo with a
-**real** LLM (Main MUST spawn Explorer; Preview gets Main’s answer; feed
+**real** LLM (Main MUST call Explorer; Preview gets Main’s answer; feed
 attributes Main vs Explorer distinctly).
 
 ### Missing parts

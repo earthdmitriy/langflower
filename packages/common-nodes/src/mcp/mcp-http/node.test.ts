@@ -44,7 +44,7 @@ describe('common-mcp-http connect errors (S5)', () => {
 						event[0] === 'out' &&
 						event[3] === 'error' &&
 						event[1] === 'mcp-http-1' &&
-						event[2] === 'mcpTransport',
+						event[2] === 'tools',
 				),
 			),
 		);

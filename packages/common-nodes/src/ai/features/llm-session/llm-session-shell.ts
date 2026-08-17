@@ -33,11 +33,6 @@ import {
 	resolveEffectiveSkillId,
 	type LlmRolePreset,
 } from '../llm-role-preset.js';
-import {
-	flattenSubAgentRegistrations,
-	type SubAgentRegistration,
-	type SubAgentSpawnPayload,
-} from '../sub-agent-protocol.js';
 import type { LlmCompactionConfig } from '../openai/normalize-compaction-params.js';
 import { normalizeCompactionConfig } from '../openai/normalize-compaction-params.js';
 import { resolveChatProviderModel } from '../prompt/resolve-chat-provider-model.js';
@@ -56,7 +51,6 @@ export type LlmAgentInventoryContext = {
 	readonly prompt: string;
 	readonly tools: readonly ToolHandle[];
 	readonly getTools?: () => readonly ToolHandle[];
-	readonly subagentRegistrations: readonly SubAgentRegistration[];
 	readonly providerId: string;
 	readonly model: string;
 	readonly skillId: string;
@@ -114,10 +108,6 @@ type StandardLlmAgentChunk =
 	| {
 			readonly kind: 'historySync';
 			readonly messages: readonly ChatCompletionMessage[];
-	  }
-	| {
-			readonly kind: 'subagentSpawn';
-			readonly payload: SubAgentSpawnPayload;
 	  };
 
 type LlmAgentEcSlice = {
@@ -126,7 +116,6 @@ type LlmAgentEcSlice = {
 	readonly nodeId: string;
 	readonly params: Readonly<Record<string, unknown>>;
 	readonly toolHandles?: readonly ToolHandle[];
-	readonly mcpHandles?: readonly import('@langflower/node-sdk/mcp').McpHandle[];
 };
 
 const asPortList = (value: unknown): readonly unknown[] => {
@@ -145,10 +134,8 @@ const createAgentGetTools = (
 	ec: {
 		readonly nodeId: string;
 		readonly toolHandles?: readonly ToolHandle[];
-		readonly mcpHandles?: LlmAgentEcSlice['mcpHandles'];
 	},
 	toolList: unknown,
-	mcpList: unknown,
 ): (() => readonly ToolHandle[]) => {
 	const hostServices = getRunHostServices(ec);
 	return () => {
@@ -159,8 +146,6 @@ const createAgentGetTools = (
 				live === undefined
 					? toolList
 					: [...asPortList(toolList), ...live],
-			mcpHandles: ec.mcpHandles,
-			mcpPort: mcpList,
 		});
 	};
 };
@@ -212,8 +197,6 @@ export const appendToolInventory = (
 const assembleLlmAgentInventoryContext = (
 	prompt: unknown,
 	toolList: unknown,
-	subagentList: unknown,
-	mcpList: unknown,
 	systemPromptValue: unknown,
 	ec: LlmAgentEcSlice,
 ): LlmAgentInventoryContext => {
@@ -222,13 +205,12 @@ const assembleLlmAgentInventoryContext = (
 	const hostServices = getRunHostServices(ec);
 	const skillMarkdown = hostServices?.skillMarkdown ?? '';
 	const agentsMarkdown = hostServices?.agentsMarkdown ?? '';
-	const getTools = createAgentGetTools(ec, toolList, mcpList);
+	const getTools = createAgentGetTools(ec, toolList);
 
 	return {
 		prompt: String(prompt ?? ''),
 		tools: getTools(),
 		getTools,
-		subagentRegistrations: flattenSubAgentRegistrations(subagentList),
 		...resolveChatProviderModel(ec.params, hostServices),
 		skillId,
 		rolePreset,
@@ -316,13 +298,6 @@ const demuxLlmAgentPorts = <Deps, Meta extends PortMeta | undefined>(
 			(chunk) => asKind<StandardLlmAgentChunk, 'response'>(chunk).text,
 		),
 	),
-	subagent$: cycle$.pipeValue(
-		demuxByKind(
-			'subagentSpawn',
-			(chunk) =>
-				asKind<StandardLlmAgentChunk, 'subagentSpawn'>(chunk).payload,
-		),
-	),
 });
 
 /**
@@ -389,7 +364,6 @@ type BindLlmAgentSessionOptions<
 		context: Context,
 		feedback: string | undefined,
 		history: readonly ChatCompletionMessage[],
-		subagentResult$: Observable<unknown>,
 		session: Session,
 	) => Observable<Chunk>;
 };
@@ -415,8 +389,7 @@ export const bindLlmAgentSession = <
 	options: BindLlmAgentSessionOptions<Context, Chunk, Session>,
 ) => {
 	const { makeInput, configureOutput, combineInputs } = helpers;
-	const { tools, mcp, subagentRegistration, subagentResult, steerControl } =
-		inventory;
+	const { tools, steerControl } = inventory;
 
 	// 1. role inputs
 	const userPrompt = makeInput<string>('userPrompt', {
@@ -440,13 +413,11 @@ export const bindLlmAgentSession = <
 
 	// 2. inventory context$
 	const context$ = combineInputs(
-		[userPrompt, tools, subagentRegistration, mcp, systemPrompt, ctx],
-		([prompt, toolList, subagentList, mcpList, systemPromptValue, ec]) => {
+		[userPrompt, tools, systemPrompt, ctx],
+		([prompt, toolList, systemPromptValue, ec]) => {
 			const base = assembleLlmAgentInventoryContext(
 				prompt,
 				toolList,
-				subagentList,
-				mcpList,
 				systemPromptValue,
 				ec,
 			);
@@ -469,21 +440,14 @@ export const bindLlmAgentSession = <
 					? undefined
 					: String(turnFeedback ?? ''),
 				history,
-				subagentResult.value$,
 				session,
 			),
 		{ primeTurn0: true },
 	);
 
 	// 4. demux
-	const {
-		reasoning$,
-		draftResponse$,
-		toolLog$,
-		recovery$,
-		response$,
-		subagent$,
-	} = demuxLlmAgentPorts(cycle$);
+	const { reasoning$, draftResponse$, toolLog$, recovery$, response$ } =
+		demuxLlmAgentPorts(cycle$);
 
 	// 5. outputs
 	return {
@@ -502,6 +466,6 @@ export const bindLlmAgentSession = <
 				feed: { role: 'result' },
 			}),
 		],
-		inventoryOutputs: { toolLog$, recovery$, subagent$ },
+		inventoryOutputs: { toolLog$, recovery$ },
 	};
 };

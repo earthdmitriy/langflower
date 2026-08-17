@@ -4,14 +4,14 @@
 		"name": "Starter",
 		"description": "Chat loop with an onboarding agent (skill langflower-helper) plus a Writer Sub-Agent (workflow-writer + node-writer). After bootstrap — product capabilities, workflows, editor chrome, and custom nodes.",
 		"createdAt": "2026-07-24T00:00:00.000Z",
-		"updatedAt": "2026-08-15T00:00:00.000Z"
+		"updatedAt": "2026-08-17T19:48:40.018Z"
 	},
 	"graph": {
 		"viewport": {
-			"x": -117.86676025390625,
-			"y": -161.066650390625,
-			"scale": 0.85,
-			"width": 719.0625,
+			"x": 240.31491198748387,
+			"y": -373.23462597021984,
+			"scale": 1.0397603508596425,
+			"width": 702.1875,
 			"height": 1005.328125
 		},
 		"nodes": [
@@ -63,7 +63,7 @@
 					}
 				},
 				"inputs": {
-					"systemPrompt": "You are the Langflower onboarding assistant. Use the langflower-helper skill. The user already started Langflower and configured a provider — do not lead with CLI start or provider setup. Help with what Langflower can do, workflows, editor chrome, and custom nodes. Keep answers short and actionable.\n\nLangflower Tools is wired: after custom-node file changes (yours or Writer's), call compile_custom_nodes (no args). Do not send the user to Custom → Update as the only path. You cannot place a new type on the canvas mid-run; already-placed custom types hot-swap, and already-wired custom tools can be invoked later in this run.\n\nWhen the user asks to draft or edit a workflow JSON or a custom node pack, spawn_subagent the Writer specialist (skills langflower-workflow-writer and langflower-node-writer) with a clear task; then compile if nodes changed, and summarize for the user."
+					"systemPrompt": "You are the Langflower onboarding assistant. Use the langflower-helper skill. The user already started Langflower and configured a provider — do not lead with CLI start or provider setup. Help with what Langflower can do, workflows, editor chrome, and custom nodes. Keep answers short and actionable.\n\nLangflower Tools is wired: after custom-node file changes (yours or Writer's), call compile_custom_nodes (no args). Do not send the user to Custom → Update as the only path. You cannot place a new type on the canvas mid-run; already-placed custom types hot-swap, and already-wired custom tools can be invoked later in this run.\n\nWhen the user asks to draft or edit a workflow JSON or a custom node pack, call the Writer specialist tool (skills langflower-workflow-writer and langflower-node-writer) with a clear task; then compile if nodes changed, and summarize for the user."
 				},
 				"ui": {
 					"position": {
@@ -97,7 +97,8 @@
 						"write": "allow",
 						"create": "allow",
 						"delete": "ask",
-						"bash": "ask"
+						"bash": "ask",
+						"compile_custom_nodes": "allow"
 					}
 				},
 				"inputs": {
@@ -105,8 +106,8 @@
 				},
 				"ui": {
 					"position": {
-						"x": 320,
-						"y": 1060
+						"x": -100,
+						"y": 720
 					},
 					"label": "Writer"
 				}
@@ -148,27 +149,6 @@
 				"toPort": ["userPrompt", 0]
 			},
 			{
-				"edgeId": "e-reg-writer",
-				"fromNodeId": "writer",
-				"fromPort": ["registration", 0],
-				"toNodeId": "helper",
-				"toPort": ["subagentRegistration", 0]
-			},
-			{
-				"edgeId": "e-spawn-writer",
-				"fromNodeId": "helper",
-				"fromPort": ["subagent", 0],
-				"toNodeId": "writer",
-				"toPort": ["task", 0]
-			},
-			{
-				"edgeId": "e-result-writer",
-				"fromNodeId": "writer",
-				"fromPort": ["result", 0],
-				"toNodeId": "helper",
-				"toPort": ["subagentResult", 0]
-			},
-			{
 				"edgeId": "e-helper-review",
 				"fromNodeId": "helper",
 				"fromPort": ["response", 0],
@@ -181,6 +161,13 @@
 				"fromPort": ["feedback", 0],
 				"toNodeId": "helper",
 				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-tools-writer",
+				"fromNodeId": "writer",
+				"fromPort": ["subagent-registration", 0],
+				"toNodeId": "helper",
+				"toPort": ["tools", 1]
 			}
 		]
 	}

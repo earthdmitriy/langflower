@@ -27,7 +27,6 @@ describe('defineLlmNode', () => {
 				});
 				const toolLog$ = idle$();
 				const recovery$ = idle$();
-				const subagent$ = idle$();
 
 				return {
 					inputs: [prompt],
@@ -39,7 +38,6 @@ describe('defineLlmNode', () => {
 					inventoryOutputs: {
 						toolLog$,
 						recovery$,
-						subagent$,
 					},
 				};
 			},
@@ -59,12 +57,26 @@ describe('defineLlmNode', () => {
 		}
 
 		expect(inputIds).toContain('userPrompt');
+		expect(inputIds).not.toContain('mcp');
+		expect(inputIds).not.toContain('subagentRegistration');
+		expect(inputIds).not.toContain('subagentResult');
+		expect(outputIds).not.toContain('subagent');
 		expect(outputIds).toContain('response');
 
 		const steerMeta = node.inputsConfigs.find(
 			(meta) => meta.portId === 'steerControl',
 		);
 		expect(steerMeta?.mode).toBe('single');
+
+		const toolsMeta = node.inputsConfigs.find(
+			(meta) => meta.portId === 'tools',
+		);
+		expect(toolsMeta?.mode).toBe('combine');
+
+		const recoveryMeta = node.outputsConfigs.find(
+			(meta) => meta.portId === 'recovery',
+		);
+		expect(recoveryMeta?.hidden).toBe(true);
 	});
 
 	it('rejects redeclared inventory inputs', () => {
@@ -86,7 +98,6 @@ describe('defineLlmNode', () => {
 						inventoryOutputs: {
 							toolLog$: stream$,
 							recovery$: stream$,
-							subagent$: stream$,
 						},
 					};
 				},

@@ -7,9 +7,7 @@ import type {
 	ChatCompletionMessage,
 	CreateChatCompletionStream,
 } from '../chat-completion-stream.js';
-import type { SubAgentRegistration } from '../sub-agent-protocol.js';
 import {
-	buildSpawnSubagentChatTool,
 	parseToolArgs,
 	previewToolLogText,
 	toChatToolDefinitions,
@@ -126,17 +124,11 @@ export const runPathChoiceToolLoop = (args: {
 	readonly tools?: readonly ToolHandle[];
 	readonly harness?: Harness;
 	readonly toolCtx?: ToolHandlerContext;
-	readonly subagentRegistrations?: readonly SubAgentRegistration[];
 	readonly compaction?: LlmCompactionConfig;
 	readonly recovery?: LlmRecoveryPolicy;
 	readonly steerControl$?: Observable<SteerControlPayload>;
-	readonly waitForSubagentResult?: (
-		callId: string,
-		signal: AbortSignal,
-	) => Promise<string>;
 }): Observable<ReviewLoopChunk> => {
 	const inventory = args.tools ?? [];
-	const subagentRegistrations = args.subagentRegistrations ?? [];
 
 	return runLlmLoop<ReviewLoopChunk>({
 		factory: args.factory,
@@ -145,26 +137,14 @@ export const runPathChoiceToolLoop = (args: {
 		messages: args.messages,
 		maxIterations: args.maxIterations,
 		inventoryTools: inventory,
-		chatTools: [
-			...REVIEW_CHAT_TOOLS,
-			...toChatToolDefinitions(inventory),
-			...(subagentRegistrations.length > 0
-				? [buildSpawnSubagentChatTool(subagentRegistrations)]
-				: []),
-		],
+		chatTools: [...REVIEW_CHAT_TOOLS, ...toChatToolDefinitions(inventory)],
 		compaction: args.compaction ?? DISABLED_COMPACTION_CONFIG,
 		recovery: args.recovery ?? DEFAULT_LLM_RECOVERY_POLICY,
 		policy: PATH_CHOICE_POLICY,
-		subagentRegistrations,
 		...(args.harness !== undefined ? { harness: args.harness } : {}),
 		...(args.toolCtx !== undefined ? { toolCtx: args.toolCtx } : {}),
 		...(args.steerControl$ !== undefined
 			? { steerControl$: args.steerControl$ }
-			: {}),
-		...(args.waitForSubagentResult !== undefined
-			? {
-					waitForSubagentResult: args.waitForSubagentResult,
-				}
 			: {}),
 	}) as Observable<ReviewLoopChunk>;
 };

@@ -18,7 +18,7 @@ Shared LLM core lives under `features/` as named slices — not a junk drawer:
 - `features/prompt/` — system prompt, max-iterations, provider/model resolve
 
 One-file published modules stay at `features/` root (`llm-role-preset.ts`,
-`sub-agent-protocol.ts`, `run-host-services.ts`). Specifiers in
+`run-host-services.ts`). Specifiers in
 `package.json` `exports` are unchanged.
 
 Plan / Coder / Explorer are **instance presets** on `common-openai-llm` /

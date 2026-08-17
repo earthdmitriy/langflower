@@ -1,6 +1,6 @@
 # Node-local MCP
 
-**Status:** Partial — happy-path wire + system `McpHandle` landed; wire connect
+**Status:** Partial — happy-path wire + system MCP tools landed; wire connect
 fail → port error (S5) landed; system MCP fail → per-node ctx `error$` (S6)
 landed.
 
@@ -8,7 +8,7 @@ landed.
 
 Attach **workflow-specific** MCP servers (stdio CLI or HTTP) as canvas nodes, or
 declare **project** servers in `langflower.jsonc` — both arrive at the agent as
-**ready** `McpHandle` values (never raw config for the agent to expand). One MCP
+**ready** `ToolHandle[]` values (never raw config for the agent to expand). One MCP
 node can fan out to several agents. Failures MUST be loud: silent empty
 inventory or a “successful” run that never started the MCP the author enabled
 is **not** this Value.
@@ -21,7 +21,7 @@ is **not** this Value.
 
 **Want:** Launch `npx ts-scan -mcp` for this workflow only.
 
-**Do:** Place **MCP stdio**, set `command`, wire `mcpTransport` → LLM `mcp`.
+**Do:** Place **MCP stdio**, set `command`, wire `tools` → LLM `tools`.
 
 **Expect:**
 
@@ -46,7 +46,7 @@ is **not** this Value.
 
 **Who:** Author whose MCP speaks HTTP and needs a local process first.
 
-**Do:** Set both `command` (shell) and `url`; wire transport.
+**Do:** Set both `command` (shell) and `url`; wire `tools` → agent `tools`.
 
 **Expect:**
 

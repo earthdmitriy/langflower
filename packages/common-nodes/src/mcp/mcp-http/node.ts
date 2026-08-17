@@ -1,5 +1,8 @@
-import { defineReactiveNode } from '@langflower/node-sdk';
-import { MCP_HANDLE_WIRE_TYPE, type McpHandle } from '@langflower/node-sdk/mcp';
+import {
+	defineReactiveNode,
+	TOOL_HANDLE_WIRE_TYPE,
+	type ToolHandle,
+} from '@langflower/node-sdk';
 import { buildMcpHandle } from '@langflower/tools/build-mcp-handle';
 import { formatMcpConnectError } from '@langflower/tools/format-mcp-connect-error';
 import { connectMcpHttpWithOptionalLaunch } from '@langflower/tools/mcp-http-client';
@@ -21,17 +24,17 @@ const paramsKey = (params: HttpParams): string =>
 	});
 
 /**
- * Owns HTTP MCP connect/close (optional local launch); emits live {@link McpHandle}.
- * Handle id = graph nodeId; server name and tools come from MCP initialize /
- * tools/list. Connect/initialize/build failure → output port **error** (not
- * silent EMPTY).
+ * Owns HTTP MCP connect/close (optional local launch); emits live
+ * {@link ToolHandle}[] for LLM `tools`. Server name and tools come from MCP
+ * initialize / tools/list. Session stays in invoke closures.
+ * Connect/initialize/build failure → output port **error** (not silent EMPTY).
  */
 export const mcpHttpNode = defineReactiveNode({
 	type: 'common-mcp-http',
 	displayName: 'MCP http',
 	category: 'Tools',
 	description:
-		'Connects to an MCP server over Streamable HTTP. Optional shell command launches a local process first; URL alone targets an already-running server.',
+		'Connects to an MCP server over Streamable HTTP and emits its tools for LLM `tools` ports. Optional shell command launches a local process first; URL alone targets an already-running server.',
 	uiSchema: [] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
 		const url = makeInput<string>('url', {
@@ -70,62 +73,64 @@ export const mcpHttpNode = defineReactiveNode({
 						return EMPTY;
 					}
 
-					return new Observable<McpHandle>((subscriber) => {
-						let closed = false;
-						let closeSession: (() => Promise<void>) | undefined;
+					return new Observable<readonly ToolHandle[]>(
+						(subscriber) => {
+							let closed = false;
+							let closeSession: (() => Promise<void>) | undefined;
 
-						const fail = (cause: unknown): void => {
-							if (closed || subscriber.closed) {
-								return;
-							}
+							const fail = (cause: unknown): void => {
+								if (closed || subscriber.closed) {
+									return;
+								}
 
-							subscriber.error(
-								formatMcpConnectError(cause, {
-									nodeId: params.nodeId,
-									kind: 'http',
-									target: params.url,
-								}),
-							);
-						};
+								subscriber.error(
+									formatMcpConnectError(cause, {
+										nodeId: params.nodeId,
+										kind: 'http',
+										target: params.url,
+									}),
+								);
+							};
 
-						const run = async (): Promise<void> => {
-							const session =
-								await connectMcpHttpWithOptionalLaunch({
-									url: params.url,
-									...(params.command.length > 0
-										? { command: params.command }
-										: {}),
-									...(params.projectDir.length > 0
-										? { cwd: params.projectDir }
-										: {}),
+							const run = async (): Promise<void> => {
+								const session =
+									await connectMcpHttpWithOptionalLaunch({
+										url: params.url,
+										...(params.command.length > 0
+											? { command: params.command }
+											: {}),
+										...(params.projectDir.length > 0
+											? { cwd: params.projectDir }
+											: {}),
+									});
+								closeSession = () => session.close();
+
+								if (closed) {
+									await session.close();
+									return;
+								}
+
+								const handle = await buildMcpHandle({
+									id: params.nodeId,
+									client: session.client,
 								});
-							closeSession = () => session.close();
 
-							if (closed) {
-								await session.close();
-								return;
-							}
+								if (closed) {
+									await session.close();
+									return;
+								}
 
-							const handle = await buildMcpHandle({
-								id: params.nodeId,
-								client: session.client,
-							});
+								subscriber.next(handle.tools);
+							};
 
-							if (closed) {
-								await session.close();
-								return;
-							}
+							void run().catch(fail);
 
-							subscriber.next(handle);
-						};
-
-						void run().catch(fail);
-
-						return () => {
-							closed = true;
-							void closeSession?.();
-						};
-					});
+							return () => {
+								closed = true;
+								void closeSession?.();
+							};
+						},
+					);
 				}),
 			),
 		);
@@ -133,8 +138,8 @@ export const mcpHttpNode = defineReactiveNode({
 		return {
 			inputs: [url, command],
 			outputs: [
-				configureOutput('mcpTransport', handle$, {
-					wireType: MCP_HANDLE_WIRE_TYPE,
+				configureOutput('tools', handle$, {
+					wireType: TOOL_HANDLE_WIRE_TYPE,
 				}),
 			],
 		};

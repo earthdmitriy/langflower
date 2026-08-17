@@ -1,9 +1,9 @@
 import { contextSymbol } from '@langflower/node-sdk';
+import type { ToolHandle } from '@langflower/node-sdk';
 import type { CreateChatCompletionStreamArgs } from '../../features/chat-completion-stream.js';
 import { RuntimeFacade } from '@langflower/runtime';
 import { describe, expect, it } from 'vitest';
-import { filter, firstValueFrom, map, of } from 'rxjs';
-import type { SubAgentResultPayload } from '../../features/sub-agent-protocol.js';
+import { filter, firstValueFrom, map } from 'rxjs';
 import { attachRunHostServices } from '../../features/run-host-services.js';
 import { subAgentNode } from './node.js';
 
@@ -50,6 +50,23 @@ const subAgentContext = (
 	},
 ];
 
+const waitTools = (
+	runtime: RuntimeFacade,
+	nodeId: string,
+): Promise<readonly ToolHandle[]> =>
+	firstValueFrom(
+		runtime.runner.events$.pipe(
+			filter(
+				(event) =>
+					event[0] === 'out' &&
+					event[3] === 'value' &&
+					event[1] === nodeId &&
+					event[2] === 'subagent-registration',
+			),
+			map((event) => event[4] as readonly ToolHandle[]),
+		),
+	);
+
 describe('common-sub-agent', () => {
 	it('exposes agent panel fields plus registration identity', () => {
 		const fields = subAgentNode.uiSchema.map((item) => item.field);
@@ -70,7 +87,7 @@ describe('common-sub-agent', () => {
 		expect(fields).not.toContain('tokenDelayMs');
 	});
 
-	it('registers, filters spawn by nodeId, runs in-node chat, returns result', async () => {
+	it('announces Inspector skills on the tools handle and invoke runs chat', async () => {
 		const runtime = new RuntimeFacade({ log: false });
 		const sub = subAgentNode.getInstance();
 
@@ -81,58 +98,40 @@ describe('common-sub-agent', () => {
 			bypassPorts: sub.bypassPorts,
 		});
 
-		const registrationPromise = firstValueFrom(
-			runtime.runner.events$.pipe(
-				filter(
-					(event) =>
-						event[0] === 'out' &&
-						event[3] === 'value' &&
-						event[1] === 'explorer' &&
-						event[2] === 'registration',
-				),
-				map((event) => event[4]),
-			),
-		);
+		const toolsPromise = waitTools(runtime, 'explorer');
 
-		const resultPromise = firstValueFrom(
-			runtime.runner.events$.pipe(
-				filter(
-					(event) =>
-						event[0] === 'out' &&
-						event[3] === 'value' &&
-						event[1] === 'explorer' &&
-						event[2] === 'result',
-				),
-				map((event) => event[4] as SubAgentResultPayload),
-			),
-		);
+		runtime.runner.start({
+			explorer: subAgentContext('explorer'),
+		});
 
-		sub.inputs.task.connect(
-			of({
-				callId: 'c1',
-				nodeId: 'explorer',
-				skillId: 'explore',
+		const tools = await toolsPromise;
+		expect(tools).toHaveLength(1);
+		const handle = tools[0]!;
+		expect(handle.toolId).toBe('Explorer');
+		expect(handle.name).toBe('Explorer');
+		expect(handle.description).toContain('explore');
+		expect(handle.description).toContain('researches');
+		const schema = handle.inputSchema as {
+			readonly properties?: {
+				readonly skillId?: { readonly enum?: readonly string[] };
+			};
+			readonly required?: readonly string[];
+		};
+		expect(schema.required).toEqual(['task']);
+		expect(schema.properties?.skillId?.enum).toEqual(['explore']);
+
+		const text = await handle.invoke(
+			{
 				task: 'Research line A\nand keep newlines',
-			}),
+				skillId: 'explore',
+			},
+			{ projectDir: '/tmp', runId: 'test' },
 		);
-
-		runtime.runner.start({
-			explorer: subAgentContext('explorer'),
-		});
-
-		const registration = await registrationPromise;
-		expect(registration).toMatchObject({
-			targetNodeId: 'explorer',
-			name: 'Explorer',
-			skills: [{ skillId: 'explore', description: 'explore' }],
-		});
-
-		const result = await resultPromise;
-		expect(result.callId).toBe('c1');
-		expect(result.result).toContain('Research line A\nand keep newlines');
+		expect(text).toContain('Research line A\nand keep newlines');
+		expect(text).toContain('[skill:explore]');
 	});
 
-	it('ignores spawn addressed to another nodeId', async () => {
+	it('omits skillId from schema when Inspector skills are empty', async () => {
 		const runtime = new RuntimeFacade({ log: false });
 		const sub = subAgentNode.getInstance();
 
@@ -143,40 +142,97 @@ describe('common-sub-agent', () => {
 			bypassPorts: sub.bypassPorts,
 		});
 
-		let resultCount = 0;
-		const subResult = runtime.runner.events$
-			.pipe(
-				filter(
-					(event) =>
-						event[0] === 'out' &&
-						event[3] === 'value' &&
-						event[1] === 'explorer' &&
-						event[2] === 'result',
-				),
-			)
-			.subscribe(() => {
-				resultCount += 1;
-			});
+		const toolsPromise = waitTools(runtime, 'explorer');
+		runtime.runner.start({
+			explorer: subAgentContext('explorer', { skillIds: [] }),
+		});
 
-		sub.inputs.task.connect(
-			of({
-				callId: 'c-other',
-				nodeId: 'someone-else',
-				skillId: 'explore',
-				task: 'Should be ignored',
-			}),
-		);
+		const tools = await toolsPromise;
+		const schema = tools[0]!.inputSchema as {
+			readonly properties?: { readonly skillId?: unknown };
+		};
+		expect(schema.properties?.skillId).toBeUndefined();
+	});
 
+	it('returns an error string for an unknown skillId', async () => {
+		const runtime = new RuntimeFacade({ log: false });
+		const sub = subAgentNode.getInstance();
+
+		runtime.editor.addNode({
+			nodeId: 'explorer',
+			inputs: sub.inputs,
+			outputs: sub.outputs,
+			bypassPorts: sub.bypassPorts,
+		});
+
+		const toolsPromise = waitTools(runtime, 'explorer');
 		runtime.runner.start({
 			explorer: subAgentContext('explorer'),
 		});
 
-		await new Promise((resolve) => setTimeout(resolve, 50));
-		subResult.unsubscribe();
-		expect(resultCount).toBe(0);
+		const handle = (await toolsPromise)[0]!;
+		const text = await handle.invoke(
+			{ task: 'Go', skillId: 'missing' },
+			{ projectDir: '/tmp', runId: 'test' },
+		);
+		expect(text).toContain('missing');
+		expect(text.startsWith('Error:')).toBe(true);
 	});
 
-	it('exposes inventory inputs and agent outs without body bridge ports', () => {
+	it('returns an error string when invoke exceeds subagentTimeoutMs', async () => {
+		const runtime = new RuntimeFacade({ log: false });
+		const sub = subAgentNode.getInstance();
+
+		runtime.editor.addNode({
+			nodeId: 'explorer',
+			inputs: sub.inputs,
+			outputs: sub.outputs,
+			bypassPorts: sub.bypassPorts,
+		});
+
+		const toolsPromise = waitTools(runtime, 'explorer');
+		runtime.runner.start({
+			explorer: [
+				{
+					portId: contextSymbol,
+					slotIndex: 0,
+					value: attachRunHostServices(
+						{
+							projectDir: '/tmp',
+							runId: 'test',
+							nodeId: 'explorer',
+							params: {
+								name: 'Explorer',
+								description: 'researches',
+								skillIds: [],
+								providerId: 'mock',
+								model: 'mock',
+								subagentTimeoutMs: 40,
+							},
+							uiSchema: subAgentNode.uiSchema,
+						},
+						{
+							skillMarkdown: '',
+							createChatCompletionStream: async () =>
+								(async function* () {
+									await new Promise<void>(() => undefined);
+								})(),
+						},
+					),
+				},
+			],
+		});
+
+		const handle = (await toolsPromise)[0]!;
+		const text = await handle.invoke(
+			{ task: 'Hang' },
+			{ projectDir: '/tmp', runId: 'test' },
+		);
+		expect(text).toContain('timed out');
+		expect(text.startsWith('Error:')).toBe(true);
+	});
+
+	it('exposes inventory tools in and specialist registration out without spawn ports', () => {
 		const inputIds = subAgentNode.inputsConfigs.map((meta) =>
 			String(meta.portId),
 		);
@@ -185,27 +241,23 @@ describe('common-sub-agent', () => {
 		);
 
 		expect(inputIds).toEqual(
-			expect.arrayContaining([
-				'tools',
-				'mcp',
-				'subagentRegistration',
-				'subagentResult',
-				'task',
-				'systemPrompt',
-			]),
+			expect.arrayContaining(['tools', 'systemPrompt', 'steerControl']),
 		);
-		expect(inputIds).not.toContain('bodyResult');
+		expect(inputIds).not.toContain('task');
+		expect(inputIds).not.toContain('subagentRegistration');
+		expect(inputIds).not.toContain('subagentResult');
 		expect(outputIds).toEqual(
 			expect.arrayContaining([
-				'registration',
-				'result',
+				'subagent-registration',
 				'response',
 				'reasoning',
 				'draftResponse',
 				'toolLog',
-				'subagent',
 			]),
 		);
-		expect(outputIds).not.toContain('item');
+		expect(outputIds).not.toContain('tools');
+		expect(outputIds).not.toContain('registration');
+		expect(outputIds).not.toContain('result');
+		expect(outputIds).not.toContain('subagent');
 	});
 });

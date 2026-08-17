@@ -425,16 +425,17 @@ Mechanics: catalog over WS; body loaded at run seed; frontmatter in
 Product meaning: [Sub-Agent](#sub-agent).
 
 Mechanics: [ADR-021](ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter)
-L0 — skill registration + `spawn_subagent` on port-routed wires with
-`nodeId` filter. Deeper swarm / nesting still open in product docs.
+— canvas Sub-Agent node + one `subagent-registration` `ToolHandle`;
+`invoke` runs the in-node loop. Deeper swarm / nesting still open in
+product docs.
 
 #### Tools
 
 Product meaning: [Tools](#tools).
 
 Mechanics: tool inventory / `ToolHandle`; builtins via
-`create-project-harness` plus pack registrations and MCP; injected on
-ExecutionContext.
+`create-project-harness` plus pack registrations and MCP; optional
+`common-tool-collection` hub; injected on ExecutionContext.
 
 #### Workspace
 
@@ -550,6 +551,7 @@ See [HOW_TO_WRITE_REACTIVE_NODES](HOW_TO_WRITE_REACTIVE_NODES.md),
 #### ToolHandle
 
 Wire payload that registers a callable tool into an agent’s inventory.
+Optional hub: `common-tool-collection` (ADR-035).
 
 See [NODES](NODES.md), package `@langflower/node-sdk`.
 

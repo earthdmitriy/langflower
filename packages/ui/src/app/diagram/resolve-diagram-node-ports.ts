@@ -62,7 +62,7 @@ function isHidden(value: { readonly hidden?: boolean } | undefined): boolean {
 	return value?.hidden === true;
 }
 
-function isVisibleInput(entry: {
+function isVisiblePort(entry: {
 	readonly portId?: string | symbol;
 	readonly hidden?: boolean;
 }): boolean {
@@ -130,7 +130,7 @@ function resolveInputPortRows(
 	const rows: DiagramInputPortRow[] = [];
 
 	for (const entry of config.inputsConfigs) {
-		if (!isVisibleInput(entry)) {
+		if (!isVisiblePort(entry)) {
 			continue;
 		}
 
@@ -190,7 +190,7 @@ function resolveOutputPortRows(
 	const rows: DiagramOutputPortRow[] = [];
 
 	for (const entry of config.outputsConfigs) {
-		if (entry === undefined) {
+		if (entry === undefined || !isVisiblePort(entry)) {
 			continue;
 		}
 

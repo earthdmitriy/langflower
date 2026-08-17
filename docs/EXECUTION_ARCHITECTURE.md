@@ -319,8 +319,8 @@ and a value received on a HITL input closes it. This state can be rebuilt from
 
 **Soft Pause (`steerControl`)** — [ADR-032](ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port):
 LLM inventory input `steerControl` is `hidden` but has `config.hitl`
-(textarea + Send) and **must stay `single`** (not `multi: 'merge'` — unlike
-wire-fed `subagentResult`). Operator Pause is **per-node**: one
+(textarea + Send) and **must stay `single`** (not `multi: 'merge'`). Operator
+Pause is **per-node**: one
 `runner.hitl.event` → `pushIntoInput` with `{ kind: 'pause' }` for the **last
 feed section**'s working agent. Other agents keep running. Fold rules for
 this port are **payload-aware**: `{ kind: 'pause' }` **opens** awaiting for

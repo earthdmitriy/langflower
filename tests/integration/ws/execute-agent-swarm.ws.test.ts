@@ -24,7 +24,7 @@ import {
 const SCENARIO_ID = 'agent-swarm';
 
 describe('execute agent-swarm (WS bridge)', () => {
-	it('defines registration/spawn/result edges for ADR-021 L0', () => {
+	it('defines one tools edge from Explorer to Main', () => {
 		const scenario = agentSwarmWorkflow();
 		const explorer = scenario.graph.nodes.find(
 			(node) => node.id === 'explorer',
@@ -35,14 +35,20 @@ describe('execute agent-swarm (WS bridge)', () => {
 		expect(explorer?.type).toBe('common-sub-agent');
 		expect(main?.type).toBe('common-fake-llm');
 		expect(
-			scenario.graph.edges.some((edge) => edge.edgeId === 'e-reg'),
+			scenario.graph.edges.some(
+				(edge) =>
+					edge.edgeId === 'e-tools' &&
+					edge.fromNodeId === 'explorer' &&
+					edge.fromPort[0] === 'subagent-registration' &&
+					edge.toNodeId === 'main' &&
+					edge.toPort[0] === 'tools',
+			),
 		).toBe(true);
 		expect(
-			scenario.graph.edges.some((edge) => edge.edgeId === 'e-spawn'),
-		).toBe(true);
-		expect(
-			scenario.graph.edges.some((edge) => edge.edgeId === 'e-result'),
-		).toBe(true);
+			scenario.graph.edges.some((edge) =>
+				['e-reg', 'e-spawn', 'e-result'].includes(edge.edgeId),
+			),
+		).toBe(false);
 	});
 
 	describe.skipIf(!scenarioReadyById(SCENARIO_ID))('runtime', () => {

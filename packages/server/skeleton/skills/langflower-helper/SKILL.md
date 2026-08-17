@@ -132,16 +132,16 @@ do not say coding pipelines “don’t exist” or are unavailable.
 
 ### 6. Coding workflows
 
-| Name           | Fact                                                                                                                                                                                                                                                                                               |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `starter`      | Onboarding chat + this skill + Writer Sub-Agent (`langflower-workflow-writer` + `langflower-node-writer`) — default open after seed                                                                                                                                                                |
-| Skeleton stubs | `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`, … seeded on first-run; with provider → Start                                                                                                                                                                                         |
-| `simple-coder` | Plan⇄HITL→Coder⇄HITL→Finish smoke spine + `common-memory-tools` on Plan/Coder/Researcher/Worker; Researcher Sub-Agent under Plan, Worker under Coder — **not** full multi-loop `coding-agent`                                                                                                      |
-| `kb-create`    | Memory / project wiki create: Orchestrator **indexes** the repo with `glob`/`read`, persists `history/work-queue.md`, then **serially** spawns Explorer → Composer **one unit at a time**; `common-memory-tools` writes `core/*` + `modules/*`; Review rejects non-empty Pending or thin overviews |
-| `kb-navigate`  | Memory navigate: Navigator + Searcher + memory tree/grep/section tools; HITL Review Gate for follow-ups                                                                                                                                                                                            |
-| `basic-coder`  | Basic coding harness (Plan⇄HITL→Coder⇄HITL→Finish) — not a toy, **not** full multi-loop `coding-agent`                                                                                                                                                                                             |
-| `coding-agent` | Clarify HITL → red team → plan gate → coder → QA → `common-review` → result HITL; **graph** orders stages                                                                                                                                                                                          |
-| Status         | Use-case **Partial**; real-LLM Implementable bar open; Fake CI ≠ end-user proof — **not** “no templates”                                                                                                                                                                                           |
+| Name           | Fact                                                                                                                                                                                                                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `starter`      | Onboarding chat + this skill + Writer Sub-Agent (`langflower-workflow-writer` + `langflower-node-writer`) — default open after seed                                                                                                                                                               |
+| Skeleton stubs | `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`, … seeded on first-run; with provider → Start                                                                                                                                                                                        |
+| `simple-coder` | Plan⇄HITL→Coder⇄HITL→Finish smoke spine + `common-memory-tools` on Plan/Coder/Researcher/Worker; Researcher Sub-Agent under Plan, Worker under Coder — **not** full multi-loop `coding-agent`                                                                                                     |
+| `kb-create`    | Memory / project wiki create: Orchestrator **indexes** the repo with `glob`/`read`, persists `history/work-queue.md`, then **serially** calls Explorer → Composer **one unit at a time**; `common-memory-tools` writes `core/*` + `modules/*`; Review rejects non-empty Pending or thin overviews |
+| `kb-navigate`  | Memory navigate: Navigator + Searcher + memory tree/grep/section tools; HITL Review Gate for follow-ups                                                                                                                                                                                           |
+| `basic-coder`  | Basic coding harness (Plan⇄HITL→Coder⇄HITL→Finish) — not a toy, **not** full multi-loop `coding-agent`                                                                                                                                                                                            |
+| `coding-agent` | Clarify HITL → red team → plan gate → coder → QA → `common-review` → result HITL; **graph** orders stages                                                                                                                                                                                         |
+| Status         | Use-case **Partial**; real-LLM Implementable bar open; Fake CI ≠ end-user proof — **not** “no templates”                                                                                                                                                                                          |
 
 ### 7. Run lifecycle
 
@@ -161,8 +161,12 @@ These four are **not** the same thing.
 - **Can:** Harness builtins + `permission.ask` Allow/Deny for those builtins.
   Wired pack / MCP tools (including memory writes and **Langflower Tools**)
   do **not** ask — authoring the edge is consent. Write Allow does **not**
-  grant bash. Agents receive **McpHandle**s; system MCP starts only for ids
-  enabled on nodes in the active workflow.
+  grant bash. MCP **nodes** wire `tools` → agent `tools` (`ToolHandle[]`).
+  Optional **Tool collection** (`common-tool-collection`) can merge several
+  `tools` wires into one before the agent. Direct multi-wire into the agent
+  still works. System MCP from `langflower.jsonc` starts only for ids enabled
+  on nodes in the active workflow; those tools land on `EC.toolHandles`,
+  never as raw config.
 - **Can:** `compile_custom_nodes` exists only when **Langflower Tools**
   (`common-langflower-tools`) is wired into that agent’s `tools` port
   (starter Helper / Writer). Same intent as Custom → **Update**. Recompile
@@ -180,16 +184,19 @@ These four are **not** the same thing.
 ### 9. Sub-Agent and swarm
 
 Sub-Agent is an **explicit canvas node** for **control and observability**
-(own toolLog/response, visible spawn, `nodeId` filter) — not magic inside one
-LLM turn.
+(own toolLog/response, visible specialist) — not magic inside one LLM turn.
 
-- **Can:** First-class Sub-Agent node + spawn registration / `subagentResult`.
-  Default swarm spawns are **serial**. Wiki/memory create (`kb-create`) uses
-  **serial** scoped spawns driven by a persisted work queue — not parallel
+- **Can:** First-class Sub-Agent node. Wire Sub-Agent
+  `subagent-registration` → parent `tools` (one edge). The parent calls the
+  specialist tool with a `task`
+  (optional `skillId` from the Inspector Skills enum). Default swarm invokes
+  are **serial**. Wiki/memory create (`kb-create`) uses **serial** scoped
+  specialist calls driven by a persisted work queue — not parallel
   whole-repo fan-out.
 - **Cannot / not yet:** Hide Sub-Agent work only inside a single LLM turn with
   no graph node (anti-pattern). Parallel fan-out as the **default**. Nested
-  **workflow files** (far future).
+  **workflow files** (far future). Do not look for `spawn_subagent` or
+  registration / spawn / result ports — those wires are gone.
 
 ### 10. Other demos
 
@@ -218,7 +225,8 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
   → Orchestrator (`common-openai-llm` + builtins `glob`/`read`/`grep` + wired
   `common-memory-tools`) → Sub-Agents Explorer (read) + Composer (write) →
   `common-review` with readiness criteria → Finish. Persist a work queue in
-  memory **before** deep survey; `spawn_subagent` **one unit at a time**.
+  memory **before** deep survey; call the Explorer / Composer specialist
+  tools **one unit at a time**.
 - **Cannot:** Recommend one LLM that “reads the whole repo once and dumps a
   wiki”. Claim vector/embedding KB as base. Claim Obsidian vault helpers as
   shipped.
@@ -248,7 +256,7 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
 
 When the user asks to add or change a custom node from this starter chat:
 
-1. Spawn Writer (or edit `.langflower/nodes/<pack>/*.ts` yourself).
+1. Call Writer (or edit `.langflower/nodes/<pack>/*.ts` yourself).
 2. Call **`compile_custom_nodes`** (no args). Report `status` / `nodeTypes` /
    `errors` from the tool text. Pack failures also write
    `COMPILATION_ERRORS.md`.

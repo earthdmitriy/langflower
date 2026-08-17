@@ -1,5 +1,5 @@
 /**
- * Fixture MCP tool invoked from openai-llm via wired McpHandle.
+ * Fixture MCP tool invoked from openai-llm via wired ToolHandle[].
  */
 import { getCommonReactiveNode } from '@langflower/common-nodes';
 import { attachRunHostServices } from '@langflower/common-nodes/ai/run-host-services';
@@ -111,9 +111,9 @@ describe('openai-llm + fixture MCP transport', () => {
 		});
 		runtime.editor.addEdge({
 			fromNodeId: 'mcp-1' as NodeId,
-			fromPort: ['mcpTransport', 0],
+			fromPort: ['tools', 0],
 			toNodeId: 'llm-1' as NodeId,
-			toPort: ['mcp', 0],
+			toPort: ['tools', 0],
 		});
 
 		const responsePromise = firstValueFrom(

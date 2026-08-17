@@ -2,7 +2,7 @@ import type {
 	ChatCompletionMessage,
 	CreateChatCompletionStream,
 } from '../../features/chat-completion-stream.js';
-import { Observable, type Observable as RxObservable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { defineLlmNode } from '@langflower/node-sdk/llm';
 import { llmPanelUiSchema } from '../../features/ui-schema/llm-panel-ui-schema.js';
 import { llmCompactionUiSchema } from '../../features/ui-schema/llm-compaction-ui-schema.js';
@@ -16,7 +16,6 @@ import {
 	runAgentLoop,
 	type ToolLoopChunk,
 } from '../../features/llm-loop/run-agent-loop.js';
-import { waitForSubagentResult } from '../../features/wait-for-subagent-result.js';
 import { getRunHostServices } from '../../features/run-host-services.js';
 
 type OpenAiLlmChunk = ToolLoopChunk;
@@ -39,8 +38,7 @@ const runOpenAiTurn = (
 	context: OpenAiLlmContext,
 	messages: readonly ChatCompletionMessage[],
 	_feedback: string | undefined,
-	subagentResult$: RxObservable<unknown>,
-): RxObservable<OpenAiLlmChunk> => {
+): Observable<OpenAiLlmChunk> => {
 	const factory = context.factory;
 
 	if (factory === undefined) {
@@ -68,23 +66,11 @@ const runOpenAiTurn = (
 		maxIterations: context.maxIterations,
 		compaction: context.compaction,
 		recovery: context.recovery,
-		subagentRegistrations: context.subagentRegistrations,
 		...(context.requestPermission !== undefined
 			? { requestPermission: context.requestPermission }
 			: {}),
 		...(context.steerControl$ !== undefined
 			? { steerControl$: context.steerControl$ }
-			: {}),
-		...(context.subagentRegistrations.length > 0
-			? {
-					waitForSubagentResult: (callId, signal) =>
-						waitForSubagentResult(
-							subagentResult$,
-							callId,
-							signal,
-							context.recovery.subagentTimeoutMs,
-						),
-				}
 			: {}),
 	});
 };
@@ -132,8 +118,8 @@ export const openAiLlmNode = defineLlmNode({
 					appendUserFeedbackToHistory: true,
 					session: undefined,
 				}),
-				runTurn: (context, feedback, history, subagentResult$) =>
-					runOpenAiTurn(context, history, feedback, subagentResult$),
+				runTurn: (context, feedback, history) =>
+					runOpenAiTurn(context, history, feedback),
 			},
 		);
 	},

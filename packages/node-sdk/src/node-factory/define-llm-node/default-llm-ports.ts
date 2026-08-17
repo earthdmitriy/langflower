@@ -1,7 +1,5 @@
 import type { PortMeta } from '../define-reactive-node/port-meta.js';
 import type { StatefulObservable } from '@rx-evo/stateful-observable';
-import type { McpHandle } from '../define-mcp/mcp-handle.js';
-import { MCP_HANDLE_WIRE_TYPE } from '../define-mcp/mcp-handle.js';
 import type { ToolHandle } from '../define-tool-registrations/tool-handle.js';
 import { TOOL_HANDLE_WIRE_TYPE } from '../define-tool-registrations/tool-handle.js';
 import type {
@@ -10,11 +8,6 @@ import type {
 	makeInput,
 	OutputConfig,
 } from '../define-reactive-node/io-helpers.js';
-import {
-	SUBAGENT_REGISTRATION_WIRE_TYPE,
-	SUBAGENT_RESULT_WIRE_TYPE,
-	SUBAGENT_SPAWN_WIRE_TYPE,
-} from './llm-inventory-wire.js';
 import {
 	STEER_CONTROL_PORT_ID,
 	type SteerControlPayload,
@@ -25,23 +18,13 @@ import { RECOVERY_PORT_ID } from './recovery-notice.js';
 /** Port ids that every LLM-class node must expose (inventory + observability). */
 export const LLM_INVENTORY_INPUT_PORT_IDS = [
 	'tools',
-	'mcp',
-	'subagentRegistration',
-	'subagentResult',
 	STEER_CONTROL_PORT_ID,
 ] as const;
 
-export const LLM_INVENTORY_OUTPUT_PORT_IDS = [
-	'toolLog',
-	'recovery',
-	'subagent',
-] as const;
+export const LLM_INVENTORY_OUTPUT_PORT_IDS = ['toolLog', 'recovery'] as const;
 
 export type LlmInventoryInputs = {
 	readonly tools: InputConfig;
-	readonly mcp: InputConfig;
-	readonly subagentRegistration: InputConfig;
-	readonly subagentResult: InputConfig;
 	/** Soft Pause / Steer (ADR-032) — hidden + HITL textarea. */
 	readonly steerControl: InputConfig;
 	/** Ordered list for `inputs: [...]` spreads. */
@@ -59,11 +42,6 @@ export type LlmInventoryOutputStreams = {
 		unknown,
 		PortMeta | undefined
 	>;
-	readonly subagent$: StatefulObservable<
-		unknown,
-		unknown,
-		PortMeta | undefined
-	>;
 };
 
 /**
@@ -78,29 +56,6 @@ export const defaultLlmInventoryInputs = (
 		wireType: TOOL_HANDLE_WIRE_TYPE,
 		multi: 'combine',
 		defaultValue: [],
-	});
-	const mcp = make<readonly McpHandle[]>('mcp', {
-		name: 'mcp',
-		wireType: MCP_HANDLE_WIRE_TYPE,
-		multi: 'combine',
-		defaultValue: [],
-	});
-	const subagentRegistration = make<readonly unknown[]>(
-		'subagentRegistration',
-		{
-			name: 'subagentRegistration',
-			wireType: SUBAGENT_REGISTRATION_WIRE_TYPE,
-			multi: 'combine',
-			defaultValue: [],
-		},
-	);
-	const subagentResult = make<unknown>('subagentResult', {
-		name: 'subagentResult',
-		wireType: SUBAGENT_RESULT_WIRE_TYPE,
-		multi: 'merge',
-		defaultValue: null,
-		// Protocol payload from Sub-Agent — omit from work log.
-		feed: { role: 'none' },
 	});
 	const steerControl = make<SteerControlPayload>(STEER_CONTROL_PORT_ID, {
 		name: 'Steer',
@@ -120,22 +75,13 @@ export const defaultLlmInventoryInputs = (
 
 	return {
 		tools,
-		mcp,
-		subagentRegistration,
-		subagentResult,
 		steerControl,
-		inputs: [
-			tools,
-			mcp,
-			subagentRegistration,
-			subagentResult,
-			steerControl,
-		],
+		inputs: [tools, steerControl],
 	};
 };
 
 /**
- * Configure the shared LLM inventory outputs (`toolLog`, `recovery`, `subagent`).
+ * Configure the shared LLM inventory outputs (`toolLog`, `recovery`).
  */
 export const defaultLlmInventoryOutputs = (
 	configure: typeof configureOutput,
@@ -147,10 +93,8 @@ export const defaultLlmInventoryOutputs = (
 	}),
 	configure(RECOVERY_PORT_ID, streams.recovery$, {
 		wireType: 'any',
+		// Feed-only — canvas and palette skip hidden outputs.
 		hidden: true,
 		feed: { role: 'recovery', streaming: true },
-	}),
-	configure('subagent', streams.subagent$, {
-		wireType: SUBAGENT_SPAWN_WIRE_TYPE,
 	}),
 ];

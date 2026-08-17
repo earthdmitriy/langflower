@@ -8,11 +8,7 @@ import type {
 	ChatCompletionMessage,
 	CreateChatCompletionStream,
 } from '../chat-completion-stream.js';
-import type { SubAgentRegistration } from '../sub-agent-protocol.js';
-import {
-	buildSpawnSubagentChatTool,
-	toChatToolDefinitions,
-} from '../../../tools/inventory-tool-round.js';
+import { toChatToolDefinitions } from '../../../tools/inventory-tool-round.js';
 import type { LlmCompactionConfig } from '../openai/normalize-compaction-params.js';
 import { DISABLED_COMPACTION_CONFIG } from '../openai/normalize-compaction-params.js';
 import {
@@ -60,50 +56,31 @@ export const runAgentLoop = (args: {
 	readonly harness?: Harness;
 	readonly toolCtx?: ToolHandlerContext;
 	readonly maxIterations: number;
-	readonly subagentRegistrations?: readonly SubAgentRegistration[];
 	readonly compaction?: LlmCompactionConfig;
 	readonly recovery?: LlmRecoveryPolicy;
 	readonly requestPermission?: (
 		request: PermissionAskRequest,
 	) => Promise<'allow' | 'deny'>;
-	readonly waitForSubagentResult?: (
-		callId: string,
-		signal: AbortSignal,
-	) => Promise<string>;
 	readonly steerControl$?: Observable<SteerControlPayload>;
-}): Observable<ToolLoopChunk> => {
-	const subagentRegistrations = args.subagentRegistrations ?? [];
-
-	return runLlmLoop<ToolLoopChunk>({
+}): Observable<ToolLoopChunk> =>
+	runLlmLoop<ToolLoopChunk>({
 		factory: args.factory,
 		providerId: args.providerId,
 		model: args.model,
 		messages: args.messages,
-		chatTools: [
-			...toChatToolDefinitions(args.tools),
-			...(subagentRegistrations.length > 0
-				? [buildSpawnSubagentChatTool(subagentRegistrations)]
-				: []),
-		],
+		chatTools: [...toChatToolDefinitions(args.tools)],
 		inventoryTools: args.tools,
 		...(args.getTools !== undefined ? { getTools: args.getTools } : {}),
 		maxIterations: args.maxIterations,
 		compaction: args.compaction ?? DISABLED_COMPACTION_CONFIG,
 		recovery: args.recovery ?? DEFAULT_LLM_RECOVERY_POLICY,
 		policy: AGENT_LOOP_POLICY,
-		subagentRegistrations,
 		...(args.harness !== undefined ? { harness: args.harness } : {}),
 		...(args.toolCtx !== undefined ? { toolCtx: args.toolCtx } : {}),
 		...(args.requestPermission !== undefined
 			? { requestPermission: args.requestPermission }
 			: {}),
-		...(args.waitForSubagentResult !== undefined
-			? {
-					waitForSubagentResult: args.waitForSubagentResult,
-				}
-			: {}),
 		...(args.steerControl$ !== undefined
 			? { steerControl$: args.steerControl$ }
 			: {}),
 	}) as Observable<ToolLoopChunk>;
-};

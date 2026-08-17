@@ -18,10 +18,6 @@
 			"types": "./dist/ai/features/llm-role-preset.d.ts",
 			"import": "./dist/ai/features/llm-role-preset.js"
 		},
-		"./ai/sub-agent-protocol": {
-			"types": "./dist/ai/features/sub-agent-protocol.d.ts",
-			"import": "./dist/ai/features/sub-agent-protocol.js"
-		},
 		"./ai/run-host-services": {
 			"types": "./dist/ai/features/run-host-services.d.ts",
 			"import": "./dist/ai/features/run-host-services.js"

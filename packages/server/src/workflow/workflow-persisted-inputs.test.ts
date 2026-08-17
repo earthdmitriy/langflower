@@ -41,8 +41,6 @@ describe('prunePersistedInputs', () => {
 					feedback: '',
 					tools: [],
 					mcp: [],
-					subagentRegistration: [],
-					subagentResult: null,
 				},
 				definition!,
 			),

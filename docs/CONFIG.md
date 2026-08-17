@@ -369,12 +369,12 @@ Same entry shape as MCP nodes (`kind` + fields). Inspector **Enabled MCP**
 
 ### Wire (canvas)
 
-| Node      | type               | Role                                        |
-| --------- | ------------------ | ------------------------------------------- |
-| MCP stdio | `common-mcp-stdio` | Shell CLI → stdio; emits `mcp-handle`       |
-| MCP http  | `common-mcp-http`  | URL (+ optional launch); emits `mcp-handle` |
+| Node      | type               | Role                                                    |
+| --------- | ------------------ | ------------------------------------------------------- |
+| MCP stdio | `common-mcp-stdio` | Shell CLI → stdio; emits `tools` (`ToolHandle[]`)       |
+| MCP http  | `common-mcp-http`  | URL (+ optional launch); emits `tools` (`ToolHandle[]`) |
 
-Wire into LLM / Sub-Agent `mcp` (fan-out OK). No Inspector filter — remove the
+Wire into LLM / Sub-Agent `tools` (fan-out OK). No Inspector filter — remove the
 wire to disable. Agents never spawn MCP; harness has no MCP API.
 
 Inventory ids: `<mcp_name>__<toolName>` where `mcp_name` is `serverInfo.name`

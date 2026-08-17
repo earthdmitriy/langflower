@@ -318,7 +318,7 @@ Mock LLM: in-process `provider.mock` + `.langflower/mock-llm.json` (see spec §1
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `common-fake-llm` WS demos + Fake tool-loop                                       | Model-authored `tool_calls` / multi-round loops                                |
 | `openai-mcp-tool-loop.test.ts` — **injected** `tool_calls` → MCP transport invoke | Same path with a **real** chat-completions stream                              |
-| MCP stdio/http clients + system/wire `McpHandle` fixtures                         | Live inventory → model selects `<mcp_name>__<tool>` → result back into context |
+| MCP stdio/http clients + system/wire `ToolHandle[]` fixtures                      | Live inventory → model selects `<mcp_name>__<tool>` → result back into context |
 | Builtin harness invoke with Fake / scripted loops                                 | Live builtin `read`…`bash` (and MCP) under role budgets + `permission.ask`     |
 
 **Maintainer constraint:** no reliable access to an OpenAI-compatible **cloud** API
@@ -334,7 +334,7 @@ relevant cases below pass on a real provider (Fake/`--replay` stay topology-only
 
 Prereqs: project `langflower.jsonc` with a working OpenAI-compatible `baseUrl` +
 key (env placeholder); either system `mcp.servers` + Inspector `enabledMcpIds`,
-or wire `common-mcp-stdio` / `common-mcp-http` → LLM `mcp`. Prefer
+or wire `common-mcp-stdio` / `common-mcp-http` → LLM `tools`. Prefer
 `demo-project` or a throwaway copy.
 
 | #   | Case                                  | Setup                                                             | Pass when                                                                                                  |
@@ -343,7 +343,7 @@ or wire `common-mcp-stdio` / `common-mcp-http` → LLM `mcp`. Prefer
 | L2  | Builtin tool round-trip               | LLM + harness builtins (`read`/`glob`); prompt forces a file read | Model emits tool call → harness result → final answer cites file; feed shows tool technical line           |
 | L3  | Multi-round tool loop                 | Prompt needs ≥2 tool steps                                        | ≥2 `tool_calls` rounds; no hang; context includes prior tool results                                       |
 | L4  | `permission.ask`                      | Policy `ask` on a tool the model will call                        | Gate in composer/feed; Allow continues; Deny fails closed without silent success                           |
-| L5  | MCP inventory visible                 | System MCP enabled and/or wire to `mcp`                           | Inventory dump shows `<mcp_name>__<tool>`                                                                  |
+| L5  | MCP inventory visible                 | System MCP enabled and/or wire to `tools`                         | Inventory dump shows `<mcp_name>__<tool>`                                                                  |
 | L6  | MCP invoke (happy path)               | Fixture or real MCP tool; prompt forces that tool                 | Real model selects MCP tool id → transport invoke → result in next completion; run settles                 |
 | L7  | MCP disabled                          | System id not in `enabledMcpIds`, or wire removed                 | Tool absent from inventory; no silent “success” pretending the tool ran                                    |
 | L8  | MCP + builtin mix                     | Prompt needs one builtin + one MCP tool                           | Both fire in one run; order may vary; both results visible to the model                                    |

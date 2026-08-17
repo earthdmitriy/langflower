@@ -140,7 +140,7 @@ Outputs:
   (Finish, next stage, outer Review)
 - **`feedback`** — Revise path — wire to agent `feedback` (`NEVER` on accept)
 
-Same shared inventory as other LLM-class nodes (`tools` / `mcp` / subagents via
+Same shared inventory as other LLM-class nodes (`tools` / subagents via
 `defineLlmNode`) — Review is a full agent **plus** path-routed control tools,
 not a yes/no stub. See [LLM_NODES.md](LLM_NODES.md) § Review.
 

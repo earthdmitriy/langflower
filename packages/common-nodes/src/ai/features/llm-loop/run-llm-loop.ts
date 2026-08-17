@@ -45,14 +45,8 @@ import type {
 import {
 	invokeInventoryTool,
 	previewToolLogText,
-	resolveSpawnPayload,
-	SPAWN_SUBAGENT_TOOL,
 	toChatToolDefinitions,
 } from '../../../tools/inventory-tool-round.js';
-import type {
-	SubAgentRegistration,
-	SubAgentSpawnPayload,
-} from '../sub-agent-protocol.js';
 import { prepareChatCompletion } from '../openai/prepare-chat-completion.js';
 import type { LlmCompactionConfig } from '../openai/normalize-compaction-params.js';
 import {
@@ -83,10 +77,6 @@ export type SharedLlmLoopChunk =
 	| {
 			readonly kind: 'historySync';
 			readonly messages: readonly ChatCompletionMessage[];
-	  }
-	| {
-			readonly kind: 'subagentSpawn';
-			readonly payload: SubAgentSpawnPayload;
 	  };
 
 type LlmCompletionDecision<Chunk> =
@@ -136,11 +126,6 @@ export type RunLlmLoopOptions<Chunk> = {
 		request: PermissionAskRequest,
 	) => Promise<'allow' | 'deny'>;
 	readonly steerControl$?: Observable<SteerControlPayload>;
-	readonly subagentRegistrations?: readonly SubAgentRegistration[];
-	readonly waitForSubagentResult?: (
-		callId: string,
-		signal: AbortSignal,
-	) => Promise<string>;
 };
 
 const inventoryChatName = (handle: ToolHandle): string =>
@@ -159,8 +144,8 @@ const resolveInventoryTools = <Chunk>(
 
 /**
  * Rebuild provider `tools` from live inventory. Keep extras (Review
- * accept/feedback, spawn_subagent) in their original positions; drop
- * removed inventory ids; append brand-new ids.
+ * accept/feedback) in their original positions; drop removed inventory ids;
+ * append brand-new ids.
  */
 const resolveChatTools = <Chunk>(
 	options: RunLlmLoopOptions<Chunk>,
@@ -1020,61 +1005,6 @@ const invokeTool = <Chunk>(
 		text: `→ ${call.name}(${previewToolLogText(call.arguments)})`,
 	});
 
-	if (call.name === SPAWN_SUBAGENT_TOOL) {
-		const resolved = resolveSpawnPayload(
-			call,
-			options.subagentRegistrations ?? [],
-			state.openSpawnCallId,
-		);
-		if (!resolved.ok || options.waitForSubagentResult === undefined) {
-			const result = !resolved.ok
-				? `Error: ${resolved.text}`
-				: 'Error: Sub-Agent spawn is not wired (no result wait).';
-			return toolResultPackets(state, call, result, options, [callLog]);
-		}
-
-		const { payload } = resolved;
-		const wait$ = defer(
-			() =>
-				options.waitForSubagentResult?.(payload.callId, cancelSignal) ??
-				Promise.reject(new Error('Sub-Agent wait unavailable')),
-		);
-		const boundedWait$ =
-			options.recovery.subagentTimeoutMs > 0
-				? wait$.pipe(
-						timeout({
-							first: options.recovery.subagentTimeoutMs,
-						}),
-					)
-				: wait$;
-
-		return concat(
-			of(
-				callLog,
-				emit<Chunk>({
-					kind: 'subagentSpawn',
-					payload,
-				}),
-				emit<Chunk>({
-					kind: 'toolLog',
-					text: `… waiting for subagentResult callId=${payload.callId}`,
-				}),
-			),
-			boundedWait$.pipe(
-				catchError((error) =>
-					of(
-						error instanceof TimeoutError
-							? `Error: Sub-Agent ${payload.callId} timed out after ${options.recovery.subagentTimeoutMs}ms.`
-							: `Error: ${classifyLlmFailure(error).message}`,
-					),
-				),
-				mergeMap((result) =>
-					toolResultPackets(state, call, result, options, []),
-				),
-			),
-		);
-	}
-
 	const toolAbort = new AbortController();
 	const abortTool = (): void => {
 		toolAbort.abort();
@@ -1237,8 +1167,6 @@ const executePhase = <Chunk>(
 		}
 		case 'suspended':
 			return awaitSteer(state, options, cancel$);
-		case 'waiting-subagent':
-			return EMPTY;
 		case 'failed':
 			return throwError(
 				() =>
@@ -1252,7 +1180,7 @@ const executePhase = <Chunk>(
 };
 
 /**
- * One reactive state machine for provider, tool, Sub-Agent, retry, and Steer
+ * One reactive state machine for provider, tool, retry, and Steer
  * phases. Policy owns only the semantic completion decision.
  */
 export const runLlmLoop = <Chunk>(

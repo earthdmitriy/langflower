@@ -1,6 +1,6 @@
 # Epics — use-case readiness roadmap (completed)
 
-**Archived** under [`docs/DONE/`](../README.md). Epics **00–38** and **40** are
+**Archived** under [`docs/DONE/`](../README.md). Epics **00–38** and **40–41** are
 landed. Active queue: see [`docs/TODO/EPICS/`](../../TODO/EPICS/README.md)
 (epic **39** — `ai/` layout).
 Further work also follows use-case Missing parts
@@ -97,6 +97,7 @@ Status only after `verify`.
 | 37  | [37-deterministic-feed-fold.md](37-deterministic-feed-fold.md)                         | UI    | **landed** — TDD `feed-folding` nested fold; live work-log switch is a follow-up              |
 | 38  | [38-llm-autokick.md](38-llm-autokick.md)                                               | LLM   | **landed** — default autokick, dead-loop, HTTP join, pinned feed retry banner                 |
 | 40  | [40-custom-node-recompile-reload.md](40-custom-node-recompile-reload.md)               | CN    | **landed** — stable cache, hot-swap, `compile_custom_nodes`, same-turn `getTools`             |
+| 41  | [41-uniform-tool-shape.md](41-uniform-tool-shape.md)                                   | Tools | **landed** — MCP + Sub-Agent + optional Tool collection as `ToolHandle[]`                     |
 
 ## Contracts
 

@@ -35,8 +35,9 @@ Base `ExecutionContext` is **identity + panel only** (`projectDir`, `runId`,
 `nodeId`, `params`, `uiSchema`). Custom authors do **not** get `files` / `kb` /
 `crawl` / `memory` / chat streams / skills on ctx.
 
-LLM nodes (`defineLlmNode`) may receive `toolHandles` / `mcpHandles` via
-`LlmExecutionCaps`. Outside world for agents = **ToolHandle** (and MCP handles),
+LLM nodes (`defineLlmNode`) may receive `toolHandles` via
+`LlmExecutionCaps`. Outside world for agents = **ToolHandle**
+(wired packs, MCP nodes, and jsonc MCP flattened onto that array),
 not host bags on ctx. Built-in graph nodes that need disk/network create it
 internally with `@langflower/tools`.
 
@@ -157,8 +158,8 @@ bind(ctx, { makeInput, configureOutput, combineInputs }) { … }
 | `ctx`                                   | Hidden context port — base `ExecutionContext` (`params`, ids) |
 
 `ctx` is a `StatefulObservable<ExecutionContext>`. Include it in `combineInputs`
-when the cycle needs panel `params`. LLM inventory (`toolHandles` /
-`mcpHandles`) arrives on Caps for `defineLlmNode` only.
+when the cycle needs panel `params`. LLM inventory (`toolHandles`)
+arrives on Caps for `defineLlmNode` only.
 
 ### Stateful values and demand
 
@@ -260,22 +261,23 @@ needs its **own** wire type string — export a const next to the payload type
 and use that const on every producer/consumer port.
 
 ```ts
-// good — editor rejects crawl json → subagentResult, tools → spawn, etc.
-export const SUBAGENT_RESULT_WIRE_TYPE = 'subagent-result';
-makeInput<SubAgentResultPayload>('subagentResult', {
-	wireType: SUBAGENT_RESULT_WIRE_TYPE,
-	multi: 'merge',
+// good — editor rejects crawl json → tools, string → tool-handle, etc.
+import { TOOL_HANDLE_WIRE_TYPE, type ToolHandle } from '@langflower/node-sdk';
+makeInput<readonly ToolHandle[]>('tools', {
+	wireType: TOOL_HANDLE_WIRE_TYPE,
+	multi: 'combine',
+	defaultValue: [],
 });
 
 // bad — any other `json` port can connect; canvas validation is useless
-makeInput('subagentResult', { wireType: 'json' });
+makeInput('tools', { wireType: 'json' });
 ```
 
 **Do not** invent peer contracts on `wireType: 'json'`. Reserve `json` for
-opaque blobs with no typed peer (e.g. crawl page / link dumps). Examples of
-named wires: `tool-handle`, `mcp-handle`,
-`subagent-registration` / `subagent-spawn` / `subagent-result`
-(`@langflower/common-nodes/ai/sub-agent-protocol`).
+opaque blobs with no typed peer (e.g. crawl page / link dumps). Named wire
+example: `tool-handle` (`TOOL_HANDLE_WIRE_TYPE`). Optional hub
+`common-tool-collection` combines many `tools` wires into one array;
+agents still accept **multi combine** without it (ADR-035).
 
 ### Optional ports → `defaultValue` (not `startWith`)
 
@@ -315,14 +317,14 @@ the current turn is still streaming:
 
 ```ts
 feedback.value$.pipe(
-	startWith(''), // turn-0 prime — NOT on tools/mcp/init peers
+	startWith(''), // turn-0 prime — NOT on tools/init peers
 	concatMap((raw) => {
 		// first emission → turn 0; later non-empty → feedback turns
 	}),
 );
 ```
 
-**Forbidden:** `startWith` on init-combine peers (`tools`, `mcp`, …) as a
+**Forbidden:** `startWith` on init-combine peers (`tools`, …) as a
 substitute for `defaultValue`.
 
 ### Multi inputs
@@ -430,9 +432,9 @@ only imitates streaming for demos (same port split, no message history).
 
 ```ts
 const context$ = combineInputs(
-	[userPrompt, tools, mcp, systemPrompt, ctx],
-	([prompt, toolList, mcpList, systemPromptValue, ec]) => {
-		// use ec.params.*, ec.toolHandles / ec.mcpHandles (LlmExecutionCaps)
+	[userPrompt, tools, systemPrompt, ctx],
+	([prompt, toolList, systemPromptValue, ec]) => {
+		// use ec.params.*, ec.toolHandles (LlmExecutionCaps)
 		// skill / stream come from private run-host services inside common-nodes
 		return {/* context */};
 	},

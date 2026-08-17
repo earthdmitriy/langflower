@@ -1,6 +1,6 @@
 # Epics — use-case readiness queue (active)
 
-**Active** under [`docs/TODO/`](../README.md). Epics **00–38** and **40** are
+**Active** under [`docs/TODO/`](../README.md). Epics **00–38** and **40–41** are
 archived in [`docs/DONE/EPICS/`](../../DONE/EPICS/README.md) once landed.
 
 Further product work also comes from
@@ -21,6 +21,7 @@ Do **not** re-open epic 15.
 | LLM autokick / dead-loop    | **38 landed** — default autokick + HTTP join + pinned feed banner                              |
 | common-nodes `ai/` layout   | **39 queued** — after 38; `ai/nodes/` vs `ai/features/`                                        |
 | Custom node reload          | **40 landed** — [hot-swap + compile tool](../../DONE/EPICS/40-custom-node-recompile-reload.md) |
+| Uniform tool shape          | **41 landed** — MCP + Sub-Agent + optional Tool collection as `ToolHandle[]`                   |
 | Use-cases                   | None Implementable — [use-cases](../../use-cases/README.md)                                    |
 
 ## Order

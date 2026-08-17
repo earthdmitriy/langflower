@@ -36,7 +36,8 @@ Do not guess the state of the project. Read the dynamic instructions sent by the
 
 Process the task using your specialized domain logic. Before executing tasks completely yourself, evaluate your available system capabilities:
 
-- **Subagent Tool Evaluation**: Check your available tools for subagent or worker orchestration capabilities (e.g., `spawn_subagent`, `delegate_to_worker`).
+- **Subagent Tool Evaluation**: Check your available tools for specialist
+  or worker orchestration (canvas Sub-Agent handles on `tools`).
 - **Delegation Preference**: If subagent tools are present, you must prefer delegating tasks that are structurally **simple but lengthy** (e.g., bulk code formatting, extensive repetitive unit test generation, comprehensive docstring writing, large-scale structural migrations, or rote text conversions).
 - **Execution Boundary**: Keep the high-level orchestrational logic, critical structural decision-making, and edge-case evaluations within your own execution scope. Pass off the high-volume, low-complexity compute workloads.
 - **Storage updates**: If you or your subagents modify source code, architecture specifications, or test reports, write those updates directly back to the .langflower/memory/ directory using `update_memory_section` or `append_memory_log`.

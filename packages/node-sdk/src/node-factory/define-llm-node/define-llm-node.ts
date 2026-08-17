@@ -67,10 +67,9 @@ const assertNoInventoryOutputs = (outputs: readonly OutputConfig[]): void => {
 
 /**
  * Purpose factory atop {@link defineReactiveNode}: every LLM-class node gets
- * the shared inventory / observability ports (`tools`, `mcp`,
- * `subagentRegistration`, `subagentResult`, `steerControl`, `toolLog`,
- * `subagent`). Authors may extend with role ports but cannot omit the
- * inventory set.
+ * the shared inventory / observability ports (`tools`, `steerControl`,
+ * `toolLog`, `recovery`). Authors may extend with role ports but cannot omit
+ * the inventory set.
  */
 export const defineLlmNode = <UI extends readonly UISchemaConstItem[]>(
 	config: Omit<DefinedReactiveNodeConfig<UI, LlmExecutionCaps>, 'bind'> & {
@@ -112,12 +111,6 @@ export {
 	type LlmInventoryInputs,
 	type LlmInventoryOutputStreams,
 } from './default-llm-ports.js';
-
-export {
-	SUBAGENT_REGISTRATION_WIRE_TYPE,
-	SUBAGENT_RESULT_WIRE_TYPE,
-	SUBAGENT_SPAWN_WIRE_TYPE,
-} from './llm-inventory-wire.js';
 
 export {
 	STEER_CONTROL_PORT_ID,
