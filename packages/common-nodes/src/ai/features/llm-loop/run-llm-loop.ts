@@ -994,6 +994,10 @@ const prepareAndStream = <Chunk>(
 	});
 };
 
+/** Parent `toolTimeoutMs` does not bound canvas specialists (`Writer_subagent`). */
+const isSubAgentToolCall = (name: string): boolean =>
+	name.endsWith('_subagent') || name.endsWith('(subagent)');
+
 const invokeTool = <Chunk>(
 	state: LlmLoopState,
 	call: ChatCompletionToolCall,
@@ -1044,11 +1048,14 @@ const invokeTool = <Chunk>(
 		}),
 	);
 
+	const toolTimeoutMs = isSubAgentToolCall(call.name)
+		? 0
+		: options.recovery.toolTimeoutMs;
 	const boundedInvocation$ =
-		options.recovery.toolTimeoutMs > 0
+		toolTimeoutMs > 0
 			? invocation$.pipe(
 					timeout({
-						first: options.recovery.toolTimeoutMs,
+						first: toolTimeoutMs,
 					}),
 				)
 			: invocation$;
@@ -1063,7 +1070,7 @@ const invokeTool = <Chunk>(
 				abortTool();
 				return of(
 					error instanceof TimeoutError
-						? `Error: Tool ${call.name} timed out after ${options.recovery.toolTimeoutMs}ms.`
+						? `Error: Tool ${call.name} timed out after ${toolTimeoutMs}ms.`
 						: `Error: ${classifyLlmFailure(error).message}`,
 				);
 			}),

@@ -160,7 +160,7 @@ describe('customPalette hot-swap (WS)', () => {
 			portId: 'out',
 			predicate: (value) => value === 'v1',
 		});
-		expect(first.output[4]).toBe('v1');
+		expect(first.output[3].value).toBe('v1');
 		await interruptRunner(client);
 
 		const snapshots: unknown[] = [];
@@ -189,7 +189,7 @@ describe('customPalette hot-swap (WS)', () => {
 			portId: 'out',
 			predicate: (value) => value === 'v2',
 		});
-		expect(second.output[4]).toBe('v2');
+		expect(second.output[3].value).toBe('v2');
 		await interruptRunner(client);
 	}, 90_000);
 

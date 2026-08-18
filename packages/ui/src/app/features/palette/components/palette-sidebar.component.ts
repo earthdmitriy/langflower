@@ -16,6 +16,7 @@ import type {
 } from '@langflower/shared/langflower';
 import { combineLatest, map, startWith } from 'rxjs';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
+import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import {
 	ADVANCED_CATEGORY,
 	advancedSubcategoryCollapseKey,
@@ -48,6 +49,9 @@ const CATEGORY_HEADER_CLASS =
 
 const NODE_ROW_CLASS =
 	'w-full cursor-grab rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-left text-[11px] text-zinc-800 shadow-sm transition hover:border-zinc-400 hover:bg-zinc-50 active:cursor-grabbing dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-800';
+
+const NODE_ROW_LOCKED_CLASS =
+	'w-full cursor-not-allowed rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-left text-[11px] text-zinc-800 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100';
 
 const CHEVRON_PATH =
 	'M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z';
@@ -260,9 +264,11 @@ const CHEVRON_PATH =
 																	<li>
 																		<button
 																			type="button"
-																			draggable="true"
+																			[attr.draggable]="
+																				!isRunning()
+																			"
 																			[class]="
-																				nodeRowClass
+																				nodeRowClass()
 																			"
 																			(dragstart)="
 																				startPaletteDrag(
@@ -308,9 +314,11 @@ const CHEVRON_PATH =
 														<li>
 															<button
 																type="button"
-																draggable="true"
+																[attr.draggable]="
+																	!isRunning()
+																"
 																[class]="
-																	nodeRowClass
+																	nodeRowClass()
 																"
 																(dragstart)="
 																	startPaletteDrag(
@@ -366,14 +374,18 @@ const CHEVRON_PATH =
 })
 export class PaletteSidebarComponent {
 	private readonly bridge = inject(LangflowerBridgeService);
+	private readonly execution = inject(WorkflowExecutionService);
 	private readonly appRef = inject(ApplicationRef);
 	private readonly environmentInjector = inject(EnvironmentInjector);
 	private seededCategoryExpansion = false;
 	private dragImageSession: PaletteDragImageSession | null = null;
 
 	readonly categoryHeaderClass = CATEGORY_HEADER_CLASS;
-	readonly nodeRowClass = NODE_ROW_CLASS;
 	readonly chevronPath = CHEVRON_PATH;
+	readonly isRunning = this.execution.isRunning;
+	readonly nodeRowClass = computed(() =>
+		this.isRunning() ? NODE_ROW_LOCKED_CLASS : NODE_ROW_CLASS,
+	);
 
 	readonly expandedSources = signal<ReadonlySet<PaletteNodeSource>>(
 		new Set(['system']),
@@ -565,6 +577,11 @@ export class PaletteSidebarComponent {
 	}
 
 	startPaletteDrag(node: PaletteNodeDefinition, event: DragEvent): void {
+		if (this.isRunning()) {
+			event.preventDefault();
+			return;
+		}
+
 		if (event.dataTransfer === null) {
 			return;
 		}

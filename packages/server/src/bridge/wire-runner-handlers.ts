@@ -18,6 +18,7 @@ import { resolveCheckpointBoundary } from '../checkpoint/resolve-checkpoint-boun
 import { RunCheckpointSession } from '../checkpoint/run-checkpoint-session.js';
 import type { ServerContext } from '../server-context.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
+import { resetSessionExecutionFeed } from '../session/reset-session-execution-feed.js';
 import {
 	buildContextSeeds,
 	applyObservableContextSeeds,
@@ -546,8 +547,7 @@ export const wireRunnerHandlers = (
 				return;
 			}
 
-			session.runtime.runner.clearEventLog();
-			session.runId = undefined;
+			resetSessionExecutionFeed(session);
 
 			// Re-broadcast the (now empty) feed to every tab.
 			bridgeEmit(

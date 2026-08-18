@@ -121,7 +121,7 @@ describe('openai-llm + fixture MCP transport', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'llm-1' &&
 						event[2] === 'response',
 				),
@@ -186,8 +186,7 @@ describe('openai-llm + fixture MCP transport', () => {
 				'out',
 				expect.anything(),
 				expect.anything(),
-				expect.anything(),
-				'Got echo.',
+				{ value: 'Got echo.' },
 			]),
 		);
 		expect(

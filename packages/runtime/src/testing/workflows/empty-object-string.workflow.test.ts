@@ -83,15 +83,15 @@ describe('string → finish: no empty-object value leak', () => {
 			(e) => e[0] === 'out' && e[1] === 'string-1' && e[2] === 'value',
 		);
 
-		const valueStates = stringValues.filter((e) => e[3] === 'value');
-		expect(valueStates.map((e) => e[4])).toEqual(['Hello']);
+		const valueStates = stringValues.filter((e) => 'value' in e[3]);
+		expect(valueStates.map((e) => e[3].value)).toEqual(['Hello']);
 
 		const emptyObjectValues = valueStates.filter(
 			(e) =>
-				typeof e[4] === 'object' &&
-				e[4] !== null &&
-				!Array.isArray(e[4]) &&
-				Object.keys(e[4]).length === 0,
+				typeof e[3].value === 'object' &&
+				e[3].value !== null &&
+				!Array.isArray(e[3].value) &&
+				Object.keys(e[3].value).length === 0,
 		);
 		expect(emptyObjectValues).toEqual([]);
 
@@ -100,8 +100,8 @@ describe('string → finish: no empty-object value leak', () => {
 				e[0] === 'in' &&
 				e[1] === 'finish-1' &&
 				e[2] === 'value' &&
-				e[3] === 'value',
+				'value' in e[3],
 		);
-		expect(finishInputs.map((e) => e[4])).toEqual(['Hello']);
+		expect(finishInputs.map((e) => e[3].value)).toEqual(['Hello']);
 	});
 });

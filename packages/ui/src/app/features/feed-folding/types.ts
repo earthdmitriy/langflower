@@ -38,6 +38,8 @@ type ToolInteractionMeta = {
 	readonly presentation: 'tool-request' | 'tool-response';
 	readonly interactionId: string;
 	readonly visitBoundary?: FeedVisitBoundary;
+	/** Set at normalize when this node is `common-sub-agent`. */
+	readonly closesPreviousVisit?: true;
 };
 
 type OrdinaryPortFrameMeta = {
@@ -54,6 +56,8 @@ type OrdinaryPortFrameMeta = {
 	>;
 	/** Derived from author `feed.streaming !== true` at normalize time. */
 	readonly visitBoundary?: FeedVisitBoundary;
+	/** Set at normalize when this node is `common-sub-agent`. */
+	readonly closesPreviousVisit?: true;
 };
 
 type HitlUserMeta = {
@@ -61,6 +65,7 @@ type HitlUserMeta = {
 	readonly origin: 'hitl-reply' | 'steer';
 	readonly payload?: SteerControlPayload;
 	readonly visitBoundary?: FeedVisitBoundary;
+	readonly closesPreviousVisit?: true;
 };
 
 type SteeringMeta =
@@ -68,11 +73,13 @@ type SteeringMeta =
 			readonly presentation: 'steering-pause';
 			readonly payload: SteerControlPayload;
 			readonly visitBoundary?: FeedVisitBoundary;
+			readonly closesPreviousVisit?: true;
 	  }
 	| {
 			readonly presentation: 'steering-resume';
 			readonly payload: SteerControlPayload;
 			readonly visitBoundary?: FeedVisitBoundary;
+			readonly closesPreviousVisit?: true;
 	  };
 
 export type PortFrameMeta =
@@ -161,3 +168,8 @@ export type FeedBridgeSources = {
 export const isVisitBoundaryClose = (
 	meta: FeedEventFromSource['meta'],
 ): boolean => 'visitBoundary' in meta && meta.visitBoundary === 'close';
+
+export const isClosesPreviousVisit = (
+	meta: FeedEventFromSource['meta'],
+): boolean =>
+	'closesPreviousVisit' in meta && meta.closesPreviousVisit === true;

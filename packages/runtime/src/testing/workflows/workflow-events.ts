@@ -1,6 +1,7 @@
 import { filter, firstValueFrom } from 'rxjs';
 import {
 	isPortTelemetry,
+	isPortValueTelemetry,
 	isRuntimeDone,
 	type EdgeId,
 	type PortTelemetry,
@@ -47,8 +48,9 @@ export type OutputEmittedEvent = PortTelemetry & { readonly 0: 'out' };
 
 const isOutputValue = (
 	event: RuntimeRunnerEvent,
-): event is OutputEmittedEvent =>
-	isPortTelemetry(event) && event[0] === 'out' && event[3] === 'value';
+): event is OutputEmittedEvent & {
+	readonly 3: { readonly value: unknown };
+} => isPortValueTelemetry(event) && event[0] === 'out';
 
 export function outputValues(
 	events: readonly RuntimeRunnerEvent[],
@@ -58,12 +60,16 @@ export function outputValues(
 ): unknown[] {
 	return events
 		.filter(
-			(event): event is OutputEmittedEvent =>
+			(
+				event,
+			): event is OutputEmittedEvent & {
+				readonly 3: { readonly value: unknown };
+			} =>
 				isOutputValue(event) &&
 				event[1] === nodeId &&
 				event[2] === portId,
 		)
-		.map((event) => event[4]);
+		.map((event) => event[3].value);
 }
 
 export async function waitForOutput(
@@ -91,7 +97,7 @@ async function waitForOutputMatching(
 					isOutputValue(event) &&
 					event[1] === nodeId &&
 					event[2] === portId &&
-					predicate(event[4]),
+					predicate(event[3].value),
 			),
 		),
 	);
@@ -149,9 +155,23 @@ export async function noDoneWithin(
 }
 
 export const edgeIdsFromPortEvent = (event: PortTelemetry): readonly EdgeId[] =>
-	event[6];
+	event[5];
 
 export const portDirLabel = (
 	event: PortTelemetry,
 ): 'input-received' | 'output-emitted' =>
 	event[0] === 'out' ? 'output-emitted' : 'input-received';
+
+export const dtoHas = (
+	dtos: readonly unknown[],
+	key: 'pending' | 'value' | 'error' | 'inactive',
+): boolean =>
+	dtos.some((dto) => typeof dto === 'object' && dto !== null && key in dto);
+
+export const dtoIndex = (
+	dtos: readonly unknown[],
+	key: 'pending' | 'value' | 'error' | 'inactive',
+): number =>
+	dtos.findIndex(
+		(dto) => typeof dto === 'object' && dto !== null && key in dto,
+	);

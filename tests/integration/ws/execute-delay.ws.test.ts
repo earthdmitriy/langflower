@@ -47,7 +47,7 @@ describe('execute delay-preview (WS bridge)', () => {
 			portId: 'text',
 		});
 
-		expect(output[4]).toBe('through-delay');
+		expect(output[3].value).toBe('through-delay');
 		expect(Date.now() - startedAt).toBeGreaterThanOrEqual(40);
 
 		await interruptRunner(client);

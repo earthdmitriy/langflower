@@ -226,6 +226,7 @@ export class FlowCanvasComponent {
 	private readonly elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
 	private readonly injector = inject(Injector);
 	private readonly bridge = inject(LangflowerBridgeService);
+	private readonly execution = inject(WorkflowExecutionService);
 	private readonly viewportService = inject(NgDiagramViewportService);
 	private readonly viewport$ = toObservable(this.viewportService.viewport);
 
@@ -445,10 +446,17 @@ export class FlowCanvasComponent {
 			}
 
 			event.preventDefault();
-			dataTransfer.dropEffect = 'copy';
+			dataTransfer.dropEffect = this.execution.isRunning()
+				? 'none'
+				: 'copy';
 		},
 
 		handleDrop: (event: DragEvent) => {
+			if (this.execution.isRunning()) {
+				event.preventDefault();
+				return;
+			}
+
 			const nodeType = event.dataTransfer?.getData(PALETTE_DRAG_MIME);
 
 			if (nodeType === undefined || nodeType.length === 0) {

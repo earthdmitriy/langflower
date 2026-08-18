@@ -173,19 +173,22 @@ Source: `packages/runtime/src/runtime-runner.ts`.
 
 ## Port state and multiple emissions
 
-Runtime telemetry carries the state exposed by
-`@rx-evo/stateful-observable`:
+Runtime telemetry carries `@rx-evo/stateful-observable` `ResponseDto` on the
+same port (slot 3 of `PortTelemetry`), via `serializeResponse`:
 
-- loading becomes `pending`;
-- success becomes `value`;
-- error becomes `error`;
-- inactive/reset is not emitted as a runner fact.
+- loading → `{ pending: true }`;
+- success → `{ value }`;
+- error → `{ error }`;
+- inactive/reset → `{ inactive: true }` when the source emits it.
 
-Ports are streams. One output may emit `pending`, many `value` frames, another
-`pending`, and later more values. Every observed frame becomes a distinct
-`runner.output-emitted`; downstream deliveries become
-`runner.input-received`. `value` therefore means “a value was observed”, not
-“this port is permanently complete”.
+Chrome folds the last `ResponseDto` per edge (`'pending' in status()`, …).
+The work log drops pending/inactive frames (chrome-only).
+
+Ports are streams. One output may emit `{ pending: true }`, many `{ value }`
+frames, another pending, and later more values. Every observed frame becomes
+a distinct `runner.port` tuple; downstream deliveries become input tuples.
+`{ value }` therefore means “a value was observed”, not “this port is
+permanently complete”.
 
 The event log keeps chronological frames for reconnect replay. UI chrome folds
 the last observed state per node/port and per edge. Live value frames also

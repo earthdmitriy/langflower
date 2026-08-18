@@ -23,7 +23,7 @@ describe('RunCheckpointSession explicit boundaries', () => {
 		const session = new RunCheckpointSession(process.cwd());
 		session.beginRun('run-1' as RunId, emptyWorkflow('wf'));
 
-		session.observe(['out', 'stage-a' as NodeId, 'value', 'value', 'ok']);
+		session.observe(['out', 'stage-a' as NodeId, 'value', { value: 'ok' }]);
 
 		await expect(session.markStopped()).resolves.toBeUndefined();
 	});
@@ -33,7 +33,7 @@ describe('RunCheckpointSession explicit boundaries', () => {
 		session.beginRun('run-boundary' as RunId, emptyWorkflow('wf'));
 
 		const shouldPersist = session.observe(
-			['out', 'checkpoint-a' as NodeId, 'value', 'value', 'ok'],
+			['out', 'checkpoint-a' as NodeId, 'value', { value: 'ok' }],
 			{ label: 'After stage A' },
 		);
 

@@ -68,7 +68,7 @@ describe('execute workflow runtime (WS bridge)', () => {
 			predicate: (value) => value === 'done-value',
 		});
 
-		expect(output[4]).toBe('done-value');
+		expect(output[3].value).toBe('done-value');
 		await donePromise;
 		expect(runId).toBeTruthy();
 	});
@@ -86,7 +86,7 @@ describe('execute workflow runtime (WS bridge)', () => {
 			predicate: (value) => value === 'full-run',
 		});
 
-		expect(output[4]).toBe('full-run');
+		expect(output[3].value).toBe('full-run');
 	});
 
 	it('runs from a selected node cluster via runner.startNode', async () => {
@@ -105,7 +105,7 @@ describe('execute workflow runtime (WS bridge)', () => {
 			},
 		);
 
-		expect(output[4]).toBe('from-node');
+		expect(output[3].value).toBe('from-node');
 	});
 
 	it('interrupts an active run without finish node', async () => {

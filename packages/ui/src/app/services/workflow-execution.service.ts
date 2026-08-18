@@ -4,11 +4,11 @@ import type {
 	EdgeId,
 	NodeId,
 	PortTelemetry,
+	ResponseDto,
 	RunId,
-	RuntimePortSignalState,
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
-import { isPortTelemetry } from '@langflower/runtime';
+import { isPortTelemetry, isPortValueTelemetry } from '@langflower/runtime';
 import type {
 	PaletteNodeDefinition,
 	RunnerPermissionAskPayload,
@@ -62,7 +62,7 @@ import { ExecutionFeedService } from '../features/feed-folding/execution-feed.se
 type InputPortTelemetry = PortTelemetry & {
 	readonly 0: 'in';
 	readonly 2: string;
-	readonly 3: 'value';
+	readonly 3: { readonly value: unknown };
 };
 
 /**
@@ -108,9 +108,9 @@ export class WorkflowExecutionService {
 	private readonly inputReceived$ = this.runnerPort$.pipe(
 		filter(
 			(event): event is InputPortTelemetry =>
+				isPortValueTelemetry(event) &&
 				event[0] === 'in' &&
-				typeof event[2] === 'string' &&
-				event[3] === 'value',
+				typeof event[2] === 'string',
 		),
 	);
 	private readonly runnerStarted$ = this.bridge.raw['runner.started'].pipe(
@@ -241,22 +241,21 @@ export class WorkflowExecutionService {
 					const next = new Map<string, unknown>();
 					for (const event of action.events) {
 						if (
-							isPortTelemetry(event) &&
+							isPortValueTelemetry(event) &&
 							event[0] === 'out' &&
-							typeof event[2] === 'string' &&
-							event[3] === 'value'
+							typeof event[2] === 'string'
 						) {
-							next.set(`${event[1]}:${event[2]}`, event[4]);
+							next.set(`${event[1]}:${event[2]}`, event[3].value);
 						}
 					}
 					return next;
 				}
-				const [, nodeId, portId, state, value] = action.event;
-				if (typeof portId !== 'string' || state !== 'value') {
+				const [, nodeId, portId, response] = action.event;
+				if (typeof portId !== 'string' || !('value' in response)) {
 					return values;
 				}
 				const next = new Map(values);
-				next.set(`${nodeId}:${portId}`, value);
+				next.set(`${nodeId}:${portId}`, response.value);
 				return next;
 			}, new Map<string, unknown>()),
 		),
@@ -300,7 +299,7 @@ export class WorkflowExecutionService {
 	});
 
 	readonly edgeStates = toSignal(this.edgeStates$, {
-		initialValue: new Map<EdgeId, RuntimePortSignalState>(),
+		initialValue: new Map<EdgeId, ResponseDto<unknown>>(),
 	});
 
 	/**
@@ -579,13 +578,13 @@ export class WorkflowExecutionService {
 		});
 	}
 
-	wireStatus(edgeId: string): 'inactive' | 'pending' | 'value' | 'error' {
-		return this.edgeStates().get(edgeId as EdgeId) ?? 'inactive';
+	wireStatus(edgeId: string): ResponseDto<unknown> {
+		return this.edgeStates().get(edgeId as EdgeId) ?? { inactive: true };
 	}
 
 	getEventsForEdge(edgeId: string): Observable<OutputPortTelemetry> {
 		return this.outputEmitted$.pipe(
-			filter((event) => event[6].some((id) => id === edgeId)),
+			filter((event) => event[5].some((id) => id === edgeId)),
 		);
 	}
 

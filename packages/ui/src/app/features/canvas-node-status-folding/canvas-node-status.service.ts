@@ -4,8 +4,8 @@ import type {
 	RunId,
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
-import { isPortTelemetry } from '@langflower/runtime';
-import { combineLatest, merge, type Observable } from 'rxjs';
+import { isPortTelemetry, isPortValueTelemetry } from '@langflower/runtime';
+import { combineLatest, type Observable } from 'rxjs';
 import { filter, map, shareReplay } from 'rxjs/operators';
 import { LangflowerBridgeService } from '../../services/langflower-bridge.service';
 import { valuePulseActive$ } from '../canvas/utils/value-pulse-active';
@@ -66,8 +66,12 @@ export class CanvasNodeStatusService {
 
 		const pulse$ = valuePulseActive$(
 			this.runnerPort$.pipe(
-				filter((event) => event[1] === nodeId),
-				map((event) => ({ state: event[3] })),
+				filter(
+					(event) =>
+						event[1] === nodeId &&
+						event[0] === 'out' &&
+						isPortValueTelemetry(event),
+				),
 			),
 		).pipe(shareReplay({ bufferSize: 1, refCount: false }));
 

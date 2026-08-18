@@ -78,10 +78,10 @@ describe('HITL common nodes (runtime smoke)', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'preview-1' &&
 						event[2] === 'text' &&
-						event[4] === 'Build a demo',
+						event[3].value === 'Build a demo',
 				),
 			),
 		);
@@ -96,7 +96,7 @@ describe('HITL common nodes (runtime smoke)', () => {
 		const pushSub = runtime.runner.events$.subscribe((event) => {
 			if (
 				(event[0] === 'in' || event[0] === 'out') &&
-				event[3] === 'value'
+				'value' in event[3]
 			) {
 				pushEvents.push({
 					kind:
@@ -118,7 +118,7 @@ describe('HITL common nodes (runtime smoke)', () => {
 		expect(pushed).toBe(runId);
 
 		const previewEvent = await previewPromise;
-		expect(previewEvent[0] === 'out' && previewEvent[4]).toBe(
+		expect(previewEvent[0] === 'out' && previewEvent[3].value).toBe(
 			'Build a demo',
 		);
 
@@ -200,10 +200,10 @@ describe('HITL common nodes (runtime smoke)', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'preview-1' &&
 						event[2] === 'text' &&
-						event[4] === 'approved draft',
+						event[3].value === 'approved draft',
 				),
 			),
 		);
@@ -221,8 +221,7 @@ describe('HITL common nodes (runtime smoke)', () => {
 			'out',
 			'preview-1',
 			'text',
-			'value',
-			'approved draft',
+			{ value: 'approved draft' },
 			0,
 			[],
 			null,

@@ -140,9 +140,9 @@ describe('execute checkpoint resume (WS bridge)', () => {
 			if (
 				event[0] === 'out' &&
 				event[1] === 'stage-a' &&
-				event[3] === 'value'
+				'value' in event[3]
 			) {
-				stageAValues.push(event[4]);
+				stageAValues.push(event[3].value);
 			}
 		});
 
@@ -169,7 +169,7 @@ describe('execute checkpoint resume (WS bridge)', () => {
 		]);
 
 		expect(resumeRunId).toBeTruthy();
-		expect(previewB[4]).toBe('checkpoint-ok');
+		expect(previewB[3].value).toBe('checkpoint-ok');
 		expect(done[1]).toBe(resumeRunId);
 		// Snapshot replay may emit stage-a once; a full re-run would also
 		// wait on the delay — assert we did not get a second live activation

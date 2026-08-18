@@ -45,3 +45,10 @@ export function workflowTopbarWithCurrentStatus(
 		currentStatus: status,
 	};
 }
+
+const STOP_RUN_TO_CHANGE_WORKFLOWS = 'Stop the run to change workflows';
+
+export const workflowChangeControlTip = (
+	isRunning: boolean,
+	idleTip: string,
+): string => (isRunning ? STOP_RUN_TO_CHANGE_WORKFLOWS : idleTip);

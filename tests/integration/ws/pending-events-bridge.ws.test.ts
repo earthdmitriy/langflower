@@ -27,6 +27,12 @@ import {
 	waitSessionReady,
 } from '@langflower/shared/langflower-ws-waits';
 
+const dtoHas = (
+	dtos: readonly unknown[],
+	key: 'pending' | 'value' | 'error' | 'inactive',
+): boolean =>
+	dtos.some((dto) => typeof dto === 'object' && dto !== null && key in dto);
+
 describe('runner pending events reach WS bridge', () => {
 	let projectDir: string;
 	let urls: TestServerHandle;
@@ -83,7 +89,7 @@ describe('runner pending events reach WS bridge', () => {
 			const states = outputEvents
 				.filter((e) => e[1] === nodeId)
 				.map((e) => e[3]);
-			expect(states).toContain('value');
+			expect(dtoHas(states, 'value')).toBe(true);
 		}
 	});
 
@@ -102,11 +108,11 @@ describe('runner pending events reach WS bridge', () => {
 						event,
 					): event is PortTelemetry & {
 						readonly 0: 'out';
-						readonly 3: 'value';
+						readonly 3: { readonly value: unknown };
 						readonly 1: 'preview-1';
 					} =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'preview-1',
 				),
 				take(1),
@@ -123,9 +129,8 @@ describe('runner pending events reach WS bridge', () => {
 		);
 
 		const states = delayEvents.map((e) => e[3]);
-		expect(states).toContain('pending');
-		expect(states).toContain('value');
-		expect(states.indexOf('pending')).toBeLessThan(states.indexOf('value'));
+		expect(dtoHas(states, 'pending')).toBe(true);
+		expect(dtoHas(states, 'value')).toBe(true);
 	});
 
 	it('single always-on subscription fans pending out to all connected clients', async () => {
@@ -150,11 +155,11 @@ describe('runner pending events reach WS bridge', () => {
 						event,
 					): event is PortTelemetry & {
 						readonly 0: 'out';
-						readonly 3: 'value';
+						readonly 3: { readonly value: unknown };
 						readonly 1: 'preview-1';
 					} =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'preview-1',
 				),
 				take(1),
@@ -176,7 +181,36 @@ describe('runner pending events reach WS bridge', () => {
 				)
 				.map((e) => e[3]);
 
-		expect(statesOf(eventsA, 'delay-1')).toContain('pending');
-		expect(statesOf(eventsB, 'delay-1')).toContain('pending');
+		expect(dtoHas(statesOf(eventsA, 'delay-1'), 'pending')).toBe(true);
+		expect(dtoHas(statesOf(eventsB, 'delay-1'), 'pending')).toBe(true);
 	}, 30000);
+
+	it('emits runner.started before the first runner.port', async () => {
+		await seedWorkflowFromDisk(
+			client,
+			projectDir,
+			stringFinishWorkflow('started-before-port'),
+		);
+
+		const order: string[] = [];
+		const subStarted = client['runner.started'].subscribe(() => {
+			if (!order.includes('started')) {
+				order.push('started');
+			}
+		});
+		const subPort = client['runner.port'].subscribe(() => {
+			if (!order.includes('port')) {
+				order.push('port');
+			}
+		});
+		const donePromise = firstValueFrom(client['runner.done'].pipe(take(1)));
+
+		client['runner.start.requested'].next([]);
+		await donePromise;
+		subStarted.unsubscribe();
+		subPort.unsubscribe();
+
+		expect(order[0]).toBe('started');
+		expect(order).toContain('port');
+	});
 });

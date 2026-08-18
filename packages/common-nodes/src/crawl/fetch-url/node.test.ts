@@ -111,7 +111,7 @@ describe('common-fetch-url', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'error' &&
+						'error' in event[3] &&
 						event[1] === 'fetch-1',
 				),
 			),
@@ -119,6 +119,6 @@ describe('common-fetch-url', () => {
 
 		runtime.runner.start();
 		const errorEvent = await errorPromise;
-		expect(String(errorEvent[4])).toMatch(/Service unavailable/i);
+		expect(String(errorEvent[3].error)).toMatch(/Service unavailable/i);
 	});
 });

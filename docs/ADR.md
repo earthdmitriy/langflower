@@ -1125,8 +1125,10 @@ the hard-harness product story ([PRODUCT.md](PRODUCT.md)).
 2. **One inventory wire** — Sub-Agent emits one `ToolHandle` on OUT
    `subagent-registration` (`TOOL_HANDLE_WIRE_TYPE`). Parent LLM `tools` is
    **multi:combine**.
-   `toolId`: slug of Inspector `name`, else `nodeId`. Duplicate `toolId`
-   last-wins (same as packs/MCP).
+   `toolId`: slug of `{Inspector name}(subagent)`, else `nodeId`. Duplicate
+   `toolId` last-wins (same as packs/MCP). Handle `name` keeps the
+   `(subagent)` suffix so weaker models see it is a specialist, not a
+   normal tool.
 3. **Skills on the handle** — `inputSchema.task` required; `inputSchema.skillId`
    is a JSON Schema `enum` of Inspector `skillIds` when non-empty (omit the
    property when empty). Description lists name + Inspector description +
@@ -1134,7 +1136,9 @@ the hard-harness product story ([PRODUCT.md](PRODUCT.md)).
 4. **`invoke` is the session** — calling the handle runs **this node's**
    `runAgentLoop` and returns a **string** (success or `Error: …`). Unknown
    `skillId` → error string. Timeout: `recovery.subagentTimeoutMs` inside
-   invoke. Serial per node (ADR-022 L0) — queue overlapping invokes.
+   invoke (`0` = unlimited, **default**). Stuck specialists use that node's
+   LLM recovery (stream idle / autokick); parent `toolTimeoutMs` does not
+   apply. Serial per node (ADR-022 L0) — queue overlapping invokes.
 5. **No parent spawn ports** — LLM inventory is `tools` + `steerControl` +
    `toolLog` / `recovery`. There is no `spawn_subagent` chat tool, no
    `subagentRegistration` / `subagent` / `subagentResult`.
@@ -1654,15 +1658,16 @@ defaults into JSON also freezes stale values across node upgrades.
    a historical baked copy).
 3. **Normalize** on load and save: strip unknown / non-persistable /
    default-equal keys (in-memory; disk cleaned on next Save).
-4. **Runtime** treats `{ state: Symbol }` structurally as inactive/loading so
-   dual-package Symbol identity cannot skip `applyPortDefaults` or emit `{}`
-   on the bus (extends BUG-2026-07-23).
+4. **Runtime** classifies port status with `@rx-evo` `serializeResponse` →
+   `ResponseDto` (`'pending' in dto`, `'inactive' in dto`, …). Sentinels
+   use `Symbol.for` (0.6.0) so dual-package identity cannot skip
+   `applyPortDefaults` or invent a parallel string union.
 
 **Tradeoffs accepted:** (+) Sparse JSON, upgrade-safe defaults, recreate no
 longer required to “fix” empty inputs. (−) UI must treat missing keys as
 “show definition default”; materialize must disconnect seeds when edges wire
-(existing BUG-2026-07-12b). (−) Structural Symbol checks are a pragmatic
-guard until `@rx-evo` is single-resolved.
+(existing BUG-2026-07-12b). (−) Wire telemetry is `ResponseDto`, not a
+Langflower-owned `RuntimePortSignalState` string.
 
 **Consequences:**
 
@@ -2013,8 +2018,13 @@ direction metadata — doubling noise on streaming runs.
 
 **Decision:**
 
-- **`PortTelemetry`** fixed 8-slot tuple: `['in'|'out', nodeId, portId, state, value, portIdx, edgeIds, feed]`
-  (`feed` is `RuntimeFeedPortMeta | null` — never `undefined`; JSON tuples use `null` for absent slots).
+- **`PortTelemetry`** fixed 7-slot tuple:
+  `['in'|'out', nodeId, portId, response, portIdx, edgeIds, feed]`
+  where `response` is `@rx-evo` `ResponseDto` (`{ value } | { pending: true } |
+{ inactive: true } | { error }`). `feed` is `RuntimeFeedPortMeta | null` —
+  never `undefined`; JSON tuples use `null` for absent slots.
+  Classify with `'pending' in event[3]`, `'value' in event[3]`, etc. — do not
+  invent a parallel string tag.
 - **`BridgeFrame`** wire/log line: `[ts, transportDir, busType, payload]` — identical
   JSON bytes on WebSocket and NDJSON (no log-only sanitization).
 - Bus consolidates to **`runner.port`** (direction at `payload[0]`); **`runner.done`**

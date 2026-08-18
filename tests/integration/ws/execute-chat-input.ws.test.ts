@@ -93,7 +93,7 @@ describe('execute Chat Input (WS bridge)', () => {
 			expect(typeof runId).toBe('string');
 
 			const turn1 = await firstPreview;
-			expect(String(turn1[4])).toContain('hello agent');
+			expect(String(turn1[3].value)).toContain('hello agent');
 
 			const secondPreview = waitForRunnerOutput(client, {
 				nodeId: 'preview',
@@ -115,8 +115,8 @@ describe('execute Chat Input (WS bridge)', () => {
 			);
 
 			const turn2 = await secondPreview;
-			expect(String(turn2[4]).toLowerCase()).toContain('feedback');
-			expect(String(turn2[4])).toContain('please revise');
+			expect(String(turn2[3].value).toLowerCase()).toContain('feedback');
+			expect(String(turn2[3].value)).toContain('please revise');
 		});
 
 		it('plain Run does not start a chat-entry-only graph', async () => {

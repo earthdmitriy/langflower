@@ -20,7 +20,6 @@ export type {
 	PortTelemetry,
 	RuntimeDoneTelemetry,
 	RuntimeNode,
-	RuntimePortSignalState,
 	RuntimeResumeOptions,
 	RuntimeRunnerApi,
 	RuntimeRunnerEvent,
@@ -29,8 +28,15 @@ export type {
 	RuntimeWireType,
 	SwapNodeResult,
 } from './types.js';
-export { isPortTelemetry, isRuntimeDone } from './types.js';
+export {
+	isPortErrorTelemetry,
+	isPortPendingTelemetry,
+	isPortTelemetry,
+	isPortValueTelemetry,
+	isRuntimeDone,
+} from './types.js';
 export type { RuntimeOptions };
+export type { ResponseDto } from '@rx-evo/stateful-observable';
 
 export class RuntimeFacade {
 	readonly editor: RuntimeEditor;

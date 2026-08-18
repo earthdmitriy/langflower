@@ -76,7 +76,7 @@ const waitLlmResponse = (runtime: RuntimeFacade, nth: number) => {
 			filter((event) => {
 				if (
 					event[0] !== 'out' ||
-					event[3] !== 'value' ||
+					!('value' in event[3]) ||
 					event[1] !== 'llm-1' ||
 					event[2] !== 'response'
 				) {

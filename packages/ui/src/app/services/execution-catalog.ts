@@ -39,6 +39,7 @@ export type FeedCatalog = {
 	readonly labels: ReadonlyMap<string, string>;
 	readonly paletteByType: ReadonlyMap<string, PaletteNodeDefinition>;
 	readonly nodeTypeById: ReadonlyMap<string, string>;
+	readonly workflowId?: string | null;
 };
 
 export const feedCatalogFromSnaps = (
@@ -51,7 +52,26 @@ export const feedCatalogFromSnaps = (
 		labels: nodeLabelsFromWorkflow(workflow, paletteByType),
 		paletteByType,
 		nodeTypeById,
+		workflowId: workflow.activeWorkflow?.workflowId ?? null,
 	};
+};
+
+/** True when the catalog belongs to a different workflow document (not rename). */
+export const catalogSwitchedDocument = (
+	previous: FeedCatalog | null,
+	next: FeedCatalog,
+): boolean => {
+	if (previous === null) {
+		return false;
+	}
+	const previousId = previous.workflowId ?? null;
+	const nextId = next.workflowId ?? null;
+	if (previousId === null || nextId === null || previousId === nextId) {
+		return false;
+	}
+	const previousIds = [...previous.nodeTypeById.keys()].sort().join('\0');
+	const nextIds = [...next.nodeTypeById.keys()].sort().join('\0');
+	return previousIds !== nextIds;
 };
 
 export const definitionForNode = (

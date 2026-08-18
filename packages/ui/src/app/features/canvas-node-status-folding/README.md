@@ -10,7 +10,7 @@ Per-node canvas chrome from bridge execution facts. Unlike `feed-folding`
 
 bridge events → filter(nodeId) → append-only fold → status$
 
-              → filter(nodeId) → valuePulseActive$ → pulse$
+              → filter(nodeId, out, value DTO) → valuePulseActive$ → pulse$
 
 ```
 
@@ -60,9 +60,9 @@ no permission asks (composer/WES owns those).
 
 | 2 | `error` | Any output `error` |
 
-| 3 | `value` | Any **non-streaming** output with `state: 'value'` (green) |
+| 3 | `value` | Any **non-streaming** output with `'value' in` ResponseDto (green) |
 
-| 4 | `pending` | Any other seen event (input, pending, streaming value) — amber |
+| 4 | `pending` | Any other seen event (input, `{ pending: true }`, streaming value) — amber |
 
 | 5 | `inactive` | No events in the current run |
 

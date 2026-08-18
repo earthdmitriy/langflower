@@ -83,8 +83,7 @@ function outputPending(_runId: string, edgeIds: string[]) {
 		'out',
 		'n1',
 		'response',
-		'pending',
-		undefined,
+		{ pending: true },
 		0,
 		edgeIds,
 		null,
@@ -92,7 +91,7 @@ function outputPending(_runId: string, edgeIds: string[]) {
 }
 
 function outputValue(_runId: string, edgeIds: string[]) {
-	return ['out', 'n1', 'response', 'value', 'x', 0, edgeIds, null] as const;
+	return ['out', 'n1', 'response', { value: 'x' }, 0, edgeIds, null] as const;
 }
 
 describe('LfEdgeChromeComponent execution chrome (signal-driven DOM)', () => {
@@ -147,31 +146,41 @@ describe('LfEdgeChromeComponent execution chrome (signal-driven DOM)', () => {
 		raw['runner.port'].next(outputPending('run-1', ['edge-1']));
 		fixture.detectChanges();
 
-		expect(service.wireStatus('edge-1')).toBe('pending');
+		expect(service.wireStatus('edge-1')).toEqual({ pending: true });
 		expect(
 			fixture.nativeElement.classList.contains('lf-edge--pending'),
 		).toBe(true);
+		expect(
+			getComputedStyle(fixture.nativeElement)
+				.getPropertyValue('--edge-stroke')
+				.trim(),
+		).toMatch(/rgb\(202[,\s]+138[,\s]+4\)/);
 	});
 
 	it('is value (green) once the source emits a value', () => {
 		raw['runner.port'].next(outputValue('run-1', ['edge-1']));
 		fixture.detectChanges();
 
-		expect(service.wireStatus('edge-1')).toBe('value');
+		expect(service.wireStatus('edge-1')).toEqual({ value: 'x' });
 		expect(fixture.nativeElement.classList.contains('lf-edge--value')).toBe(
 			true,
 		);
+		expect(
+			getComputedStyle(fixture.nativeElement)
+				.getPropertyValue('--edge-stroke')
+				.trim(),
+		).toMatch(/rgb\(16[,\s]+185[,\s]+129\)/);
 	});
 
 	it('keeps settled chrome on run done', () => {
 		raw['runner.port'].next(outputPending('run-1', ['edge-1']));
 		fixture.detectChanges();
-		expect(service.wireStatus('edge-1')).toBe('pending');
+		expect(service.wireStatus('edge-1')).toEqual({ pending: true });
 
 		raw['runner.done'].next(['done', 'run-1']);
 		fixture.detectChanges();
 
-		expect(service.wireStatus('edge-1')).toBe('pending');
+		expect(service.wireStatus('edge-1')).toEqual({ pending: true });
 		expect(
 			fixture.nativeElement.classList.contains('lf-edge--pending'),
 		).toBe(true);

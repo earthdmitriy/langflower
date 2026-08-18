@@ -133,11 +133,11 @@ describe('execute permission-escalation-ops (WS bridge)', () => {
 				(event: RuntimeRunnerEvent) => {
 					if (
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[2] === 'toolLog'
 					) {
 						const lines = toolLogsByNode.get(event[1]) ?? [];
-						lines.push(String(event[4]));
+						lines.push(String(event[3].value));
 						toolLogsByNode.set(event[1], lines);
 					}
 				},
@@ -211,7 +211,7 @@ describe('execute permission-escalation-ops (WS bridge)', () => {
 			allowSub.unsubscribe();
 			toolSub.unsubscribe();
 
-			expect(String(finish[4])).toContain('Bash:');
+			expect(String(finish[3].value)).toContain('Bash:');
 
 			const exploreLogs = toolLogsByNode.get('explore') ?? [];
 			const writeLogs = toolLogsByNode.get('write') ?? [];

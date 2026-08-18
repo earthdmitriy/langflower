@@ -1,4 +1,4 @@
-import type { NodeId, PortTelemetry, RunId } from '@langflower/runtime';
+import type { NodeId, ResponseDto } from '@langflower/runtime';
 import { describe, expect, it } from 'vitest';
 import type { RuntimeRunnerEvent } from '@langflower/runtime';
 import {
@@ -7,12 +7,11 @@ import {
 	terminalExecutionProgressStatus,
 } from './derive-run-settle-outcome.js';
 
-const output = (state: 'value' | 'error' | 'pending'): RuntimeRunnerEvent => [
+const output = (response: ResponseDto<unknown>): RuntimeRunnerEvent => [
 	'out',
 	'n1' as NodeId,
 	'out',
-	state,
-	state === 'error' ? new Error('boom') : 'ok',
+	response,
 	0,
 	[],
 	null,
@@ -22,28 +21,32 @@ describe('deriveExecutionProgressStatus', () => {
 	it('passes through running and stopped', () => {
 		expect(deriveExecutionProgressStatus('running', [])).toBe('running');
 		expect(
-			deriveExecutionProgressStatus('stopped', [output('error')]),
+			deriveExecutionProgressStatus('stopped', [
+				output({ error: new Error('boom') }),
+			]),
 		).toBe('stopped');
 	});
 
 	it('maps idle with no errors to completed', () => {
-		expect(deriveExecutionProgressStatus('idle', [output('value')])).toBe(
-			'completed',
-		);
+		expect(
+			deriveExecutionProgressStatus('idle', [output({ value: 'ok' })]),
+		).toBe('completed');
 		expect(deriveExecutionProgressStatus('idle', [])).toBe('completed');
 	});
 
 	it('maps idle with only errors to failed', () => {
-		expect(deriveExecutionProgressStatus('idle', [output('error')])).toBe(
-			'failed',
-		);
+		expect(
+			deriveExecutionProgressStatus('idle', [
+				output({ error: new Error('boom') }),
+			]),
+		).toBe('failed');
 	});
 
 	it('maps idle with mixed value and error to completed_with_errors', () => {
 		expect(
 			deriveExecutionProgressStatus('idle', [
-				output('value'),
-				output('error'),
+				output({ value: 'ok' }),
+				output({ error: new Error('boom') }),
 			]),
 		).toBe('completed_with_errors');
 	});

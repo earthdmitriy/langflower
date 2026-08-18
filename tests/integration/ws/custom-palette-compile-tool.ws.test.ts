@@ -248,7 +248,7 @@ describe('compile_custom_nodes (WS)', () => {
 			portId: 'out',
 			predicate: (value) => value === 'v1',
 		});
-		expect(first.output[4]).toBe('v1');
+		expect(first.output[3].value).toBe('v1');
 		await interruptRunner(client);
 
 		await writePack(projectDir, echoSource('v2'));
@@ -260,7 +260,7 @@ describe('compile_custom_nodes (WS)', () => {
 				typeof value === 'string' && value.includes('compiled'),
 		});
 		const snapshot = await okPromise;
-		expect(compiled.output[4]).toContain('compiled');
+		expect(compiled.output[3].value).toContain('compiled');
 		expect(snapshot.status).toBe('ok');
 		expect(
 			snapshot.nodes.some((node) => node.type === 'fixture-custom-echo'),
@@ -272,7 +272,7 @@ describe('compile_custom_nodes (WS)', () => {
 			portId: 'out',
 			predicate: (value) => value === 'v2',
 		});
-		expect(second.output[4]).toBe('v2');
+		expect(second.output[3].value).toBe('v2');
 		await interruptRunner(client);
 	}, 90_000);
 
@@ -377,10 +377,10 @@ describe('compile_custom_nodes (WS)', () => {
 			(event: RuntimeRunnerEvent) => {
 				if (
 					event[0] === 'out' &&
-					event[3] === 'value' &&
+					'value' in event[3] &&
 					event[2] === 'toolLog'
 				) {
-					toolLogs.push(String(event[4]));
+					toolLogs.push(String(event[3].value));
 				}
 			},
 		);
@@ -394,7 +394,7 @@ describe('compile_custom_nodes (WS)', () => {
 		snapshotSub.unsubscribe();
 		toolSub.unsubscribe();
 
-		expect(compiled.output[4]).toContain('done-v2');
+		expect(compiled.output[3].value).toContain('done-v2');
 		expect(snapshots).toEqual([]);
 		expect(toolLogs.join('\n')).toContain('← compile_custom_nodes:');
 		expect(toolLogs.join('\n')).toContain('status: ok');

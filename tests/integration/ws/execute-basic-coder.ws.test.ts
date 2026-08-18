@@ -104,10 +104,10 @@ describe('execute basic-coder pilot (WS bridge)', () => {
 				(event: RuntimeRunnerEvent) => {
 					if (
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[2] === 'toolLog'
 					) {
-						toolLogs.push(String(event[4]));
+						toolLogs.push(String(event[3].value));
 					}
 				},
 			);
@@ -135,7 +135,7 @@ describe('execute basic-coder pilot (WS bridge)', () => {
 			allowSub.unsubscribe();
 			toolSub.unsubscribe();
 
-			expect(String(output[4])).toContain('src/greet.ts');
+			expect(String(output[3].value)).toContain('src/greet.ts');
 			expect(asks.some((ask) => ask.toolId === 'write')).toBe(true);
 			expect(asks.some((ask) => ask.toolId === 'edit')).toBe(false);
 			expect(toolLogs.some((line) => line.includes('→ write'))).toBe(

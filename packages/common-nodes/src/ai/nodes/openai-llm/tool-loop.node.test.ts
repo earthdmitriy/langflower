@@ -115,7 +115,7 @@ describe('common-openai-llm tool loop', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'llm-1' &&
 						event[2] === 'response',
 				),
@@ -182,8 +182,7 @@ describe('common-openai-llm tool loop', () => {
 				'out',
 				expect.anything(),
 				expect.anything(),
-				expect.anything(),
-				'Done editing.',
+				{ value: 'Done editing.' },
 			]),
 		);
 		expect(captured).toHaveLength(3);

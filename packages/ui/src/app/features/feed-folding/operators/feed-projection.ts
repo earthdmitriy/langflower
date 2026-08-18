@@ -1,6 +1,6 @@
 import type { RunId } from '@langflower/runtime';
 import type { FeedEventFromSource, PortStreamItem } from '../types';
-import { isVisitBoundaryClose } from '../types';
+import { isClosesPreviousVisit, isVisitBoundaryClose } from '../types';
 import { foldPortStream } from './fold-port-stream';
 
 type NodeVisitKey = {
@@ -45,6 +45,8 @@ const nodeKey = (runId: RunId, nodeId: string): string => `${runId}:${nodeId}`;
  * visit when it is the same node (setup inputs then streaming, Concat loops).
  * Otherwise open a new visit. Close frames then mark the visit closed;
  * streaming frames leave it open (reopening clears a prior close).
+ * A `common-sub-agent` frame stamps `closesPreviousVisit` and closes the
+ * timeline tail when it is a different node (parent while-open).
  *
  * Within a visit, continue the last port segment only while `portId` matches;
  * otherwise open a new segment so re-entered ports stay chronological.
@@ -59,6 +61,19 @@ export const appendFeedFrame = (
 	const current = state.openVisits.get(key);
 	const last = state.visits[state.visits.length - 1];
 	const closes = isVisitBoundaryClose(event.meta);
+	const closePrevious =
+		isClosesPreviousVisit(event.meta) &&
+		last !== undefined &&
+		last.nodeId !== event.nodeId &&
+		last.runId === event.runId &&
+		!last.isClosed;
+	const visitsStart = closePrevious
+		? state.visits.map((entry, index) =>
+				index === state.visits.length - 1
+					? { ...entry, isClosed: true }
+					: entry,
+			)
+		: state.visits;
 	// While-open if this node already has an open visit; else while-last when
 	// the timeline tail is the same node (streaming may reopen a closed card).
 	const canContinue =
@@ -75,19 +90,22 @@ export const appendFeedFrame = (
 	const assigned = { ...visit, isClosed: closes };
 
 	const openVisits = new Map(state.openVisits);
+	if (closePrevious && last !== undefined) {
+		openVisits.delete(nodeKey(last.runId, last.nodeId));
+	}
 	if (closes) {
 		openVisits.delete(key);
 	} else {
 		openVisits.set(key, assigned);
 	}
 
-	const visitIndex = state.visits.findIndex(
+	const visitIndex = visitsStart.findIndex(
 		(entry) => entry.visitId === assigned.visitId,
 	);
 	const visits =
 		visitIndex === -1
-			? [...state.visits, assigned]
-			: state.visits.map((entry, index) =>
+			? [...visitsStart, assigned]
+			: visitsStart.map((entry, index) =>
 					index === visitIndex ? assigned : entry,
 				);
 

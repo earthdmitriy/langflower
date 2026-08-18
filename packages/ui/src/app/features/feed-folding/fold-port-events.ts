@@ -5,7 +5,6 @@ import {
 import type {
 	PortTelemetry,
 	RunId,
-	RuntimeFeedPortMeta,
 	RuntimeFeedRole,
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
@@ -18,6 +17,7 @@ import { combineLatest, merge, type Observable } from 'rxjs';
 import { map, scan, shareReplay, startWith } from 'rxjs/operators';
 import { mergePaletteCatalogs } from '../palette/types/palette-projection';
 import {
+	catalogSwitchedDocument,
 	definitionForNode,
 	feedCatalogFromSnaps,
 	formatHitlUserText,
@@ -161,7 +161,7 @@ const resolveFeedMeta = (
 	readonly role: RuntimeFeedRole | undefined;
 	readonly streaming: boolean;
 } => {
-	const [, nodeId, portId, , , , , feedMeta] = event;
+	const [, nodeId, portId, , , , feedMeta] = event;
 	if (feedMeta != null) {
 		const role = isRuntimeFeedRole(feedMeta.role)
 			? feedMeta.role
@@ -184,6 +184,17 @@ const resolveFeedMeta = (
 	return { role, streaming: config?.feed?.streaming === true };
 };
 
+const SUB_AGENT_NODE_TYPE = 'common-sub-agent';
+
+const withClosesPreviousVisit = <T extends PortFrameMeta>(
+	meta: T,
+	catalog: FeedCatalog,
+	nodeId: string,
+): T =>
+	catalog.nodeTypeById.get(nodeId) === SUB_AGENT_NODE_TYPE
+		? ({ ...meta, closesPreviousVisit: true as const } as T)
+		: meta;
+
 const withDerivedVisitClose = <T extends PortFrameMeta>(
 	meta: T,
 	streaming: boolean,
@@ -194,16 +205,24 @@ const catalogMeta = (
 	event: PortTelemetry,
 	catalog: FeedCatalog,
 ): PortFrameMeta | 'omit' => {
-	const [, , , state] = event;
-	if (state === 'error') {
-		return withDerivedVisitClose({ presentation: 'error' }, false);
+	const [, nodeId, , response] = event;
+	if ('error' in response) {
+		return withClosesPreviousVisit(
+			withDerivedVisitClose({ presentation: 'error' }, false),
+			catalog,
+			nodeId,
+		);
 	}
 	const resolved = resolveFeedMeta(event, catalog);
 	const presentation = presentationFromRole(resolved.role);
 	if (presentation === 'omit') {
 		return 'omit';
 	}
-	return withDerivedVisitClose({ presentation }, resolved.streaming);
+	return withClosesPreviousVisit(
+		withDerivedVisitClose({ presentation }, resolved.streaming),
+		catalog,
+		nodeId,
+	);
 };
 
 const normalizePortFrame = (
@@ -211,17 +230,19 @@ const normalizePortFrame = (
 	runId: RunId,
 	catalog: FeedCatalog,
 ): PortEventFromServer | null => {
-	const [portDir, nodeId, portId, state, value] = event;
+	const [portDir, nodeId, portId, response] = event;
 	if (typeof portId !== 'string') {
 		return null;
 	}
-	if (state === 'pending' && value === undefined) {
+	if ('pending' in response || 'inactive' in response) {
 		return null;
 	}
 	const kind =
 		portDir === 'out'
 			? ('output-emitted' as const)
 			: ('input-received' as const);
+	const state = 'error' in response ? ('error' as const) : ('value' as const);
+	const value = 'error' in response ? response.error : response.value;
 	const base = {
 		source: 'port' as const,
 		kind,
@@ -236,9 +257,13 @@ const normalizePortFrame = (
 		if (value.kind === 'pause') {
 			return {
 				...base,
-				meta: withDerivedVisitClose(
-					{ presentation: 'steering-pause', payload: value },
-					false,
+				meta: withClosesPreviousVisit(
+					withDerivedVisitClose(
+						{ presentation: 'steering-pause', payload: value },
+						false,
+					),
+					catalog,
+					nodeId,
 				),
 			};
 		}
@@ -246,21 +271,29 @@ const normalizePortFrame = (
 			return {
 				...base,
 				value: value.text.trim(),
-				meta: withDerivedVisitClose(
-					{
-						presentation: 'hitl-user',
-						origin: 'steer',
-						payload: value,
-					},
-					false,
+				meta: withClosesPreviousVisit(
+					withDerivedVisitClose(
+						{
+							presentation: 'hitl-user',
+							origin: 'steer',
+							payload: value,
+						},
+						false,
+					),
+					catalog,
+					nodeId,
 				),
 			};
 		}
 		return {
 			...base,
-			meta: withDerivedVisitClose(
-				{ presentation: 'steering-resume', payload: value },
-				false,
+			meta: withClosesPreviousVisit(
+				withDerivedVisitClose(
+					{ presentation: 'steering-resume', payload: value },
+					false,
+				),
+				catalog,
+				nodeId,
 			),
 		};
 	}
@@ -282,9 +315,13 @@ const normalizePortFrame = (
 		return {
 			...base,
 			value: text,
-			meta: withDerivedVisitClose(
-				{ presentation: 'hitl-user', origin: 'hitl-reply' },
-				input?.feed?.streaming === true,
+			meta: withClosesPreviousVisit(
+				withDerivedVisitClose(
+					{ presentation: 'hitl-user', origin: 'hitl-reply' },
+					input?.feed?.streaming === true,
+				),
+				catalog,
+				nodeId,
 			),
 		};
 	}
@@ -353,6 +390,12 @@ const foldComposer = (
 	action: FeedComposerAction,
 ): FeedComposerState => {
 	if (action.type === 'catalog') {
+		if (catalogSwitchedDocument(state.catalog, action.catalog)) {
+			return {
+				...emptyComposer,
+				catalog: action.catalog,
+			};
+		}
 		return {
 			...state,
 			catalog: action.catalog,
@@ -370,6 +413,23 @@ const foldComposer = (
 		};
 	}
 	if (action.type === 'run-started') {
+		if (action.runId === state.runId) {
+			return state;
+		}
+		if (state.runId === null) {
+			return {
+				...state,
+				runId: action.runId,
+				projection:
+					state.catalog === null
+						? state.projection
+						: rebuildProjection(
+								state.entries,
+								action.runId,
+								state.catalog,
+							),
+			};
+		}
 		return {
 			...emptyComposer,
 			catalog: state.catalog,

@@ -12,6 +12,8 @@ Ordinary OpenAI-compatible agent that announces **one** `ToolHandle` on
 epic 41). Parent agents wire that output into their `tools` inventory
 and invoke it like any other tool. `invoke` runs this node's in-node chat
 (same tool loop / compaction as `common-openai-llm`) and returns a **string**.
+Blank specialist completion (empty `response` and no draft/reasoning) becomes
+`Error: Sub-Agent returned no content` — never a silent empty string.
 
 Inspector **Skills** (`skillIds`) become the handle `inputSchema.skillId`
 enum (omitted when the selector is empty) and are listed in `description`.
@@ -22,12 +24,12 @@ own `providerId` / `model` / `contextSize` — no separate body LLM.
 
 ## Inspector
 
-| Param                               | UI                                                                            | Notes                                                      |
-| ----------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `name` / `description` / `skillIds` | text / multiselect                                                            | Handle identity (`toolId` = slug of `name`, else `nodeId`) |
-| LLM panel                           | provider / model / role / skill / Include root AGENTS.md / tools / iterations | Same as OpenAI LLM                                         |
-| Compaction                          | `contextSize` / `compactOnError`                                              | Same as OpenAI LLM                                         |
-| Recovery                            | including `subagentTimeoutMs`                                                 | Invoke timeout → error string into the parent loop         |
+| Param                               | UI                                                                            | Notes                                                                              |
+| ----------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `name` / `description` / `skillIds` | text / multiselect                                                            | Handle `name` is `{name}(subagent)`; `toolId` is the slug (`Explorer_subagent`)    |
+| LLM panel                           | provider / model / role / skill / Include root AGENTS.md / tools / iterations | Same as OpenAI LLM                                                                 |
+| Compaction                          | `contextSize` / `compactOnError`                                              | Same as OpenAI LLM                                                                 |
+| Recovery                            | including `subagentTimeoutMs`                                                 | `0` = unlimited (default). Optional wall-clock; stuck specialists use LLM recovery |
 
 CI Fake path may set param `scriptedToolTurns` (not Inspector) — same scripted
 factory as Fake LLM.
@@ -53,7 +55,12 @@ packs / MCP ──tools──► Sub-Agent.tools   # nested inventory
 ```
 
 Handle: `{ toolId, name, description, inputSchema: { task, skillId? }, invoke }`.
-`invoke({ task, skillId? })` → string (success or `Error: …`).
+`name` is `{Inspector name}(subagent)` (e.g. `Writer(subagent)`); `toolId` is
+the slug (`Writer_subagent`) so OpenAI-compatible function names stay valid.
+Description states this is a canvas Sub-Agent, not a regular tool.
+The first feed frame from this node closes the caller visit.
+`invoke({ task, skillId? })` → non-empty string (success or
+`Error: …`).
 
 Layers (swarm serial default, nested recursive `tools`, Loop Monte Carlo):
 [ADR-022](../../../../../../docs/ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo).

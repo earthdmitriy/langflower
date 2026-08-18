@@ -112,6 +112,7 @@ type LlmDeadLoopPolicy = {
 export type LlmRecoveryPolicy = {
 	readonly streamIdleTimeoutMs: number;
 	readonly toolTimeoutMs: number;
+	/** Wall-clock on `invoke`. `0` (default) disables; stuck specialists use LLM recovery. */
 	readonly subagentTimeoutMs: number;
 	readonly maxTransientRetries: number;
 	readonly retryBaseDelayMs: number;
@@ -135,7 +136,7 @@ export const DEFAULT_AUTOKICK_USER_MESSAGE =
 export const DEFAULT_LLM_RECOVERY_POLICY: LlmRecoveryPolicy = {
 	streamIdleTimeoutMs: 90_000,
 	toolTimeoutMs: 60_000,
-	subagentTimeoutMs: 300_000,
+	subagentTimeoutMs: 0,
 	maxTransientRetries: 2,
 	retryBaseDelayMs: 1_000,
 	maxToolResultChars: 40_000,

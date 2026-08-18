@@ -22,7 +22,7 @@ export const llmRecoveryUiSchema = [
 		field: 'subagentTimeoutMs',
 		type: 'number',
 		label: 'Sub-Agent timeout (ms, 0 disables)',
-		default: 300000,
+		default: DEFAULT_LLM_RECOVERY_POLICY.subagentTimeoutMs,
 		min: 0,
 		step: 1,
 	},

@@ -17,7 +17,7 @@ import { LfNodePortRowStaticComponent } from '../../canvas/components/lf-node-po
 	},
 	template: `
 		<div
-			class="lf-node-chrome flex h-full min-h-12 min-w-40 flex-col rounded-xl border border-zinc-300 bg-white py-3 dark:border-zinc-700 dark:bg-zinc-900"
+			class="lf-node-chrome flex h-full min-h-12 min-w-40 flex-col rounded-xl border bg-white py-3 dark:bg-zinc-900"
 		>
 			<span
 				class="truncate px-1 text-xs font-semibold text-zinc-900 dark:text-zinc-100"

@@ -24,22 +24,17 @@ const createMockBridge = (): BridgeChannels => ({
 
 const createPendingEvent = (
 	overrides: Partial<{
-		state: PortTelemetry[3];
-		value: unknown;
+		response: PortTelemetry[3];
 	}> = {},
-): PortTelemetry => {
-	const state = overrides.state ?? 'pending';
-	return [
-		'out',
-		'delay-1' as import('@langflower/runtime').NodeId,
-		'value',
-		state,
-		overrides.value ?? (state === 'value' ? 'result' : undefined),
-		0,
-		[],
-		null,
-	];
-};
+): PortTelemetry => [
+	'out',
+	'delay-1' as import('@langflower/runtime').NodeId,
+	'value',
+	overrides.response ?? { pending: true },
+	0,
+	[],
+	null,
+];
 
 describe('forwardRunnerEvent — pending events', () => {
 	it('forwards output port tuple with state=pending via bridge', () => {
@@ -53,7 +48,7 @@ describe('forwardRunnerEvent — pending events', () => {
 		forwardRunnerEvent(asBridge(bridge), event);
 
 		expect(received).toHaveLength(1);
-		expect(received[0]![3]).toBe('pending');
+		expect(received[0]![3]).toEqual({ pending: true });
 		expect(received[0]![1]).toBe('delay-1');
 		expect(received[0]![0]).toBe('out');
 
@@ -67,12 +62,12 @@ describe('forwardRunnerEvent — pending events', () => {
 			received.push(event);
 		});
 
-		const event = createPendingEvent({ state: 'value', value: 'result' });
+		const event = createPendingEvent({ response: { value: 'result' } });
 		forwardRunnerEvent(asBridge(bridge), event);
 
 		expect(received).toHaveLength(1);
-		expect(received[0]![3]).toBe('value');
-		expect(received[0]![4]).toBe('result');
+		expect(received[0]![3]).toEqual({ value: 'result' });
+		expect(received[0]![3].value).toBe('result');
 
 		sub.unsubscribe();
 	});
@@ -87,11 +82,14 @@ describe('forwardRunnerEvent — pending events', () => {
 		forwardRunnerEvent(asBridge(bridge), createPendingEvent());
 		forwardRunnerEvent(
 			asBridge(bridge),
-			createPendingEvent({ state: 'value', value: 'done' }),
+			createPendingEvent({ response: { value: 'done' } }),
 		);
 
 		expect(received).toHaveLength(2);
-		expect(received.map((e) => e[3])).toEqual(['pending', 'value']);
+		expect(received.map((e) => e[3])).toEqual([
+			{ pending: true },
+			{ value: 'done' },
+		]);
 
 		sub.unsubscribe();
 	});
@@ -125,13 +123,13 @@ describe('forwardRunnerEvent — pending events', () => {
 
 		runtimeEvents$.next(createPendingEvent());
 		runtimeEvents$.next(
-			createPendingEvent({ state: 'value', value: 'through-delay' }),
+			createPendingEvent({ response: { value: 'through-delay' } }),
 		);
 
 		expect(received).toHaveLength(2);
-		expect(received[0]![3]).toBe('pending');
-		expect(received[1]![3]).toBe('value');
-		expect(received[1]![4]).toBe('through-delay');
+		expect(received[0]![3]).toEqual({ pending: true });
+		expect(received[1]![3]).toEqual({ value: 'through-delay' });
+		expect(received[1]![3].value).toBe('through-delay');
 
 		bridgeSub.unsubscribe();
 		sub.unsubscribe();

@@ -94,7 +94,7 @@ describe('plan workflow (events$)', () => {
 			'prompt',
 			runId,
 		);
-		expect(prompt[4]).toEqual({
+		expect(prompt[3].value).toEqual({
 			question: `Plan: ${GOAL}`,
 			awaiting: true,
 		});
@@ -116,6 +116,6 @@ describe('plan workflow (events$)', () => {
 			'response',
 			runId,
 		);
-		expect(response[4]).toBe('Plan: Add a testing section');
+		expect(response[3].value).toBe('Plan: Add a testing section');
 	});
 });

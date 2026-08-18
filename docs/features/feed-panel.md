@@ -128,17 +128,22 @@ projection — epic 34):
 
 1. Live **draft** = left-side bubble; render markdown ASAP; show `draft` +
    `streaming…` chrome while open.
-2. When a **tool / subagent** starts: close the current draft segment (stop
-   streaming on that bubble), insert a **borderless** collapsed tool/subagent
-   log (`<details>` closed by default), then open a **new** draft bubble for
-   continued markdown.
-3. When the turn completes: drop `draft` / `streaming…` chrome — the bubble
+2. When a **pack / MCP / builtin tool** starts: close the current draft
+   segment (stop streaming on that bubble), insert a **borderless** collapsed
+   tool log (`<details>` closed by default), then open a **new** draft bubble
+   for continued markdown — **same node visit**.
+3. When a **canvas Sub-Agent** tool starts (`→ specialist`): close the
+   **caller visit** (not only the draft segment). The specialist streams as
+   its own card. After it finishes, parent `←` / reasoning / draft open a
+   **new visit at the bottom** — do not append into the old card above.
+4. When the turn completes: drop `draft` / `streaming…` chrome — the bubble
    becomes plain result/content (no draft meta row).
 
 Rules:
 
 1. Stream **in place** — no new card per chunk (except the intentional
-   closed-draft → tool log → new-draft segment breaks above).
+   closed-draft → tool log → new-draft segment breaks, and the Sub-Agent
+   visit close above).
 2. Final / result is the only agent content that stays in the **important**
    layer by default.
 3. `feed.role: 'none'` is omitted from the feed entirely; unmarked plumbing is
@@ -270,6 +275,11 @@ richer dump than live).
 
 **Partial re-runs:** upstream entries stay; only re-executed nodes clear and
 replay.
+
+**Workflow switch:** a successful **load / create / copy** clears the work
+log (`executionFeed.snapshot` `null`) before the new `workflow.current.snapshot`
+paints. Rename does not clear (same graph). The UI also empties the fold when
+the active document’s node-id set changes with the workflow id.
 
 ## Implementation Details
 

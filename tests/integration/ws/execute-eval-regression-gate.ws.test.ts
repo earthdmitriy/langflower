@@ -24,7 +24,7 @@ import { evalRegressionGateWorkflow } from '../helpers/scenarios/eval.js';
 
 type OutputErrorEvent = PortTelemetry & {
 	readonly 0: 'out';
-	readonly 3: 'error';
+	readonly 3: { readonly error: unknown };
 };
 
 const waitForAssertError = (
@@ -35,7 +35,7 @@ const waitForAssertError = (
 			filter(
 				(event): event is OutputErrorEvent =>
 					event[0] === 'out' &&
-					event[3] === 'error' &&
+					'error' in event[3] &&
 					event[1] === 'gate' &&
 					event[2] === 'value',
 			),
@@ -83,7 +83,7 @@ describe('execute eval-regression-gate (WS bridge)', () => {
 				typeof value === 'string' && value.includes('suiteScore=1'),
 		});
 
-		expect(String(output[4])).toContain('threshold=1');
+		expect(String(output[3].value)).toContain('threshold=1');
 	});
 
 	it('Assert fails the workflow when suiteScore < threshold', async () => {
@@ -100,7 +100,7 @@ describe('execute eval-regression-gate (WS bridge)', () => {
 		const errorEvent = await errorPromise;
 		// Error instances are not preserved over the WS bridge — assert the
 		// fail-closed signal (output-emitted state=error on the Assert gate).
-		expect(errorEvent[3]).toBe('error');
+		expect('error' in errorEvent[3]).toBe(true);
 		expect(errorEvent[1]).toBe('gate');
 	});
 });

@@ -1,4 +1,5 @@
 import type {
+	ResponseDto,
 	StatefulConnection,
 	StatefulObservable,
 } from '@rx-evo/stateful-observable';
@@ -89,7 +90,7 @@ export type MetaFromStatefulObservable<
  *
  * ## Errors
  * Node handlers surface failures via RxJS / `StatefulObservable` (`catchError`,
- * port `error$`). Runner telemetry emits `output-emitted` with `state: 'error'`
+ * port `error$`). Runner telemetry emits `ResponseDto` `{ error }`
  * on the source; wiring then drops `ResponseError` so edges do not cascade
  * error chrome to downstream nodes.
  *
@@ -126,18 +127,16 @@ export type MetaFromStatefulObservable<
 
 export type RuntimeRunnerStatus = 'idle' | 'running' | 'stopped';
 
-export type RuntimePortSignalState = 'pending' | 'value' | 'error';
-
 /**
  * Port signal tuple — `portDir` `'out'` = output emitted, `'in'` = input received.
- * No per-frame `runId`; session snapshots own run correlation.
+ * Slot 3 is `@rx-evo` {@link ResponseDto} (JSON-safe pending / inactive / error /
+ * value). No per-frame `runId`; session snapshots own run correlation.
  */
 export type PortTelemetry = readonly [
 	portDir: 'in' | 'out',
 	nodeId: NodeId,
 	portId: string,
-	state: RuntimePortSignalState,
-	value: unknown,
+	response: ResponseDto<unknown>,
 	portIdx: number,
 	edgeIds: readonly EdgeId[],
 	/** Absent feed meta — use `null` (never `undefined`; JSON arrays drop undefined). */
@@ -153,6 +152,24 @@ export const isPortTelemetry = (
 	event: RuntimeRunnerEvent,
 ): event is PortTelemetry =>
 	Array.isArray(event) && (event[0] === 'in' || event[0] === 'out');
+
+export const isPortValueTelemetry = (
+	event: RuntimeRunnerEvent,
+): event is PortTelemetry & {
+	readonly 3: Extract<ResponseDto<unknown>, { value: unknown }>;
+} => isPortTelemetry(event) && 'value' in event[3];
+
+export const isPortErrorTelemetry = (
+	event: RuntimeRunnerEvent,
+): event is PortTelemetry & {
+	readonly 3: Extract<ResponseDto<unknown>, { error: unknown }>;
+} => isPortTelemetry(event) && 'error' in event[3];
+
+export const isPortPendingTelemetry = (
+	event: RuntimeRunnerEvent,
+): event is PortTelemetry & {
+	readonly 3: { readonly pending: true };
+} => isPortTelemetry(event) && 'pending' in event[3];
 
 export const isRuntimeDone = (
 	event: RuntimeRunnerEvent,
@@ -370,7 +387,9 @@ export type RuntimeEditorApi = {
 export type RuntimeRunnerApi = {
 	/**
 	 * Wire every cluster that does not contain a {@link RuntimeNode.chatEntry}
-	 * node, seed source inputs, set status to `'running'`.
+	 * node. Assigns `runId` and sets `'running'` **synchronously**, then wires
+	 * ports on a microtask so callers (WS `runner.started`) can fence before
+	 * any `runner.port` telemetry.
 	 *
 	 * Chat-entry clusters are omitted — start them via
 	 * {@link RuntimeRunnerApi.pushIntoInput}. When every cluster is chat-entry
@@ -393,7 +412,8 @@ export type RuntimeRunnerApi = {
 
 	/**
 	 * Run-from-node: wire the weakly connected cluster containing `nodeId`
-	 * (orphan nodes elsewhere on the canvas are not wired).
+	 * (orphan nodes elsewhere on the canvas are not wired). Same runId /
+	 * `'running'` sync + microtask wiring as {@link RuntimeRunnerApi.start}.
 	 *
 	 * Run stays `'running'` until {@link RuntimeRunnerApi.interrupt} or a
 	 * {@link RuntimeNode.stopsRun} node in scope emits.

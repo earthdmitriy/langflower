@@ -66,11 +66,11 @@ describe('common-fake-llm tool loop', () => {
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
 				event[0] === 'out' &&
-				event[3] === 'value' &&
+				'value' in event[3] &&
 				event[1] === 'llm-1' &&
 				event[2] === 'toolLog'
 			) {
-				toolLogs.push(String(event[4]));
+				toolLogs.push(String(event[3].value));
 			}
 		});
 
@@ -79,7 +79,7 @@ describe('common-fake-llm tool loop', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'llm-1' &&
 						event[2] === 'response',
 				),
@@ -158,8 +158,7 @@ describe('common-fake-llm tool loop', () => {
 				'out',
 				expect.anything(),
 				expect.anything(),
-				expect.anything(),
-				'The file contains payload-42',
+				{ value: 'The file contains payload-42' },
 			]),
 		);
 		expect(toolLogs.some((line) => line.includes('→ read'))).toBe(true);

@@ -1,18 +1,17 @@
 import type { RunId } from '@langflower/runtime';
 import { describe, expect, it } from 'vitest';
 import { LangflowerSession } from './langflower-session.js';
+import { resetSessionExecutionFeed } from './reset-session-execution-feed.js';
 
 /**
- * Mirrors the Clear handler policy in `attach-langflower-bridge.ts`:
- * ignore clear while the runner is active; otherwise wipe the log and drop
- * `runId` so `buildExecutionFeed()` returns null.
+ * Mirrors the Clear handler policy: ignore clear while the runner is
+ * active; otherwise wipe the log and drop `runId`.
  */
 const applyClearPolicy = (session: LangflowerSession): boolean => {
 	if (session.runnerStatus === 'running') {
 		return false;
 	}
-	session.runtime.runner.clearEventLog();
-	session.runId = undefined;
+	resetSessionExecutionFeed(session);
 	return true;
 };
 

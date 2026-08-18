@@ -412,7 +412,10 @@ const buildPanelRows = (
 									) {
 										<lf-tool-permission-table
 											[rows]="row.permissionRows"
-											[disabled]="row.disabled === true"
+											[disabled]="
+												row.disabled === true ||
+												isRunning()
+											"
 											(decisionChange)="
 												onToolPermissionChange(
 													$event.toolId,
@@ -424,7 +427,10 @@ const buildPanelRows = (
 										<lf-inline-field
 											[config]="row.config"
 											[value]="row.value"
-											[disabled]="row.disabled === true"
+											[disabled]="
+												row.disabled === true ||
+												isRunning()
+											"
 											(valueChange)="
 												onFieldChange(row.field, $event)
 											"
@@ -475,6 +481,7 @@ const buildPanelRows = (
 								<lf-inline-field
 									[config]="row.inline"
 									[value]="row.value"
+									[disabled]="isRunning()"
 									(valueChange)="
 										onInputChange(row.portId, $event)
 									"
@@ -551,6 +558,7 @@ export class LfInspectorPanelComponent {
 	readonly selectedNode = this.selection.selectedNode;
 	readonly langflowerConfig = this.configProjection.config;
 	readonly activeGraph = this.execution.activeGraph;
+	readonly isRunning = this.execution.isRunning;
 
 	/**
 	 * Panel param rows from catalogs$ (+ selection / config / graph).
@@ -636,7 +644,7 @@ export class LfInspectorPanelComponent {
 			const node = this.selectedNode();
 			const config = this.langflowerConfig();
 
-			if (node === null) {
+			if (node === null || this.execution.isRunning()) {
 				return;
 			}
 
@@ -667,7 +675,7 @@ export class LfInspectorPanelComponent {
 			const graph = this.activeGraph();
 			const config = this.langflowerConfig();
 
-			if (node === null || graph === null) {
+			if (node === null || graph === null || this.execution.isRunning()) {
 				return;
 			}
 
@@ -745,7 +753,7 @@ export class LfInspectorPanelComponent {
 	): void {
 		const node = this.selectedNode();
 
-		if (node === null) {
+		if (node === null || this.execution.isRunning()) {
 			return;
 		}
 
@@ -774,7 +782,7 @@ export class LfInspectorPanelComponent {
 	onFieldChange(field: string, value: unknown): void {
 		const node = this.selectedNode();
 
-		if (node === null) {
+		if (node === null || this.execution.isRunning()) {
 			return;
 		}
 
@@ -795,7 +803,7 @@ export class LfInspectorPanelComponent {
 	onInputChange(portId: string, value: unknown): void {
 		const node = this.selectedNode();
 
-		if (node === null) {
+		if (node === null || this.execution.isRunning()) {
 			return;
 		}
 

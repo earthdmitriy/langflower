@@ -10,6 +10,7 @@ import { listResumableCheckpoints } from '../checkpoint/list-resumable-checkpoin
 import { WorkflowCheckpointStore } from '../checkpoint/workflow-checkpoint-store.js';
 import type { ServerContext } from '../server-context.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
+import { resetSessionExecutionFeed } from '../session/reset-session-execution-feed.js';
 import { buildSaveCurrentPayload } from '../workflow/build-save-current-payload.js';
 import { copyWorkflowToSession } from '../workflow/copy-workflow-to-session.js';
 import { createEmptyWorkflowInSession } from '../workflow/create-empty-workflow-in-session.js';
@@ -29,11 +30,13 @@ type SyncAfterWorkflowMutationOptions = {
 		| { readonly kind: 'none' }
 		| { readonly kind: 'broadcast' }
 		| { readonly kind: 'emitToClient' };
+	/** Drop the previous run's work log before emitting current snapshot. */
+	readonly resetFeed?: boolean;
 };
 
 /**
- * Composer: clear selection → current snapshot → optional catalog sync.
- * Sibling steps — handlers do not call these in nested order themselves.
+ * Composer: optional feed reset → clear selection → current snapshot →
+ * optional catalog sync. Sibling steps — handlers do not nest these.
  */
 const syncAfterWorkflowMutation = async (
 	bridge: LangflowerBridge,
@@ -42,7 +45,18 @@ const syncAfterWorkflowMutation = async (
 	client: LangflowerClient,
 	options: SyncAfterWorkflowMutationOptions,
 ): Promise<void> => {
-	// 1. Clear selection (and notify tabs if it was set)
+	// 1. Document switch: empty feed before the new catalog so the UI never
+	// paints the previous run under the next workflow's nodes.
+	if (options.resetFeed === true) {
+		resetSessionExecutionFeed(session);
+		bridgeEmit(
+			bridge,
+			'executionFeed.snapshot',
+			session.buildExecutionFeed(),
+		);
+	}
+
+	// 2. Clear selection (and notify tabs if it was set)
 	if (options.clearSelection) {
 		const hadSelection = session.selectedNodeId !== null;
 		session.selectedNodeId = null;
@@ -51,13 +65,13 @@ const syncAfterWorkflowMutation = async (
 		}
 	}
 
-	// 2. Authoritative current-workflow slice (session-shared — fan out)
+	// 3. Authoritative current-workflow slice (session-shared — fan out)
 	bridgeEmit(bridge, 'workflow.current.snapshot', {
 		activeWorkflow: session.activeWorkflow,
 		currentStatus: { status: session.currentStatus },
 	});
 
-	// 3. Resumable checkpoints for the active workflow (explicit boundaries)
+	// 4. Resumable checkpoints for the active workflow (explicit boundaries)
 	const workflowId = session.activeWorkflowId ?? null;
 	const checkpoints = await listResumableCheckpoints(
 		new WorkflowCheckpointStore(context.projectDir),
@@ -69,7 +83,7 @@ const syncAfterWorkflowMutation = async (
 		checkpoints,
 	});
 
-	// 4. Catalog sync
+	// 5. Catalog sync
 	if (options.catalog.kind === 'broadcast') {
 		const workflows = await context.workflowService.list();
 		bridgeEmit(bridge, 'workflow.list.snapshot', { workflows });
@@ -119,6 +133,7 @@ export const wireWorkflowHandlers = (
 			}
 
 			let clearSelection = false;
+			let resetFeed = false;
 
 			if (!session.isGraphLocked()) {
 				// 1. Load document into session
@@ -132,6 +147,7 @@ export const wireWorkflowHandlers = (
 
 				// 2. Persist current-workflow id when load succeeded
 				if (loaded.ok) {
+					resetFeed = true;
 					await context.langflowerConfigService.setCurrentWorkflowId(
 						raw.payload.workflowId,
 					);
@@ -169,7 +185,7 @@ export const wireWorkflowHandlers = (
 				context,
 				session,
 				connected,
-				{ clearSelection, catalog: { kind: 'none' } },
+				{ clearSelection, catalog: { kind: 'none' }, resetFeed },
 			);
 		}),
 	);
@@ -275,15 +291,17 @@ export const wireWorkflowHandlers = (
 			}
 
 			let clearSelection = false;
+			let resetFeed = false;
 
 			if (!session.isGraphLocked()) {
-				await createEmptyWorkflowInSession(
+				const created = await createEmptyWorkflowInSession(
 					session,
 					context.workflowService,
 					context.projectDir,
 					context.resolveDefinition,
 				);
 				clearSelection = true;
+				resetFeed = created;
 			}
 
 			await syncAfterWorkflowMutation(
@@ -291,7 +309,7 @@ export const wireWorkflowHandlers = (
 				context,
 				session,
 				connected,
-				{ clearSelection, catalog: { kind: 'none' } },
+				{ clearSelection, catalog: { kind: 'none' }, resetFeed },
 			);
 		}),
 	);
@@ -310,6 +328,7 @@ export const wireWorkflowHandlers = (
 
 			let catalogChanged = false;
 			let clearSelection = false;
+			let resetFeed = false;
 
 			if (!session.isGraphLocked()) {
 				const copied = await copyWorkflowToSession(
@@ -322,6 +341,7 @@ export const wireWorkflowHandlers = (
 
 				if (copied && session.activeWorkflowId !== undefined) {
 					catalogChanged = true;
+					resetFeed = true;
 					await context.langflowerConfigService.setCurrentWorkflowId(
 						session.activeWorkflowId,
 					);
@@ -337,6 +357,7 @@ export const wireWorkflowHandlers = (
 				connected,
 				{
 					clearSelection,
+					resetFeed,
 					catalog: catalogChanged
 						? { kind: 'broadcast' }
 						: { kind: 'none' },

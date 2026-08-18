@@ -36,6 +36,8 @@ reclassified:
 1. `executionFeed.snapshot` (replace + replay once),
 2. clear (`null` snapshot),
 3. catalog change (re-normalize retained raw entries + replay once).
+   A **document switch** (different `workflowId` **and** node-id set) clears
+   entries first — rename (new id, same nodes) does not.
 
 Those are rare relative to live tokens. Live `output-emitted` / `input-received`
 / permission facts must stay O(1) in history length.
@@ -160,6 +162,22 @@ then dead-loop + reasoning/draft (while-last reopen) is **one visit** with two
 notices in segment order. A frozen latest-seq would still attach the timer to
 the idle row. Do not treat two notices as one attempt that changed reason.
 
+### 9. Sub-Agent tool call closes the caller visit
+
+```text
+❌ Parent.draft → Parent.toolLog(→ slug) → Writer.draft → Parent.draft
+   ⇒ one Parent visit still open; later Parent chunks append off-screen
+✅ Parent.draft → Parent.toolLog(→ slug) → Writer.draft [close prev] → Parent.draft
+   ⇒ visits [Parent, Writer, Parent]  // continuation at the bottom
+```
+
+`toolLog` stays `feed.streaming: true` for ordinary tools (same visit). The
+first frame from a `common-sub-agent` node stamps `closesPreviousVisit` and
+closes the previous visit (the caller), so the specialist is its own card.
+Parent continuation after that is a new visit at the bottom. Ordinary
+`→ echo({})` and `←` result lines stay on the open caller visit until a
+Sub-Agent node emits.
+
 ## Append-only projection
 
 The composer maintains one authoritative `FeedProjection` via `scan`:
@@ -239,10 +257,10 @@ Rules:
 A visit key is `${runId}:${nodeId}:${firstSeq}`. Authors do **not** set
 `visitBoundary`. Normalize derives close from `feed.streaming`:
 
-| Author `feed.streaming`               | Visit policy                                                                                                                                                                                                                                                           |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `true` (reasoning / draft / tool / …) | Continue open visit for `(runId, nodeId)` even if not last (`A.draft → B.draft → A.draft` ⇒ `[A, B]`). If no open visit, **while-last reopen** when the last visit is the same node (e.g. `userPrompt` then `reasoning`); otherwise open a new visit and keep it open. |
-| absent / false                        | Stamp internal `meta.visitBoundary: 'close'`. Same continue/reopen rules, then mark the visit closed.                                                                                                                                                                  |
+| Author `feed.streaming`               | Visit policy                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `true` (reasoning / draft / tool / …) | Continue open visit for `(runId, nodeId)` even if not last (`A.draft → B.draft → A.draft` ⇒ `[A, B]`). If no open visit, **while-last reopen** when the last visit is the same node (e.g. `userPrompt` then `reasoning`); otherwise open a new visit and keep it open. First `common-sub-agent` frame closes the previous visit (§9). |
+| absent / false                        | Stamp internal `meta.visitBoundary: 'close'`. Same continue/reopen rules, then mark the visit closed.                                                                                                                                                                                                                                 |
 
 Inside a visit, content is a list of **port segments** (`segmentId` + `portId`).
 Items are keyed by `segmentId`. The same `portId` may appear as multiple
@@ -257,11 +275,13 @@ replay). Author roles use exported `RuntimeFeedRole` from `@langflower/runtime`
 - **`feed.role: 'none'`** (event or palette) → **omit** — nothing in the feed;
 - unmarked ports (no role) with a real value/error → UI `presentation: 'data'`
   under that **`portId`** (technical dump; never label the row only as “Data”);
-- drop pending frames with `value: undefined` (wire loading noise);
+- drop pending frames with `value: undefined` or `value: null`
+  (wire loading noise; JSON/WS serializes loading as `null`);
 - drop `done`, non-port events, and symbol ports;
 - tag `steerControl` pause / steer / resume;
 - tag HITL reply inputs via palette;
 - derive visit close from `feed.streaming !== true` (event or palette);
+- first `common-sub-agent` frame closes the previous visit (different node);
 - keep runtime errors as `presentation: 'error'` (always close).
 
 Permission asks/decisions come from control-plane channels and project as

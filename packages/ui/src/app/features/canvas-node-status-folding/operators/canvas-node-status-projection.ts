@@ -36,7 +36,7 @@ const isStreamingPort = (
 	if (!isPortTelemetry(event)) {
 		return false;
 	}
-	const [, nodeId, portId, , , , , feedMeta] = event;
+	const [, nodeId, portId, , , , feedMeta] = event;
 	if (feedMeta?.streaming === true) {
 		return true;
 	}
@@ -65,18 +65,18 @@ export const appendNodeChromeFrame = (
 	if (!isPortTelemetry(event)) {
 		return state;
 	}
-	const [portDir, , portId, eventState] = event;
+	const [portDir, , portId, response] = event;
 	if (typeof portId === 'symbol') {
 		return state;
 	}
 	if (
-		eventState !== 'value' &&
-		eventState !== 'pending' &&
-		eventState !== 'error'
+		!('value' in response) &&
+		!('pending' in response) &&
+		!('error' in response)
 	) {
 		return state;
 	}
-	if (eventState === 'error' && portDir === 'out') {
+	if ('error' in response && portDir === 'out') {
 		return {
 			seen: true,
 			hasError: true,
@@ -86,7 +86,7 @@ export const appendNodeChromeFrame = (
 	}
 	if (
 		portDir === 'out' &&
-		eventState === 'value' &&
+		'value' in response &&
 		!isStreamingPort(event, catalog)
 	) {
 		return {
@@ -142,6 +142,9 @@ export const resetNodeChromeFoldState = (
 ): NodeChromeFoldState => {
 	if (runId === previous.runId) {
 		return previous;
+	}
+	if (previous.runId === null) {
+		return { ...previous, runId };
 	}
 	return { ...emptyNodeChromeFoldState(), runId };
 };

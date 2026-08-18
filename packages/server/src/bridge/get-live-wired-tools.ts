@@ -63,14 +63,17 @@ const peekPortValue = (port: {
 };
 
 /**
- * Activate current editor `tools` outputs (including post-swap instances)
- * so a later inbound peek in {@link getLiveWiredTools} sees live handles.
+ * Activate current editor `tools` / `subagent-registration` outputs
+ * (including post-swap instances) so a later inbound peek in
+ * {@link getLiveWiredTools} sees live handles.
  */
 export const refreshLiveWiredToolPacks = (session: LangflowerSession): void => {
 	for (const node of session.runtime.editor.getNodes()) {
-		const port = resolveToolsOutput(node.outputs, 'tools');
-		if (port !== undefined) {
-			peekPortValue(port);
+		for (const portId of ['tools', 'subagent-registration'] as const) {
+			const port = resolveToolsOutput(node.outputs, portId);
+			if (port !== undefined) {
+				peekPortValue(port);
+			}
 		}
 	}
 };

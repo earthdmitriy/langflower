@@ -122,7 +122,7 @@ describe('crawl + merge path', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'preview-1' &&
 						event[2] === 'text',
 				),

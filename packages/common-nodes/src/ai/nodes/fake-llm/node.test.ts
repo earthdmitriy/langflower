@@ -121,10 +121,10 @@ describe('common-fake-llm', () => {
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
 				event[0] === 'out' &&
-				event[3] === 'value' &&
+				'value' in event[3] &&
 				event[1] === 'llm-1'
 			) {
-				chunks.push({ portId: event[2], value: event[4] });
+				chunks.push({ portId: event[2], value: event[3].value });
 			}
 		});
 
@@ -133,7 +133,7 @@ describe('common-fake-llm', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'preview-1' &&
 						event[2] === 'text',
 				),
@@ -205,10 +205,12 @@ describe('common-fake-llm', () => {
 			.join('');
 		expect(draftText.length).toBeGreaterThan(500);
 
-		expect(previewEvent[0] === 'out' && previewEvent[4]).toContain(
+		expect(previewEvent[0] === 'out' && previewEvent[3].value).toContain(
 			'Write a haiku',
 		);
-		expect(previewEvent[0] === 'out' && previewEvent[4]).toMatch(/^Final:/);
+		expect(previewEvent[0] === 'out' && previewEvent[3].value).toMatch(
+			/^Final:/,
+		);
 
 		runtime.runner.interrupt('cancel');
 		runtime.runner.dispose();
@@ -260,7 +262,7 @@ describe('common-fake-llm', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'llm-1' &&
 						event[2] === 'response',
 				),
@@ -302,8 +304,7 @@ describe('common-fake-llm', () => {
 				'out',
 				expect.anything(),
 				expect.anything(),
-				expect.anything(),
-				expect.stringMatching(/^Final:/),
+				{ value: expect.stringMatching(/^Final:/) },
 			]),
 		);
 
@@ -350,11 +351,11 @@ describe('common-fake-llm', () => {
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
 				event[0] === 'out' &&
-				event[3] === 'value' &&
+				'value' in event[3] &&
 				event[1] === 'llm-1' &&
 				event[2] === 'reasoning'
 			) {
-				reasoning.push(String(event[4]));
+				reasoning.push(String(event[3].value));
 			}
 		});
 
@@ -363,7 +364,7 @@ describe('common-fake-llm', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'llm-1' &&
 						event[2] === 'response',
 				),
@@ -442,11 +443,11 @@ describe('common-fake-llm', () => {
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
 				event[0] === 'out' &&
-				event[3] === 'value' &&
+				'value' in event[3] &&
 				event[1] === 'llm-1' &&
 				event[2] === 'reasoning'
 			) {
-				reasoning.push(String(event[4]));
+				reasoning.push(String(event[3].value));
 			}
 		});
 
@@ -455,7 +456,7 @@ describe('common-fake-llm', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'llm-1' &&
 						event[2] === 'response',
 				),
@@ -536,7 +537,7 @@ describe('common-fake-llm', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'llm-1' &&
 						event[2] === 'response',
 				),
@@ -615,11 +616,11 @@ describe('common-fake-llm', () => {
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
 				event[0] === 'out' &&
-				event[3] === 'value' &&
+				'value' in event[3] &&
 				event[2] === 'reasoning' &&
 				(event[1] === 'llm-a' || event[1] === 'llm-b')
 			) {
-				reasoningByNode[event[1]].push(String(event[4]));
+				reasoningByNode[event[1]].push(String(event[3].value));
 			}
 		});
 
@@ -629,7 +630,7 @@ describe('common-fake-llm', () => {
 					filter(
 						(event) =>
 							event[0] === 'out' &&
-							event[3] === 'value' &&
+							'value' in event[3] &&
 							event[1] === 'llm-a' &&
 							event[2] === 'response',
 					),
@@ -640,7 +641,7 @@ describe('common-fake-llm', () => {
 					filter(
 						(event) =>
 							event[0] === 'out' &&
-							event[3] === 'value' &&
+							'value' in event[3] &&
 							event[1] === 'llm-b' &&
 							event[2] === 'response',
 					),
@@ -803,11 +804,11 @@ describe('common-fake-llm', () => {
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
 				event[0] === 'out' &&
-				event[3] === 'value' &&
+				'value' in event[3] &&
 				event[1] === 'llm-1' &&
 				event[2] === 'reasoning'
 			) {
-				reasoning.push(String(event[4]));
+				reasoning.push(String(event[3].value));
 			}
 		});
 
@@ -816,7 +817,7 @@ describe('common-fake-llm', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'llm-1' &&
 						event[2] === 'response',
 				),
@@ -889,11 +890,11 @@ describe('common-fake-llm', () => {
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
 				event[0] === 'out' &&
-				event[3] === 'value' &&
+				'value' in event[3] &&
 				event[1] === 'llm-1' &&
 				event[2] === 'reasoning'
 			) {
-				reasoning.push(String(event[4]));
+				reasoning.push(String(event[3].value));
 			}
 		});
 
@@ -902,7 +903,7 @@ describe('common-fake-llm', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'llm-1' &&
 						event[2] === 'response',
 				),
@@ -983,7 +984,7 @@ describe('common-fake-llm', () => {
 					filter((event) => {
 						if (
 							event[0] !== 'out' ||
-							event[3] !== 'value' ||
+							!('value' in event[3]) ||
 							event[1] !== 'llm-1' ||
 							event[2] !== 'response'
 						) {
@@ -1109,7 +1110,7 @@ describe('common-fake-llm', () => {
 					filter((event) => {
 						if (
 							event[0] !== 'out' ||
-							event[3] !== 'value' ||
+							!('value' in event[3]) ||
 							event[1] !== 'llm-1' ||
 							event[2] !== 'response'
 						) {
@@ -1163,11 +1164,11 @@ describe('common-fake-llm', () => {
 		});
 
 		const first = await firstResponse;
-		expect(first[4]).toBe('First answer');
+		expect(first[3].value).toBe('First answer');
 
 		feedback$.next('Make it shorter');
 		const second = await secondResponse;
-		expect(second[4]).toBe('Second answer');
+		expect(second[3].value).toBe('Second answer');
 
 		runtime.runner.interrupt('cancel');
 		runtime.runner.dispose();

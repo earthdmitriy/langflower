@@ -255,7 +255,9 @@ export const sendHitlInput = async (
 	return received$;
 };
 
-type OutputPortTelemetry = PortTelemetry & { readonly 3: 'value' };
+type OutputPortTelemetry = PortTelemetry & {
+	readonly 3: { readonly value: unknown };
+};
 
 export const waitForRunnerOutput = async (
 	client: LangflowerWsClient,
@@ -271,11 +273,11 @@ export const waitForRunnerOutput = async (
 				(event): event is OutputPortTelemetry =>
 					isPortTelemetry(event) &&
 					event[0] === 'out' &&
-					event[3] === 'value' &&
+					'value' in event[3] &&
 					event[1] === match.nodeId &&
 					event[2] === match.portId &&
 					(match.predicate === undefined ||
-						match.predicate(event[4])),
+						match.predicate(event[3].value)),
 			),
 			take(1),
 		),

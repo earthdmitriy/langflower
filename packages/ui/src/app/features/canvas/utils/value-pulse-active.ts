@@ -5,19 +5,21 @@ export type ValuePulseCommand = 'pulseOn' | 'pulseOff';
 
 export const PULSE_MS = 300;
 
-const readPortSignalState = (event: unknown): string | undefined => {
-	if (Array.isArray(event) && typeof event[3] === 'string') {
-		return event[3];
+const isValueResponse = (slot: unknown): boolean =>
+	slot !== null && typeof slot === 'object' && 'value' in slot;
+
+const isValueEmission = (event: unknown): boolean => {
+	if (Array.isArray(event)) {
+		return isValueResponse(event[3]);
 	}
-	if (
-		typeof event === 'object' &&
-		event !== null &&
-		'state' in event &&
-		typeof (event as { readonly state: unknown }).state === 'string'
-	) {
-		return (event as { readonly state: string }).state;
+	if (typeof event !== 'object' || event === null) {
+		return false;
 	}
-	return undefined;
+	if ('state' in event) {
+		const state = (event as { readonly state: unknown }).state;
+		return state === 'value' || isValueResponse(state);
+	}
+	return 'value' in event;
 };
 
 /** Pure command stream — for unit tests / composition. */
@@ -26,7 +28,7 @@ export const valuePulseCommands$ = <E>(
 	ms: number = PULSE_MS,
 ): Observable<ValuePulseCommand> =>
 	events$.pipe(
-		filter((event) => readPortSignalState(event) === 'value'),
+		filter((event) => isValueEmission(event)),
 		switchMap(() =>
 			concat(
 				of<ValuePulseCommand>('pulseOn'),

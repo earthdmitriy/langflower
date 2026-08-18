@@ -78,7 +78,7 @@ describe('common-chat-input', () => {
 						event[0] === 'out' &&
 						event[1] === 'preview-1' &&
 						event[2] === 'text' &&
-						event[3] === 'value',
+						'value' in event[3],
 				),
 			),
 		);
@@ -92,7 +92,7 @@ describe('common-chat-input', () => {
 		expect(runId).not.toBe(false);
 
 		const previewEvent = await previewPromise;
-		expect(previewEvent[4]).toBe('Hello from chat');
+		expect(previewEvent[3].value).toBe('Hello from chat');
 	});
 
 	it('plain start skips chat-entry clusters', () => {

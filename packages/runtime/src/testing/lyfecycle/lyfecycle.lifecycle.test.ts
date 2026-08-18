@@ -113,7 +113,7 @@ describe('lyfecycle — empty graph', () => {
 		const outputPromise = waitForOutput(runtime, 'A', 'value');
 		const runId = runtime.runner.start();
 
-		expect((await outputPromise)[4]).toBe('alone');
+		expect((await outputPromise)[3].value).toBe('alone');
 		expect(await firstValueFrom(runtime.runner.status$)).toBe('running');
 		expect(await noDoneWithin(runtime, 50, runId)).toBe(true);
 
@@ -202,7 +202,7 @@ describe('lyfecycle — graph mutations between runs', () => {
 
 		const outputPromise = waitForOutput(runtime, 'C', 'value');
 		runtime.runner.start();
-		expect((await outputPromise)[4]).toBe('hello');
+		expect((await outputPromise)[3].value).toBe('hello');
 
 		runtime.runner.interrupt('cancel');
 	});

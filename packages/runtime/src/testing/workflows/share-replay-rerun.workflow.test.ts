@@ -128,9 +128,10 @@ describe('shareReplay(1) on pipe across run completion', () => {
 		const firstOut = waitForOutput(runtime, 'replay', 'value');
 		const run1 = runtime.runner.start();
 		expect(run1).not.toBe(false);
+		await Promise.resolve();
 		src.next('kept');
 		expect(
-			(await withTimeout(firstOut, 1000, 'run1 replay output'))[4],
+			(await withTimeout(firstOut, 1000, 'run1 replay output'))[3].value,
 		).toBe('kept');
 		await withTimeout(done1, 1000, 'run1 done');
 		expect(await firstValueFrom(runtime.runner.status$)).toBe('idle');
@@ -141,7 +142,8 @@ describe('shareReplay(1) on pipe across run completion', () => {
 		expect(run2).not.toBe(false);
 		expect(run2).not.toBe(run1);
 		expect(
-			(await withTimeout(secondOut, 500, 'run2 replay re-delivery'))[4],
+			(await withTimeout(secondOut, 500, 'run2 replay re-delivery'))[3]
+				.value,
 		).toBe('kept');
 	});
 
@@ -168,9 +170,10 @@ describe('shareReplay(1) on pipe across run completion', () => {
 		const firstOut = waitForOutput(runtime, 'counter', 'value');
 		const run1 = runtime.runner.start();
 		expect(run1).not.toBe(false);
+		await Promise.resolve();
 		src.next('a');
 		expect(
-			(await withTimeout(firstOut, 1000, 'run1 counter output'))[4],
+			(await withTimeout(firstOut, 1000, 'run1 counter output'))[3].value,
 		).toBe(1);
 		await withTimeout(done1, 1000, 'run1 done');
 		expect(await firstValueFrom(runtime.runner.status$)).toBe('idle');
@@ -180,9 +183,11 @@ describe('shareReplay(1) on pipe across run completion', () => {
 		const run2 = runtime.runner.start();
 		expect(run2).not.toBe(false);
 		expect(run2).not.toBe(run1);
+		await Promise.resolve();
 		src.next('b');
 		expect(
-			(await withTimeout(secondOut, 1000, 'run2 counter output'))[4],
+			(await withTimeout(secondOut, 1000, 'run2 counter output'))[3]
+				.value,
 		).toBe(2);
 		await withTimeout(done2, 1000, 'run2 done');
 		expect(await firstValueFrom(runtime.runner.status$)).toBe('idle');

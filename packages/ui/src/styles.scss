@@ -116,7 +116,7 @@ lf-edge.lf-edge--pulse ng-diagram-base-edge path {
 		filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.9));
 	}
 	100% {
-		stroke: #a1a1aa;
+		stroke: var(--edge-stroke, var(--ngd-default-edge-stroke));
 		stroke-width: 2;
 		filter: none;
 	}

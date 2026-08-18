@@ -37,10 +37,12 @@ can be dragged taller (`resize: vertical`; height is ephemeral, not
 persisted). After Settings Save, those dropdown option lists MUST reflect the
 new snapshot without requiring the operator to reload the editor.
 
-**While a run is active:** inspector remains available for the selected node;
-panel params (e.g. `maxIterations`, `maxFeedbackTurns`) may be edited and
-persist for the next run. Run control (Start / Stop / HITL) stays in the feed
-composer, not in the inspector body.
+**While a run is active:** inspector remains available for the selected node
+but is **read-only** — inline inputs, panel params, and tool-permission
+toggles do not emit `editor.updateNode.requested`. Stop the run to edit.
+Run control (Start / Stop / HITL) stays in the feed composer, not in the
+inspector body. The server may still accept `params` patches from other
+clients; this UI does not send them.
 
 ## Implementation Details
 

@@ -139,7 +139,7 @@ describe('common-critique', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'review-1' &&
 						event[2] === 'feedback',
 				),
@@ -150,11 +150,11 @@ describe('common-critique', () => {
 		const responseSub = runtime.runner.events$.subscribe((event) => {
 			if (
 				event[0] === 'out' &&
-				event[3] === 'value' &&
+				'value' in event[3] &&
 				event[1] === 'review-1' &&
 				event[2] === 'response'
 			) {
-				responseEmissions.push(event[4]);
+				responseEmissions.push(event[3].value);
 			}
 		});
 
@@ -208,8 +208,7 @@ describe('common-critique', () => {
 				'out',
 				expect.anything(),
 				expect.anything(),
-				expect.anything(),
-				'Rewrite the intro',
+				{ value: 'Rewrite the intro' },
 			]),
 		);
 		expect(responseEmissions).toHaveLength(0);
@@ -283,7 +282,7 @@ describe('common-critique', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'review-1' &&
 						event[2] === 'response',
 				),
@@ -339,8 +338,7 @@ describe('common-critique', () => {
 				'out',
 				expect.anything(),
 				expect.anything(),
-				expect.anything(),
-				'Accepted artifact body',
+				{ value: 'Accepted artifact body' },
 			]),
 		);
 		expect(captured).toHaveLength(1);
@@ -432,18 +430,18 @@ describe('common-critique', () => {
 		const eventsSub = runtime.runner.events$.subscribe((event) => {
 			if (
 				event[0] !== 'out' ||
-				event[3] !== 'value' ||
+				!('value' in event[3]) ||
 				event[1] !== 'review-1'
 			) {
 				return;
 			}
 
 			if (event[2] === 'toolLog') {
-				toolLogTexts.push(String(event[4]));
+				toolLogTexts.push(String(event[3].value));
 			}
 
 			if (event[2] === 'response') {
-				responseEmissions.push(event[4]);
+				responseEmissions.push(event[3].value);
 			}
 		});
 
@@ -452,7 +450,7 @@ describe('common-critique', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'review-1' &&
 						event[2] === 'feedback',
 				),
@@ -512,8 +510,7 @@ describe('common-critique', () => {
 				'out',
 				expect.anything(),
 				expect.anything(),
-				expect.anything(),
-				'Need more detail',
+				{ value: 'Need more detail' },
 			]),
 		);
 		expect(responseEmissions).toHaveLength(0);
@@ -596,7 +593,7 @@ describe('common-critique', () => {
 					filter((event) => {
 						if (
 							event[0] !== 'out' ||
-							event[3] !== 'value' ||
+							!('value' in event[3]) ||
 							event[1] !== 'critique-1' ||
 							event[2] !== 'feedback'
 						) {

@@ -283,6 +283,10 @@ function sameValue(a: unknown, b: unknown): boolean {
 			font-size: 10px;
 			color: rgb(63 63 70);
 		}
+		.lf-inline-control:disabled,
+		input:disabled {
+			cursor: not-allowed;
+		}
 		:host-context([data-theme='dark']) .lf-inline-control {
 			border-color: rgb(63 63 70);
 			background: rgb(9 9 11);

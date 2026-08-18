@@ -7,6 +7,7 @@ import {
 	applyNodeHitlFrame,
 	emptyNodeHitlAwaitState,
 	replayNodeHitlFromSnapshot,
+	resetNodeHitlAwaitState,
 } from '../operators/canvas-node-hitl-projection';
 
 const runId = 'r1' as RunId;
@@ -45,7 +46,7 @@ describe('canvas-node-hitl-projection (single-node)', () => {
 	it('opens on non-HITL wired input-received', () => {
 		const next = applyNodeHitlFrame(
 			emptyNodeHitlAwaitState(),
-			['in', nodeId, 'prompt', 'value', 'hi', 0, [], null],
+			['in', nodeId, 'prompt', { value: 'hi' }, 0, [], null],
 			catalog(),
 			nodeId,
 			runId,
@@ -56,14 +57,14 @@ describe('canvas-node-hitl-projection (single-node)', () => {
 	it('closes on HITL reply input-received', () => {
 		let state = applyNodeHitlFrame(
 			emptyNodeHitlAwaitState(),
-			['in', nodeId, 'prompt', 'value', 'hi', 0, [], null],
+			['in', nodeId, 'prompt', { value: 'hi' }, 0, [], null],
 			catalog(),
 			nodeId,
 			runId,
 		);
 		state = applyNodeHitlFrame(
 			state,
-			['in', nodeId, 'reply', 'value', 'answer', 0, [], null],
+			['in', nodeId, 'reply', { value: 'answer' }, 0, [], null],
 			catalog(),
 			nodeId,
 			runId,
@@ -78,8 +79,7 @@ describe('canvas-node-hitl-projection (single-node)', () => {
 				'in',
 				nodeId,
 				STEER_CONTROL_PORT_ID,
-				'value',
-				{ kind: 'pause' },
+				{ value: { kind: 'pause' } },
 				0,
 				[],
 				null,
@@ -96,8 +96,7 @@ describe('canvas-node-hitl-projection (single-node)', () => {
 				'in',
 				nodeId,
 				STEER_CONTROL_PORT_ID,
-				'value',
-				{ kind: 'steer', text: 'go' },
+				{ value: { kind: 'steer', text: 'go' } },
 				0,
 				[],
 				null,
@@ -116,13 +115,12 @@ describe('canvas-node-hitl-projection (single-node)', () => {
 				workflowId: 'wf-1',
 				status: 'running',
 				events: [
-					['in', nodeId, 'prompt', 'value', 'hi', 0, [], null],
+					['in', nodeId, 'prompt', { value: 'hi' }, 0, [], null],
 					[
 						'in',
 						'other' as NodeId,
 						'prompt',
-						'value',
-						'ignore',
+						{ value: 'ignore' },
 						0,
 						[],
 						null,
@@ -134,5 +132,25 @@ describe('canvas-node-hitl-projection (single-node)', () => {
 		);
 		expect(state.awaiting).toBe(true);
 		expect(state.runId).toBe(runId);
+	});
+
+	it('adopts started runId without clearing a live await', () => {
+		const opened = applyNodeHitlFrame(
+			emptyNodeHitlAwaitState(),
+			['in', nodeId, 'prompt', { value: 'hi' }, 0, [], null],
+			catalog(),
+			nodeId,
+			null,
+		);
+		expect(opened.awaiting).toBe(true);
+		expect(opened.runId).toBeNull();
+
+		const adopted = resetNodeHitlAwaitState(runId, opened);
+		expect(adopted.awaiting).toBe(true);
+		expect(adopted.runId).toBe(runId);
+
+		const nextRun = resetNodeHitlAwaitState('r2' as RunId, adopted);
+		expect(nextRun.awaiting).toBe(false);
+		expect(nextRun.runId).toBe('r2');
 	});
 });

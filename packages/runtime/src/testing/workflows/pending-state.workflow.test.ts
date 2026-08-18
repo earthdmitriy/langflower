@@ -1,16 +1,24 @@
 import {
 	combineStatefulObservables,
 	statefulConnection,
+	statefulObservable,
 } from '@rx-evo/stateful-observable';
 import { concatMap, delay, of } from 'rxjs';
 import { describe, expect, it } from 'vitest';
-import type { NodeId, PortMeta, RuntimeNode } from '../../types.js';
+import {
+	isPortTelemetry,
+	type NodeId,
+	type PortMeta,
+	type RuntimeNode,
+} from '../../types.js';
 import { createConstantTestNode } from '../nodes/constant-node.js';
 import { createDelayTestNode } from '../nodes/delay-node.js';
 import { createFinishTestNode } from '../nodes/finish-node.js';
 import {
 	type RuntimeHarness,
 	createRuntimeHarness,
+	dtoHas,
+	dtoIndex,
 	runAndCollectEvents,
 	wireEdge,
 } from './workflow-events.js';
@@ -117,16 +125,15 @@ function wire(
 }
 
 /**
- * Proves that nodes emit `output-emitted` with `state: 'pending'` during
- * the loading phase, before the success `state: 'value'` arrives. This is
+ * Proves that nodes emit `output-emitted` with `{ pending: true }` during
+ * the loading phase, before the success `{ value }` arrives. This is
  * the mechanism that should drive the yellow "working" indicator on nodes
  * in the UI.
  *
  * `statefulObservable` always pushes a loading sentinel first, even for
  * synchronous loaders (`of(value)`). The `pipeValue` + `tap` path in
- * `runtime-runner.ts` resolves the raw `ResponseWithStatus` via
- * `resolveSignalState()` — `isLoading()` maps to `{ state: 'pending' }`,
- * `isSuccess()` maps to `{ state: 'value' }`.
+ * `runtime-runner.ts` maps `ResponseWithStatus` through `serializeResponse`
+ * onto the same port (`{ pending: true }` then `{ value }`).
  *
  * NOTE: the three tests below use the harness `createConstantTestNode`, which
  * itself emits `pending` (it wraps the value in `statefulObservable({ loader })`).
@@ -167,10 +174,10 @@ describe('pending state in workflow event log', () => {
 			)
 			.map((event) => event[3]);
 
-		expect(d1States).toContain('pending');
-		expect(d1States).toContain('value');
-		expect(d1States.indexOf('pending')).toBeLessThan(
-			d1States.indexOf('value'),
+		expect(dtoHas(d1States, 'pending')).toBe(true);
+		expect(dtoHas(d1States, 'value')).toBe(true);
+		expect(dtoIndex(d1States, 'pending')).toBeLessThan(
+			dtoIndex(d1States, 'value'),
 		);
 	});
 
@@ -198,10 +205,10 @@ describe('pending state in workflow event log', () => {
 			)
 			.map((event) => event[3]);
 
-		expect(srcStates).toContain('pending');
-		expect(srcStates).toContain('value');
-		expect(srcStates.indexOf('pending')).toBeLessThan(
-			srcStates.indexOf('value'),
+		expect(dtoHas(srcStates, 'pending')).toBe(true);
+		expect(dtoHas(srcStates, 'value')).toBe(true);
+		expect(dtoIndex(srcStates, 'pending')).toBeLessThan(
+			dtoIndex(srcStates, 'value'),
 		);
 	});
 
@@ -242,22 +249,22 @@ describe('pending state in workflow event log', () => {
 		const d1States = statesOf('d1');
 		const d2States = statesOf('d2');
 
-		expect(c1States).toContain('pending');
-		expect(c1States).toContain('value');
-		expect(c1States.indexOf('pending')).toBeLessThan(
-			c1States.indexOf('value'),
+		expect(dtoHas(c1States, 'pending')).toBe(true);
+		expect(dtoHas(c1States, 'value')).toBe(true);
+		expect(dtoIndex(c1States, 'pending')).toBeLessThan(
+			dtoIndex(c1States, 'value'),
 		);
 
-		expect(d1States).toContain('pending');
-		expect(d1States).toContain('value');
-		expect(d1States.indexOf('pending')).toBeLessThan(
-			d1States.indexOf('value'),
+		expect(dtoHas(d1States, 'pending')).toBe(true);
+		expect(dtoHas(d1States, 'value')).toBe(true);
+		expect(dtoIndex(d1States, 'pending')).toBeLessThan(
+			dtoIndex(d1States, 'value'),
 		);
 
-		expect(d2States).toContain('pending');
-		expect(d2States).toContain('value');
-		expect(d2States.indexOf('pending')).toBeLessThan(
-			d2States.indexOf('value'),
+		expect(dtoHas(d2States, 'pending')).toBe(true);
+		expect(dtoHas(d2States, 'value')).toBe(true);
+		expect(dtoIndex(d2States, 'pending')).toBeLessThan(
+			dtoIndex(d2States, 'value'),
 		);
 	});
 });
@@ -287,8 +294,8 @@ describe('pending state — combine of value-only sources', () => {
 		);
 
 		const srcStates = statesOfNode(events, runId, 'src');
-		expect(srcStates).toContain('value');
-		expect(srcStates).toContain('pending');
+		expect(dtoHas(srcStates, 'value')).toBe(true);
+		expect(dtoHas(srcStates, 'pending')).toBe(true);
 	});
 
 	it('combineStatefulObservables of value-only sources emits pending', async () => {
@@ -311,8 +318,8 @@ describe('pending state — combine of value-only sources', () => {
 		);
 
 		const d1States = statesOfNode(events, runId, 'd1');
-		expect(d1States).toContain('value');
-		expect(d1States).toContain('pending');
+		expect(dtoHas(d1States, 'value')).toBe(true);
+		expect(dtoHas(d1States, 'pending')).toBe(true);
 	});
 
 	it('statefulObservable({ input, loader }) emits pending (contrast)', async () => {
@@ -335,11 +342,52 @@ describe('pending state — combine of value-only sources', () => {
 		);
 
 		const d1States = statesOfNode(events, runId, 'd1');
-		expect(d1States).toContain('pending');
-		expect(d1States).toContain('value');
-		expect(d1States.indexOf('pending')).toBeLessThan(
-			d1States.indexOf('value'),
+		expect(dtoHas(d1States, 'pending')).toBe(true);
+		expect(dtoHas(d1States, 'value')).toBe(true);
+		expect(dtoIndex(d1States, 'pending')).toBeLessThan(
+			dtoIndex(d1States, 'value'),
 		);
+	});
+
+	it('serializes a user `{ pending: true }` payload as a value, not pending', async () => {
+		const output = statefulObservable({
+			loader: () => of({ pending: true }),
+			meta: {
+				dir: 'out',
+				portId: 'value',
+				wireType: 'any',
+			} satisfies PortMeta,
+		});
+		const node: RuntimeNode = {
+			nodeId: 'src' as NodeId,
+			inputs: {},
+			outputs: { value: output },
+			bypassPorts: {},
+			emitOncePerActivation: true,
+		};
+
+		const harness = createRuntimeHarness();
+		harness.editor.addNode(node);
+		const { events } = await runAndCollectEvents(
+			harness,
+			() => harness.runner.start(),
+			30,
+		);
+
+		const values = events.filter(
+			(event) =>
+				isPortTelemetry(event) &&
+				event[0] === 'out' &&
+				event[2] === 'value' &&
+				'value' in event[3],
+		);
+		expect(
+			values.some(
+				(event) =>
+					JSON.stringify(event[3].value) ===
+					JSON.stringify({ pending: true }),
+			),
+		).toBe(true);
 	});
 });
 
@@ -347,7 +395,7 @@ function statesOfNode(
 	events: readonly import('../../types.js').RuntimeRunnerEvent[],
 	runId: string,
 	nodeId: string,
-): string[] {
+): unknown[] {
 	return events
 		.filter(
 			(event) =>

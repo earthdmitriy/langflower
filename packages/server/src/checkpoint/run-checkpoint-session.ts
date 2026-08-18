@@ -117,13 +117,13 @@ export class RunCheckpointSession {
 			return false;
 		}
 
-		const [, nodeIdRaw, portId, state, value] = event;
+		const [, nodeIdRaw, portId, response] = event;
 
-		if (state !== 'value' || typeof portId !== 'string') {
+		if (!('value' in response) || typeof portId !== 'string') {
 			return false;
 		}
 
-		const jsonValue = toCheckpointJsonValue(value);
+		const jsonValue = toCheckpointJsonValue(response.value);
 		if (jsonValue === undefined) {
 			this.unsupportedValue = `${String(nodeIdRaw)}.${portId}`;
 			return false;

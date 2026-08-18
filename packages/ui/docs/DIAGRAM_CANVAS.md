@@ -531,15 +531,15 @@ Custom edge template: `lf-edge` → `LfEdgeChromeComponent` →
 `ng-diagram-base-edge` (edges are created with `type: 'lf-edge'` in
 `bridge-diagram.service.ts`).
 
-| State                                        | How it is applied                                                                               | Colour intent                                     |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Idle default                                 | ng-diagram `--ngd-default-edge-stroke` (gray)                                                   | Quiet wire                                        |
-| Idle **hover**                               | `--edge-stroke` on `lf-edge:hover:not(.lf-edge--selected)` (host + global `styles.scss`)        | Mid blue between default gray and selected blue   |
-| **Selected**                                 | `lf-edge--selected` → `--edge-stroke` / `--ngd-default-edge-stroke*` blue                       | Strong selection                                  |
-| Execution pending / value / error            | `lf-edge--pending\|value\|error` → CSS `stroke` on path in `styles.scss`                        | Dark yellow / green / rose (overrides idle hover) |
-| Value pulse                                  | `lf-edge--pulse` animation                                                                      | Brief green flash on deliver                      |
-| **Back-edge** (lower leg of a two-node loop) | Host `lf-edge--back`; U-route below both node boxes via custom `orthogonal` routing (auto mode) | Return loop from HITL up to FakeLLM               |
-| Back-edge without node sizes                 | Same host class; port-Y fallback + `strokeDasharray: '6 4'`                                     | Dashed until bounds exist                         |
+| State                                        | How it is applied                                                                                                                      | Colour intent                                     |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Idle default                                 | ng-diagram `--ngd-default-edge-stroke` (gray)                                                                                          | Quiet wire                                        |
+| Idle **hover**                               | `--edge-stroke` on `lf-edge:hover:not(.lf-edge--selected)` (host + global `styles.scss`)                                               | Mid blue between default gray and selected blue   |
+| **Selected**                                 | `lf-edge--selected` → `--edge-stroke` / `--ngd-default-edge-stroke*` blue                                                              | Strong selection                                  |
+| Execution pending / value / error            | `lf-edge--pending\|value\|error` → `--edge-stroke` / `--ngd-default-edge-stroke` on host (path `stroke:` in `styles.scss` is fallback) | Dark yellow / green / rose (overrides idle hover) |
+| Value pulse                                  | `lf-edge--pulse` animation                                                                                                             | Brief green flash on deliver                      |
+| **Back-edge** (lower leg of a two-node loop) | Host `lf-edge--back`; U-route below both node boxes via custom `orthogonal` routing (auto mode)                                        | Return loop from HITL up to FakeLLM               |
+| Back-edge without node sizes                 | Same host class; port-Y fallback + `strokeDasharray: '6 4'`                                                                            | Dashed until bounds exist                         |
 
 **Back-edge heuristic:** in a **two-node loop** (reverse edge exists), route
 below one leg (no Y-margin — equal centers are same-row):
@@ -663,12 +663,12 @@ After canvas changes:
 
 Canvas node/edge UI must use theme tokens from [`THEMES.md`](THEMES.md):
 
-| Component                         | Tokens / classes                                                                                                                                |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lf-node.component.ts`            | `--lf-bg-surface`, `--lf-border`, `--lf-node-glow-*`, `--lf-node-border-*`, `.lf-btn`, `.lf-node-chrome`                                        |
-| `node-port-layout.css`            | `--lf-node-chrome-padding-x`, `.lf-port-row`, `.lf-port-anchor`                                                                                 |
-| `lf-edge-chrome.component.ts`     | select / idle hover via `--edge-stroke`; `lf-edge--pending` / `--value` / `--error` / `--pulse` / `--back` (execution strokes in `styles.scss`) |
-| `node-inline-inputs.component.ts` | `.lf-input`, `.lf-textarea`                                                                                                                     |
+| Component                         | Tokens / classes                                                                                                                          |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `lf-node.component.ts`            | `--lf-bg-surface`, `--lf-border`, `--lf-node-glow-*`, `--lf-node-border-*`, `.lf-btn`, `.lf-node-chrome`                                  |
+| `node-port-layout.css`            | `--lf-node-chrome-padding-x`, `.lf-port-row`, `.lf-port-anchor`                                                                           |
+| `lf-edge-chrome.component.ts`     | select / idle hover / pending / value / error via `--edge-stroke`; `lf-edge--pulse` / `--back` (path `stroke:` fallback in `styles.scss`) |
+| `node-inline-inputs.component.ts` | `.lf-input`, `.lf-textarea`                                                                                                               |
 
 Node UI states (`inactive`, `pending`, `value`, `error`, `hitl`) apply via
 `lf-node-chrome--pending` / `--value` / `--error` / `--hitl` classes
@@ -685,7 +685,8 @@ colors. Wire UI states (`inactive`, `pending`, `value`, `error`) apply via
 delivered value) is `lf-node-chrome--pulse` / `lf-edge--pulse` /
 `lf-port-anchor--pulse`, from the pure `valuePulseCommands$` /
 `valuePulseActive$` helper (`pulseOn` then `pulseOff` via RxJS `timer`) —
-nodes bind factory `pulse$`; edges/ports still filter live
+nodes bind factory `pulse$` (output `{ value }` only — input delivery does
+not green-flash the box); edges/ports still filter live
 `getEventsForEdge` / `getEventsForPort` / `getInputEventsForPort`. Port pulse
 uses a global infinite keyframe while the class is on (so unwired streaming
 outs like `reasoning` / `draftResponse` keep a visible throb without needing

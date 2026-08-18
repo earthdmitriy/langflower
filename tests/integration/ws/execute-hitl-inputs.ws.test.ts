@@ -84,7 +84,7 @@ describe('execute HITL inputs (WS bridge)', () => {
 				);
 
 				const preview = await previewPromise;
-				expect(preview[4]).toBe('approved draft');
+				expect(preview[3].value).toBe('approved draft');
 			});
 		},
 	);
@@ -121,7 +121,7 @@ describe('execute HITL inputs (WS bridge)', () => {
 				);
 
 				const preview = await previewPromise;
-				expect(preview[4]).toBe('fix the intro');
+				expect(preview[3].value).toBe('fix the intro');
 			});
 		},
 	);

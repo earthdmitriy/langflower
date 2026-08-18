@@ -40,20 +40,20 @@ export const BACK_EDGE_DASHARRAY = '6 4';
 	imports: [NgDiagramBaseEdgeComponent],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: {
-		'[class.lf-edge--inactive]': 'status() === "inactive"',
-		'[class.lf-edge--pending]': 'status() === "pending"',
-		'[class.lf-edge--value]': 'status() === "value"',
-		'[class.lf-edge--error]': 'status() === "error"',
+		'[class.lf-edge--inactive]': '"inactive" in status()',
+		'[class.lf-edge--pending]': '"pending" in status()',
+		'[class.lf-edge--value]': '"value" in status()',
+		'[class.lf-edge--error]': '"error" in status()',
 		'[class.lf-edge--pulse]': 'pulse()',
 		'[class.lf-edge--selected]': 'selected()',
 		'[class.lf-edge--back]': 'isBack()',
 	},
 	styles: `
 		/*
-		 * Hover must set --edge-stroke on this host. ng-diagram's
-		 * .default-edge:hover rules live in DefaultEdgeComponent encapsulation
-		 * and never match a custom lf-edge → base-edge tree, so only an
-		 * inherited --edge-stroke reaches the path's
+		 * Hover and execution chrome must set --edge-stroke on this host.
+		 * ng-diagram's .default-edge:hover rules live in DefaultEdgeComponent
+		 * encapsulation and never match a custom lf-edge → base-edge tree, so
+		 * only an inherited --edge-stroke reaches the path's
 		 * stroke="var(--edge-stroke, var(--ngd-default-edge-stroke))".
 		 */
 		:host {
@@ -65,6 +65,33 @@ export const BACK_EDGE_DASHARRAY = '6 4';
 		}
 		:host-context([data-theme='dark']):host:hover:not(.lf-edge--selected) {
 			--edge-stroke: rgb(120 160 220);
+		}
+		:host.lf-edge--pending {
+			--ngd-default-edge-stroke: rgb(202 138 4);
+			--edge-stroke: rgb(202 138 4);
+			--ngd-default-edge-width: 3px;
+		}
+		:host-context([data-theme='dark']):host.lf-edge--pending {
+			--ngd-default-edge-stroke: rgb(250 204 21);
+			--edge-stroke: rgb(250 204 21);
+		}
+		:host.lf-edge--value {
+			--ngd-default-edge-stroke: rgb(16 185 129);
+			--edge-stroke: rgb(16 185 129);
+			--ngd-default-edge-width: 3px;
+		}
+		:host-context([data-theme='dark']):host.lf-edge--value {
+			--ngd-default-edge-stroke: rgb(52 211 153);
+			--edge-stroke: rgb(52 211 153);
+		}
+		:host.lf-edge--error {
+			--ngd-default-edge-stroke: rgb(244 63 94);
+			--edge-stroke: rgb(244 63 94);
+			--ngd-default-edge-width: 3px;
+		}
+		:host-context([data-theme='dark']):host.lf-edge--error {
+			--ngd-default-edge-stroke: rgb(251 113 133);
+			--edge-stroke: rgb(251 113 133);
 		}
 		:host.lf-edge--selected {
 			--ngd-default-edge-stroke: rgb(37 99 235);

@@ -116,7 +116,11 @@ do not say coding pipelines “don’t exist” or are unavailable.
 - **Can:** Chat Input graphs start from the composer **Start** control. Plain
   **Run** stays disabled for those graphs.
 - **Can:** While running — Hard **Stop**, soft **Pause**, HITL and
-  `permission.ask` in the composer.
+  `permission.ask` in the composer. Work log **clears** on successful
+  workflow load / create / copy (not rename).
+- **Cannot:** Switch, rename, delete, copy, or create a workflow while a run
+  is active — Stop first. Same lock: inspector / canvas inline / palette
+  drag (`cursor-not-allowed`).
 - **Cannot:** Tell users to press plain **Run** to start a Chat Input graph.
 - **Cannot:** Claim the feed after reload must be **richer** than live.
 - **Cannot:** Claim `basic-coder` proves chat-dense mood for the full
@@ -188,10 +192,12 @@ Sub-Agent is an **explicit canvas node** for **control and observability**
 
 - **Can:** First-class Sub-Agent node. Wire Sub-Agent
   `subagent-registration` → parent `tools` (one edge). The parent calls the
-  specialist tool with a `task`
-  (optional `skillId` from the Inspector Skills enum). Default swarm invokes
-  are **serial**. Wiki/memory create (`kb-create`) uses **serial** scoped
-  specialist calls driven by a persisted work queue — not parallel
+  specialist tool (`Writer(subagent)` / `toolId` `Writer_subagent`) with a
+  `task`
+  (optional `skillId` from the Inspector Skills enum). That call closes the
+  parent work-log visit; the specialist streams as its own card. Default swarm
+  invokes are **serial**. Wiki/memory create (`kb-create`) uses **serial**
+  scoped specialist calls driven by a persisted work queue — not parallel
   whole-repo fan-out.
 - **Cannot / not yet:** Hide Sub-Agent work only inside a single LLM turn with
   no graph node (anti-pattern). Parallel fan-out as the **default**. Nested

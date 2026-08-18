@@ -163,7 +163,7 @@ describe('RuntimeEditor.swapNode', () => {
 			runtime.runner.events$.pipe(filter(isRuntimeDone)),
 		);
 		runtime.runner.start();
-		expect((await firstOut)[4]).toBe('v1');
+		expect((await firstOut)[3].value).toBe('v1');
 		await firstDone;
 
 		const swapped = runtime.editor.swapNode(
@@ -184,7 +184,7 @@ describe('RuntimeEditor.swapNode', () => {
 			runtime.runner.events$.pipe(filter(isRuntimeDone)),
 		);
 		runtime.runner.start();
-		expect((await secondOut)[4]).toBe('v2');
+		expect((await secondOut)[3].value).toBe('v2');
 		await secondDone;
 	});
 

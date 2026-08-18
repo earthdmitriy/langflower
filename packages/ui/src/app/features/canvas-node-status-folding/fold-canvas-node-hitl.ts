@@ -84,9 +84,16 @@ const foldHitlComposer = (
 		};
 	}
 	if (action.type === 'reset') {
-		const state = resetNodeHitlAwaitState(action.runId, composer.state);
-		if (state === composer.state) {
+		if (action.runId === composer.runId) {
 			return composer;
+		}
+		const state = resetNodeHitlAwaitState(action.runId, composer.state);
+		if (composer.runId === null) {
+			return {
+				...composer,
+				state,
+				runId: action.runId,
+			};
 		}
 		return {
 			events: [],

@@ -13,12 +13,20 @@ describe('normalizeLlmRecoveryPolicy', () => {
 			DEFAULT_LLM_RECOVERY_POLICY.autokickBackoffMs,
 		);
 		expect(policy.deadLoop.maxWindowTokens).toBe(1_000);
+		expect(policy.subagentTimeoutMs).toBe(0);
 	});
 
 	it('keeps 0 maxAutokickAttempts as unlimited', () => {
 		expect(
 			normalizeLlmRecoveryPolicy({ maxAutokickAttempts: 0 })
 				.maxAutokickAttempts,
+		).toBe(0);
+	});
+
+	it('keeps 0 subagentTimeoutMs as unlimited', () => {
+		expect(
+			normalizeLlmRecoveryPolicy({ subagentTimeoutMs: 0 })
+				.subagentTimeoutMs,
 		).toBe(0);
 	});
 

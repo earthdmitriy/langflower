@@ -1,8 +1,8 @@
 import type {
 	EdgeId,
 	PortTelemetry,
+	ResponseDto,
 	RunId,
-	RuntimePortSignalState,
 } from '@langflower/runtime';
 import { isPortTelemetry } from '@langflower/runtime';
 import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
@@ -20,14 +20,14 @@ export type ChromeAction =
 	| { readonly type: 'reset'; readonly runId: RunId };
 
 export type ChromeState<K> = {
-	readonly map: ReadonlyMap<K, RuntimePortSignalState>;
+	readonly map: ReadonlyMap<K, ResponseDto<unknown>>;
 	readonly runId: RunId | null;
 };
 
 export type ChromeKeying<K> = {
 	readonly replay: (
 		snap: ExecutionFeedSnapshotPayload | null,
-	) => ReadonlyMap<K, RuntimePortSignalState>;
+	) => ReadonlyMap<K, ResponseDto<unknown>>;
 	readonly keysFromOutput: (event: OutputPortTelemetry) => readonly K[];
 };
 
@@ -44,27 +44,23 @@ export const foldChromeState = <K>(
 	}
 	if (action.type === 'output') {
 		const event = action.event;
-		const [, , portId, stateValue] = event;
+		const [, , portId, response] = event;
 		if (typeof portId === 'symbol') {
-			return state;
-		}
-		if (
-			stateValue !== 'value' &&
-			stateValue !== 'pending' &&
-			stateValue !== 'error'
-		) {
 			return state;
 		}
 		const keys = keying.keysFromOutput(event);
 		const next = new Map(state.map);
 		for (const key of keys) {
-			next.set(key, stateValue);
+			next.set(key, response);
 		}
 		return { map: next, runId: state.runId };
 	}
 	if (action.type === 'reset') {
 		if (action.runId === state.runId) {
 			return state;
+		}
+		if (state.runId === null) {
+			return { map: state.map, runId: action.runId };
 		}
 		return { map: new Map(), runId: action.runId };
 	}
@@ -73,8 +69,8 @@ export const foldChromeState = <K>(
 
 export const replayEdgeStates = (
 	snapshot: ExecutionFeedSnapshotPayload | null,
-): Map<EdgeId, RuntimePortSignalState> => {
-	const map = new Map<EdgeId, RuntimePortSignalState>();
+): Map<EdgeId, ResponseDto<unknown>> => {
+	const map = new Map<EdgeId, ResponseDto<unknown>>();
 	if (snapshot === null) {
 		return map;
 	}
@@ -82,15 +78,12 @@ export const replayEdgeStates = (
 		if (!isPortTelemetry(event) || event[0] !== 'out') {
 			continue;
 		}
-		const [, , portId, state, , , edgeIds] = event;
-		if (
-			typeof portId !== 'string' ||
-			(state !== 'pending' && state !== 'value' && state !== 'error')
-		) {
+		const [, , portId, response, , edgeIds] = event;
+		if (typeof portId !== 'string') {
 			continue;
 		}
 		for (const edgeId of edgeIds) {
-			map.set(edgeId, state);
+			map.set(edgeId, response);
 		}
 	}
 	return map;
@@ -98,7 +91,7 @@ export const replayEdgeStates = (
 
 const EDGE_CHROME_KEYING: ChromeKeying<EdgeId> = {
 	replay: replayEdgeStates,
-	keysFromOutput: (event) => event[6],
+	keysFromOutput: (event) => event[5],
 };
 
 const createChromeMap$ = <K>(
@@ -109,7 +102,7 @@ const createChromeMap$ = <K>(
 		readonly runnerStartNodeStarted$: Observable<RunId>;
 	},
 	keying: ChromeKeying<K>,
-): Observable<ReadonlyMap<K, RuntimePortSignalState>> => {
+): Observable<ReadonlyMap<K, ResponseDto<unknown>>> => {
 	const snapshotAction$ = deps.executionFeedSnapshot$.pipe(
 		map((snap): ChromeAction => ({ type: 'snapshot', snap })),
 	);
@@ -124,10 +117,10 @@ const createChromeMap$ = <K>(
 		scan(
 			(state, action): ChromeState<K> =>
 				foldChromeState(state, action, keying),
-			{ map: new Map<K, RuntimePortSignalState>(), runId: null },
+			{ map: new Map<K, ResponseDto<unknown>>(), runId: null },
 		),
 		map((s) => s.map),
-		startWith(new Map<K, RuntimePortSignalState>()),
+		startWith(new Map<K, ResponseDto<unknown>>()),
 		shareReplay(1),
 	);
 };
@@ -137,7 +130,7 @@ export const createEdgeStates$ = (deps: {
 	readonly outputEmitted$: Observable<OutputPortTelemetry>;
 	readonly runnerStarted$: Observable<RunId>;
 	readonly runnerStartNodeStarted$: Observable<RunId>;
-}): Observable<ReadonlyMap<EdgeId, RuntimePortSignalState>> =>
+}): Observable<ReadonlyMap<EdgeId, ResponseDto<unknown>>> =>
 	createChromeMap$(deps, EDGE_CHROME_KEYING);
 
 export type { OutputPortTelemetry };

@@ -50,10 +50,10 @@ describe('execute fake-llm (WS bridge)', () => {
 			(event: RuntimeRunnerEvent) => {
 				if (
 					event[0] === 'out' &&
-					event[3] === 'value' &&
+					'value' in event[3] &&
 					event[1] === 'llm-1'
 				) {
-					chunks.push({ portId: event[2], value: event[4] });
+					chunks.push({ portId: event[2], value: event[3].value });
 				}
 			},
 		);
@@ -69,8 +69,8 @@ describe('execute fake-llm (WS bridge)', () => {
 
 		sub.unsubscribe();
 
-		expect(output[4]).toMatch(/^Final:/);
-		expect(String(output[4])).toContain('Write a haiku');
+		expect(output[3].value).toMatch(/^Final:/);
+		expect(String(output[3].value)).toContain('Write a haiku');
 
 		const ports = chunks.map((chunk) => chunk.portId);
 		const firstDraft = ports.indexOf('draftResponse');
@@ -105,11 +105,11 @@ describe('execute fake-llm (WS bridge)', () => {
 			(event: RuntimeRunnerEvent) => {
 				if (
 					event[0] === 'out' &&
-					event[3] === 'value' &&
+					'value' in event[3] &&
 					event[1] === 'llm-1' &&
 					event[2] === 'reasoning'
 				) {
-					reasoning.push(String(event[4]));
+					reasoning.push(String(event[3].value));
 				}
 			},
 		);
@@ -125,8 +125,8 @@ describe('execute fake-llm (WS bridge)', () => {
 
 		sub.unsubscribe();
 
-		expect(output[4]).toMatch(/^Final:/);
-		expect(String(output[4])).toContain('Search the repo');
+		expect(output[3].value).toMatch(/^Final:/);
+		expect(String(output[3].value)).toContain('Search the repo');
 
 		const reasoningText = reasoning.join('');
 		expect(reasoningText).toContain('get_memory_tree');

@@ -231,8 +231,11 @@ error lane. Path-choice forced-tool protocol failure after max iterations
 remains fail-closed. Partial reasoning/draft remains feed telemetry but is not
 committed to history.
 
-Tool and Sub-Agent waits are sequential and bounded by `toolTimeoutMs` and
-`subagentTimeoutMs`. Tool results are capped before entering model history.
+Tool waits are sequential and bounded by `toolTimeoutMs` (`0` disables).
+Sub-Agent `invoke` is unlimited by default (`subagentTimeoutMs` `0`); parent
+`toolTimeoutMs` does not apply to `*_subagent` tools. Stuck specialists use
+**that node's** LLM recovery (stream idle / autokick), not a required tool
+timeout. Tool results are capped before entering model history.
 Feed diagnostics are sanitized: raw HTML provider bodies, request secrets, and
 full stacks are never emitted.
 

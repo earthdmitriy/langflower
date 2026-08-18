@@ -75,7 +75,7 @@ describe('common-assert node', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'error' &&
+						'error' in event[3] &&
 						event[1] === 'assert-1' &&
 						event[2] === 'value',
 				),
@@ -84,6 +84,6 @@ describe('common-assert node', () => {
 
 		runtime.runner.start();
 		const errorEvent = await errorPromise;
-		expect(errorEvent[4]).toBe('plan invalid');
+		expect(errorEvent[3].error).toBe('plan invalid');
 	});
 });

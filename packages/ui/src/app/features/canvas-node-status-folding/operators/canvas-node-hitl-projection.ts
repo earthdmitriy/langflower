@@ -43,7 +43,7 @@ export const applyNodeHitlFrame = (
 	if (catalog === null || !isPortTelemetry(event)) {
 		return state;
 	}
-	const [portDir, eventNodeId, portId, eventState, value] = event;
+	const [portDir, eventNodeId, portId, response] = event;
 	const effectiveRunId = runId ?? state.runId;
 	const def = definitionForNode(
 		catalog.paletteByType,
@@ -57,7 +57,7 @@ export const applyNodeHitlFrame = (
 	if (
 		portDir === 'out' &&
 		typeof portId === 'string' &&
-		eventState === 'value'
+		'value' in response
 	) {
 		const role = resolveOutputFeedRole(
 			catalog.paletteByType,
@@ -67,7 +67,7 @@ export const applyNodeHitlFrame = (
 		);
 		if (
 			(role === 'recovery' || portId === RECOVERY_PORT_ID) &&
-			isLlmRecoverySuspended(value)
+			isLlmRecoverySuspended(response.value)
 		) {
 			return { awaiting: true, runId: effectiveRunId };
 		}
@@ -77,12 +77,12 @@ export const applyNodeHitlFrame = (
 	if (
 		portDir !== 'in' ||
 		typeof portId !== 'string' ||
-		eventState !== 'value'
+		!('value' in response)
 	) {
 		return state;
 	}
 
-	const steer = steerControlHitlTransition(portId, value);
+	const steer = steerControlHitlTransition(portId, response.value);
 	if (steer === 'open' || steer === 'close') {
 		return {
 			awaiting: applySteerTransition(state.awaiting, steer),
@@ -128,6 +128,9 @@ export const resetNodeHitlAwaitState = (
 ): NodeHitlAwaitState => {
 	if (runId === previous.runId) {
 		return previous;
+	}
+	if (previous.runId === null) {
+		return { ...previous, runId };
 	}
 	return { awaiting: false, runId };
 };

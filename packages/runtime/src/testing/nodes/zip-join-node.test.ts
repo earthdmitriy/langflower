@@ -39,6 +39,7 @@ describe('multi: zip join', () => {
 			});
 
 		runtime.runner.start();
+		await Promise.resolve();
 
 		a.next('a1');
 		await Promise.resolve();
@@ -92,6 +93,7 @@ describe('multi: zip join', () => {
 		);
 
 		runtime.runner.start();
+		await Promise.resolve();
 		a.next('1');
 		b.next('2');
 		a.next('3');

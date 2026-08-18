@@ -236,13 +236,21 @@ Same rules are duplicated in UI (`canConnectPorts`) and server — intentional.
 
 ### 6.1 `start(initialPayload?) → runId`
 
-1. Throw if `status === 'running'`.
-2. Assign `runId` (e.g. `crypto.randomUUID()`).
-3. **Empty graph:** emit instant `done` → `idle` (editor unlock).
-4. Wire **all edges** and watch **all nodes** (full scope).
-5. Apply `initialPayload`: seed open input slots via `connect(of(value))`.
-6. Set `status$` → `'running'`.
-7. Emit telemetry on `events$`.
+1. Return `false` if `status === 'running'`.
+2. Assign `runId` (e.g. `crypto.randomUUID()`) and set `status$` → `'running'`
+   **synchronously**. Lock the editor.
+3. **Empty graph:** emit instant `done` → `idle` (editor unlock) on the same
+   stack. No deferred wiring.
+4. Return `runId` **before** any `in` / `out` telemetry so callers can emit
+   `runner.started` on the same stack (server: `start()` then
+   `bridgeEmit('runner.started')`).
+5. On a **microtask**, wire **all edges** and watch **all nodes** (full scope),
+   then apply `initialPayload` (seed open input slots via `connect(of(value))`).
+   `interrupt` / `dispose` cancel a pending wire so a stopped run does not
+   connect.
+6. Port telemetry on `events$` begins only after that microtask.
+
+`startNode` and `resume` share the same `runScope` deferral.
 
 Run stays `'running'` until {@link RuntimeRunner.interrupt} or a
 {@link RuntimeNode.stopsRun} node emits. See [`ADR.md`](./ADR.md).
@@ -306,13 +314,13 @@ WebSocket execution frames. Production UI does not depend on runtime directly.
 
 Event union (`RuntimeRunnerEvent`):
 
-| `kind`           | Payload                                                  | When                                                                   |
-| ---------------- | -------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `output-emitted` | `runId`, `nodeId`, `portId`, `portIdx`, `state`, `value` | Output port activity                                                   |
-| `input-received` | same shape                                               | Input slot activity                                                    |
-| `done`           | `runId`                                                  | Empty graph instant completion, or {@link RuntimeNode.stopsRun} output |
+| `kind`           | Payload                                                        | When                                                                   |
+| ---------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `output-emitted` | `['out', nodeId, portId, ResponseDto, portIdx, edgeIds, feed]` | Output port activity                                                   |
+| `input-received` | same shape                                                     | Input slot activity                                                    |
+| `done`           | `runId`                                                        | Empty graph instant completion, or {@link RuntimeNode.stopsRun} output |
 
-`RuntimePortSignalState`: `'pending' | 'value' | 'error' | 'complete'`.
+`ResponseDto` (from `@rx-evo/stateful-observable`): `{ value } | { pending: true } | { inactive: true } | { error }`.
 
 ---
 
@@ -450,7 +458,7 @@ inside the node Observable pipeline, not via `HitlChannel`.
 See [`types.ts`](./types.ts) for the authoritative TypeScript definitions:
 
 - `RuntimeRunnerStatus`
-- `RuntimePortSignalState`
+- `PortTelemetry` / `ResponseDto`
 - `RuntimeRunnerEvent`
 - `RuntimeWireType`
 - `RuntimeSeedPortValue`

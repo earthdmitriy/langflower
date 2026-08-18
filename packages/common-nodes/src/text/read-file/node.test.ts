@@ -76,7 +76,7 @@ describe('common-read-file', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'error' &&
+						'error' in event[3] &&
 						event[1] === 'read-1',
 				),
 			),
@@ -84,6 +84,6 @@ describe('common-read-file', () => {
 
 		runtime.runner.start();
 		const errorEvent = await errorPromise;
-		expect(String(errorEvent[4])).toMatch(/non-empty path/);
+		expect(String(errorEvent[3].error)).toMatch(/non-empty path/);
 	});
 });

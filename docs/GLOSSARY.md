@@ -551,7 +551,8 @@ See [HOW_TO_WRITE_REACTIVE_NODES](HOW_TO_WRITE_REACTIVE_NODES.md),
 #### ToolHandle
 
 Wire payload that registers a callable tool into an agent’s inventory.
-Optional hub: `common-tool-collection` (ADR-035).
+Optional hub: `common-tool-collection` (ADR-035). Canvas Sub-Agent nodes
+(`common-sub-agent`) close the caller feed visit when they first emit.
 
 See [NODES](NODES.md), package `@langflower/node-sdk`.
 

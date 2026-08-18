@@ -45,7 +45,7 @@ describe('split workflow (events$)', () => {
 		const branchA = await waitForOutput(runtime, 'd1', 'value', runId);
 		const branchB = await waitForOutput(runtime, 'd2', 'value', runId);
 
-		expect(branchA[4]).toBe('ping');
-		expect(branchB[4]).toBe('ping');
+		expect(branchA[3].value).toBe('ping');
+		expect(branchB[3].value).toBe('ping');
 	});
 });

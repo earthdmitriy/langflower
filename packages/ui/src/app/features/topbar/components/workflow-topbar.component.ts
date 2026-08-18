@@ -14,8 +14,10 @@ import { merge, scan, startWith } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
+import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import {
 	initialWorkflowTopbarState,
+	workflowChangeControlTip,
 	workflowTopbarWithCurrentSnapshot,
 	workflowTopbarWithCurrentStatus,
 	workflowTopbarWithList,
@@ -64,16 +66,13 @@ import {
 				<lf-hover-tip
 					align="center"
 					side="bottom"
-					[tip]="
-						activeWorkflowName() === null
-							? 'Load or create a workflow first'
-							: 'Rename workflow'
-					"
+					[class.cursor-not-allowed]="!canRename()"
+					[tip]="renameTip()"
 				>
 					<button
 						type="button"
-						class="truncate rounded-md px-2 py-1 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-100 dark:hover:bg-zinc-800"
-						[disabled]="activeWorkflowName() === null"
+						class="truncate rounded-md px-2 py-1 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-100 dark:hover:bg-zinc-800"
+						[disabled]="!canRename()"
 						(click)="startRename()"
 					>
 						{{ activeWorkflowName() ?? 'No workflow loaded' }}
@@ -105,15 +104,12 @@ import {
 			<lf-hover-tip
 				align="center"
 				side="bottom"
-				[tip]="
-					canDelete()
-						? 'Delete this workflow from disk'
-						: 'No workflow loaded'
-				"
+				[class.cursor-not-allowed]="!canDelete()"
+				[tip]="deleteTip()"
 			>
 				<button
 					type="button"
-					class="rounded-md border border-zinc-200 px-3 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 dark:border-zinc-700 dark:text-rose-300 dark:hover:bg-rose-950/30"
+					class="rounded-md border border-zinc-200 px-3 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-rose-300 dark:hover:bg-rose-950/30"
 					[disabled]="!canDelete()"
 					(click)="requestDelete()"
 				>
@@ -127,14 +123,23 @@ import {
 					role="listbox"
 					aria-label="Workflows"
 				>
-					<button
-						type="button"
-						class="flex w-full items-center px-3 py-2 text-left text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
-						role="option"
-						(click)="createWorkflow()"
+					<lf-hover-tip
+						[tip]="createTip()"
+						align="start"
+						side="bottom"
+						class="w-full"
+						[class.cursor-not-allowed]="isRunning()"
 					>
-						New
-					</button>
+						<button
+							type="button"
+							class="flex w-full items-center px-3 py-2 text-left text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-100 dark:hover:bg-zinc-800"
+							role="option"
+							[disabled]="isRunning()"
+							(click)="createWorkflow()"
+						>
+							New
+						</button>
+					</lf-hover-tip>
 					@if (workflows().length > 0) {
 						<div
 							class="my-1 border-t border-zinc-200 dark:border-zinc-700"
@@ -155,31 +160,42 @@ import {
 								workflow.workflowId === activeWorkflowId()
 							"
 						>
-							<button
-								type="button"
-								class="flex min-w-0 flex-1 flex-col items-start rounded-md px-2 py-2 text-left text-sm transition hover:bg-zinc-100 dark:hover:bg-zinc-800"
-								(click)="loadWorkflow(workflow.workflowId)"
-							>
-								<span
-									class="truncate font-medium text-zinc-900 dark:text-zinc-100"
-								>
-									{{ workflow.name }}
-								</span>
-								<span
-									class="truncate text-xs text-zinc-500 dark:text-zinc-400"
-								>
-									{{ workflow.workflowId }}
-								</span>
-							</button>
 							<lf-hover-tip
-								tip="Copy this workflow"
-								align="center"
+								[tip]="loadTip()"
+								align="start"
 								side="bottom"
+								class="min-w-0 flex-1"
+								[class.cursor-not-allowed]="isRunning()"
 							>
 								<button
 									type="button"
-									class="shrink-0 self-center rounded-md border border-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-700"
+									class="flex min-w-0 w-full flex-col items-start rounded-md px-2 py-2 text-left text-sm transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-zinc-800"
+									[disabled]="isRunning()"
+									(click)="loadWorkflow(workflow.workflowId)"
+								>
+									<span
+										class="truncate font-medium text-zinc-900 dark:text-zinc-100"
+									>
+										{{ workflow.name }}
+									</span>
+									<span
+										class="truncate text-xs text-zinc-500 dark:text-zinc-400"
+									>
+										{{ workflow.workflowId }}
+									</span>
+								</button>
+							</lf-hover-tip>
+							<lf-hover-tip
+								[tip]="copyTip()"
+								align="center"
+								side="bottom"
+								[class.cursor-not-allowed]="isRunning()"
+							>
+								<button
+									type="button"
+									class="shrink-0 self-center rounded-md border border-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-700"
 									aria-label="Copy workflow"
+									[disabled]="isRunning()"
 									(click)="
 										copyWorkflow(
 											workflow.workflowId,
@@ -268,6 +284,7 @@ import {
 })
 export class WorkflowTopbarComponent {
 	private readonly bridge = inject(LangflowerBridgeService);
+	private readonly execution = inject(WorkflowExecutionService);
 	private readonly destroyRef = inject(DestroyRef);
 	private readonly renameInput =
 		viewChild<ElementRef<HTMLInputElement>>('renameInput');
@@ -342,13 +359,42 @@ export class WorkflowTopbarComponent {
 	readonly isDirty = computed(
 		() => this.topbarState().currentStatus === 'dirty',
 	);
+	readonly isRunning = this.execution.isRunning;
 	readonly canSave = computed(
 		() =>
 			this.topbarState().activeWorkflow !== null &&
 			this.topbarState().currentStatus === 'dirty',
 	);
+	readonly canRename = computed(
+		() => this.activeWorkflowName() !== null && !this.isRunning(),
+	);
 	readonly canDelete = computed(
-		() => this.topbarState().activeWorkflow !== null,
+		() => this.topbarState().activeWorkflow !== null && !this.isRunning(),
+	);
+	readonly renameTip = computed(() =>
+		workflowChangeControlTip(
+			this.isRunning(),
+			this.activeWorkflowName() === null
+				? 'Load or create a workflow first'
+				: 'Rename workflow',
+		),
+	);
+	readonly deleteTip = computed(() =>
+		workflowChangeControlTip(
+			this.isRunning(),
+			this.topbarState().activeWorkflow === null
+				? 'No workflow loaded'
+				: 'Delete this workflow from disk',
+		),
+	);
+	readonly copyTip = computed(() =>
+		workflowChangeControlTip(this.isRunning(), 'Copy this workflow'),
+	);
+	readonly createTip = computed(() =>
+		workflowChangeControlTip(this.isRunning(), 'Create a new workflow'),
+	);
+	readonly loadTip = computed(() =>
+		workflowChangeControlTip(this.isRunning(), 'Load this workflow'),
 	);
 
 	readonly saveTip = computed(() => {
@@ -367,11 +413,17 @@ export class WorkflowTopbarComponent {
 	}
 
 	loadWorkflow(workflowId: string): void {
+		if (this.isRunning()) {
+			return;
+		}
 		this.bridge.raw['workflow.load.requested'].next({ workflowId });
 		this.isDropdownOpen.set(false);
 	}
 
 	createWorkflow(): void {
+		if (this.isRunning()) {
+			return;
+		}
 		this.bridge.raw['workflow.create.requested'].next({});
 		this.isDropdownOpen.set(false);
 		this.showDeleteConfirm.set(false);
@@ -379,6 +431,9 @@ export class WorkflowTopbarComponent {
 
 	copyWorkflow(workflowId: string, event: Event): void {
 		event.stopPropagation();
+		if (this.isRunning()) {
+			return;
+		}
 		this.bridge.raw['workflow.copy.requested'].next({ workflowId });
 		this.isDropdownOpen.set(false);
 		this.showDeleteConfirm.set(false);
@@ -390,6 +445,9 @@ export class WorkflowTopbarComponent {
 	}
 
 	startRename(): void {
+		if (!this.canRename()) {
+			return;
+		}
 		const name = this.activeWorkflowName();
 
 		if (name === null) {
@@ -420,6 +478,10 @@ export class WorkflowTopbarComponent {
 		const currentName = this.activeWorkflowName();
 
 		this.isRenaming.set(false);
+
+		if (this.isRunning()) {
+			return;
+		}
 
 		if (
 			nextName.length === 0 ||
@@ -456,6 +518,10 @@ export class WorkflowTopbarComponent {
 	}
 
 	confirmDelete(): void {
+		if (this.isRunning()) {
+			this.showDeleteConfirm.set(false);
+			return;
+		}
 		const workflowId = this.activeWorkflowId();
 
 		if (workflowId === null) {

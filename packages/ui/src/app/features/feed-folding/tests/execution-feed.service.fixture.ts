@@ -32,22 +32,31 @@ const buildPortTelemetry = (
 	portId: string,
 	value: unknown,
 	options: {
-		readonly state?: 'pending' | 'value' | 'error';
+		readonly state?: 'pending' | 'value' | 'error' | 'inactive';
 		readonly portIdx?: number;
 		readonly edgeIds?: readonly EdgeId[];
 		readonly feed?: RuntimeFeedPortMeta;
 	} = {},
-): PortTelemetry =>
-	[
+): PortTelemetry => {
+	const state = options.state ?? 'value';
+	const response =
+		state === 'pending'
+			? { pending: true as const }
+			: state === 'inactive'
+				? { inactive: true as const }
+				: state === 'error'
+					? { error: value }
+					: { value };
+	return [
 		portDir,
 		nodeId(node),
 		portId,
-		options.state ?? 'value',
-		value,
+		response,
 		options.portIdx ?? 0,
 		options.edgeIds ?? [],
 		options.feed ?? null,
-	] as PortTelemetry;
+	];
+};
 
 export const outputEvent = (
 	node: string,
@@ -159,9 +168,10 @@ export const paletteDefinition = (
 
 const workflowSnapshot = (
 	nodes: Readonly<Record<string, string>>,
+	workflowId = 'wf-1',
 ): WorkflowCurrentSnapshotPayload => ({
 	activeWorkflow: {
-		workflowId: 'wf-1',
+		workflowId,
 		metadata: {
 			name: 'Fixture',
 			createdAt: '2026-01-01T00:00:00.000Z',
@@ -200,7 +210,10 @@ export type ExecutionFeedHarness = {
 	readonly seedCatalog: (
 		nodes: Readonly<Record<string, string>>,
 		definitions: readonly PaletteNodeDefinition[],
-		options?: { readonly startRun?: boolean | RunId },
+		options?: {
+			readonly startRun?: boolean | RunId;
+			readonly workflowId?: string;
+		},
 	) => void;
 };
 
@@ -260,7 +273,9 @@ export const createExecutionFeedHarness = (): ExecutionFeedHarness => {
 		seedCatalog: (workflowNodes, definitions, options) => {
 			raw.customPaletteSnapshot$.next(emptyCustomPaletteSnapshot);
 			raw.paletteSnapshot$.next({ nodes: definitions });
-			raw.workflowSnapshot$.next(workflowSnapshot(workflowNodes));
+			raw.workflowSnapshot$.next(
+				workflowSnapshot(workflowNodes, options?.workflowId),
+			);
 			if (options?.startRun !== false) {
 				const id =
 					typeof options?.startRun === 'string'

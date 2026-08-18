@@ -26,6 +26,17 @@ const agent = paletteDefinition('agent', [
 	{ portId: 'result', direction: 'out', role: 'result' },
 ]);
 
+const subAgent = paletteDefinition('common-sub-agent', [
+	{ portId: 'draft', direction: 'out', role: 'draft', streaming: true },
+	{
+		portId: 'reasoning',
+		direction: 'out',
+		role: 'reasoning',
+		streaming: true,
+	},
+	{ portId: 'tool', direction: 'out', role: 'tool', streaming: true },
+]);
+
 describe('ExecutionFeedService visit reuse', () => {
 	it('appends consecutive non-streaming frames while the visit remains last', async () => {
 		const harness = createExecutionFeedHarness();
@@ -199,5 +210,63 @@ describe('ExecutionFeedService visit reuse', () => {
 		expect(visits[0]!.visitId).not.toBe(visits[2]!.visitId);
 		expect((await readItems(visits[0]!, 'text'))[0]?.value).toBe('c1');
 		expect((await readItems(visits[2]!, 'text'))[0]?.value).toBe('c2');
+	});
+
+	it('closes the caller visit when a Sub-Agent node emits', async () => {
+		const harness = createExecutionFeedHarness();
+		harness.seedCatalog({ parent: 'agent', writer: 'common-sub-agent' }, [
+			agent,
+			subAgent,
+		]);
+
+		for (const event of [
+			outputEvent('parent', 'draft', 'plan'),
+			outputEvent(
+				'parent',
+				'tool',
+				'→ Researcher_subagent({"task":"hi"})',
+				{ feed: { role: 'tool', streaming: true } },
+			),
+			outputEvent('writer', 'draft', 'writing'),
+			outputEvent('parent', 'tool', '← Researcher_subagent: hello'),
+			outputEvent('parent', 'draft', 'thanks'),
+		]) {
+			harness.raw.runnerPort$.next(event);
+		}
+
+		const visits = harness.latestNodes();
+		expect(visits.map((node) => [node.nodeId, node.isClosed])).toEqual([
+			['parent', true],
+			['writer', false],
+			['parent', false],
+		]);
+		expect(visits[0]!.visitId).not.toBe(visits[2]!.visitId);
+		expect(
+			(await readItems(visits[0]!, 'tool')).map((item) => item.value),
+		).toEqual(['→ Researcher_subagent({"task":"hi"})']);
+		expect(
+			(await readItems(visits[2]!, 'draft')).map((item) => item.value),
+		).toEqual(['thanks']);
+	});
+
+	it('keeps ordinary streaming tool rounds on one visit', async () => {
+		const harness = createExecutionFeedHarness();
+		harness.seedCatalog({ parent: 'agent' }, [agent]);
+
+		for (const event of [
+			outputEvent('parent', 'draft', 'plan'),
+			outputEvent('parent', 'tool', '→ echo({})'),
+			outputEvent('parent', 'tool', '← echo: ok'),
+			outputEvent('parent', 'draft', 'thanks'),
+		]) {
+			harness.raw.runnerPort$.next(event);
+		}
+
+		const visits = harness.latestNodes();
+		expect(visits).toHaveLength(1);
+		expect(visits[0]!.isClosed).toBe(false);
+		expect(
+			(await readPorts(visits[0]!)).map((port) => port.portId),
+		).toEqual(['draft', 'tool', 'draft']);
 	});
 });

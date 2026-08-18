@@ -58,7 +58,7 @@ describe('createHitlTestNode', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'ask' &&
 						event[2] === 'reply',
 				),
@@ -66,10 +66,11 @@ describe('createHitlTestNode', () => {
 		);
 
 		runtime.runner.start();
+		await Promise.resolve();
 		hitl.submitReply('yes');
 
 		const event = await replyPromise;
-		expect(event[0] === 'out' && event[4]).toBe('yes');
+		expect(event[0] === 'out' && event[3].value).toBe('yes');
 		expect(edgeIdsFromPortEvent(event)).toEqual([]);
 	});
 });

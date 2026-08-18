@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import type { RunId } from '@langflower/runtime';
-import { isPortTelemetry } from '@langflower/runtime';
+import { isPortValueTelemetry } from '@langflower/runtime';
 import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
 import { merge } from 'rxjs';
 import { distinctUntilChanged, filter, map, scan, skip } from 'rxjs/operators';
@@ -51,10 +51,15 @@ export class NodePreviewValuesService {
 			),
 			this.bridge.raw['runner.port'].pipe(
 				filter(
-					(event) =>
-						isPortTelemetry(event) &&
+					(
+						event,
+					): event is typeof event & {
+						readonly 0: 'in';
+						readonly 2: string;
+						readonly 3: { readonly value: unknown };
+					} =>
+						isPortValueTelemetry(event) &&
 						event[0] === 'in' &&
-						event[3] === 'value' &&
 						typeof event[2] === 'string',
 				),
 				map((event): PreviewAction => ({
@@ -62,7 +67,7 @@ export class NodePreviewValuesService {
 					runId: '' as RunId,
 					nodeId: String(event[1]),
 					portId: event[2],
-					value: event[4],
+					value: event[3].value,
 				})),
 			),
 			merge(
@@ -137,14 +142,13 @@ const replayPreviewValues = (
 	}
 	for (const event of snapshot.events) {
 		if (
-			!isPortTelemetry(event) ||
+			!isPortValueTelemetry(event) ||
 			event[0] !== 'in' ||
-			event[3] !== 'value' ||
 			typeof event[2] === 'symbol'
 		) {
 			continue;
 		}
-		map.set(previewKey(String(event[1]), event[2]), event[4]);
+		map.set(previewKey(String(event[1]), event[2]), event[3].value);
 	}
 	return map;
 };

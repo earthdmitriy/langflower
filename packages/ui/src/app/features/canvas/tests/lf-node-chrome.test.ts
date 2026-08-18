@@ -112,8 +112,7 @@ function outputPending(_runId: string, nodeId: string, edgeIds: string[] = []) {
 		'out',
 		nodeId,
 		'response',
-		'pending',
-		undefined,
+		{ pending: true },
 		0,
 		edgeIds,
 		null,
@@ -135,7 +134,7 @@ function outputValue(
 		options.streaming === true
 			? ({ role: 'draft' as const, streaming: true as const } as const)
 			: null;
-	return ['out', nodeId, portId, 'value', 'x', 0, edgeIds, feed] as const;
+	return ['out', nodeId, portId, { value: 'x' }, 0, edgeIds, feed] as const;
 }
 
 function outputError(_runId: string, nodeId: string, edgeIds: string[] = []) {
@@ -143,8 +142,7 @@ function outputError(_runId: string, nodeId: string, edgeIds: string[] = []) {
 		'out',
 		nodeId,
 		'response',
-		'error',
-		undefined,
+		{ error: undefined },
 		0,
 		edgeIds,
 		null,
@@ -222,6 +220,9 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 		expect(chromeEl().classList.contains('lf-node-chrome--pending')).toBe(
 			true,
 		);
+		expect(chromeEl().classList.contains('lf-node-chrome--pulse')).toBe(
+			false,
+		);
 	});
 
 	it('is pending on input-received alone', () => {
@@ -229,8 +230,7 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 			'in',
 			'node-a',
 			'prompt',
-			'value',
-			'hi',
+			{ value: 'hi' },
 			0,
 			[],
 			null,
@@ -239,6 +239,9 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 
 		expect(chromeEl().classList.contains('lf-node-chrome--pending')).toBe(
 			true,
+		);
+		expect(chromeEl().classList.contains('lf-node-chrome--pulse')).toBe(
+			false,
 		);
 	});
 
@@ -370,5 +373,26 @@ describe('LfNodeComponent execution chrome (signal-driven DOM)', () => {
 
 		expect(spy).not.toHaveBeenCalled();
 		expect(node.editingLabel()).toBe(false);
+	});
+
+	it('does not start label edit while a run is active', () => {
+		const node = fixture.componentInstance;
+		raw['runner.started'].next('run-1');
+		fixture.detectChanges();
+
+		node.startLabelEdit();
+		fixture.detectChanges();
+
+		expect(node.editingLabel()).toBe(false);
+	});
+
+	it('does not emit inline input updates while a run is active', () => {
+		const spy = vi.spyOn(raw['editor.updateNode.requested'], 'next');
+		raw['runner.started'].next('run-1');
+		fixture.detectChanges();
+
+		fixture.componentInstance.onPortInlineChange('value', 'next');
+
+		expect(spy).not.toHaveBeenCalled();
 	});
 });

@@ -3,7 +3,7 @@ import type {
 	RunId,
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
-import { isPortTelemetry } from '@langflower/runtime';
+import { isPortTelemetry, isPortValueTelemetry } from '@langflower/runtime';
 import type {
 	ExecutionFeedSnapshotPayload,
 	PaletteConfigPayload,
@@ -36,13 +36,13 @@ import {
 	nonHitlInputReceived,
 	steerControlHitlTransition,
 } from './hitl-projection';
+import type { OutputPortTelemetry } from './execution-chrome-fold';
 
 type InputPortTelemetry = PortTelemetry & {
 	readonly 0: 'in';
 	readonly 2: string;
-	readonly 3: 'value';
+	readonly 3: { readonly value: unknown };
 };
-import type { OutputPortTelemetry } from './execution-chrome-fold';
 
 type HitlFoldEvent =
 	| {
@@ -113,8 +113,8 @@ const computeHitlFromEvents = (
 	const triggered = new Set<string>();
 	for (const event of events) {
 		if (isPortTelemetry(event) && event[0] === 'out') {
-			const [, nodeId, portId, state, value] = event;
-			if (typeof portId !== 'string' || state !== 'value') {
+			const [, nodeId, portId, response] = event;
+			if (typeof portId !== 'string' || !('value' in response)) {
 				continue;
 			}
 			const role = resolveOutputFeedRole(
@@ -125,21 +125,21 @@ const computeHitlFromEvents = (
 			);
 			if (
 				(role === 'recovery' || portId === RECOVERY_PORT_ID) &&
-				isLlmRecoverySuspended(value)
+				isLlmRecoverySuspended(response.value)
 			) {
 				triggered.add(String(nodeId));
 			}
 			continue;
 		}
 		if (
-			!isPortTelemetry(event) ||
+			!isPortValueTelemetry(event) ||
 			event[0] !== 'in' ||
-			typeof event[2] !== 'string' ||
-			event[3] !== 'value'
+			typeof event[2] !== 'string'
 		) {
 			continue;
 		}
-		const [, nodeId, portId, , value] = event;
+		const [, nodeId, portId] = event;
+		const value = event[3].value;
 		const def = definitionForNode(paletteByType, nodeTypeById, nodeId);
 		if (def === undefined) {
 			continue;
@@ -293,7 +293,7 @@ export const createHitlTriggeredNodes$ = (deps: {
 					type: 'input',
 					nodeId: String(event[1]),
 					portId: event[2],
-					value: event[4],
+					value: event[3].value,
 					palette,
 					nodeTypes,
 				})),
@@ -308,7 +308,7 @@ export const createHitlTriggeredNodes$ = (deps: {
 					type: 'output',
 					nodeId: String(event[1]),
 					portId: event[2],
-					value: event[4],
+					value: 'value' in event[3] ? event[3].value : undefined,
 					feedRole: resolveOutputFeedRole(
 						palette,
 						nodeTypes,

@@ -32,6 +32,11 @@
 	flex-direction: column;
 	padding-left: var(--lf-node-chrome-padding-x);
 	padding-right: var(--lf-node-chrome-padding-x);
+	border-color: rgb(212 212 216);
+}
+
+:host-context([data-theme='dark']) .lf-node-chrome {
+	border-color: rgb(63 63 70);
 }
 
 .lf-node-content {

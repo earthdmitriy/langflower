@@ -16,6 +16,7 @@ import type {
 import { Subject } from 'rxjs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
+import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import { FlowCanvasComponent } from '../components/flow-canvas.component';
 import { NgDiagramModelService } from 'ng-diagram';
 
@@ -245,6 +246,7 @@ describe('FlowCanvasComponent', () => {
 					provide: LangflowerBridgeService,
 					useValue: { raw, cached: raw },
 				},
+				WorkflowExecutionService,
 			],
 		}).compileComponents();
 
@@ -443,6 +445,24 @@ describe('FlowCanvasComponent', () => {
 
 		const dt = new DataTransfer();
 		dt.setData('text/plain', 'n1');
+
+		canvas.hostHandlers.handleDrop({
+			dataTransfer: dt,
+			preventDefault: vi.fn(),
+			stopPropagation: vi.fn(),
+			clientX: 100,
+			clientY: 200,
+		} as unknown as DragEvent);
+
+		expect(spy).not.toHaveBeenCalled();
+	});
+
+	it('does not emit addNode.requested on handleDrop while running', () => {
+		const spy = vi.spyOn(raw['editor.addNode.requested'], 'next');
+		raw['runner.started'].next('run-1');
+
+		const dt = new DataTransfer();
+		dt.setData(DRAG_MIME, 'common-constant');
 
 		canvas.hostHandlers.handleDrop({
 			dataTransfer: dt,

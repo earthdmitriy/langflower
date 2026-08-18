@@ -42,6 +42,65 @@ describe('ExecutionFeedService unmarked inputs', () => {
 		]);
 	});
 
+	it('drops pending null output frames and does not stringify them into the visit', async () => {
+		const agent = paletteDefinition('agent', [
+			{
+				portId: 'reasoning',
+				direction: 'out',
+				role: 'reasoning',
+				streaming: true,
+			},
+			{
+				portId: 'draft',
+				direction: 'out',
+				role: 'draft',
+				streaming: true,
+			},
+			{
+				portId: 'tool',
+				direction: 'out',
+				role: 'tool',
+				streaming: true,
+			},
+		]);
+		const harness = createExecutionFeedHarness();
+		harness.seedCatalog({ agent: 'agent' }, [agent]);
+		harness.raw.runnerPort$.next(
+			outputEvent('agent', 'reasoning', 'context', {
+				feed: { role: 'reasoning', streaming: true },
+			}),
+		);
+		harness.raw.runnerPort$.next(
+			outputEvent('agent', 'reasoning', null, {
+				state: 'pending',
+				feed: { role: 'reasoning', streaming: true },
+			}),
+		);
+		harness.raw.runnerPort$.next(
+			outputEvent('agent', 'tool', null, {
+				state: 'pending',
+				feed: { role: 'tool', streaming: true },
+			}),
+		);
+		harness.raw.runnerPort$.next(
+			outputEvent('agent', 'draft', null, {
+				state: 'pending',
+				feed: { role: 'draft', streaming: true },
+			}),
+		);
+		harness.raw.runnerPort$.next(
+			outputEvent('agent', 'reasoning', ' more', {
+				feed: { role: 'reasoning', streaming: true },
+			}),
+		);
+
+		const visit = harness.latestNodes()[0]!;
+		expect(await readPortIds(visit)).toEqual(['reasoning']);
+		expect(
+			(await readItems(visit, 'reasoning')).map((item) => item.value),
+		).toEqual(['context more']);
+	});
+
 	it('drops pending undefined input frames and keeps the real value', async () => {
 		const agent = paletteDefinition('agent', [
 			{ portId: 'prompt', direction: 'in' },

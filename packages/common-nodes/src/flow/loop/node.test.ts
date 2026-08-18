@@ -119,11 +119,11 @@ describe('common-loop', () => {
 		const itemSub = runtime.runner.events$.subscribe((event) => {
 			if (
 				event[0] === 'out' &&
-				event[3] === 'value' &&
+				'value' in event[3] &&
 				event[1] === 'loop' &&
 				event[2] === 'item'
 			) {
-				itemsSeen.push(String(event[4]));
+				itemsSeen.push(String(event[3].value));
 			}
 		});
 
@@ -132,11 +132,11 @@ describe('common-loop', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'preview' &&
 						event[2] === 'text',
 				),
-				map((event) => String(event[4])),
+				map((event) => String(event[3].value)),
 			),
 		);
 
@@ -198,11 +198,11 @@ describe('common-loop', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'preview' &&
 						event[2] === 'text',
 				),
-				map((event) => String(event[4])),
+				map((event) => String(event[3].value)),
 			),
 		);
 

@@ -44,7 +44,7 @@ describe('linear workflow (events$)', () => {
 		const runId = runtime.runner.start();
 
 		const terminal = await waitForOutput(runtime, 'd2', 'value', runId);
-		expect(terminal[4]).toBe('hello');
+		expect(terminal[3].value).toBe('hello');
 		expect(Date.now() - startedAt).toBeGreaterThanOrEqual(8);
 	});
 });

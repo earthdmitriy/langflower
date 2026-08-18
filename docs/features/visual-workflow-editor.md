@@ -52,7 +52,9 @@ The editor screen has four areas:
 **Placing and connecting nodes:**
 
 - Dragging a node from the palette onto the canvas creates a new instance
-  with a generated id and default name.
+  with a generated id and default name. While a run is active, palette rows
+  are not draggable (`cursor-not-allowed`) and canvas drop does not add a
+  node.
 - Dragging from an output port to an input port creates a connection, if the
   two port types are compatible. Incompatible connections are refused with
   no edge drawn.
@@ -75,6 +77,8 @@ The editor screen has four areas:
   value.
 - That inline control is greyed out (read-only) the moment a wire is
   connected to the port, since the wire's value is what actually gets used.
+  Unwired inline fields and the node **label** are also locked while a run
+  is active (`cursor-not-allowed` on disabled controls).
 - Some fields (e.g. structured JSON, long text, non-primitive types) only
   ever appear in the right-hand parameter panel, not inline on the node.
 - While a workflow is running, ports with a "preview" style inline field show

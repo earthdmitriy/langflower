@@ -93,14 +93,14 @@ describe('common-fake-llm debate loop (soft↔hard smoke)', () => {
 				filter((event) => {
 					if (
 						event[0] !== 'out' ||
-						event[3] !== 'value' ||
+						!('value' in event[3]) ||
 						event[2] !== 'response'
 					) {
 						return false;
 					}
 
 					if (event[1] === 'soft') {
-						softResponses.push(String(event[4]));
+						softResponses.push(String(event[3].value));
 						// Sync interrupt — Soft↔Hard would otherwise keep
 						// turning; tokenDelayMs>0 lets teardown win a tick.
 						runtime.runner.interrupt('cancel');
@@ -108,7 +108,7 @@ describe('common-fake-llm debate loop (soft↔hard smoke)', () => {
 					}
 
 					if (event[1] === 'hard') {
-						hardResponses.push(String(event[4]));
+						hardResponses.push(String(event[3].value));
 					}
 
 					return false;
@@ -179,14 +179,14 @@ describe('common-fake-llm debate loop (soft↔hard smoke)', () => {
 				filter((event) => {
 					if (
 						event[0] !== 'out' ||
-						event[3] !== 'value' ||
+						!('value' in event[3]) ||
 						event[2] !== 'response' ||
 						event[1] !== 'soft'
 					) {
 						return false;
 					}
 
-					softResponses.push(String(event[4]));
+					softResponses.push(String(event[3].value));
 					return softResponses.length >= 2;
 				}),
 			),
@@ -207,7 +207,7 @@ describe('common-fake-llm debate loop (soft↔hard smoke)', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'error' &&
+						'error' in event[3] &&
 						event[1] === 'soft' &&
 						event[2] === 'response',
 				),
@@ -223,7 +223,7 @@ describe('common-fake-llm debate loop (soft↔hard smoke)', () => {
 		expect(softResponses[1]).toContain('feedback');
 		expect(errorEvent[0]).toBe('out');
 		if (errorEvent[0] === 'out') {
-			expect(String(errorEvent[4])).toMatch(/maxFeedbackTurns/);
+			expect(String(errorEvent[3].error)).toMatch(/maxFeedbackTurns/);
 		}
 
 		runtime.runner.dispose();

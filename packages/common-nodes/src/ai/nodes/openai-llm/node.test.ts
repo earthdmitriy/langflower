@@ -102,10 +102,10 @@ describe('common-openai-llm', () => {
 		const sub = runtime.runner.events$.subscribe((event) => {
 			if (
 				event[0] === 'out' &&
-				event[3] === 'value' &&
+				'value' in event[3] &&
 				event[1] === 'llm-1'
 			) {
-				chunks.push({ portId: event[2], value: event[4] });
+				chunks.push({ portId: event[2], value: event[3].value });
 			}
 		});
 
@@ -114,7 +114,7 @@ describe('common-openai-llm', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'preview-1' &&
 						event[2] === 'text',
 				),
@@ -198,7 +198,7 @@ describe('common-openai-llm', () => {
 			.map((chunk) => String(chunk.value))
 			.join('');
 		expect(draftText).toBe('Cherry blossoms fall');
-		expect(previewEvent[0] === 'out' && previewEvent[4]).toBe(
+		expect(previewEvent[0] === 'out' && previewEvent[3].value).toBe(
 			'Cherry blossoms fall',
 		);
 
@@ -244,7 +244,7 @@ describe('common-openai-llm', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'value' &&
+						'value' in event[3] &&
 						event[1] === 'llm-1' &&
 						event[2] === 'response',
 				),
@@ -328,7 +328,7 @@ describe('common-openai-llm', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'error' &&
+						'error' in event[3] &&
 						event[1] === 'llm-1',
 				),
 			),
@@ -361,9 +361,9 @@ describe('common-openai-llm', () => {
 
 		const failed = await failedPromise;
 		expect(failed[0]).toBe('out');
-		if (failed[0] === 'out' && failed[3] === 'error') {
-			expect(String(failed[4])).toMatch(/Provider is required/);
-			expect(String(failed[4])).not.toMatch(/sk-|apiKey/);
+		if (failed[0] === 'out' && 'error' in failed[3]) {
+			expect(String(failed[3].error)).toMatch(/Provider is required/);
+			expect(String(failed[3].error)).not.toMatch(/sk-|apiKey/);
 		}
 
 		runtime.runner.interrupt('cancel');
@@ -467,7 +467,7 @@ describe('common-openai-llm', () => {
 					filter(
 						(event) =>
 							event[0] === 'out' &&
-							event[3] === 'value' &&
+							'value' in event[3] &&
 							event[1] === 'llm-a' &&
 							event[2] === 'response',
 					),
@@ -478,7 +478,7 @@ describe('common-openai-llm', () => {
 					filter(
 						(event) =>
 							event[0] === 'out' &&
-							event[3] === 'value' &&
+							'value' in event[3] &&
 							event[1] === 'llm-b' &&
 							event[2] === 'response',
 					),
@@ -640,7 +640,7 @@ describe('common-openai-llm', () => {
 					filter((event) => {
 						if (
 							event[0] !== 'out' ||
-							event[3] !== 'value' ||
+							!('value' in event[3]) ||
 							event[1] !== 'llm-1' ||
 							event[2] !== 'response'
 						) {
@@ -758,7 +758,7 @@ describe('common-openai-llm', () => {
 					filter((event) => {
 						if (
 							event[0] !== 'out' ||
-							event[3] !== 'value' ||
+							!('value' in event[3]) ||
 							event[1] !== 'llm-1' ||
 							event[2] !== 'response'
 						) {

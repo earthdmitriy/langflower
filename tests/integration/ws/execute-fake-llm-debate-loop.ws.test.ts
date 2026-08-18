@@ -57,7 +57,7 @@ describe('execute fake-llm debate loop (WS bridge)', () => {
 				filter((event: RuntimeRunnerEvent) => {
 					if (
 						event[0] !== 'out' ||
-						event[3] !== 'value' ||
+						!('value' in event[3]) ||
 						event[1] !== 'soft' ||
 						event[2] !== 'response'
 					) {
@@ -73,7 +73,7 @@ describe('execute fake-llm debate loop (WS bridge)', () => {
 
 		await startRunner(client);
 		const soft1 = await softFirst;
-		expect(String(soft1[4])).toContain('Final:');
+		expect(String(soft1[3].value)).toContain('Final:');
 		expect(doneSeen).toBe(false);
 
 		await interruptRunner(client).catch(() => {

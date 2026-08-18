@@ -1227,4 +1227,117 @@ describe('runAgentLoop recovery', () => {
 			text: 'done',
 		});
 	});
+
+	it('leaves ordinary → toolLog streaming unspecified', async () => {
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async () =>
+					(async function* () {
+						yield {
+							kind: 'done' as const,
+							text: '',
+							tool_calls: [
+								{
+									id: 'c1',
+									name: 'echo',
+									arguments: '{}',
+								},
+							],
+						};
+					})(),
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [
+					{
+						toolId: 'echo',
+						name: 'echo',
+						description: 'echo',
+						inputSchema: { type: 'object', properties: {} },
+						invoke: async () => 'ok',
+					},
+				],
+				toolCtx: { projectDir: '/tmp', runId: 'test' },
+				maxIterations: 2,
+			}).pipe(toArray()),
+		);
+
+		const callLog = chunks.find(
+			(chunk) =>
+				chunk.kind === 'toolLog' && chunk.text.startsWith('→ echo'),
+		);
+		expect(callLog).toMatchObject({ kind: 'toolLog' });
+		expect(callLog).not.toHaveProperty('streaming');
+	});
+
+	it('does not apply toolTimeoutMs to Sub-Agent tools', async () => {
+		let round = 0;
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async () => {
+					round += 1;
+					if (round === 1) {
+						return (async function* () {
+							yield {
+								kind: 'done' as const,
+								text: '',
+								tool_calls: [
+									{
+										id: 'c1',
+										name: 'Writer_subagent',
+										arguments: '{"task":"hi"}',
+									},
+								],
+							};
+						})();
+					}
+
+					return (async function* () {
+						yield {
+							kind: 'done' as const,
+							text: 'ok',
+						};
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [
+					{
+						toolId: 'Writer_subagent',
+						name: 'Writer(subagent)',
+						description: 'writer',
+						inputSchema: { type: 'object', properties: {} },
+						invoke: async () => {
+							await new Promise((resolve) =>
+								setTimeout(resolve, 80),
+							);
+							return 'done';
+						},
+					},
+				],
+				toolCtx: { projectDir: '/tmp', runId: 'test' },
+				maxIterations: 2,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					toolTimeoutMs: 20,
+				},
+			}).pipe(toArray()),
+		);
+
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'toolLog' &&
+					chunk.text.includes('timed out'),
+			),
+		).toBe(false);
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'toolLog' &&
+					chunk.text.includes('← Writer_subagent: done'),
+			),
+		).toBe(true);
+	});
 });

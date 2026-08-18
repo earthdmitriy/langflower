@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	initialWorkflowTopbarState,
+	workflowChangeControlTip,
 	workflowTopbarWithCurrentSnapshot,
 	workflowTopbarWithCurrentStatus,
 } from '../types/workflow-topbar-projection';
@@ -58,5 +59,16 @@ describe('workflowTopbarWithCurrentStatus', () => {
 
 		expect(dirty.activeWorkflow?.workflowId).toBe('demo');
 		expect(dirty.currentStatus).toBe('dirty');
+	});
+});
+
+describe('workflowChangeControlTip', () => {
+	it('replaces the idle tip while a run is active', () => {
+		expect(workflowChangeControlTip(false, 'Rename workflow')).toBe(
+			'Rename workflow',
+		);
+		expect(workflowChangeControlTip(true, 'Rename workflow')).toBe(
+			'Stop the run to change workflows',
+		);
 	});
 });

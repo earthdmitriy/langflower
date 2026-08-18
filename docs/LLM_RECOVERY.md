@@ -43,8 +43,11 @@ detector **once** in `llm-loop`. A per-node copy is a bug.
 | HTTP 429 / 5xx / network                                                                | `classifyLlmFailure`                                                       | Short `retry.scheduled` budget first (full `roundCheckpoint` replay, no kick). After that budget, **join the autokick wait** (backoff `max` `Retry-After`, full store replay, **no** kick user turn, **no** penalty bump). Autokick off / finite cap exhausted → `'suspended'` + Steer.                                                                                                                             | —            |
 
 Authentication and configuration failures stay on the **error** lane (not
-recovery). Output truncation, compaction protocol failures, and tool /
-Sub-Agent timeouts stay in [LLM_NODES.md § Failure recovery](LLM_NODES.md#failure-recovery).
+recovery). Output truncation, compaction protocol failures, and optional
+tool / Sub-Agent wall-clock timeouts stay in
+[LLM_NODES.md § Failure recovery](LLM_NODES.md#failure-recovery). Stuck
+Sub-Agents use **this** idle / dead-loop / autokick path (no default invoke
+timeout).
 
 ## How recovery works today
 
@@ -339,10 +342,12 @@ Authoritative types: `LlmRecoveryPolicy` in
 `packages/common-nodes/src/ai/features/llm-loop/llm-loop-types.ts`. Inspector:
 `llmRecoveryUiSchema`.
 
-Shipped today: `streamIdleTimeoutMs`, `maxTransientRetries`, tool /
-Sub-Agent timeouts, result caps, plus the autokick / dead-loop Inspector
-fields below. HTTP 429 / 5xx / network join the autokick wait after the
-transient budget (wait-only: no kick, no penalty).
+Shipped today: `streamIdleTimeoutMs`, `maxTransientRetries`,
+`toolTimeoutMs` (ordinary tools only; does **not** apply to `*_subagent` /
+`(subagent)` calls), `subagentTimeoutMs` (`0` = unlimited, **default**),
+result caps, plus the autokick / dead-loop Inspector fields below. HTTP 429 /
+5xx / network join the autokick wait after the transient budget (wait-only:
+no kick, no penalty).
 
 Shipped (epic 38 Inspector):
 

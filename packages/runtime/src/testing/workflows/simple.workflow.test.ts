@@ -66,7 +66,7 @@ describe('simple workflow (events$)', () => {
 		const runId = runtime.runner.start();
 
 		const prompt = await waitForOutput(runtime, 'ask-1', 'prompt', runId);
-		expect(prompt[4]).toEqual({
+		expect(prompt[3].value).toEqual({
 			question: `Agent: ${PROMPT}`,
 			awaiting: true,
 		});
@@ -88,6 +88,6 @@ describe('simple workflow (events$)', () => {
 			'response',
 			runId,
 		);
-		expect(response[4]).toBe('Agent: Focus on tests');
+		expect(response[3].value).toBe('Agent: Focus on tests');
 	});
 });

@@ -9,6 +9,8 @@ import { createConstantTestNode } from '../nodes/constant-node.js';
 import {
 	type RuntimeHarness,
 	createRuntimeHarness,
+	dtoHas,
+	dtoIndex,
 	runAndCollectEvents,
 	wireEdge,
 } from './workflow-events.js';
@@ -109,9 +111,11 @@ describe('port signal states (pending / error via pipe(tap) typeguards)', () => 
 			)
 			.map((event) => event[3]);
 
-		expect(states).toContain('pending');
-		expect(states).toContain('value');
-		expect(states.indexOf('pending')).toBeLessThan(states.indexOf('value'));
+		expect(dtoHas(states, 'pending')).toBe(true);
+		expect(dtoHas(states, 'value')).toBe(true);
+		expect(dtoIndex(states, 'pending')).toBeLessThan(
+			dtoIndex(states, 'value'),
+		);
 	});
 
 	it('emits output-emitted error when the source loader throws', async () => {
@@ -133,11 +137,11 @@ describe('port signal states (pending / error via pipe(tap) typeguards)', () => 
 				event[0] === 'out' &&
 				event[1] === 'e1' &&
 				event[2] === 'value' &&
-				event[3] === 'error',
+				'error' in event[3],
 		);
 
 		expect(errorEvent).toBeDefined();
-		expect(errorEvent[4]).toBe('boom');
+		expect(errorEvent[3].error).toBe('boom');
 	});
 
 	it('does not forward output error state to downstream nodes', async () => {
@@ -158,7 +162,7 @@ describe('port signal states (pending / error via pipe(tap) typeguards)', () => 
 
 		const sourceError = events.find(
 			(event) =>
-				event[0] === 'out' && event[1] === 'e1' && event[3] === 'error',
+				event[0] === 'out' && event[1] === 'e1' && 'error' in event[3],
 		);
 		expect(sourceError).toBeDefined();
 
@@ -166,7 +170,7 @@ describe('port signal states (pending / error via pipe(tap) typeguards)', () => 
 			(event) =>
 				(event[0] === 'out' || event[0] === 'in') &&
 				event[1] === 'sink' &&
-				event[3] === 'error',
+				'error' in event[3],
 		);
 		expect(sinkErrors).toEqual([]);
 	});

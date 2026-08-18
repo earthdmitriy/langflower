@@ -61,6 +61,12 @@ rather than edit the original in place.
 editing inline values) marks the current workflow dirty. The editor tracks
 this so a user always knows whether their latest edits are persisted.
 
+**While a run is active** (`runnerStatus === 'running'`, including HITL /
+pending): topbar **rename**, **Delete**, catalog **load**, **New**, and
+**Copy** are disabled (`cursor-not-allowed`; tip “Stop the run to change
+workflows”). **Save** stays available. The server already rejects those
+catalog mutations while the graph is locked.
+
 **Multiple tabs / windows:** if the same project is open in two browser tabs,
 both stay in sync. Saving, renaming, loading, or deleting in one tab updates
 the catalog and active-document state visible in the other as a full

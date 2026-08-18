@@ -252,7 +252,7 @@ describe('Runtime (v2)', () => {
 
 		const output = await outputPromise;
 
-		expect(output[4]).toBe('pushed');
+		expect(output[3].value).toBe('pushed');
 		expect(edgeIdsFromPortEvent(output)).toEqual([]);
 		expect(await firstValueFrom(runtime.runner.status$)).toBe('running');
 	});
@@ -274,7 +274,7 @@ describe('Runtime (v2)', () => {
 			throw new Error('Expected pushIntoInput to start a run');
 		}
 
-		expect((await firstOutputPromise)[4]).toBe('first');
+		expect((await firstOutputPromise)[3].value).toBe('first');
 
 		const secondOutputPromise = waitForOutput(runtime, 'B', 'value', runId);
 		const activeRunId = runtime.runner.pushIntoInput({
@@ -284,7 +284,7 @@ describe('Runtime (v2)', () => {
 		});
 
 		expect(activeRunId).toBe(runId);
-		expect((await secondOutputPromise)[4]).toBe('second');
+		expect((await secondOutputPromise)[3].value).toBe('second');
 	});
 
 	it('pushIntoInput starts a new scoped run after interrupt', async () => {
@@ -322,7 +322,7 @@ describe('Runtime (v2)', () => {
 		const output = await secondOutputPromise;
 
 		expect(secondRunId).not.toBe(firstRunId);
-		expect(output[4]).toBe('after interrupt');
+		expect(output[3].value).toBe('after interrupt');
 	});
 
 	it('pushIntoInput delivers pause to single-mode steerControl during a run (ADR-032)', async () => {
@@ -365,7 +365,7 @@ describe('Runtime (v2)', () => {
 		if (runId === false) {
 			throw new Error('Expected pushIntoInput to start a run');
 		}
-		expect((await outputPromise)[4]).toBe('running');
+		expect((await outputPromise)[3].value).toBe('running');
 		expect(runtime.runner.status).toBe('running');
 
 		const pauseReceived = firstValueFrom(
@@ -376,7 +376,7 @@ describe('Runtime (v2)', () => {
 						event[0] === 'in' &&
 						event[1] === 'helper' &&
 						event[2] === 'steerControl' &&
-						event[3] === 'value',
+						'value' in event[3],
 				),
 			),
 		);
@@ -388,11 +388,11 @@ describe('Runtime (v2)', () => {
 
 		expect(pauseRunId).toBe(runId);
 		const event = await pauseReceived;
-		expect(isPortTelemetry(event) && event[0] === 'in' && event[4]).toEqual(
-			{
-				kind: 'pause',
-			},
-		);
+		expect(
+			isPortTelemetry(event) && event[0] === 'in' && event[3].value,
+		).toEqual({
+			kind: 'pause',
+		});
 	});
 
 	it('pushIntoInput logs input-received before output-emitted (first and repeat)', async () => {
@@ -405,7 +405,7 @@ describe('Runtime (v2)', () => {
 		const subscription = runtime.runner.events$.subscribe((event) => {
 			if (
 				isPortTelemetry(event) &&
-				event[3] === 'value' &&
+				'value' in event[3] &&
 				event[1] === 'gate' &&
 				event[2] === 'value'
 			) {
@@ -587,7 +587,7 @@ describe('Runtime (v2)', () => {
 
 		subscription.unsubscribe();
 
-		expect(output[4]).toBe('upstream');
+		expect(output[3].value).toBe('upstream');
 		expect(orphanEvents).toEqual([]);
 	});
 

@@ -74,6 +74,7 @@ describe('common-concat zip flush (RuntimeFacade)', () => {
 		runtime.runner.start({
 			concat: concatContext('concat'),
 		});
+		await Promise.resolve();
 
 		a$.next('A1');
 		await Promise.resolve();

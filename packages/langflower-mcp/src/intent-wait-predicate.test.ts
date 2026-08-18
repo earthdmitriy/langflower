@@ -121,10 +121,10 @@ describe('resolveWaitPredicate', () => {
 			payload: 'hi',
 		});
 		expect(
-			predicate!(['in', 'n1', 'message', 'value', 'hi', 0, [], null]),
+			predicate!(['in', 'n1', 'message', { value: 'hi' }, 0, [], null]),
 		).toBe(true);
 		expect(
-			predicate!(['in', 'n2', 'message', 'value', 'hi', 0, [], null]),
+			predicate!(['in', 'n2', 'message', { value: 'hi' }, 0, [], null]),
 		).toBe(false);
 	});
 

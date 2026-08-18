@@ -96,7 +96,7 @@ describe('default input value (applied only when port is unconnected)', () => {
 
 		const event = await waitForOutput(harness, 'd', 'value', runId);
 
-		expect(event[4]).toBe('hello');
+		expect(event[3].value).toBe('hello');
 		// The seeded 0 must be cleared; the edge (1000) governs the delay.
 		expect(Date.now() - startedAt).toBeGreaterThanOrEqual(900);
 	});
@@ -117,7 +117,7 @@ describe('default input value (applied only when port is unconnected)', () => {
 
 		const event = await waitForOutput(harness, 'd', 'value', runId);
 
-		expect(event[4]).toBe('hello');
+		expect(event[3].value).toBe('hello');
 		// Unconnected delay port seeds from defaultValue (0) → immediate emit.
 		expect(Date.now() - startedAt).toBeLessThan(200);
 	});

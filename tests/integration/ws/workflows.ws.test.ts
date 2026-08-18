@@ -17,6 +17,7 @@ import {
 	waitSessionReady,
 	waitWorkflowCurrentSnapshot,
 	waitWorkflowListSnapshot,
+	waitExecutionFeedSnapshot,
 } from '@langflower/shared/langflower-ws-waits';
 import {
 	createTempProject,
@@ -28,7 +29,10 @@ import {
 	stopTestServer,
 	type TestServerHandle,
 } from '../helpers/test-server.js';
-import { stringPreviewWorkflow } from '../helpers/scenarios/smoke.js';
+import {
+	stringPreviewWorkflow,
+	stringFinishWorkflow,
+} from '../helpers/scenarios/smoke.js';
 
 describe('workflow manager (WS bridge)', () => {
 	let projectDir: string;
@@ -247,6 +251,27 @@ describe('workflow manager (WS bridge)', () => {
 			});
 
 			expect(loaded.graph.nodes[0]?.inputs.value).toBe('from-disk');
+		});
+
+		it('emits empty executionFeed.snapshot after loading another workflow', async () => {
+			await seedWorkflowFromDisk(
+				client,
+				projectDir,
+				stringFinishWorkflow(),
+			);
+
+			const donePromise = firstValueFrom(
+				client['runner.done'].pipe(take(1)),
+			);
+			client['runner.start.requested'].next([]);
+			await donePromise;
+
+			const feedCleared = waitExecutionFeedSnapshot(
+				client,
+				(snap) => snap === null,
+			);
+			await requestWorkflowLoad(client, { workflowId: 'example' });
+			expect(await feedCleared).toBeNull();
 		});
 	});
 

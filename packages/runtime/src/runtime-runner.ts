@@ -1,13 +1,11 @@
 import {
 	combineStatefulObservables,
-	isError,
-	isInactive,
-	isLoading,
-	isSuccess,
 	ResponseWithStatus,
-	statefulObservable,
+	serializeResponse,
 	StatefulConnection,
+	statefulObservable,
 	StatefulObservable,
+	type ResponseDto,
 } from '@rx-evo/stateful-observable';
 import {
 	BehaviorSubject,
@@ -41,10 +39,9 @@ import {
 import {
 	PortMeta,
 	RuntimeEdge,
+	RuntimeFeedPortMeta,
 	RuntimeNode,
 	RuntimeOptions,
-	RuntimePortSignalState,
-	RuntimeFeedPortMeta,
 	RuntimeResumeOptions,
 	RuntimeRunnerApi,
 	RuntimeRunnerEvent,
@@ -52,7 +49,6 @@ import {
 	RuntimeSeedPortValue,
 	type EdgeId,
 	type NodeId,
-	type PortTelemetry,
 	type RunId,
 } from './types.js';
 
@@ -90,17 +86,12 @@ type ActiveRun = {
 	readonly subscriptions: Subscription;
 };
 
-/**
- * Maps one `@rx-evo` `ResponseWithStatus` emission to the runtime telemetry
- * signal. `@rx-evo` `StatefulConnection`s surface the full union on `raw$`
- * (`isLoading` → pending, `isError` → error with `.error`, success → value);
- * plain-Observable sources (e.g. `of(v).pipe(delay(ms))`) emit a loading
- * sentinel at connect time, so pending/error are now observable. `isInactive`
- * (disconnect / reset) is intentionally not emitted as telemetry.
- */
-type ResolvedSignal = {
-	readonly state: RuntimePortSignalState;
-	readonly value: unknown;
+const toResponseDto = (response: unknown): ResponseDto<unknown> | null => {
+	if (response === null || response === undefined) {
+		return null;
+	}
+
+	return serializeResponse(response as ResponseWithStatus<unknown, unknown>);
 };
 
 const isConnectionInactive = (
@@ -108,70 +99,12 @@ const isConnectionInactive = (
 ): boolean => {
 	let inactive = true;
 	const sub = connection.raw$.subscribe((raw) => {
-		// Same dual-package Symbol hazard as loading (BUG-2026-07-23 /
-		// ADR-028): CJS `isInactive` can miss an ESM inactive sentinel.
-		inactive = isInactive(raw) || isSymbolStateSentinel(raw);
+		const dto = toResponseDto(raw);
+		inactive = dto === null || 'inactive' in dto;
 	});
 	sub.unsubscribe();
 	return inactive;
 };
-
-/**
- * `@rx-evo` status sentinels are `{ state: Symbol(...) }` (loading / inactive).
- * When the sentinel is created by a different module instance than the
- * `isLoading` / `isInactive` guards (CJS/ESM dual-package hazard), identity
- * checks fail and `isSuccess` may return true — telemetry then emits
- * `state:'value'` with that object (JSON → `{}`), or `applyPortDefaults`
- * skips seeding and LLM `combineInputs` stalls.
- */
-const isSymbolStateSentinel = (signal: unknown): boolean => {
-	if (
-		typeof signal !== 'object' ||
-		signal === null ||
-		Array.isArray(signal)
-	) {
-		return false;
-	}
-
-	const keys = Object.keys(signal);
-
-	if (keys.length !== 1 || keys[0] !== 'state') {
-		return false;
-	}
-
-	const state = (signal as { readonly state: unknown }).state;
-
-	return typeof state === 'symbol';
-};
-
-const resolveSignalState = (response: unknown): ResolvedSignal | null => {
-	const signal = response as ResponseWithStatus<object, unknown>;
-
-	if (isError(signal)) {
-		return {
-			state: 'error',
-			value: normalizePortErrorValue(
-				(signal as { error: unknown }).error,
-			),
-		};
-	}
-
-	if (isLoading(signal) || isSymbolStateSentinel(signal)) {
-		return { state: 'pending', value: undefined };
-	}
-
-	if (isSuccess(signal)) {
-		return { state: 'value', value: signal };
-	}
-
-	return null;
-};
-
-/** Drop errors and loading so edges only carry success values. */
-const isEdgeForwardable = (response: unknown): boolean =>
-	!isError(response) &&
-	!isLoading(response) &&
-	!isSymbolStateSentinel(response);
 
 export class RuntimeRunner implements RuntimeRunnerApi {
 	private static readonly EMPTY_EVENT_LOG: readonly RuntimeRunnerEvent[] = [];
@@ -184,6 +117,8 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 	private readonly eventLogBuffer: RuntimeRunnerEvent[] = [];
 
 	private activeRun: ActiveRun | undefined;
+	private pendingWireRunId: RunId | undefined;
+	private pendingWire: (() => void) | undefined;
 	private disposed = false;
 
 	readonly status$: Observable<RuntimeRunnerStatus> =
@@ -325,6 +260,8 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			return resolvedRunId;
 		}
 
+		this.assertResumeOutputSnapshots(completedNodeIds, outputSnapshots);
+
 		return this.runScope(
 			new Set(nodes.map((node) => node.nodeId)),
 			new Set(edges.map((edge) => edge.edgeId)),
@@ -369,6 +306,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		}
 
 		const runId = this.runScope(cluster.nodeIds, cluster.edgeIds);
+		this.flushPendingWire();
 		const pushedRunId = this.pushIntoActiveRun(cfg);
 
 		if (pushedRunId === false) {
@@ -386,6 +324,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			return;
 		}
 
+		this.cancelPendingWire();
 		this.teardownRun();
 		this.setStatus('stopped');
 	}
@@ -420,6 +359,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		}
 
 		if (this.statusSubject.value === 'running') {
+			this.cancelPendingWire();
 			this.teardownRun();
 		}
 
@@ -469,22 +409,32 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		nodeId: NodeId,
 		portId: string | symbol,
 		portIdx: number,
-		state: RuntimePortSignalState,
-		value: unknown,
+		raw: unknown,
 		edgeIds: EdgeId[],
-		feed?: RuntimeFeedPortMeta,
-	): void {
+		defaultFeed?: RuntimeFeedPortMeta,
+	): boolean {
+		const dto = toResponseDto(raw);
+		if (dto === null) {
+			return false;
+		}
+
+		const response =
+			'error' in dto
+				? { error: normalizePortErrorValue(dto.error) }
+				: dto;
+		const feed = defaultFeed ?? null;
+
 		const portIdStr = typeof portId === 'string' ? portId : String(portId);
 		this.emitRunnerEvent([
 			portDir,
 			nodeId,
 			portIdStr,
-			state,
-			value,
+			response,
 			portIdx,
 			edgeIds,
-			feed ?? null,
+			feed,
 		]);
+		return 'value' in response;
 	}
 
 	private canPreparePushedInput(
@@ -521,6 +471,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		portId: string;
 		payload: unknown;
 	}): RunId | false {
+		this.flushPendingWire();
 		const run = this.activeRun;
 
 		if (run === undefined || !run.scopeNodeIds.has(cfg.nodeId)) {
@@ -545,7 +496,6 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 				cfg.nodeId,
 				cfg.portId,
 				0,
-				'value',
 				cfg.payload,
 				[],
 			);
@@ -578,7 +528,6 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			cfg.nodeId,
 			cfg.portId,
 			0,
-			'value',
 			cfg.payload,
 			[],
 		);
@@ -589,9 +538,9 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 
 	/**
 	 * Returns `output` wrapped with a `tap` that emits `output-emitted`
-	 * telemetry, then `filter(isEdgeForwardable)` so `ResponseError` and
-	 * loading sentinels stay visible to Observability on the source node but
-	 * are not forwarded on edges (loading must not appear as `{}` downstream).
+	 * telemetry, then forward only success values on edges so errors and
+	 * loading sentinels stay visible on the source node (loading must not
+	 * appear as `{}` downstream).
 	 * The wrapper is the value the downstream connects to, so the event fires
 	 * *as part of* the dataflow delivery — there is no separate refCounted
 	 * subscriber, which is what previously reordered events against downstream
@@ -612,27 +561,20 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		return output
 			.pipe(
 				tap({
-					next: (response: unknown) => {
-						const resolved = resolveSignalState(response);
-
-						if (resolved === null) {
-							return;
-						}
-
-						this.emitPortEvent(
+					next: (response: ResponseWithStatus<unknown, unknown>) => {
+						const emittedValue = this.emitPortEvent(
 							run.runId,
 							'out',
 							nodeId,
 							portId,
 							0,
-							resolved.state,
-							resolved.value,
+							response,
 							edgeIds,
 							output.meta.feed,
 						);
 
 						if (
-							resolved.state === 'value' &&
+							emittedValue &&
 							node !== false &&
 							node.stopsRun === true
 						) {
@@ -645,7 +587,10 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 						}
 					},
 				}),
-				filter(isEdgeForwardable),
+				filter((response) => {
+					const dto = toResponseDto(response);
+					return dto !== null && 'value' in dto;
+				}),
 			)
 			.with({ meta: output.meta });
 	}
@@ -669,21 +614,14 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		return source
 			.pipe(
 				tap({
-					next: (response: unknown) => {
-						const resolved = resolveSignalState(response);
-
-						if (resolved === null) {
-							return;
-						}
-
+					next: (response: ResponseWithStatus<unknown, unknown>) => {
 						this.emitPortEvent(
 							run.runId,
 							'in',
 							nodeId,
 							portId,
 							slotIndex,
-							resolved.state,
-							resolved.value,
+							response,
 							edgeIds,
 						);
 					},
@@ -706,6 +644,56 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		this.teardownRun();
 	}
 
+	private assertResumeOutputSnapshots(
+		completedNodeIds: ReadonlySet<NodeId>,
+		outputSnapshots: ReadonlyMap<NodeId, ReadonlyMap<string, unknown>>,
+	): void {
+		const nodesById = new Map(
+			this.editor.getNodes().map((node) => [node.nodeId, node]),
+		);
+		for (const edge of this.editor.getEdges()) {
+			if (
+				!completedNodeIds.has(edge.fromNodeId) ||
+				completedNodeIds.has(edge.toNodeId)
+			) {
+				continue;
+			}
+			const fromNode = nodesById.get(edge.fromNodeId);
+			if (fromNode === undefined) {
+				continue;
+			}
+			const [fromPortId, fromSlotIndex] = edge.fromPort;
+			const snapshotPortId = checkpointPortIdForSlot(
+				fromNode,
+				fromPortId,
+				fromSlotIndex,
+			);
+			const snapshotValue = outputSnapshots
+				.get(edge.fromNodeId)
+				?.get(snapshotPortId);
+			if (snapshotValue === undefined) {
+				throw new Error(
+					`Resume missing output snapshot for ${edge.fromNodeId}.${fromPortId}`,
+				);
+			}
+		}
+	}
+
+	private cancelPendingWire(): void {
+		this.pendingWire = undefined;
+		this.pendingWireRunId = undefined;
+	}
+
+	private flushPendingWire(): void {
+		const wire = this.pendingWire;
+		if (wire === undefined) {
+			return;
+		}
+		this.pendingWire = undefined;
+		this.pendingWireRunId = undefined;
+		wire();
+	}
+
 	private runScope(
 		scopeNodeIds: ReadonlySet<NodeId>,
 		scopeEdgeIds: ReadonlySet<EdgeId>,
@@ -722,26 +710,42 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		}
 
 		const resolvedRunId = runId ?? (crypto.randomUUID() as RunId);
-		this.editor.setLocked(true);
-		try {
-			this.activeRun = this.wireScope(
-				resolvedRunId,
-				scopeEdgeIds,
-				scopeNodeIds,
-				initialPayload,
-				resumeOverlay,
-			);
-		} catch (error) {
-			this.editor.setLocked(false);
-			throw error;
-		}
 		this.setStatus('running');
+		this.editor.setLocked(true);
+		this.pendingWireRunId = resolvedRunId;
+		this.pendingWire = () => {
+			try {
+				this.activeRun = this.wireScope(
+					resolvedRunId,
+					scopeEdgeIds,
+					scopeNodeIds,
+					initialPayload,
+					resumeOverlay,
+				);
+			} catch (error) {
+				this.editor.setLocked(false);
+				this.setStatus('idle');
+				throw error;
+			}
+		};
+		queueMicrotask(() => {
+			if (this.pendingWireRunId !== resolvedRunId) {
+				return;
+			}
+			try {
+				this.flushPendingWire();
+			} catch {
+				// Status/lock already restored in pendingWire.
+			}
+		});
 
 		return resolvedRunId;
 	}
 
 	private teardownRun(): void {
+		this.cancelPendingWire();
 		if (this.activeRun === undefined) {
+			this.editor.setLocked(false);
 			return;
 		}
 
@@ -812,7 +816,6 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 										nodeId,
 										seed.portId,
 										seed.slotIndex,
-										'value',
 										value,
 										[],
 									);
@@ -878,7 +881,6 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 									nodeId,
 									portId,
 									0,
-									'value',
 									value,
 									[],
 								);
@@ -1214,21 +1216,16 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			group.connection.connect(
 				combined.pipe(
 					tap({
-						next: (response: unknown) => {
-							const resolved = resolveSignalState(response);
-
-							if (resolved === null) {
-								return;
-							}
-
+						next: (
+							response: ResponseWithStatus<unknown, unknown>,
+						) => {
 							this.emitPortEvent(
 								run.runId,
 								'in',
 								group.nodeId,
 								group.portId,
 								0,
-								resolved.state,
-								resolved.value,
+								response,
 								group.edges.map((entry) => entry.edge.edgeId),
 							);
 						},

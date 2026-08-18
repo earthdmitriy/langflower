@@ -273,6 +273,10 @@ makeInput<readonly ToolHandle[]>('tools', {
 makeInput('tools', { wireType: 'json' });
 ```
 
+Canvas Sub-Agent handle names are `{displayName}(subagent)` (e.g.
+`Writer(subagent)`). The first frame from that `common-sub-agent` node
+closes the caller feed visit.
+
 **Do not** invent peer contracts on `wireType: 'json'`. Reserve `json` for
 opaque blobs with no typed peer (e.g. crawl page / link dumps). Named wire
 example: `tool-handle` (`TOOL_HANDLE_WIRE_TYPE`). Optional hub

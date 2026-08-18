@@ -76,7 +76,7 @@ const displayLabel = (data: WorkflowNodePersisted): string => {
 			@let status = status$ | async;
 			@let pulse = pulse$ | async;
 			<div
-				class="lf-node-chrome rounded-xl border border-zinc-300 bg-white py-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+				class="lf-node-chrome rounded-xl border bg-white py-3 shadow-sm dark:bg-zinc-900"
 				[attr.data-node-id]="node().id"
 				[class.lf-node-chrome--selected]="node().selected ?? false"
 				[class.lf-node-chrome--hovered]="hover.isHovered(node().id)"
@@ -119,7 +119,7 @@ const displayLabel = (data: WorkflowNodePersisted): string => {
 							[wireType]="row.wireType"
 							[inline]="row.inline"
 							[value]="row.value"
-							[disabled]="row.connected"
+							[disabled]="row.connected || isRunning()"
 							[previewValue]="previewValueFor(row.basePortId)"
 							[nodeSelected]="node().selected ?? false"
 							[endpointHighlighted]="
@@ -198,6 +198,7 @@ export class LfNodeComponent {
 	readonly hover = inject(NodeHoverService);
 	private readonly execution = inject(WorkflowExecutionService);
 	private readonly canvasNodeStatus = inject(CanvasNodeStatusService);
+	readonly isRunning = this.execution.isRunning;
 
 	private seResizeCleanup: (() => void) | undefined;
 
@@ -218,7 +219,7 @@ export class LfNodeComponent {
 		switchMap((nodeStatusEvents) => nodeStatusEvents.status$),
 	);
 
-	/** Transient green flash — factory `pulse$` over live port events. */
+	/** Transient green flash — factory `pulse$` over live output values. */
 	readonly pulse$ = this.nodeStatusEvents$.pipe(
 		switchMap((nodeStatusEvents) => nodeStatusEvents.pulse$),
 	);
@@ -341,6 +342,9 @@ export class LfNodeComponent {
 	}
 
 	onPortInlineChange(basePortId: string, value: unknown): void {
+		if (this.execution.isRunning()) {
+			return;
+		}
 		this.bridge.raw['editor.updateNode.requested'].next({
 			nodeId: this.node().id as NodeId,
 			inputs: {
@@ -351,6 +355,9 @@ export class LfNodeComponent {
 	}
 
 	startLabelEdit(): void {
+		if (this.execution.isRunning()) {
+			return;
+		}
 		this.labelDraft.set(this.node().data.ui.label ?? '');
 		this.editingLabel.set(true);
 		afterNextRender(
@@ -393,7 +400,8 @@ export class LfNodeComponent {
 	}
 
 	commitLabelEdit(): void {
-		if (!this.editingLabel()) {
+		if (!this.editingLabel() || this.execution.isRunning()) {
+			this.editingLabel.set(false);
 			return;
 		}
 

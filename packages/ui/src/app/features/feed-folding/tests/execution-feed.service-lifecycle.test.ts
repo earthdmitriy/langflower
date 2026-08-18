@@ -44,11 +44,54 @@ describe('ExecutionFeedService lifecycle', () => {
 			'out',
 			'agent',
 			Symbol('bypass'),
-			'value',
-			'hidden',
+			{ value: 'hidden' },
 		] as unknown as RuntimeRunnerEvent);
 		harness.raw.runnerPort$.next(['done', runId()] as RuntimeRunnerEvent);
 
 		expect(harness.latestNodes()).toEqual([]);
+	});
+
+	it('keeps live port frames when runner.started arrives after ports', () => {
+		const harness = createExecutionFeedHarness();
+		harness.seedCatalog({ agent: 'agent' }, [agent], { startRun: false });
+		harness.raw.runnerPort$.next(outputEvent('agent', 'draft', 'hello'));
+		expect(harness.latestNodes()).toEqual([]);
+
+		harness.raw.runnerStarted$.next(runId());
+		expect(harness.latestNodes().map((node) => node.nodeId)).toEqual([
+			'agent',
+		]);
+	});
+
+	it('clears the work log when the workflow document changes', () => {
+		const harness = createExecutionFeedHarness();
+		harness.seedCatalog({ agent: 'agent' }, [agent]);
+		harness.raw.runnerPort$.next(outputEvent('agent', 'draft', 'hello'));
+		expect(harness.latestNodes().map((node) => node.nodeId)).toEqual([
+			'agent',
+		]);
+
+		harness.seedCatalog({ other: 'agent' }, [agent], {
+			startRun: false,
+			workflowId: 'wf-2',
+		});
+		expect(harness.latestNodes()).toEqual([]);
+	});
+
+	it('keeps the work log when only the workflow id changes (rename)', () => {
+		const harness = createExecutionFeedHarness();
+		harness.seedCatalog({ agent: 'agent' }, [agent]);
+		harness.raw.runnerPort$.next(outputEvent('agent', 'draft', 'hello'));
+		expect(harness.latestNodes().map((node) => node.nodeId)).toEqual([
+			'agent',
+		]);
+
+		harness.seedCatalog({ agent: 'agent' }, [agent], {
+			startRun: false,
+			workflowId: 'wf-renamed',
+		});
+		expect(harness.latestNodes().map((node) => node.nodeId)).toEqual([
+			'agent',
+		]);
 	});
 });

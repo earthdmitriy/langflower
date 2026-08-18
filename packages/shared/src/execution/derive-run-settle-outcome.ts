@@ -30,8 +30,8 @@ export const deriveExecutionProgressStatus = (
 	}
 
 	const portEvents = events.filter(isPortTelemetry);
-	const hasError = portEvents.some((event) => event[3] === 'error');
-	const hasValue = portEvents.some((event) => event[3] === 'value');
+	const hasError = portEvents.some((event) => 'error' in event[3]);
+	const hasValue = portEvents.some((event) => 'value' in event[3]);
 
 	if (hasError && hasValue) {
 		return 'completed_with_errors';

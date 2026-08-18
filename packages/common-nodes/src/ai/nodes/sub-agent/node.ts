@@ -17,11 +17,17 @@ import {
 	catchError,
 	concat,
 	filter,
+	firstValueFrom,
 	map,
 	mergeMap,
 	Observable,
 	of,
 	Subject,
+	switchMap,
+	take,
+	tap,
+	timeout,
+	TimeoutError,
 } from 'rxjs';
 import { llmPanelUiSchema } from '../../features/ui-schema/llm-panel-ui-schema.js';
 import { llmCompactionUiSchema } from '../../features/ui-schema/llm-compaction-ui-schema.js';
@@ -33,7 +39,6 @@ import {
 } from '../../features/prompt/normalize-max-iterations.js';
 import {
 	appendToolInventory,
-	createLlmSessionCycle$,
 	demuxByKind,
 	type LlmAgentInventoryContext,
 } from '../../features/llm-session/llm-session-shell.js';
@@ -90,6 +95,9 @@ const normalizeSkillIds = (raw: unknown): readonly string[] => {
 		.filter((entry) => entry.length > 0);
 };
 
+const formatSpecialistHandleName = (displayName: string): string =>
+	`${displayName}(subagent)`;
+
 const slugToolId = (name: string, nodeId: string): string => {
 	const slug = (raw: string): string =>
 		raw
@@ -119,7 +127,11 @@ const buildSpecialistDescription = (
 	description: string,
 	skillIds: readonly string[],
 ): string => {
-	const parts = [`Canvas Sub-Agent «${name}».`];
+	const parts = [
+		`${name} is a canvas Sub-Agent — a separate specialist agent, not a regular tool (not files, shell, or MCP).`,
+		'Call this tool to delegate a task; the specialist runs its own model and tools and returns a text result.',
+		'Do not try to do this specialist work yourself when this tool is the right owner.',
+	];
 	if (description.trim().length > 0) {
 		parts.push(description.trim());
 	}
@@ -128,7 +140,7 @@ const buildSpecialistDescription = (
 		parts.push(`Skills: ${skillIds.join(', ')}.`);
 	}
 
-	parts.push('Call with a task to run this specialist in-node.');
+	parts.push('Required argument: task — the assignment for this Sub-Agent.');
 	return parts.join(' ');
 };
 
@@ -136,7 +148,7 @@ const buildSpecialistInputSchema = (skillIds: readonly string[]): object => {
 	const properties: Record<string, object> = {
 		task: {
 			type: 'string',
-			description: 'Task for this specialist',
+			description: 'Task to delegate to this Sub-Agent specialist',
 		},
 	};
 
@@ -186,6 +198,66 @@ const chatConfigError = (
 	return undefined;
 };
 
+const EMPTY_INVOKE_RESULT = 'Error: Sub-Agent returned no content';
+
+const finalizeInvokeText = (
+	responseText: string,
+	lastDraft: string,
+	lastReasoning: string,
+): string => {
+	if (responseText.trim().length > 0) {
+		return responseText;
+	}
+
+	if (lastDraft.trim().length > 0) {
+		return lastDraft;
+	}
+
+	if (lastReasoning.trim().length > 0) {
+		return lastReasoning;
+	}
+
+	return EMPTY_INVOKE_RESULT;
+};
+
+const seedInvokeHistory = (
+	history: readonly ChatCompletionMessage[],
+	context: SubAgentContext,
+): readonly ChatCompletionMessage[] => {
+	const system: ChatCompletionMessage = {
+		role: 'system',
+		content: appendToolInventory(
+			context.effectiveSystemPrompt,
+			context.tools,
+		),
+	};
+
+	if (history.length === 0) {
+		return [system];
+	}
+
+	if (history[0]?.role === 'system') {
+		return [system, ...history.slice(1)];
+	}
+
+	return [system, ...history];
+};
+
+const reduceInvokeHistory = (
+	history: readonly ChatCompletionMessage[],
+	chunk: SubAgentChunk,
+): readonly ChatCompletionMessage[] => {
+	if (chunk.kind === 'historySync') {
+		return [...chunk.messages];
+	}
+
+	if (chunk.kind === 'invokeDone' && chunk.text.trim().length > 0) {
+		return [...history, { role: 'assistant', content: chunk.text }];
+	}
+
+	return history;
+};
+
 const runSubAgentTurn = (
 	context: SubAgentContext,
 	turn: InvokeTurn,
@@ -220,6 +292,8 @@ const runSubAgentTurn = (
 	}
 
 	const userContent = formatSpawnUserContent(turn.task, turn.skillId);
+	let lastDraft = '';
+	let lastReasoning = '';
 
 	return concat(
 		of({
@@ -254,15 +328,32 @@ const runSubAgentTurn = (
 				: {}),
 		}).pipe(
 			mergeMap((chunk): Observable<SubAgentChunk> => {
+				if (chunk.kind === 'reasoning' && chunk.text.length > 0) {
+					lastReasoning += chunk.text;
+				}
+
+				if (chunk.kind === 'draftResponse' && chunk.text.length > 0) {
+					lastDraft += chunk.text;
+				}
+
 				if (chunk.kind !== 'response') {
 					return of(chunk);
 				}
 
-				return of(chunk, {
-					kind: 'invokeDone' as const,
-					requestId: turn.requestId,
-					text: chunk.text,
-				});
+				const text = finalizeInvokeText(
+					chunk.text,
+					lastDraft,
+					lastReasoning,
+				);
+
+				return of(
+					{ kind: 'response' as const, text },
+					{
+						kind: 'invokeDone' as const,
+						requestId: turn.requestId,
+						text,
+					},
+				);
 			}),
 			catchError((error: unknown) => {
 				const text =
@@ -316,7 +407,7 @@ const parseInvokeTurn = (
 
 /**
  * Sub-Agent: ordinary OpenAI-compatible agent that announces one ToolHandle
- * on `tools`. Parent invoke runs this node's in-node loop.
+ * on `subagent-registration`. Parent invoke runs this node's in-node loop.
  * @see docs/ADR.md ADR-021
  */
 export const subAgentNode = defineLlmNode({
@@ -357,29 +448,10 @@ export const subAgentNode = defineLlmNode({
 			defaultValue: '',
 		});
 
-		const invokeTurns$ = new Subject<InvokeTurn>();
+		const chunks$ = new Subject<SubAgentChunk>();
+		let latestContext: SubAgentContext | undefined;
+		let history: readonly ChatCompletionMessage[] = [];
 		let invokeTail: Promise<void> = Promise.resolve();
-		const pending = new Map<
-			string,
-			{
-				readonly resolve: (text: string) => void;
-				readonly timer: ReturnType<typeof setTimeout> | undefined;
-			}
-		>();
-
-		const finishInvoke = (requestId: string, text: string): void => {
-			const waiter = pending.get(requestId);
-			if (waiter === undefined) {
-				return;
-			}
-
-			pending.delete(requestId);
-			if (waiter.timer !== undefined) {
-				clearTimeout(waiter.timer);
-			}
-
-			waiter.resolve(text);
-		};
 
 		const context$ = combineInputs(
 			[systemPrompt, tools, ctx],
@@ -460,89 +532,63 @@ export const subAgentNode = defineLlmNode({
 			},
 		);
 
-		const cycle$ = createLlmSessionCycle$(
-			context$,
-			invokeTurns$,
-			(context) => ({
-				history: [
-					{
-						role: 'system',
-						content: appendToolInventory(
-							context.effectiveSystemPrompt,
-							context.tools,
-						),
-					},
-				],
-				trackAssistantHistory: true,
-				appendUserFeedbackToHistory: false,
-				session: undefined,
-			}),
-			(context, turnPayload, history) => {
-				const parsed = parseInvokeTurn(turnPayload, context.skillIds);
-				if (!parsed.ok) {
-					const requestId =
-						turnPayload !== null &&
-						typeof turnPayload === 'object' &&
-						!Array.isArray(turnPayload) &&
-						typeof (turnPayload as { requestId?: unknown })
-							.requestId === 'string'
-							? (turnPayload as { requestId: string }).requestId
-							: '';
-					if (requestId.length > 0) {
-						finishInvoke(requestId, parsed.text);
-					}
-
-					return of(
-						{ kind: 'response' as const, text: parsed.text },
-						{
-							kind: 'invokeDone' as const,
-							requestId,
-							text: parsed.text,
-						},
-					);
-				}
-
-				return runSubAgentTurn(context, parsed.turn, history).pipe(
-					map((chunk) => {
-						if (chunk.kind === 'invokeDone') {
-							finishInvoke(chunk.requestId, chunk.text);
-						}
-
-						return chunk;
-					}),
-				);
-			},
-			{ primeTurn0: false },
-		);
+		// Inner chunks stay values. `statefulObservable({ input: chunks$ })`
+		// re-emits loading on every token; pipeValue fans it to all demux ports.
+		const cycle$ = context$.pipeValue(switchMap(() => chunks$));
 
 		const enqueueInvoke = (
-			context: SubAgentContext,
+			announced: SubAgentContext,
 			args: Readonly<Record<string, unknown>>,
 			_toolCtx: ToolHandlerContext,
 		): Promise<string> => {
+			const context = latestContext ?? announced;
 			const parsed = parseInvokeTurn(
 				{ ...args, requestId: randomUUID() },
-				context.skillIds,
+				announced.skillIds,
 			);
 			if (!parsed.ok) {
 				return Promise.resolve(parsed.text);
 			}
 
-			const run = (): Promise<string> =>
-				new Promise((resolve) => {
-					const timeoutMs = context.recovery.subagentTimeoutMs;
-					const timer =
-						timeoutMs > 0
-							? setTimeout(() => {
-									pending.delete(parsed.turn.requestId);
-									resolve(
-										`Error: Sub-Agent timed out after ${timeoutMs}ms.`,
-									);
-								}, timeoutMs)
-							: undefined;
-					pending.set(parsed.turn.requestId, { resolve, timer });
-					invokeTurns$.next(parsed.turn);
+			const run = (): Promise<string> => {
+				history = seedInvokeHistory(history, context);
+				const timeoutMs = context.recovery.subagentTimeoutMs;
+				let done$ = runSubAgentTurn(context, parsed.turn, history).pipe(
+					tap((chunk) => {
+						history = reduceInvokeHistory(history, chunk);
+						chunks$.next(chunk);
+					}),
+					filter(
+						(
+							chunk,
+						): chunk is Extract<
+							SubAgentChunk,
+							{ kind: 'invokeDone' }
+						> => chunk.kind === 'invokeDone',
+					),
+					map((chunk) => chunk.text),
+					take(1),
+				);
+
+				if (timeoutMs > 0) {
+					done$ = done$.pipe(
+						timeout({ first: timeoutMs }),
+						catchError((error: unknown) =>
+							of(
+								error instanceof TimeoutError
+									? `Error: Sub-Agent timed out after ${timeoutMs}ms.`
+									: error instanceof Error
+										? `Error: ${error.message}`
+										: 'Error: Sub-Agent turn failed.',
+							),
+						),
+					);
+				}
+
+				return firstValueFrom(done$, {
+					defaultValue: EMPTY_INVOKE_RESULT,
 				});
+			};
 
 			const next = invokeTail.then(run, run);
 			invokeTail = next.then(
@@ -553,20 +599,30 @@ export const subAgentNode = defineLlmNode({
 		};
 
 		const specialistTools$ = context$.pipeValue(
-			map((context): readonly ToolHandle[] => [
-				{
-					toolId: slugToolId(context.displayName, context.nodeId),
-					name: context.displayName,
-					description: buildSpecialistDescription(
-						context.displayName,
-						context.inspectorDescription,
-						context.skillIds,
-					),
-					inputSchema: buildSpecialistInputSchema(context.skillIds),
-					invoke: (args, toolCtx) =>
-						enqueueInvoke(context, args, toolCtx),
-				},
-			]),
+			tap((context) => {
+				latestContext = context;
+			}),
+			map((context): readonly ToolHandle[] => {
+				const handleName = formatSpecialistHandleName(
+					context.displayName,
+				);
+				return [
+					{
+						toolId: slugToolId(handleName, context.nodeId),
+						name: handleName,
+						description: buildSpecialistDescription(
+							handleName,
+							context.inspectorDescription,
+							context.skillIds,
+						),
+						inputSchema: buildSpecialistInputSchema(
+							context.skillIds,
+						),
+						invoke: (args, toolCtx) =>
+							enqueueInvoke(context, args, toolCtx),
+					},
+				];
+			}),
 		);
 
 		const reasoning$ = cycle$.pipeValue(

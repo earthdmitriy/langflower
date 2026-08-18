@@ -50,7 +50,7 @@ describe('ctx CtxError → output port error (S6)', () => {
 				filter(
 					(event) =>
 						event[0] === 'out' &&
-						event[3] === 'error' &&
+						'error' in event[3] &&
 						event[1] === 'p1' &&
 						event[2] === 'out',
 				),
@@ -69,7 +69,7 @@ describe('ctx CtxError → output port error (S6)', () => {
 		});
 
 		const failed = await errorPromise;
-		expect(String(failed[4])).toContain('MCP system connect failed');
+		expect(String(failed[3].error)).toContain('MCP system connect failed');
 		expect(contextSymbol).toBeDefined();
 
 		runtime.runner.interrupt('cancel');
