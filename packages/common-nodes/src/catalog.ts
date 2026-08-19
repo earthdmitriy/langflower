@@ -36,6 +36,9 @@ import { savePageNode } from './crawl/save-page/node.js';
 import { memoryToolsNode } from './memory/memory-tools/node.js';
 import { langflowerToolsNode } from './langflower-tools/node.js';
 import { toolCollectionNode } from './tools/tool-collection/node.js';
+import { embedTextNode } from './embeddings/embed-text/node.js';
+import { embedSimilarityNode } from './embeddings/embed-similarity/node.js';
+import { embedProviderNode } from './embeddings/embed-provider/node.js';
 
 const COMMON_REACTIVE_NODES = [
 	booleanNode,
@@ -75,6 +78,9 @@ const COMMON_REACTIVE_NODES = [
 	savePageNode,
 	crawlNode,
 	crawlToolsNode,
+	embedTextNode,
+	embedSimilarityNode,
+	embedProviderNode,
 ] as const;
 
 export type CommonReactiveNodeCatalog = Record<string, ReactiveNodeDefinition>;

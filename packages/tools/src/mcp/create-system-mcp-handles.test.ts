@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { BuiltMcpHandle } from './build-mcp-handle.js';
 import {
 	collectEnabledMcpIdsFromNodes,
 	createSystemMcpHandles,
 	filterMcpFailuresForNode,
-	filterMcpHandlesByIds,
+	filterSystemMcpToolsByServerIds,
 	parseEnabledMcpIds,
+	type SystemMcpServerTools,
 } from './create-system-mcp-handles.js';
 
 vi.mock('./mcp-stdio-client.js', () => ({
@@ -28,9 +28,8 @@ const connectStdio = vi.mocked(connectMcpStdioFromCli);
 const connectHttp = vi.mocked(connectMcpHttpWithOptionalLaunch);
 const buildHandle = vi.mocked(buildMcpHandle);
 
-const fakeHandle = (id: string): BuiltMcpHandle => ({
-	id,
-	name: id,
+const fakeServer = (serverId: string): SystemMcpServerTools => ({
+	serverId,
 	tools: [],
 });
 
@@ -59,20 +58,24 @@ describe('collectEnabledMcpIdsFromNodes', () => {
 	});
 });
 
-describe('filterMcpHandlesByIds', () => {
+describe('filterSystemMcpToolsByServerIds', () => {
 	it('keeps only enabled ids', () => {
 		const handles = [
-			fakeHandle('echo'),
-			fakeHandle('remote'),
-			fakeHandle('other'),
+			fakeServer('echo'),
+			fakeServer('remote'),
+			fakeServer('other'),
 		];
 		expect(
-			filterMcpHandlesByIds(handles, ['echo', 'other']).map((t) => t.id),
+			filterSystemMcpToolsByServerIds(handles, ['echo', 'other']).map(
+				(entry) => entry.serverId,
+			),
 		).toEqual(['echo', 'other']);
 	});
 
 	it('returns none when enable list is empty', () => {
-		expect(filterMcpHandlesByIds([fakeHandle('echo')], [])).toEqual([]);
+		expect(
+			filterSystemMcpToolsByServerIds([fakeServer('echo')], []),
+		).toEqual([]);
 	});
 });
 
@@ -108,9 +111,7 @@ describe('createSystemMcpHandles partial connect (S6)', () => {
 				listTools: async () => [],
 			} as never;
 		});
-		buildHandle.mockImplementation(async ({ id }) =>
-			fakeHandle(String(id)),
-		);
+		buildHandle.mockResolvedValue([]);
 
 		const result = await createSystemMcpHandles({
 			projectRoot: '/tmp',
@@ -121,7 +122,7 @@ describe('createSystemMcpHandles partial connect (S6)', () => {
 			},
 		});
 
-		expect(result.handles.map((h) => h.id)).toEqual(['good']);
+		expect(result.handles.map((entry) => entry.serverId)).toEqual(['good']);
 		expect(result.failures).toHaveLength(1);
 		expect(result.failures[0]?.serverId).toBe('bad');
 		expect(result.failures[0]?.message).toMatch(
@@ -140,9 +141,7 @@ describe('createSystemMcpHandles partial connect (S6)', () => {
 			serverName: 'stdio',
 			listTools: async () => [],
 		} as never);
-		buildHandle.mockImplementation(async ({ id }) =>
-			fakeHandle(String(id)),
-		);
+		buildHandle.mockResolvedValue([]);
 
 		const result = await createSystemMcpHandles({
 			projectRoot: '/tmp',
@@ -153,7 +152,9 @@ describe('createSystemMcpHandles partial connect (S6)', () => {
 			},
 		});
 
-		expect(result.handles.map((h) => h.id)).toEqual(['local']);
+		expect(result.handles.map((entry) => entry.serverId)).toEqual([
+			'local',
+		]);
 		expect(result.failures[0]?.serverId).toBe('remote');
 	});
 });

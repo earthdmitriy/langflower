@@ -74,6 +74,7 @@ export type { DefaultChatModelParts } from './langflower-config/parse-default-ch
 export {
 	configToDraft,
 	defaultProviderStaticModelIds,
+	staticModelIdsForProvider,
 	draftAfterLayerSnapshot,
 	draftToSavePayload,
 	mergeDraftPatch,

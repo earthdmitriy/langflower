@@ -89,6 +89,8 @@ describe('settings config draft (WS bridge)', () => {
 			draft: {
 				defaultProviderId: '',
 				defaultModelId: '',
+				defaultEmbeddingProviderId: '',
+				defaultEmbeddingModelId: '',
 				serverLogs: 'default',
 				providers: [
 					{
@@ -131,6 +133,8 @@ describe('settings config draft (WS bridge)', () => {
 			draft: {
 				defaultProviderId: '',
 				defaultModelId: '',
+				defaultEmbeddingProviderId: '',
+				defaultEmbeddingModelId: '',
 				serverLogs: 'default',
 				providers: [
 					{
@@ -192,6 +196,8 @@ describe('settings config draft (WS bridge)', () => {
 			draft: {
 				defaultProviderId: '',
 				defaultModelId: '',
+				defaultEmbeddingProviderId: '',
+				defaultEmbeddingModelId: '',
 				serverLogs: 'default',
 				providers: [
 					{
@@ -211,6 +217,8 @@ describe('settings config draft (WS bridge)', () => {
 		const savePayload = draftToSavePayload('project', {
 			defaultProviderId: '',
 			defaultModelId: '',
+			defaultEmbeddingProviderId: '',
+			defaultEmbeddingModelId: '',
 			serverLogs: 'default',
 			providers: [
 				{
@@ -276,6 +284,8 @@ describe('settings config draft (WS bridge)', () => {
 			draft: {
 				defaultProviderId: '',
 				defaultModelId: '',
+				defaultEmbeddingProviderId: '',
+				defaultEmbeddingModelId: '',
 				serverLogs: 'default',
 				providers: [
 					{
@@ -327,6 +337,86 @@ describe('settings config draft (WS bridge)', () => {
 		expect(raw.provider?.[providerId]?.options?.apiKey).toBe(
 			'sk-session-fallback',
 		);
+	});
+
+	it('save persists embedding identity and round-trips on the draft snapshot', async () => {
+		const configPath = path.join(
+			projectDir,
+			'.langflower',
+			'langflower.jsonc',
+		);
+		const providerId = 'openai-embedding-default';
+
+		client['editor.settings.requested'].next({
+			open: true,
+			scope: 'project',
+		});
+
+		const dirty$ = waitDraft(
+			client,
+			(snap) =>
+				snap.scope === 'project' &&
+				snap.dirty &&
+				snap.draft.defaultEmbeddingModelId === 'text-embedding-3-small',
+		);
+
+		client['langflower.config.draft.patch.requested'].next({
+			scope: 'project',
+			draft: {
+				defaultProviderId: '',
+				defaultModelId: '',
+				defaultEmbeddingProviderId: 'openai',
+				defaultEmbeddingModelId: 'text-embedding-3-small',
+				serverLogs: 'default',
+				providers: [
+					{
+						id: providerId,
+						name: 'OpenAI',
+						baseURL: 'https://api.openai.com/v1',
+						modelsText: 'text-embedding-3-small',
+						apiKey: '',
+						hasApiKey: false,
+					},
+				],
+			},
+		});
+
+		await dirty$;
+
+		const savePayload = draftToSavePayload('project', {
+			defaultProviderId: '',
+			defaultModelId: '',
+			defaultEmbeddingProviderId: 'openai',
+			defaultEmbeddingModelId: 'text-embedding-3-small',
+			serverLogs: 'default',
+			providers: [
+				{
+					id: providerId,
+					name: 'OpenAI',
+					baseURL: 'https://api.openai.com/v1',
+					modelsText: 'text-embedding-3-small',
+					apiKey: '',
+					hasApiKey: false,
+				},
+			],
+		});
+
+		const saved$ = waitDraft(
+			client,
+			(snap) =>
+				snap.scope === 'project' &&
+				snap.dirty === false &&
+				snap.draft.defaultEmbeddingProviderId === 'openai' &&
+				snap.draft.defaultEmbeddingModelId === 'text-embedding-3-small',
+		);
+
+		client['langflower.config.save.requested'].next(savePayload);
+		await saved$;
+
+		const raw = JSON.parse(await fs.readFile(configPath, 'utf8')) as {
+			readonly embedding?: string;
+		};
+		expect(raw.embedding).toBe('openai/text-embedding-3-small');
 	});
 });
 

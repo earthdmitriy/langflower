@@ -191,39 +191,56 @@ The server also emits `langflower.config.snapshot` after `session.ready` (typed
 
 ## Embeddings
 
-Knowledge-base nodes (`common-kb-embed`, `common-kb-search`) use a **separate**
-embedding configuration from chat models. Add an `embedding` block next to your
-chat `model` / `provider` keys.
+Embedding **providers** use the same top-level `provider` map as chat (OpenAI-compatible
+`baseURL` / `apiKey` or `{env:…}`). The **default embedding identity** is one string
+next to chat `model` — same `"providerId/modelId"` shape:
 
-When `embedding` is **unset**, KB nodes fall back to a **local hashing**
-embedder (offline MVP — good enough for fixture / demos). Configure the block
-to use an OpenAI-compatible embedding API instead.
+```jsonc
+"model": "openai/gpt-4o-mini",
+"embedding": "openai/text-embedding-3-small",
+```
+
+Settings → **Default embedding model** (provider + model selects) writes this field
+for the active scope (Project or Global). Save with an empty embedding choice clears
+that layer (same as chat `model`). Hand-edit remains valid.
+
+**Catalog nodes** in palette group **Embeddings**:
+
+| Type                      | Role                                                               |
+| ------------------------- | ------------------------------------------------------------------ |
+| `common-embed-text`       | Manual check: `text` → `vector` + `dim` + compact `preview`        |
+| `common-embed-similarity` | Cosine between two JSON vectors — no HTTP, no provider panel       |
+| `common-embed-provider`   | Emits typed `EmbedHandle` on **`embed`** for custom-pack consumers |
+
+Empty panel `providerId` / `model` on embed-text / embed-provider fall back to the
+effective `embedding` default (same idea as LLM empty → `defaultChat`). Secrets stay
+server-side — packs wire the provider node and call `embedTexts`; they never see
+`apiKey` on `ExecutionContext`.
+
+This is **not** a revival of `.langflower/kb/` or `common-kb-*` vector storage
+([ADR-033](ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)). Pack-owned
+indexes (sqlite BLOBs, etc.) stay in the pack.
 
 ### Step-by-step
 
-1. **Choose an embedding provider** — usually the same vendor as chat (OpenAI,
-   local OpenAI-compatible server, etc.). The provider must already exist under
-   top-level `provider`.
-2. **Set `embedding.providerId`** to that provider’s key (e.g. `"openai"`,
-   `"lmstudio"`).
-3. **Set `embedding.model`** to the provider’s embedding model id (must exist in
-   `provider.<id>.models` or be accepted by the API).
-4. **Optional:** `embedding.dimensions` if the API supports multiple sizes.
-5. Restart or reload config; UI reads metadata via `langflowerConfig.get`.
+1. Ensure the provider exists under `provider` (same as chat).
+2. Settings → set **Default embedding model**, or hand-edit `"embedding"`.
+3. Optional: override provider/model on **Embed text** or **Embed provider** Inspector panels.
+4. **UC1 manual check:** `common-string` → `common-embed-text` → wire **`preview`** to
+   `common-preview` (optionally `vector` → `common-embed-similarity`).
+5. **UC2 pack path:** one `common-embed-provider`, fan-out **`embed`** to ingest and
+   search consumers. Ingest uses `embedTexts(..., { role: 'document' })`; search uses
+   `{ role: 'query' }`.
+
+HTTP uses OpenAI-compatible `POST /v1/embeddings`. Runner **Stop** aborts in-flight
+embed calls when nodes pass the teardown `AbortSignal`.
 
 ### Local LM Studio example
 
-Use the same local server as chat; many setups expose an embedding model on the
-same `baseURL`:
-
 ```jsonc
 {
-	"$schema": "https://opencode.ai/config.json",
 	"model": "lmstudio/local-model",
-	"embedding": {
-		"providerId": "lmstudio",
-		"model": "local-embedding",
-	},
+	"embedding": "lmstudio/local-embedding",
 	"provider": {
 		"lmstudio": {
 			"name": "LM Studio",
@@ -231,29 +248,20 @@ same `baseURL`:
 				"baseURL": "http://127.0.0.1:1234/v1",
 			},
 			"models": {
-				"local-model": {
-					"name": "Chat model (set id to match LM Studio)",
-				},
-				"local-embedding": {
-					"name": "Embedding model (load in LM Studio)",
-				},
+				"local-model": { "name": "Chat model" },
+				"local-embedding": { "name": "Embedding model" },
 			},
 		},
 	},
 }
 ```
 
-Load an embedding-capable model in LM Studio and set `local-embedding` to its id.
-
 ### OpenAI example
 
 ```jsonc
 {
 	"model": "openai/gpt-4o-mini",
-	"embedding": {
-		"providerId": "openai",
-		"model": "text-embedding-3-small",
-	},
+	"embedding": "openai/text-embedding-3-small",
 	"provider": {
 		"openai": {
 			"name": "OpenAI",
@@ -270,20 +278,19 @@ Load an embedding-capable model in LM Studio and set `local-embedding` to its id
 }
 ```
 
-Chat and embeddings share `provider.openai.options.apiKey` but use different
-`model` ids.
+Chat and embeddings share provider credentials but use different model ids in
+`model` vs `embedding`.
 
 ### Schema
 
-| Field                  | Required | Description                          |
-| ---------------------- | -------- | ------------------------------------ |
-| `embedding.providerId` | yes      | Key in `provider` map                |
-| `embedding.model`      | yes      | Embedding model id for that provider |
-| `embedding.dimensions` | no       | Vector size when API supports it     |
+| Field       | Required | Description                                                 |
+| ----------- | -------- | ----------------------------------------------------------- |
+| `embedding` | no       | Default `"providerId/modelId"` for Embeddings catalog nodes |
 
 Types: `packages/shared/src/types/langflower-config.ts`.
 
-See [features/node-library.md](features/node-library.md) §7.6 for KB node usage.
+SDK wire: `EmbedHandle` + `EMBED_HANDLE_WIRE_TYPE` from `@langflower/node-sdk`
+(not `ToolHandle`). See [node-library §7.7 Embeddings](features/node-library.md#77-embeddings).
 
 ## Harness permissions
 
@@ -343,7 +350,7 @@ Full agent presets: [features/node-library.md](features/node-library.md) §8.11.
 External tools via the [Model Context Protocol](https://modelcontextprotocol.io/).
 **Never** a substitute for harness builtins (`read`…`bash`).
 
-Two sources, **one** runtime protocol (`McpHandle`):
+Two sources, **one** runtime protocol (`ToolHandle[]`):
 
 ### System (`langflower.jsonc`)
 

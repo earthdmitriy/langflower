@@ -7,9 +7,9 @@ Quick map for agents: where to read and where to change code.
 `dependency → consumer` (the checked-in `package.json` files are authoritative):
 
 ```text
+runtime → node-sdk → tools → common-nodes
 runtime → node-sdk → common-nodes
 runtime → node-sdk → compiler → server
-tools ─────────────────────→ common-nodes
 runtime + node-sdk + websocket-bridge → shared
 runtime + node-sdk + tools + common-nodes
   + shared + websocket-bridge + compiler → server

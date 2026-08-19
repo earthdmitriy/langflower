@@ -11,6 +11,7 @@ Concrete modules only — **no `index.ts`** (forbidden repo-wide). Subpaths in
 - `src/resolve-workflow-node-definition.ts` — type → reactive definition lookup
 - `src/test-nodes/test-index.ts` — harness registry (when populated)
 - `src/ai/features/openai/` — unbound OpenAI chat/list-models factories (server binds secrets)
+- `src/embeddings/` — unbound embeddings HTTP factory (server binds secrets; catalog nodes)
 
 ## Dependencies
 
@@ -37,6 +38,7 @@ this package — import `@langflower/tools/build-mcp-handle` (etc.) inside nodes
 | `src/catalog.ts`                          | Node catalog (source of truth for shipped common nodes)                                                                        |
 | `src/resolve-workflow-node-definition.ts` | Type → reactive definition lookup (`getCommonReactiveNode`)                                                                    |
 | `src/ai/`                                 | LLM catalog under `ai/nodes/<node>/`; shared core under `ai/features/` (`llm-loop`, `llm-session`, `path-choice`, `openai`, …) |
+| `src/embeddings/`                         | Unbound embeddings HTTP (`create-embedding`) + Embeddings catalog nodes (`embed-text`, `embed-similarity`, `embed-provider`)   |
 | `src/tools/`                              | Runtime inventory helpers (`collect-agent-tool-handles`) + Tool collection catalog node                                        |
 | `src/mcp/`                                | Wire MCP nodes only (`mcp-stdio`, `mcp-http`) — helpers live in `@langflower/tools`                                            |
 | `src/hitl/`                               | Review Gate + Chat Input                                                                                                       |

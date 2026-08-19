@@ -232,6 +232,54 @@ describe('buildExecutionContext', () => {
 		});
 	});
 
+	it('injects createEmbedding and defaultEmbedding from config.embedding', async () => {
+		const configPath = path.join(
+			projectDir,
+			'.langflower',
+			'langflower.jsonc',
+		);
+		await fs.mkdir(path.dirname(configPath), { recursive: true });
+		await fs.writeFile(
+			configPath,
+			`${JSON.stringify(
+				{
+					embedding: 'openai/text-embedding-3-small',
+				},
+				null,
+				'\t',
+			)}\n`,
+			'utf8',
+		);
+		const isolatedGlobal = path.join(projectDir, 'absent-global.jsonc');
+
+		const ctx = await buildExecutionContext(
+			{
+				projectDir,
+				resolveDefinition: () => undefined,
+				langflowerConfigService: new LangflowerConfigService(
+					projectDir,
+					isolatedGlobal,
+				),
+			},
+			'run-1',
+			{
+				id: 'node-1',
+				type: 'common-openai-llm',
+				params: {},
+			},
+		);
+
+		expect(typeof getRunHostServices(ctx)?.createEmbedding).toBe(
+			'function',
+		);
+		expect(getRunHostServices(ctx)?.defaultEmbedding).toEqual({
+			providerId: 'openai',
+			model: 'text-embedding-3-small',
+		});
+		expect(JSON.stringify(ctx)).not.toMatch(/apiKey|sk-/);
+		expect(ctx).not.toHaveProperty('createEmbedding');
+	});
+
 	it('omits createChatCompletionStream for Fake LLM (imitate path)', async () => {
 		const ctx = await buildExecutionContext(
 			{
@@ -252,6 +300,9 @@ describe('buildExecutionContext', () => {
 		expect(
 			getRunHostServices(ctx)?.createChatCompletionStream,
 		).toBeUndefined();
+		expect(typeof getRunHostServices(ctx)?.createEmbedding).toBe(
+			'function',
+		);
 	});
 
 	it('injects toolHandles from @langflower/tools', async () => {

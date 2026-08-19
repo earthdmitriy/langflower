@@ -73,7 +73,7 @@ export const ALLOWED_WORKSPACE_DEPS: Readonly<
 	'websocket-bridge': [],
 	'node-sdk': ['@langflower/runtime'],
 	compiler: ['@langflower/node-sdk'],
-	tools: [],
+	tools: ['@langflower/node-sdk'],
 	shared: [
 		'@langflower/runtime',
 		'@langflower/node-sdk',

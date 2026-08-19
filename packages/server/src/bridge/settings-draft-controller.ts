@@ -277,13 +277,14 @@ export const createSettingsDraftController = (
 	): Promise<LangflowerConfig | null> => {
 		await ensureSeeded(scope);
 		const state = getState(scope);
-		// Prefer an explicit Save payload (provider/model/serverLogs) so a
-		// trailing draft.patch cannot race past commit. Otherwise persist the
-		// session draft (`{ scope }` only).
+		// Prefer an explicit Save payload (provider/model/embedding/serverLogs)
+		// so a trailing draft.patch cannot race past commit. Otherwise persist
+		// the session draft (`{ scope }` only).
 		const payload =
 			fallback !== undefined &&
 			(fallback.provider !== undefined ||
 				fallback.model !== undefined ||
+				fallback.embedding !== undefined ||
 				'serverLogs' in fallback)
 				? fallback
 				: state !== undefined
@@ -302,6 +303,9 @@ export const createSettingsDraftController = (
 		const layers = await context.langflowerConfigService.writeSettings({
 			scope: payload.scope,
 			...(payload.model !== undefined ? { model: payload.model } : {}),
+			...(payload.embedding !== undefined
+				? { embedding: payload.embedding }
+				: {}),
 			...(payload.provider !== undefined
 				? { provider: payload.provider }
 				: {}),

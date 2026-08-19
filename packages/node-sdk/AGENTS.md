@@ -19,7 +19,7 @@ src/node-factory/
     …
   define-node/                   ← defineNode (sync/Promise execute adapter)
   define-tool-registrations/     ← defineToolRegistrations + ToolHandle wire
-  define-mcp/                    ← McpHandle (import via /mcp)
+  define-embed/                  ← EmbedHandle + embed-handle wire (no factory yet)
   define-llm-node/               ← defineLlmNode (import via /llm)
 ```
 
@@ -28,8 +28,8 @@ src/node-factory/
 | `define-node/`               | `defineNode`              | `@langflower/node-sdk`     |
 | `define-reactive-node/`      | `defineReactiveNode`      | `@langflower/node-sdk`     |
 | `define-tool-registrations/` | `defineToolRegistrations` | `@langflower/node-sdk`     |
+| `define-embed/`              | types / wire / guard only | `@langflower/node-sdk`     |
 | `define-llm-node/`           | `defineLlmNode`           | `@langflower/node-sdk/llm` |
-| `define-mcp/`                | —                         | `@langflower/node-sdk/mcp` |
 
 Do **not** drop a second factory into `define-reactive-node/` as a loose `.ts`
 file — add a sibling folder. The main entry may re-export sibling factories for
@@ -45,12 +45,12 @@ the public `@langflower/node-sdk` import path.
 | `makeInput`, `configureOutput` | Exported pure IO helpers (`io-helpers.ts`)                               |
 | `ExecutionContext<UI, Caps>`   | Identity + panel; Caps default `{}`                                      |
 | `ToolHandle`                   | Wire payload for agent tools                                             |
+| `EmbedHandle`                  | Canvas wire payload for batch embeddings (not agent inventory)           |
 | `ToolHandlerContext`           | Identity only (`projectDir` / `runId`) — see boundary below              |
 
 | Subpath | Symbols                                                                   |
 | ------- | ------------------------------------------------------------------------- |
 | `/llm`  | `defineLlmNode`, `LlmExecutionCaps` (`toolHandles` only), inventory ports |
-| `/mcp`  | `McpHandle` (internal session type — not a canvas wire)                   |
 
 Host I/O (`files` / `crawl` / chat stream / skills) is **not**
 on public `ExecutionContext`. Specialized common-nodes create it via
@@ -118,10 +118,12 @@ import {
 	type ExecutionContext,
 	type ToolHandle,
 	TOOL_HANDLE_WIRE_TYPE,
+	type EmbedHandle,
+	EMBED_HANDLE_WIRE_TYPE,
+	isEmbedHandle,
 } from '@langflower/node-sdk';
 
 import { defineLlmNode } from '@langflower/node-sdk/llm';
-import type { McpHandle } from '@langflower/node-sdk/mcp';
 
 import { createTypedUISchema } from '@langflower/node-sdk/create-typed-ui-schema';
 ```

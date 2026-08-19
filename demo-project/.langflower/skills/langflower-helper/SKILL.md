@@ -111,6 +111,17 @@ do not say coding pipelines “don’t exist” or are unavailable.
 - **Cannot:** Treat Settings as the selected-node inspector (ports/params).
 - **Cannot:** Reveal a saved API key in the UI.
 
+### 4b. Embeddings
+
+- **Can:** Settings **Default embedding model** (`embedding: "providerId/modelId"`);
+  palette **Embeddings** — `common-embed-text`, `common-embed-similarity`,
+  `common-embed-provider`; custom packs wire **`embed`** (`EmbedHandle` from
+  `@langflower/node-sdk`); server binds embedding HTTP — packs never see
+  `apiKey`. Manual check: String → Embed text → Preview on **`preview`**.
+- **Cannot:** Vector KB / `.langflower/kb/` / `common-kb-*` as base product
+  ([ADR-033](../../../../../docs/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
+  Use `ToolHandle` for batch float vectors.
+
 ### 5. Editor chrome
 
 - **Can:** Chat Input graphs start from the composer **Start** control. Plain
@@ -214,8 +225,9 @@ Sub-Agent is an **explicit canvas node** for **control and observability**
   `kb-create` (index with `glob` → `history/work-queue.md` → serial
   Explorer/Composer units into `core/*` + `modules/*`) and `kb-navigate`.
   Managed markdown under `.langflower/memory/` (also reachable with harness
-  file tools). No vector KB / embedding as base
-  ([ADR-033](../../../../../docs/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
+  file tools). **Embeddings** catalog nodes + Settings default embedding model
+  are shipped for API checks and pack **`EmbedHandle`** wiring — separate from
+  vector KB ([ADR-033](../../../../../docs/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
   Obsidian vault helpers are **not** shipped (TBD-007).
 - **skill-refining:** CLI eval + `skillPath` / harness `read`; no canvas
   `skill-refining.json` demo.
@@ -234,7 +246,7 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
   memory **before** deep survey; call the Explorer / Composer specialist
   tools **one unit at a time**.
 - **Cannot:** Recommend one LLM that “reads the whole repo once and dumps a
-  wiki”. Claim vector/embedding KB as base. Claim Obsidian vault helpers as
+  wiki”. Claim vector/`common-kb-*` KB as base. Claim Obsidian vault helpers as
   shipped.
 
 ### 11. Custom nodes

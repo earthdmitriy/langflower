@@ -110,8 +110,7 @@ export const mcpHttpNode = defineReactiveNode({
 									return;
 								}
 
-								const handle = await buildMcpHandle({
-									id: params.nodeId,
+								const tools = await buildMcpHandle({
 									client: session.client,
 								});
 
@@ -120,7 +119,7 @@ export const mcpHttpNode = defineReactiveNode({
 									return;
 								}
 
-								subscriber.next(handle.tools);
+								subscriber.next(tools);
 							};
 
 							void run().catch(fail);

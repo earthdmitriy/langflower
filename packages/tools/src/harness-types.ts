@@ -24,7 +24,7 @@ export type BuiltinToolRegistration = {
 
 /**
  * Project harness surface (builtins + optional webFetch).
- * MCP tools are not on the harness — agents consume wired `McpHandle` values.
+ * MCP tools are not on the harness — agents consume wired `ToolHandle[]`.
  */
 export type Harness = {
 	readonly invoke: (call: ToolInvokeCall) => Promise<ToolInvokeResult>;

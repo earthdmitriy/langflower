@@ -19,10 +19,6 @@ export default defineConfig({
 				ROOT,
 				'packages/node-sdk/src/node-factory/define-llm-node/define-llm-node.ts',
 			),
-			'@langflower/node-sdk/mcp': path.join(
-				ROOT,
-				'packages/node-sdk/src/node-factory/define-mcp/mcp-handle.ts',
-			),
 			'@langflower/node-sdk/create-typed-ui-schema': path.join(
 				ROOT,
 				'packages/node-sdk/src/node-factory/define-reactive-node/ui-schema-inference.ts',
@@ -53,6 +49,10 @@ export default defineConfig({
 					ROOT,
 					'packages/common-nodes/src/ai/features/openai/list-provider-models.ts',
 				),
+			'@langflower/common-nodes/embeddings/create-embedding': path.join(
+				ROOT,
+				'packages/common-nodes/src/embeddings/create-embedding.ts',
+			),
 			'@langflower/common-nodes': path.join(
 				ROOT,
 				'packages/common-nodes/src/catalog.ts',

@@ -29,6 +29,10 @@
 		"./ai/openai/list-provider-models": {
 			"types": "./dist/ai/features/openai/list-provider-models.d.ts",
 			"import": "./dist/ai/features/openai/list-provider-models.js"
+		},
+		"./embeddings/create-embedding": {
+			"types": "./dist/embeddings/create-embedding.d.ts",
+			"import": "./dist/embeddings/create-embedding.js"
 		}
 	},
 	"scripts": {

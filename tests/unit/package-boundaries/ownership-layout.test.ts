@@ -82,6 +82,48 @@ describe('ownership layout boundaries', () => {
 		expect(offenders).toEqual([]);
 	});
 
+	it('node-sdk does not expose McpHandle or ./mcp', () => {
+		const offenders: string[] = [];
+		const defineMcpDir = path.join(
+			ROOT,
+			'packages/node-sdk/src/node-factory/define-mcp',
+		);
+		if (existsSync(defineMcpDir)) {
+			offenders.push('packages/node-sdk/src/node-factory/define-mcp/');
+		}
+
+		const pkg = readJson<PackageJsonExports>(
+			path.join(ROOT, 'packages/node-sdk/package.json'),
+		);
+		for (const key of Object.keys(pkg.exports ?? {})) {
+			if (key === './mcp' || key.includes('mcp')) {
+				offenders.push(
+					`node-sdk package.json exports ${key} (McpHandle must not be a public SDK type)`,
+				);
+			}
+		}
+
+		const srcRoot = path.join(ROOT, 'packages/node-sdk/src');
+		for (const file of collectTsFiles(srcRoot)) {
+			const text = readFileSync(file, 'utf8');
+			if (text.includes('McpHandle')) {
+				offenders.push(`McpHandle in ${relPath(file)}`);
+			}
+		}
+
+		const vitestConfig = readFileSync(
+			path.join(ROOT, 'vitest.config.mjs'),
+			'utf8',
+		);
+		if (vitestConfig.includes('@langflower/node-sdk/mcp')) {
+			offenders.push(
+				'vitest.config.mjs must not alias @langflower/node-sdk/mcp',
+			);
+		}
+
+		expect(offenders).toEqual([]);
+	});
+
 	it('tools owns MCP handle / connect-error / system-pool modules and exports', () => {
 		const offenders: string[] = [];
 		const mcpDir = path.join(ROOT, 'packages/tools/src/mcp');
@@ -127,6 +169,12 @@ describe('ownership layout boundaries', () => {
 		) {
 			offenders.push(
 				'build-execution-context.ts must not import MCP utils from @langflower/common-nodes',
+			);
+		}
+
+		if (text.includes('@langflower/node-sdk/mcp')) {
+			offenders.push(
+				'build-execution-context.ts must not import @langflower/node-sdk/mcp',
 			);
 		}
 

@@ -56,7 +56,6 @@ under `packages/node-sdk/src/node-factory/`:
 - `define-reactive-node/` — `defineReactiveNode` + co-located IO helpers / ctx types
 - `define-tool-registrations/` — `defineToolRegistrations` + `ToolHandle` types
 - `define-llm-node/` — `defineLlmNode` (import `@langflower/node-sdk/llm`)
-- `define-mcp/` — `McpHandle` (import `@langflower/node-sdk/mcp`)
 
 Add a new factory as a **sibling folder**, not a loose file inside another
 factory. Details: [packages/node-sdk/AGENTS.md](../packages/node-sdk/AGENTS.md).
@@ -144,7 +143,8 @@ From `@langflower/node-sdk` (published `exports` only):
 | `configureOutput`         | Output helper outside `bind`           |
 | `createTypedUISchema`     | Panel schema helper (optional subpath) |
 
-LLM / MCP: `@langflower/node-sdk/llm` and `/mcp` — not on `.`.
+LLM: `@langflower/node-sdk/llm` — not on `.`. MCP inventory is `ToolHandle[]`
+(`@langflower/tools/build-mcp-handle`); the author SDK has no MCP type.
 
 `combineInputs` is supplied only to the `bind` callback. Use the destructured
 helper shown below; do not invent a deep import for its implementation.

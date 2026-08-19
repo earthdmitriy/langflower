@@ -161,6 +161,7 @@ The checked-in `package.json` dependencies are the executable DAG; this summary
 uses `dependency → consumer`:
 
 ```text
+node-sdk → tools
 node-sdk → common-nodes
 runtime ─────────→ common-nodes   (execution; no authoring SDK dep)
 tools ───────────→ common-nodes
@@ -234,8 +235,8 @@ and provider adapters must not accumulate under `packages/server/src/`.
    capabilities** from `@langflower/tools` (for example domain tool configs,
    HTML helpers, or crawl composition). Node `bind` code must not perform host
    I/O directly; I/O is invoked through injected `ctx.*` capabilities or
-   attached handlers. Tools must not depend on server, shared, or
-   node-sdk.
+   attached handlers. Tools must not depend on server or shared; they may
+   import `@langflower/node-sdk` for author types (`ToolHandle`).
 3. New project I/O or protocol clients → **tools** first. New LLM provider
    HTTP adapters → **common-nodes** (`ai/<provider>/`), with a thin server bind
    for secrets.

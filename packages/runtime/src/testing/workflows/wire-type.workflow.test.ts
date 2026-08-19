@@ -215,4 +215,78 @@ describe('wire type workflow', () => {
 
 		expect(runtime.editor.getEdges()).toHaveLength(2);
 	});
+
+	it('accepts addEdge when embed-handle output matches embed-handle input', () => {
+		const runtime = createRuntimeHarness();
+		runtime.editor.addNode(
+			createSourceNode({
+				nodeId: 'embed-source',
+				wireType: 'embed-handle',
+				value: {},
+			}),
+		);
+		runtime.editor.addNode(
+			createSinkNode({
+				nodeId: 'embed-sink',
+				wireType: 'embed-handle',
+			}),
+		);
+
+		wireEdge(runtime.editor, {
+			fromNodeId: 'embed-source',
+			fromPort: ['value', 0],
+			toNodeId: 'embed-sink',
+			toPort: ['value', 0],
+		});
+
+		expect(runtime.editor.getEdges()).toHaveLength(1);
+	});
+
+	it('rejects addEdge between tool-handle and embed-handle', () => {
+		const runtime = createRuntimeHarness();
+		runtime.editor.addNode(
+			createSourceNode({
+				nodeId: 'tools-source',
+				wireType: 'tool-handle',
+				value: {},
+			}),
+		);
+		runtime.editor.addNode(
+			createSinkNode({
+				nodeId: 'embed-sink',
+				wireType: 'embed-handle',
+			}),
+		);
+		runtime.editor.addNode(
+			createSourceNode({
+				nodeId: 'embed-source',
+				wireType: 'embed-handle',
+				value: {},
+			}),
+		);
+		runtime.editor.addNode(
+			createSinkNode({
+				nodeId: 'tools-sink',
+				wireType: 'tool-handle',
+			}),
+		);
+
+		expect(
+			runtime.editor.addEdge({
+				fromNodeId: 'tools-source',
+				fromPort: ['value', 0],
+				toNodeId: 'embed-sink',
+				toPort: ['value', 0],
+			}),
+		).toBe(false);
+		expect(
+			runtime.editor.addEdge({
+				fromNodeId: 'embed-source',
+				fromPort: ['value', 0],
+				toNodeId: 'tools-sink',
+				toPort: ['value', 0],
+			}),
+		).toBe(false);
+		expect(runtime.editor.getEdges()).toEqual([]);
+	});
 });

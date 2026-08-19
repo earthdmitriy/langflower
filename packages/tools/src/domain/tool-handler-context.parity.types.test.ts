@@ -1,10 +1,9 @@
 /**
  * Contract: tools `ToolHandlerContext` (identity + optional host hooks)
  * remains assignable both ways with the SDK identity-only
- * `ToolHandlerContext` (`projectDir` / `runId`). Test-only relative import
- * of the SDK facade — production tools must not depend on node-sdk.
+ * `ToolHandlerContext` (`projectDir` / `runId`).
  */
-import type { ToolHandlerContext as SdkCtx } from '../../../node-sdk/src/node-factory/define-tool-registrations/tool-handle.js';
+import type { ToolHandlerContext as SdkCtx } from '@langflower/node-sdk';
 import {
 	assertTypeEqual,
 	type ExpectEqual,

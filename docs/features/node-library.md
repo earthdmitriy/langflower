@@ -71,16 +71,24 @@ that does **not** make coding-agent Implementable.
 - **Output** — Preview + Finish **shipped**.
 - **Harness (target)** — Read/List/Glob/Grep/Web Fetch/Write/Edit/Bash as
   palette nodes and/or agent tools — **not shipped** (epic 01).
-- **Knowledge / Crawl** — KB pipeline (epic 10) + crawl nodes (epic 12) in catalog.
+- **Embeddings** — Embed text, Embed similarity, Embed provider (`EmbedHandle`
+  wire for custom packs) — epic 42 **landed**.
+- **Memory** — `common-memory-tools` → `.langflower/memory/` (markdown tools;
+  not vector KB — [ADR-033](../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
+- **Knowledge / Crawl** — vector KB pipeline **removed** (ADR-033); crawl nodes
+  (epic 12) in catalog.
 
 A typical "hard harness" pipeline chains agent and gate nodes so a step's
 success is verified before the next step runs, e.g.:
 Plan → Assert(plan valid) → [fail: Refine] / [pass: Implement] → Assert(tests
 pass) → Review → QA.
 
-A typical knowledge-base pipeline is `Glob → Read File → KB Ingest → KB
-Embed` to build an index, and `String (question) → KB Search → Agent
-userPrompt` to query it.
+**Historical:** vector KB graph nodes (`common-kb-*`) were removed (ADR-033).
+Use **Embeddings** catalog nodes + pack-owned storage, or markdown memory tools.
+
+A typical **Embeddings** manual check is `String → common-embed-text → Preview`
+on **`preview`**, optionally `vector → common-embed-similarity`. Custom packs
+wire `common-embed-provider.embed → consumer.embed` (`EmbedHandle`).
 
 Every harness node that reads/writes files or makes HTTP requests is
 constrained to the current project's root directory, denies a default list
@@ -611,39 +619,45 @@ Server module: `packages/server/src/harness/` — **not present** (epic 01).
 | Preview | `common-preview` | —   | **done** | Display wired value on canvas + work log |
 | Finish  | `common-finish`  | —   | **done** | `stopsRun` sink                          |
 
-### 7.7 Knowledge base
+### 7.7 Embeddings
 
-Storage root: `<project>/.langflower/kb/` — **file-based MVP** (**done**, epic 10).
+OpenAI-compatible embeddings via server-bound credentials. Settings default:
+`embedding: "providerId/modelId"` ([CONFIG § Embeddings](../CONFIG.md#embeddings)).
+
+| Node             | Type                      | P   | Status   | Description                                                                   |
+| ---------------- | ------------------------- | --- | -------- | ----------------------------------------------------------------------------- |
+| Embed text       | `common-embed-text`       | P1  | **done** | `text` → `vector` (json) + `dim` + compact `preview`; optional panel override |
+| Embed similarity | `common-embed-similarity` | P1  | **done** | Two `vector` (json) → `score` (cosine); no HTTP, no provider panel            |
+| Embed provider   | `common-embed-provider`   | P1  | **done** | `embed` out (`embed-handle` / `EmbedHandle`) for batch pack consumers         |
+
+**UC1:** `String → Embed text → Preview` on **`preview`**. **UC2:** one Embed
+provider, fan-out **`embed`** to pack ingest/search. Ingest:
+`embedTexts(..., { role: 'document' })`; search: `{ role: 'query' }`. Do **not**
+wire agent `tools` for float batches — use `EmbedHandle` ([ADR-033](../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
+
+### 7.7b Removed — vector knowledge base
+
+Former `.langflower/kb/` pipeline and `common-kb-*` palette nodes are **removed**
+([ADR-033](../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base),
+[STATUS](../STATUS.md)). Agent memory uses `common-memory-tools` under
+`.langflower/memory/`. Contradiction-curation use-case docs describe historical
+graph shapes only.
+
+**Historical layout (removed):**
 
 ```
 .langflower/kb/
-├── manifest.json              # collections, doc ids, updatedAt
-└── collections/
-    └── {collectionId}/
-        ├── chunks.jsonl       # one JSON object per line: { id, text, meta }
-        └── vectors.bin        # raw float32 vectors, index-aligned with chunks.jsonl
+├── manifest.json
+└── collections/{collectionId}/chunks.jsonl + vectors.bin
 ```
 
-| Node              | Type                       | P   | Status   | Description                                                        |
-| ----------------- | -------------------------- | --- | -------- | ------------------------------------------------------------------ |
-| KB Tools          | `common-kb-tools`          | P1  | **done** | Pack → agent `tools` (`kb_ingest`…`kb_delete`); primary agent path |
-| KB Ingest         | `common-kb-ingest`         | P1  | **done** | Secondary I/O: text → chunks on disk                               |
-| KB Embed          | `common-kb-embed`          | P1  | **done** | Secondary I/O: chunks → vectors                                    |
-| KB Search         | `common-kb-search`         | P1  | **done** | Secondary I/O: query → top-K JSON                                  |
-| KB List           | `common-kb-list`           | P2  | **done** | Secondary I/O: list collections / documents                        |
-| KB Delete         | `common-kb-delete`         | P2  | **done** | Secondary I/O: remove collection / document / chunks               |
-| KB Dedupe         | `common-kb-dedupe`         | P2  | **done** | Near-duplicate packet vs live KB (no write) — epic 25              |
-| KB Contradict     | `common-kb-contradict`     | P2  | **done** | Contradiction merge packet + proposed write/edit/delete — epic 25  |
-| KB Apply Curation | `common-kb-apply-curation` | P2  | **done** | Gated apply of approved merge packet — epic 25                     |
-
-**Agent path:** `common-kb-tools` → LLM `tools` (internal invoke).
-
-**Graph I/O:** `Glob → Read File → KB Ingest → KB Embed` /
-`String (question) → KB Search → LLM.userPrompt`
-
-**Contradiction curation:** candidates → `KB Dedupe` → `KB Contradict` →
-HITL → `KB Apply Curation` (accept only). Ingest-only graphs are **not** that
-Value — see [kb-contradiction-curation](../use-cases/kb-contradiction-curation.md).
+| Node (removed)   | Type               |
+| ---------------- | ------------------ |
+| KB Tools         | `common-kb-tools`  |
+| KB Ingest        | `common-kb-ingest` |
+| KB Embed         | `common-kb-embed`  |
+| KB Search        | `common-kb-search` |
+| KB List/Delete/… | `common-kb-*`      |
 
 ### 7.7a Obsidian vault helpers
 
@@ -947,6 +961,7 @@ sections of this file — treat `catalog.ts` + this table as the palette SoT.
 | Section        | Nodes (shipped grouping)                                                    |
 | -------------- | --------------------------------------------------------------------------- |
 | **AI**         | OpenAI LLM, Fake LLM, Sub-Agent, Review, Critique                           |
+| **Embeddings** | Embed text, Embed similarity, Embed provider                                |
 | **Tools**      | MCP stdio, MCP http, Memory Tools, Crawl Tools, Tool collection             |
 | **Primitives** | String, Number, Boolean, Set Fields, JSON Parse/Stringify                   |
 | **Flow**       | Router only (primary)                                                       |
@@ -1088,11 +1103,15 @@ Standalone harness nodes still run in batch order when not wired to an agent.
 
 Denied call → tool result error to LLM; repeated failures can trigger Assert downstream.
 
-### 11.5 Embedding provider (KB)
+### 11.5 Embedding provider (catalog)
 
-Separate from chat LLM. See [CONFIG.md § Embeddings](../CONFIG.md#embeddings) for
-how to fill `langflower.jsonc`. `common-kb-embed` and `common-kb-search` use
-`embedding.providerId` + `embedding.model` only.
+Settings default + catalog Embeddings nodes. See
+[CONFIG.md § Embeddings](../CONFIG.md#embeddings). Effective identity is
+`embedding: "providerId/modelId"` (distinct from chat `model`). `common-embed-text`
+and `common-embed-provider` call `POST /v1/embeddings` via server-bound
+credentials; empty panel fields fall back to the Settings default.
+`common-embed-provider` emits `EmbedHandle` on wire type `embed-handle` for custom
+packs — **not** `ToolHandle`. Similarity is offline cosine only.
 
 ---
 
@@ -1264,6 +1283,7 @@ boundary in the same change.
 | Type                | Use                                                   |
 | ------------------- | ----------------------------------------------------- |
 | `tool-registration` | Harness → Agent `tools` (multi); tool manifest record |
+| `embed-handle`      | Embed provider → pack consumer; live `EmbedHandle`    |
 | `file-path`         | Relative path within project root                     |
 | `url`               | Validated HTTP(S) URL                                 |
 | `phase`             | `plan` \| `refine` \| `implement` \| `review` \| `qa` |
@@ -1315,18 +1335,19 @@ Capability epics 01–16 are archived under DONE; do not reopen as a Stage DAG.
 
 ## 19. Resolved decisions
 
-| Topic                 | Decision                                                                                                        |
-| --------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Tool loop wiring      | **Agent preset nodes** (Plan/Coder/Explorer) with bundled tools; harness nodes connectable via `tools`          |
-| Embedding provider    | **Separate `embedding` block** in `langflower.jsonc` — see [CONFIG.md](../CONFIG.md#embeddings)                 |
-| Glob / Grep           | **Respect `.gitignore` by default** (ripgrep)                                                                   |
-| Bash                  | **`deny` by default**; **`ask`** where agent preset allows (Coder); configurable patterns in `langflower.jsonc` |
-| Write / edit / create | **`allow` by default**; `delete` **`ask`**; Plan/Explorer postures still tighten                                |
-| Structured output     | **`structuredOutput` param** on agent and Review nodes — not a separate node type                               |
-| Rollout / roadmap     | **Use-case Status** (Partial → Implementable) — [PRODUCT.md](../PRODUCT.md); no Stage 1/2/3                     |
-| Switch outputs        | **Dynamic output ports** from `rules` param                                                                     |
-| KB vector storage     | **File-based** — `chunks.jsonl` + `vectors.bin` under `.langflower/kb/`                                         |
-| `tools` wiring        | Wire type **`tool-registration`**, **multi** port on agent                                                      |
+| Topic                 | Decision                                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tool loop wiring      | **Agent preset nodes** (Plan/Coder/Explorer) with bundled tools; harness nodes connectable via `tools`                                     |
+| Embedding provider    | **`embedding: "providerId/modelId"`** in config + Embeddings catalog nodes — [CONFIG § Embeddings](../CONFIG.md#embeddings); not vector KB |
+| KB vector storage     | **Removed** — ADR-033; use markdown memory tools + optional pack-owned indexes via `EmbedHandle`                                           |
+| Glob / Grep           | **Respect `.gitignore` by default** (ripgrep)                                                                                              |
+| Bash                  | **`deny` by default**; **`ask`** where agent preset allows (Coder); configurable patterns in `langflower.jsonc`                            |
+| Write / edit / create | **`allow` by default**; `delete` **`ask`**; Plan/Explorer postures still tighten                                                           |
+| Structured output     | **`structuredOutput` param** on agent and Review nodes — not a separate node type                                                          |
+| Rollout / roadmap     | **Use-case Status** (Partial → Implementable) — [PRODUCT.md](../PRODUCT.md); no Stage 1/2/3                                                |
+| Switch outputs        | **Dynamic output ports** from `rules` param                                                                                                |
+| `tools` wiring        | Wire type **`tool-handle`** / **`tool-registration`**, **multi** port on agent                                                             |
+| `embed` wiring        | Wire type **`embed-handle`** — live `EmbedHandle`; not agent inventory                                                                     |
 
 ## 20. Open questions
 

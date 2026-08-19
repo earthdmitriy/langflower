@@ -6,7 +6,7 @@ Legend: **done** · **partial** · **stub** (NODE.md / placeholder only) · **pl
 
 **Roadmap:** [use-cases/README.md](use-cases/README.md) (Status gaps —
 Partial → Implementable; north star coding-agent) ·
-[TODO/EPICS/README.md](TODO/EPICS/README.md) (queue empty — mint from Missing parts) ·
+[TODO/EPICS/README.md](TODO/EPICS/README.md) (active queue: see file) ·
 [features/README.md](features/README.md) (UI / capability contracts) ·
 [DONE/EPICS/README.md](DONE/EPICS/README.md) (completed epics archive **00–36**) ·
 [DONE/LLM-NODES/llm-nodes-README.md](DONE/LLM-NODES/llm-nodes-README.md) (LLM foundation 1–6).
@@ -18,8 +18,8 @@ docs use **Value → UX scenarios → UI specs → Runtime → Status**. Agent r
 epics **00–25** are archived in DONE; **no** use case is Implementable yet
 (real-LLM / live-provider bars). Catalog `done` ≠ use-case Implementable.
 Persona / multi-role-approval identity UC **removed** (epic 15); multi-gate HITL =
-[hitl-chat](features/hitl-chat.md) tabs. New epic numbers only when a UC Missing
-part demands them — [TODO/EPICS](TODO/EPICS/README.md).
+[hitl-chat](features/hitl-chat.md) tabs. Active queue:
+[TODO/EPICS](TODO/EPICS/README.md) (see active queue).
 
 **Live LLM / MCP verify gap:** CI uses Fake + scripted `tool_calls` only.
 Maintainer has **no** OpenAI-compatible cloud API access right now — real model
@@ -210,6 +210,9 @@ shipped**.
 | Compare                   | `common-compare`          | **done**    | Hard harness (epic 06)                                                                      |
 | Switch                    | `common-switch`           | **done**    | Hard harness (epic 06); static `pass`/`fail`/`default` ports                                |
 | Memory Tools              | `common-memory-tools`     | **done**    | ADR-033 — markdown tools under `.langflower/memory/`                                        |
+| Embed text                | `common-embed-text`       | **done**    | Epic 42 — Settings default + compact preview; raw texts (no e5)                             |
+| Embed similarity          | `common-embed-similarity` | **done**    | Epic 42 — cosine; no provider panel                                                         |
+| Embed provider            | `common-embed-provider`   | **done**    | Epic 42 — `embed-handle` / `EmbedHandle` for pack consumers                                 |
 | Tool collection           | `common-tool-collection`  | **done**    | Optional hub: combine `tools` → one `ToolHandle[]` (last-wins; ADR-035)                     |
 | Fetch URL                 | `common-fetch-url`        | **done**    | Epic 12 — SSRF-guarded GET + HTML→text                                                      |
 | Extract Links             | `common-extract-links`    | **done**    | Epic 12 — HTML → absolute links                                                             |

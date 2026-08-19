@@ -37,6 +37,7 @@ describe('LangflowerConfigService', () => {
 				{
 					currentWorkflowId: 'example',
 					model: 'openai/gpt-4o-mini',
+					embedding: 'openai/text-embedding-3-small',
 					provider: { openai: { name: 'OpenAI' } },
 					permission: {
 						bash: { '*': 'deny', 'npm test': 'ask' },
@@ -53,6 +54,7 @@ describe('LangflowerConfigService', () => {
 		await expect(service.read()).resolves.toEqual({
 			currentWorkflowId: 'example',
 			model: 'openai/gpt-4o-mini',
+			embedding: 'openai/text-embedding-3-small',
 			provider: { openai: { name: 'OpenAI' } },
 			permission: {
 				bash: { '*': 'deny', 'npm test': 'ask' },
@@ -281,6 +283,34 @@ describe('LangflowerConfigService', () => {
 		});
 	});
 
+	it('merges project embedding over global and keeps global when project omits it', async () => {
+		const globalPath = path.join(projectDir, 'global-langflower.jsonc');
+		service = new LangflowerConfigService(projectDir, globalPath);
+
+		await fs.mkdir(path.join(projectDir, '.langflower'), {
+			recursive: true,
+		});
+		await fs.writeFile(
+			globalPath,
+			`${JSON.stringify({ embedding: 'global/e' }, null, '\t')}\n`,
+			'utf8',
+		);
+
+		await expect(service.read()).resolves.toEqual({
+			embedding: 'global/e',
+		});
+
+		await fs.writeFile(
+			path.join(projectDir, '.langflower', 'langflower.jsonc'),
+			`${JSON.stringify({ embedding: 'project/e' }, null, '\t')}\n`,
+			'utf8',
+		);
+
+		await expect(service.read()).resolves.toEqual({
+			embedding: 'project/e',
+		});
+	});
+
 	it('writeSettings preserves apiKey when key input is empty', async () => {
 		const globalPath = path.join(projectDir, 'global-langflower.jsonc');
 		service = new LangflowerConfigService(projectDir, globalPath);
@@ -422,5 +452,35 @@ describe('LangflowerConfigService', () => {
 		};
 		expect(raw).not.toHaveProperty('serverLogs');
 		expect((await service.read()).serverLogs).toBeUndefined();
+	});
+
+	it('writeSettings writes and clears embedding on the active scope', async () => {
+		const configPath = path.join(
+			projectDir,
+			'.langflower',
+			'langflower.jsonc',
+		);
+
+		await service.writeSettings({
+			scope: 'project',
+			embedding: 'openai/text-embedding-3-small',
+		});
+		let raw = JSON.parse(await fs.readFile(configPath, 'utf8')) as {
+			readonly embedding?: string;
+		};
+		expect(raw.embedding).toBe('openai/text-embedding-3-small');
+		expect((await service.read()).embedding).toBe(
+			'openai/text-embedding-3-small',
+		);
+
+		await service.writeSettings({
+			scope: 'project',
+			embedding: '',
+		});
+		raw = JSON.parse(await fs.readFile(configPath, 'utf8')) as {
+			readonly embedding?: string;
+		};
+		expect(raw).not.toHaveProperty('embedding');
+		expect((await service.read()).embedding).toBeUndefined();
 	});
 });

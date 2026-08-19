@@ -40,6 +40,21 @@ describe('mergeLangflowerConfigLayers', () => {
 		expect(merged.provider?.x?.name).toBe('X');
 	});
 
+	it('lets project embedding win over global', () => {
+		const merged = mergeLangflowerConfigLayers(
+			{ embedding: 'global/e' },
+			{ embedding: 'project/e' },
+		);
+		expect(merged.embedding).toBe('project/e');
+	});
+
+	it('keeps global embedding when project omits it', () => {
+		expect(
+			mergeLangflowerConfigLayers({ embedding: 'global/e' }, {})
+				.embedding,
+		).toBe('global/e');
+	});
+
 	it('lets project serverLogs win over global when set', () => {
 		expect(
 			mergeLangflowerConfigLayers(

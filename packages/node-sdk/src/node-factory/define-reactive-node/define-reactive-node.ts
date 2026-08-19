@@ -56,6 +56,15 @@ export type {
 } from '../define-tool-registrations/tool-handle.js';
 export { TOOL_HANDLE_WIRE_TYPE } from '../define-tool-registrations/tool-handle.js';
 export type {
+	EmbedHandle,
+	EmbedTextRole,
+	EmbedTextsOptions,
+} from '../define-embed/embed-handle.js';
+export {
+	EMBED_HANDLE_WIRE_TYPE,
+	isEmbedHandle,
+} from '../define-embed/embed-handle.js';
+export type {
 	DefinedReactiveNodeConfig,
 	ExecutionContext,
 	ReactiveNodeInstance,

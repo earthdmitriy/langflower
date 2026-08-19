@@ -24,7 +24,6 @@ when you need RxJS streams. Project packs:
 | `define-reactive-node/`      | `defineReactiveNode` (+ IO helpers, base ctx) |
 | `define-tool-registrations/` | `defineToolRegistrations` (+ `ToolHandle`)    |
 | `define-llm-node/`           | `defineLlmNode` — `@langflower/node-sdk/llm`  |
-| `define-mcp/`                | `McpHandle` — `@langflower/node-sdk/mcp`      |
 
 New factories → new sibling folder. Do not add loose factory files inside
 another factory’s directory.
@@ -450,7 +449,8 @@ const context$ = combineInputs(
 Skill bodies, API keys, files/kb/crawl, and chat factories are **not** public
 EC fields. Specialized LLM wiring in common-nodes reads a private run-host bag
 seeded by the server; graph I/O nodes call `@langflower/tools` `create*`
-helpers. Custom authors reach the outside world via **ToolHandle** / MCP.
+helpers. Custom authors reach the outside world via **ToolHandle**
+(including MCP tools).
 See [LLM_NODES.md](LLM_NODES.md).
 ---
 

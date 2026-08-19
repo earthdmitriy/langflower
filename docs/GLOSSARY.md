@@ -372,7 +372,8 @@ Mechanics: HITL-marked ports / Review Gate / Review / `config.hitl`;
 
 Product meaning: [MCP](#mcp).
 
-Mechanics: `ToolHandle` / `McpHandle` wiring; system vs node-local MCP.
+Mechanics: `ToolHandle[]` on agent `tools` (wired MCP nodes) and flattened
+jsonc MCP via `createSystemMcpHandles`; system vs node-local MCP.
 Injected in `build-execution-context`. Distinct from
 [Langflower MCP](#langflower-mcp).
 
@@ -547,6 +548,23 @@ of the stream: inactive / loading / value / error.
 
 See [HOW_TO_WRITE_REACTIVE_NODES](HOW_TO_WRITE_REACTIVE_NODES.md),
 [REACTIVE_NODES](REACTIVE_NODES.md).
+
+#### EmbedHandle
+
+Canvas wire payload for batch embeddings (`embed-handle` wire type). Provider
+nodes emit it; pack consumers call `embedTexts(texts, { role?, signal? })` and
+receive `Float32Array[]`. Not agent inventory — do not use `ToolHandle` for float
+vectors.
+
+See [CONFIG § Embeddings](CONFIG.md#embeddings), `@langflower/node-sdk`,
+[ADR-033](ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base).
+
+#### Default embedding model
+
+Settings + config field `embedding: "providerId/modelId"` — distinct from chat
+`model`. Empty embed-node panel fields fall back to this at run time.
+
+See [settings-panel](features/settings-panel.md), [CONFIG](CONFIG.md).
 
 #### ToolHandle
 

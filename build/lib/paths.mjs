@@ -66,9 +66,9 @@ export const PACKAGES = {
 /** Dependency-safe build order for the full pipeline. */
 export const BUILD_ORDER = [
 	PACKAGES.runtime,
+	PACKAGES.nodeSdk,
 	PACKAGES.tools,
 	PACKAGES.eval,
-	PACKAGES.nodeSdk,
 	PACKAGES.compiler,
 	PACKAGES.commonNodes,
 	PACKAGES.websocketBridge,

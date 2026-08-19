@@ -18,7 +18,7 @@ implementations for agent runtime, KB, crawl, MCP, or LLM providers.
 | Checkpoints under `.langflower/runs/` (explicit boundaries) | MCP stdio client / tool inventory merge                   |
 | Skills read under `.langflower/skills/`                     | OpenAI (or other) HTTP client adapters                    |
 | `buildExecutionContext` **composer** (inject only)          | Re-implementing factories that belong in tools/nodes      |
-| Thin binds (`bind-llm-context.ts`)                          | New `src/kb/`, `src/crawl/`, `src/mcp/`, `src/llm/` trees |
+| Thin binds (`bind-llm-context.ts`, `bind-embed-context.ts`) | New `src/kb/`, `src/crawl/`, `src/mcp/`, `src/llm/` trees |
 
 **Placement rule (agents):** before adding a file under `packages/server/src/`,
 ask “is this WS/session/config/secrets, or is it project runtime / provider

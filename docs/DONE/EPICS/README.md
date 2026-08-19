@@ -1,8 +1,7 @@
 # Epics — use-case readiness roadmap (completed)
 
-**Archived** under [`docs/DONE/`](../README.md). Epics **00–38** and **40–41** are
-landed. Active queue: see [`docs/TODO/EPICS/`](../../TODO/EPICS/README.md)
-(epic **39** — `ai/` layout).
+**Archived** under [`docs/DONE/`](../README.md). Epics **00–38**, **40–42** are
+landed. Active queue: see [`docs/TODO/EPICS/`](../../TODO/EPICS/README.md).
 Further work also follows use-case Missing parts
 and [`docs/code-regression/`](../../code-regression/SUMMARY.md) Critical
 findings.
@@ -98,6 +97,7 @@ Status only after `verify`.
 | 38  | [38-llm-autokick.md](38-llm-autokick.md)                                               | LLM   | **landed** — default autokick, dead-loop, HTTP join, pinned feed retry banner                 |
 | 40  | [40-custom-node-recompile-reload.md](40-custom-node-recompile-reload.md)               | CN    | **landed** — stable cache, hot-swap, `compile_custom_nodes`, same-turn `getTools`             |
 | 41  | [41-uniform-tool-shape.md](41-uniform-tool-shape.md)                                   | Tools | **landed** — MCP + Sub-Agent + optional Tool collection as `ToolHandle[]`                     |
+| 42  | [42-embedding-providers.md](42-embedding-providers.md)                                 | Embed | **landed** — Settings `embedding` + `EmbedHandle` + Embeddings catalog (ADR-033 amend)        |
 
 ## Contracts
 

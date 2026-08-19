@@ -110,6 +110,11 @@ export type LangflowerConfig = {
 	 */
 	readonly currentWorkflowId?: string;
 	readonly model?: string;
+	/**
+	 * Default embedding identity `"providerId/modelId"`, distinct from chat
+	 * {@link LangflowerConfig.model}.
+	 */
+	readonly embedding?: string;
 	readonly provider?: Readonly<Record<string, LangflowerProviderConfig>>;
 	/** Tools available to `optionsSource: 'langflower.tools'` uiSchema fields. */
 	readonly tools?: readonly LangflowerToolConfig[];
@@ -153,6 +158,11 @@ export type LangflowerConfigScope = 'project' | 'global';
 export type LangflowerConfigSaveRequestedPayload = {
 	readonly scope: LangflowerConfigScope;
 	readonly model?: string;
+	/**
+	 * Default embedding identity `"providerId/modelId"`. Empty string clears
+	 * the layer key (same as `model`). Omitted leaves the existing value.
+	 */
+	readonly embedding?: string;
 	readonly provider?: Readonly<Record<string, LangflowerProviderConfig>>;
 	readonly providerApiKeys?: Readonly<Record<string, string>>;
 	/**
@@ -234,6 +244,8 @@ export type ProviderConnectionStatus =
 export type LangflowerConfigDraft = {
 	readonly defaultProviderId: string;
 	readonly defaultModelId: string;
+	readonly defaultEmbeddingProviderId: string;
+	readonly defaultEmbeddingModelId: string;
 	readonly providers: readonly {
 		readonly id: string;
 		readonly name: string;

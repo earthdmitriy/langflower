@@ -57,6 +57,7 @@ const SOURCE_ORDER: readonly PaletteNodeSource[] = ['system', 'custom'];
 
 const CATEGORY_ORDER: readonly string[] = [
 	'AI',
+	'Embeddings',
 	'Tools',
 	'Primitives',
 	'Logic',

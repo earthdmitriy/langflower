@@ -14,10 +14,6 @@
 			"types": "./dist/node-factory/define-llm-node/define-llm-node.d.ts",
 			"import": "./dist/node-factory/define-llm-node/define-llm-node.js"
 		},
-		"./mcp": {
-			"types": "./dist/node-factory/define-mcp/mcp-handle.d.ts",
-			"import": "./dist/node-factory/define-mcp/mcp-handle.js"
-		},
 		"./create-typed-ui-schema": {
 			"types": "./dist/node-factory/define-reactive-node/ui-schema-inference.d.ts",
 			"import": "./dist/node-factory/define-reactive-node/ui-schema-inference.js"

@@ -12,7 +12,7 @@ product API for end users.
 | **Browser / screenshots** | [TBD-006](TBD.md#tbd-006--headless-ui-access-for-agents) (not shipped) |
 
 This is **not** the outbound MCP client used _inside_ workflows
-(`common-mcp-stdio` / `common-mcp-http` / system `mcp.servers` → `McpHandle`).
+(`common-mcp-stdio` / `common-mcp-http` / system `mcp.servers` → `ToolHandle[]`).
 
 ---
 

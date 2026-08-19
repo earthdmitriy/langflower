@@ -241,6 +241,9 @@ function parseLangflowerConfig(raw: unknown): LangflowerConfig {
 			? { currentWorkflowId: raw.currentWorkflowId }
 			: {}),
 		...(typeof raw.model === 'string' ? { model: raw.model } : {}),
+		...(typeof raw.embedding === 'string'
+			? { embedding: raw.embedding }
+			: {}),
 		...(typeof raw.serverLogs === 'boolean'
 			? { serverLogs: raw.serverLogs }
 			: {}),
@@ -317,6 +320,14 @@ function mergeLangflowerConfig(
 			delete merged.model;
 		} else {
 			merged.model = patch.model;
+		}
+	}
+
+	if (patch.embedding !== undefined) {
+		if (patch.embedding.trim().length === 0) {
+			delete merged.embedding;
+		} else {
+			merged.embedding = patch.embedding;
 		}
 	}
 
@@ -402,6 +413,7 @@ export type LangflowerConfigLayers = {
 export type LangflowerConfigSettingsWrite = {
 	readonly scope: LangflowerConfigScope;
 	readonly model?: string;
+	readonly embedding?: string;
 	readonly provider?: Readonly<Record<string, LangflowerProviderConfig>>;
 	readonly providerApiKeys?: Readonly<Record<string, string>>;
 	/** `null` clears the scope key (Settings Default). */
@@ -477,6 +489,9 @@ export class LangflowerConfigService {
 					? { currentWorkflowId: config.currentWorkflowId }
 					: {}),
 				...(config.model !== undefined ? { model: config.model } : {}),
+				...(config.embedding !== undefined
+					? { embedding: config.embedding }
+					: {}),
 				...(config.provider !== undefined
 					? { provider: config.provider }
 					: {}),
@@ -520,6 +535,9 @@ export class LangflowerConfigService {
 
 		const patch: LangflowerConfigPatch = {
 			...(input.model !== undefined ? { model: input.model } : {}),
+			...(input.embedding !== undefined
+				? { embedding: input.embedding }
+				: {}),
 			...(provider !== undefined ? { provider } : {}),
 			...('serverLogs' in input
 				? {

@@ -29,6 +29,9 @@ demo-project/.langflower/config.json
 # Generated custom-node compile diagnostics (demo pack)
 demo-project/.langflower/nodes/my-nodes/COMPILATION_ERRORS.md
 
+# Custom nodes in demo pack
+demo-project/.langflower/nodes/*
+
 # Integration test temp leak (wrong path)
 tests/tests/tmp/
 

@@ -5,6 +5,7 @@ import {
 	draftAfterLayerSnapshot,
 	draftToSavePayload,
 	sameDraft,
+	staticModelIdsForProvider,
 	type SettingsDraft,
 } from '../utils/settings-draft';
 
@@ -36,12 +37,22 @@ describe('configToDraft', () => {
 		expect(draft.serverLogs).toBe('default');
 		expect(draft.defaultProviderId).toBe('');
 		expect(draft.defaultModelId).toBe('');
+		expect(draft.defaultEmbeddingProviderId).toBe('');
+		expect(draft.defaultEmbeddingModelId).toBe('');
 	});
 
 	it('splits composite model into default provider/model selects', () => {
 		const draft = configToDraft({ model: 'lmstudio/local-model' });
 		expect(draft.defaultProviderId).toBe('lmstudio');
 		expect(draft.defaultModelId).toBe('local-model');
+	});
+
+	it('splits composite embedding into default embedding selects', () => {
+		const draft = configToDraft({
+			embedding: 'openai/text-embedding-3-small',
+		});
+		expect(draft.defaultEmbeddingProviderId).toBe('openai');
+		expect(draft.defaultEmbeddingModelId).toBe('text-embedding-3-small');
 	});
 
 	it('maps serverLogs boolean to Off/On and omit to Default', () => {
@@ -106,6 +117,25 @@ describe('draftToSavePayload', () => {
 		).toBe('');
 	});
 
+	it('composes embedding provider/model into embedding on save', () => {
+		const payload = draftToSavePayload('project', {
+			...emptyDraft(),
+			defaultEmbeddingProviderId: 'openai',
+			defaultEmbeddingModelId: 'text-embedding-3-small',
+		});
+		expect(payload.embedding).toBe('openai/text-embedding-3-small');
+	});
+
+	it('sends empty embedding when embedding selects are incomplete (clear layer)', () => {
+		expect(
+			draftToSavePayload('project', {
+				...emptyDraft(),
+				defaultEmbeddingProviderId: 'openai',
+				defaultEmbeddingModelId: '',
+			}).embedding,
+		).toBe('');
+	});
+
 	it('marks draft dirty when default provider/model change', () => {
 		const baseline = configToDraft({
 			model: 'lmstudio/local-model',
@@ -116,6 +146,23 @@ describe('draftToSavePayload', () => {
 		const edited: SettingsDraft = {
 			...baseline,
 			defaultModelId: 'other-model',
+		};
+		expect(sameDraft(baseline, edited)).toBe(false);
+	});
+
+	it('marks draft dirty when default embedding provider/model change', () => {
+		const baseline = configToDraft({
+			embedding: 'openai/text-embedding-3-small',
+			provider: {
+				openai: {
+					name: 'OpenAI',
+					models: ['text-embedding-3-small'],
+				},
+			},
+		});
+		const edited: SettingsDraft = {
+			...baseline,
+			defaultEmbeddingModelId: 'text-embedding-3-large',
 		};
 		expect(sameDraft(baseline, edited)).toBe(false);
 	});
@@ -159,6 +206,37 @@ describe('defaultProviderStaticModelIds', () => {
 			],
 		};
 		expect(defaultProviderStaticModelIds(draft)).toEqual(['a', 'b']);
+	});
+});
+
+describe('staticModelIdsForProvider', () => {
+	it('reads models for an explicit provider id, not the chat default', () => {
+		const draft: SettingsDraft = {
+			...emptyDraft(),
+			defaultProviderId: 'openai',
+			providers: [
+				{
+					id: 'openai',
+					name: 'OpenAI',
+					baseURL: '',
+					modelsText: 'gpt-4o-mini',
+					apiKey: '',
+					hasApiKey: false,
+				},
+				{
+					id: 'embedder',
+					name: 'Embedder',
+					baseURL: '',
+					modelsText: 'text-embedding-3-small',
+					apiKey: '',
+					hasApiKey: false,
+				},
+			],
+		};
+		expect(staticModelIdsForProvider(draft, 'embedder')).toEqual([
+			'text-embedding-3-small',
+		]);
+		expect(defaultProviderStaticModelIds(draft)).toEqual(['gpt-4o-mini']);
 	});
 });
 

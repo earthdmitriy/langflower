@@ -1,7 +1,8 @@
+import type { ToolHandle } from '@langflower/node-sdk';
 import { connectMcpHttpWithOptionalLaunch } from './mcp-http-client.js';
 import { connectMcpStdioFromCli } from './mcp-stdio-client.js';
 import { isValidMcpServerId } from './mcp-tool-id.js';
-import { buildMcpHandle, type BuiltMcpHandle } from './build-mcp-handle.js';
+import { buildMcpHandle } from './build-mcp-handle.js';
 import { formatMcpConnectError } from './format-mcp-connect-error.js';
 
 /**
@@ -30,8 +31,14 @@ export type SystemMcpConnectFailure = {
 	readonly message: string;
 };
 
+/** Jsonc server key plus bound tools — not an author SDK type. */
+export type SystemMcpServerTools = {
+	readonly serverId: string;
+	readonly tools: readonly ToolHandle[];
+};
+
 export type SystemMcpHandles = {
-	readonly handles: readonly BuiltMcpHandle[];
+	readonly handles: readonly SystemMcpServerTools[];
 	readonly failures: readonly SystemMcpConnectFailure[];
 	readonly close: () => Promise<void>;
 };
@@ -47,7 +54,7 @@ export const createSystemMcpHandles = async (options: {
 	readonly servers: Readonly<Record<string, SystemMcpServerEntry>>;
 }): Promise<SystemMcpHandles> => {
 	const closers: Array<() => Promise<void>> = [];
-	const handles: BuiltMcpHandle[] = [];
+	const handles: SystemMcpServerTools[] = [];
 	const failures: SystemMcpConnectFailure[] = [];
 
 	const closeAll = async (): Promise<void> => {
@@ -83,15 +90,15 @@ export const createSystemMcpHandles = async (options: {
 				});
 				closers.push(() => client.close());
 
-				handles.push(
-					await buildMcpHandle({
-						id,
+				handles.push({
+					serverId: id,
+					tools: await buildMcpHandle({
 						...(entry.toolNames !== undefined
 							? { toolNamesRaw: entry.toolNames }
 							: {}),
 						client,
 					}),
-				);
+				});
 				continue;
 			}
 
@@ -111,15 +118,15 @@ export const createSystemMcpHandles = async (options: {
 			});
 			closers.push(() => session.close());
 
-			handles.push(
-				await buildMcpHandle({
-					id,
+			handles.push({
+				serverId: id,
+				tools: await buildMcpHandle({
 					...(entry.toolNames !== undefined
 						? { toolNamesRaw: entry.toolNames }
 						: {}),
 					client: session.client,
 				}),
-			);
+			});
 		} catch (cause) {
 			failures.push({
 				serverId: id,
@@ -170,18 +177,18 @@ export const collectEnabledMcpIdsFromNodes = (
 	return [...ids];
 };
 
-/** Ready handles whose ids are enabled on this agent instance. */
-export const filterMcpHandlesByIds = <T extends { readonly id: string }>(
-	handles: readonly T[],
+/** Ready server bags whose jsonc ids are enabled on this agent instance. */
+export const filterSystemMcpToolsByServerIds = (
+	handles: readonly SystemMcpServerTools[],
 	enabledMcpIds: readonly string[],
-): readonly T[] => {
+): readonly SystemMcpServerTools[] => {
 	if (enabledMcpIds.length === 0) {
 		return [];
 	}
 
 	const allowed = new Set(enabledMcpIds);
 
-	return handles.filter((handle) => allowed.has(handle.id));
+	return handles.filter((handle) => allowed.has(handle.serverId));
 };
 
 /** Failures that intersect this node's Inspector `enabledMcpIds`. */

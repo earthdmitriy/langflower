@@ -15,8 +15,8 @@ Regression gate: [`tests/unit/package-boundaries/`](../../tests/unit/package-bou
   SSRF web fetch, crawl persist, project memory store (`create-memory-store`),
   MCP stdio/HTTP **clients**, `buildMcpHandle`, `formatMcpConnectError`,
   system MCP pool (`createSystemMcpHandles`), LLM-shaped error strings.
-- **Must not depend on:** server, UI, common-nodes, websocket-bridge, shared,
-  node-sdk (return structural shapes assignable to ctx types).
+- **Must not depend on:** server, UI, common-nodes, websocket-bridge, shared.
+  May import `@langflower/node-sdk` for author types (`ToolHandle`).
 - **Consumers:** `@langflower/server` (create + inject); `@langflower/common-nodes`
   pack / MCP nodes **import** helpers and attach `handler` on registrations;
   tool loops call `registration.handler` (builtins still use `ctx.harness.invoke`).
@@ -52,8 +52,9 @@ boundary twin (`packages/shared/src/langflower-config/mcp-tool-id.ts`); parity i
 pinned by `src/mcp/mcp-tool-id.parity.test.ts`.
 
 Wire MCP nodes own connect/close lifecycle; they call `buildMcpHandle` after
-client connect. System / project MCP uses `createSystemMcpHandles` (partial
-connect + failures) injected by the server.
+client connect (returns `ToolHandle[]`). System / project MCP uses
+`createSystemMcpHandles` (partial connect + failures, grouped by jsonc
+`serverId` for Inspector `enabledMcpIds`) injected by the server.
 
 `@langflower/tools/html` owns crawl HTML helpers (`htmlToText`,
 `extractHtmlTitle`, `extractLinks`, `isSameHost`). Graph crawl nodes import that

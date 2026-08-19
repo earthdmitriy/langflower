@@ -1,27 +1,6 @@
+import type { ToolHandle } from '@langflower/node-sdk';
 import { encodeMcpToolId } from './mcp-tool-id.js';
 import type { McpClient } from './mcp-client-types.js';
-
-/**
- * Structural twin of node-sdk `ToolHandle` (tools must not import
- * `@langflower/node-sdk`). Assignable at call sites that expect the
- * author-facing handle.
- */
-export type BuiltMcpToolHandle = {
-	readonly toolId: string;
-	readonly name: string;
-	readonly description: string;
-	readonly inputSchema: object;
-	readonly invoke: (
-		args: Readonly<Record<string, unknown>>,
-	) => Promise<string>;
-};
-
-/** Structural twin of node-sdk `McpHandle`. */
-export type BuiltMcpHandle = {
-	readonly id: string;
-	readonly name: string;
-	readonly tools: readonly BuiltMcpToolHandle[];
-};
 
 const parseToolNames = (raw: unknown): readonly string[] => {
 	if (typeof raw !== 'string') {
@@ -35,22 +14,16 @@ const parseToolNames = (raw: unknown): readonly string[] => {
 };
 
 /**
- * After connect: list tools once and build a live MCP handle with eager tools.
+ * After connect: list tools once and bind invoke closures.
  * Optional `toolNamesRaw` filters for system MCP jsonc; canvas nodes omit it
  * and expose the full `tools/list` inventory. Tool ids use `client.serverName`
  * (`<mcp_name>__<tool>`).
  */
 export const buildMcpHandle = async (options: {
-	readonly id: string;
 	readonly toolNamesRaw?: unknown;
 	readonly client: McpClient;
-}): Promise<BuiltMcpHandle> => {
-	const id = options.id.trim();
+}): Promise<readonly ToolHandle[]> => {
 	const mcpName = options.client.serverName.trim();
-
-	if (id.length === 0) {
-		throw new Error('MCP handle id is empty.');
-	}
 
 	if (mcpName.length === 0) {
 		throw new Error('MCP client.serverName is empty.');
@@ -68,7 +41,7 @@ export const buildMcpHandle = async (options: {
 						.filter((toolId) => toolId.length > 0),
 				);
 
-	const tools: readonly BuiltMcpToolHandle[] = listed.flatMap((tool) => {
+	return listed.flatMap((tool) => {
 		const toolId = encodeMcpToolId(mcpName, tool.name);
 
 		if (toolId.length === 0) {
@@ -104,10 +77,4 @@ export const buildMcpHandle = async (options: {
 			},
 		];
 	});
-
-	return {
-		id,
-		name: mcpName,
-		tools,
-	};
 };

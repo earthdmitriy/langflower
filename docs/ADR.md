@@ -1513,9 +1513,9 @@ result-ported.
 
 ---
 
-## ADR-026 — Unified `McpHandle` (system + wire; no harness MCP)
+## ADR-026 — Unified MCP inventory (`ToolHandle[]`; no harness MCP)
 
-**Status:** accepted · **Date:** 2026-07-23
+**Status:** accepted · **Date:** 2026-07-23 · **Amended:** 2026-08-19
 
 **Context:** Epic 16 wired MCP via id-only `mcp-server-config` +
 `harness.listMcpRegistrations` / `wrapHarnessWithMcp`. Agents depended on
@@ -1525,12 +1525,21 @@ the same consume path as project system servers.
 **Alternatives considered:** Keep harness MCP invoke (rejected — dual protocol).
 Drop jsonc system servers (rejected — authors still want project-wide MCP).
 Inspector checklist for wired tools (rejected — remove the wire instead).
+Author-SDK `McpHandle` wrapper (superseded — epic 41 made the canvas wire
+`ToolHandle[]`; the leftover SDK type had no factory and leaked a second
+handle into `@langflower/node-sdk/mcp`).
 
-**Decision:** Both sources still own a live **`McpHandle`** session internally
-(connect/close + `tools`). Agents only consume **`ToolHandle[]`** (inventory +
-handler invoke). Harness has **no** MCP API. Agent nodes never receive MCP
+**Decision:** Live MCP session stays in client + `ToolHandle.invoke` closures
+(connect/close on the MCP node or the system pool). Agents only consume
+**`ToolHandle[]`** (inventory + handler invoke). There is **no** author
+`McpHandle`. Harness has **no** MCP API. Agent nodes never receive MCP
 server config to expand, connect, or filter. Canvas wire type is `tool-handle`
-(epic 41 stage 1) — not `mcp-handle`.
+(epic 41) — not `mcp-handle`. `@langflower/node-sdk` does not export MCP types.
+
+The system pool (`createSystemMcpHandles`) groups `ToolHandle[]` by jsonc
+server id only so Inspector `enabledMcpIds` can filter per agent. That bag
+(`SystemMcpServerTools`) lives in `@langflower/tools`. Inventory entries are
+SDK `ToolHandle` — tools imports `@langflower/node-sdk` (no local twin).
 
 | Source                                        | Lifecycle                                 | Agent ingress                 | Gate                                                      |
 | --------------------------------------------- | ----------------------------------------- | ----------------------------- | --------------------------------------------------------- |
@@ -1539,8 +1548,8 @@ server config to expand, connect, or filter. Canvas wire type is `tool-handle`
 
 Agent merges `EC.toolHandles` ∪ port `tools` (two arrays — OK; permanent dual
 ingress, not a temporary compromise). `enabledMcpIds` remains on agent `params`
-(Inspector) but the agent bind does **not** use it. Each handle’s `tools` is
-eager `ToolHandle[]` (no `listRegistrations`).
+(Inspector) but the agent bind does **not** use it. Tools are eager
+`ToolHandle[]` (no `listRegistrations`).
 
 `mcp.servers.<id>` uses the **same connect fields** as the MCP nodes
 (`kind: stdio|http`, shell `command` / `url`). No author `name`/`description`
@@ -1548,8 +1557,8 @@ eager `ToolHandle[]` (no `listRegistrations`).
 migration shims.
 
 **Tradeoffs accepted:** (+) One protocol, fan-out 1→N, shell CLI for any
-command. (−) Live handles are not JSON-serializable (ADR-019 class);
-persist/replay of MCP sessions is out of scope.
+command. (−) Live `ToolHandle.invoke` closures are not JSON-serializable
+(ADR-019 class); persist/replay of MCP sessions is out of scope.
 
 **Consequences:** See [use-cases/node-local-mcp.md](use-cases/node-local-mcp.md),
 [CONFIG.md](CONFIG.md) § MCP, `@langflower/tools/create-system-mcp-handles`.
@@ -1971,9 +1980,15 @@ re-index pipelines into the base product.
    (`read` / `write` / `edit` / `create` / `delete` / `glob` / `grep`) using
    paths under `.langflower/memory/`. Do not ship secondary graph nodes that
    only alias those file ops for memory.
-3. **Embedding / vector search is not base functionality** — the shipped KB
-   embed store, `embedding` config block, and related nodes are removed from
-   the product surface.
+3. **Vector KB / managed embed store is not base functionality** — no
+   `.langflower/kb/`, no `common-kb-*` on the shipped palette, no hashing
+   embedder as product base. **Allowed (epic 42 amend):** Settings default
+   embedding identity (`embedding: "providerId/modelId"`), SDK `EmbedHandle`
+   wire (`embed-handle`), and catalog Embeddings nodes (`common-embed-*`)
+   that call OpenAI-compatible `POST /v1/embeddings` via server-bound
+   credentials. Pack-owned vector indexes stay in custom packs — not a host
+   product corpus. Do **not** use `ToolHandle` / agent inventory for batch
+   float vectors.
 4. Design for **frequent edits** in the managed folder: section-level replace
    and append-only logs, atomic writes, heading-addressed updates (not line
    numbers / opaque chunk ids). Cross-file wiki links are plain Markdown only
@@ -1995,7 +2010,8 @@ re-index pipelines into the base product.
 
 - Skeleton samples `kb-create` / `kb-navigate` use `common-memory-tools`.
 - Update [STATUS](STATUS.md), [node-library](features/node-library.md),
-  [CONFIG](CONFIG.md) (no Embeddings section as product base), helper skill.
+  [CONFIG](CONFIG.md) (Embeddings § documents Settings default + catalog nodes;
+  not vector KB as base), helper skill.
 
 ---
 

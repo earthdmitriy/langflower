@@ -30,6 +30,9 @@ export type SettingsDraft = {
 	/** Split from disk `model: "provider/model"` for Settings selects. */
 	readonly defaultProviderId: string;
 	readonly defaultModelId: string;
+	/** Split from disk `embedding: "provider/model"` for Settings selects. */
+	readonly defaultEmbeddingProviderId: string;
+	readonly defaultEmbeddingModelId: string;
 	readonly providers: readonly ProviderDraft[];
 	readonly serverLogs: ServerLogsDraft;
 };
@@ -68,10 +71,13 @@ export const configToDraft = (config: LangflowerConfig): SettingsDraft => {
 				: 'default';
 
 	const parts = parseDefaultChatModel(config.model);
+	const embeddingParts = parseDefaultChatModel(config.embedding);
 
 	return {
 		defaultProviderId: parts?.providerId ?? '',
 		defaultModelId: parts?.model ?? '',
+		defaultEmbeddingProviderId: embeddingParts?.providerId ?? '',
+		defaultEmbeddingModelId: embeddingParts?.model ?? '',
 		providers,
 		serverLogs,
 	};
@@ -133,15 +139,22 @@ export const draftToSavePayload = (
 			}),
 	);
 
-	// Always send `model` so clearing the selects removes it from the layer
-	// (omit would leave the previous disk value — Save looked like a no-op).
+	// Always send `model` / `embedding` so clearing the selects removes them
+	// from the layer (omit would leave the previous disk value — Save looked
+	// like a no-op).
 	const model =
 		formatDefaultChatModel(draft.defaultProviderId, draft.defaultModelId) ??
 		'';
+	const embedding =
+		formatDefaultChatModel(
+			draft.defaultEmbeddingProviderId,
+			draft.defaultEmbeddingModelId,
+		) ?? '';
 
 	return {
 		scope,
 		model,
+		embedding,
 		provider,
 		providerApiKeys,
 		serverLogs: serverLogsToSave(draft.serverLogs),
@@ -205,20 +218,27 @@ export const draftAfterLayerSnapshot = (
 	return sameDraft(cleared, nextBaseline) ? nextBaseline : cleared;
 };
 
-/** Static model ids from the provider row matching `defaultProviderId`. */
-export const defaultProviderStaticModelIds = (
+/** Static model ids from the provider row matching `providerId`. */
+export const staticModelIdsForProvider = (
 	draft: SettingsDraft,
+	providerId: string,
 ): readonly string[] => {
-	const providerId = draft.defaultProviderId.trim();
-	if (providerId.length === 0) {
+	const id = providerId.trim();
+	if (id.length === 0) {
 		return [];
 	}
-	const row = draft.providers.find((provider) => provider.id === providerId);
+	const row = draft.providers.find((provider) => provider.id === id);
 	if (row === undefined) {
 		return [];
 	}
 	return parseModelsText(row.modelsText);
 };
+
+/** Static model ids from the provider row matching `defaultProviderId`. */
+export const defaultProviderStaticModelIds = (
+	draft: SettingsDraft,
+): readonly string[] =>
+	staticModelIdsForProvider(draft, draft.defaultProviderId);
 
 /** Row key for connections map (stable for empty ids). */
 export const providerConnectionKey = (index: number): string => String(index);

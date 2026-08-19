@@ -16,6 +16,7 @@ import {
 	defaultProviderStaticModelIds,
 	draftToSavePayload,
 	mergeProviderModelOptions,
+	staticModelIdsForProvider,
 	type LangflowerConfigScope,
 	type LangflowerProviderModelsCatalog,
 	type ProviderConnectionStatus,
@@ -40,6 +41,21 @@ import {
 } from '../utils/settings-draft';
 
 const DRAFT_PATCH_DEBOUNCE_MS = 250;
+
+type ProviderSelectRow = {
+	readonly id: string;
+	readonly title: string;
+};
+
+const withOrphanProviderOption = (
+	rows: readonly ProviderSelectRow[],
+	selected: string,
+): readonly ProviderSelectRow[] => {
+	if (selected.length > 0 && !rows.some((row) => row.id === selected)) {
+		return [{ id: selected, title: selected }, ...rows];
+	}
+	return rows;
+};
 
 @Component({
 	selector: 'lf-settings-panel',
@@ -193,6 +209,96 @@ const DRAFT_PATCH_DEBOUNCE_MS = 250;
 										[value]="option.value"
 										[selected]="
 											draft().defaultModelId ===
+											option.value
+										"
+									>
+										{{ option.title }}
+									</option>
+								}
+							</select>
+						</label>
+					</div>
+
+					<div class="flex flex-col gap-2">
+						<span
+							class="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+						>
+							Default embedding model
+						</span>
+						<label class="flex flex-col gap-1">
+							<span
+								class="text-[10px] text-zinc-500 dark:text-zinc-400"
+								>Default provider</span
+							>
+							<select
+								class="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none ring-zinc-400/20 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+								(change)="
+									onDefaultEmbeddingProviderChange(
+										readSelect($event)
+									)
+								"
+							>
+								<option
+									value=""
+									[selected]="
+										draft().defaultEmbeddingProviderId.trim()
+											.length === 0
+									"
+								>
+									None
+								</option>
+								@for (
+									row of defaultEmbeddingProviderOptions();
+									track row.id
+								) {
+									<option
+										[value]="row.id"
+										[selected]="
+											draft()
+												.defaultEmbeddingProviderId ===
+											row.id
+										"
+									>
+										{{ row.title }}
+									</option>
+								}
+							</select>
+						</label>
+						<label class="flex flex-col gap-1">
+							<span
+								class="text-[10px] text-zinc-500 dark:text-zinc-400"
+								>Default model</span
+							>
+							<select
+								class="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none ring-zinc-400/20 focus:ring-2 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+								[disabled]="
+									draft().defaultEmbeddingProviderId.trim()
+										.length === 0
+								"
+								(change)="
+									patchDraft({
+										defaultEmbeddingModelId:
+											readSelect($event),
+									})
+								"
+							>
+								<option
+									value=""
+									[selected]="
+										draft().defaultEmbeddingModelId.trim()
+											.length === 0
+									"
+								>
+									None
+								</option>
+								@for (
+									option of defaultEmbeddingModelSelectOptions();
+									track option.value
+								) {
+									<option
+										[value]="option.value"
+										[selected]="
+											draft().defaultEmbeddingModelId ===
 											option.value
 										"
 									>
@@ -614,20 +720,29 @@ export class LfSettingsPanelComponent implements OnDestroy {
 	);
 
 	/** Providers in this scope, plus an orphan id if default points elsewhere. */
-	readonly defaultProviderOptions = computed(() => {
-		const draft = this.draft();
-		const rows = draft.providers
-			.filter((row) => row.id.trim().length > 0)
-			.map((row) => ({
-				id: row.id,
-				title: row.name.trim() || row.id,
-			}));
-		const selected = draft.defaultProviderId.trim();
-		if (selected.length > 0 && !rows.some((row) => row.id === selected)) {
-			return [{ id: selected, title: selected }, ...rows];
-		}
-		return rows;
-	});
+	private readonly providerSelectRows = computed(
+		(): readonly ProviderSelectRow[] =>
+			this.draft()
+				.providers.filter((row) => row.id.trim().length > 0)
+				.map((row) => ({
+					id: row.id,
+					title: row.name.trim() || row.id,
+				})),
+	);
+
+	readonly defaultProviderOptions = computed(() =>
+		withOrphanProviderOption(
+			this.providerSelectRows(),
+			this.draft().defaultProviderId.trim(),
+		),
+	);
+
+	readonly defaultEmbeddingProviderOptions = computed(() =>
+		withOrphanProviderOption(
+			this.providerSelectRows(),
+			this.draft().defaultEmbeddingProviderId.trim(),
+		),
+	);
 
 	readonly defaultModelOptions = computed(() => {
 		const draft = this.draft();
@@ -645,6 +760,30 @@ export class LfSettingsPanelComponent implements OnDestroy {
 	readonly defaultModelSelectOptions = computed(() => {
 		const options = this.defaultModelOptions();
 		const selected = this.draft().defaultModelId.trim();
+		if (
+			selected.length > 0 &&
+			!options.some((option) => option.value === selected)
+		) {
+			return [{ value: selected, title: selected }, ...options];
+		}
+		return options;
+	});
+
+	readonly defaultEmbeddingModelOptions = computed(() => {
+		const draft = this.draft();
+		const providerId = draft.defaultEmbeddingProviderId.trim();
+		if (providerId.length === 0) {
+			return [];
+		}
+		const staticIds = staticModelIdsForProvider(draft, providerId);
+		const fetched: readonly ProviderModelEntry[] | undefined =
+			this.catalogs()[providerId]?.models;
+		return mergeProviderModelOptions(staticIds, fetched);
+	});
+
+	readonly defaultEmbeddingModelSelectOptions = computed(() => {
+		const options = this.defaultEmbeddingModelOptions();
+		const selected = this.draft().defaultEmbeddingModelId.trim();
 		if (
 			selected.length > 0 &&
 			!options.some((option) => option.value === selected)
@@ -762,6 +901,29 @@ export class LfSettingsPanelComponent implements OnDestroy {
 		this.patchDraftFlush({
 			defaultProviderId: nextProvider,
 			defaultModelId: modelStillValid ? draft.defaultModelId : '',
+		});
+	}
+
+	onDefaultEmbeddingProviderChange(providerId: string): void {
+		const nextProvider = providerId.trim();
+		const draft = this.draft();
+		const nextDraft: SettingsDraft = {
+			...draft,
+			defaultEmbeddingProviderId: nextProvider,
+			defaultEmbeddingModelId: draft.defaultEmbeddingModelId,
+		};
+		const options = mergeProviderModelOptions(
+			staticModelIdsForProvider(nextDraft, nextProvider),
+			this.catalogs()[nextProvider]?.models,
+		);
+		const modelStillValid = options.some(
+			(option) => option.value === draft.defaultEmbeddingModelId,
+		);
+		this.patchDraftFlush({
+			defaultEmbeddingProviderId: nextProvider,
+			defaultEmbeddingModelId: modelStillValid
+				? draft.defaultEmbeddingModelId
+				: '',
 		});
 	}
 

@@ -8,6 +8,7 @@ import type { ToolInvokeCall } from '@langflower/tools/create-project-harness';
 import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
 import type { PermissionAskRequest } from '@langflower/tools/permission';
 import type { CreateChatCompletionStream } from './chat-completion-stream.js';
+import type { CreateEmbedding } from '../../embeddings/create-embedding.js';
 
 export const runHostServicesSymbol = Symbol('langflower.runHostServices');
 
@@ -18,6 +19,7 @@ export type LangflowerBusRequest = (
 
 export type RunHostServices = {
 	readonly createChatCompletionStream?: CreateChatCompletionStream;
+	readonly createEmbedding?: CreateEmbedding;
 	readonly skillMarkdown?: string;
 	readonly agentsMarkdown?: string;
 	/**
@@ -25,6 +27,14 @@ export type RunHostServices = {
 	 * Empty node `providerId` / `model` params fall back to these at run time.
 	 */
 	readonly defaultChat?: {
+		readonly providerId: string;
+		readonly model: string;
+	};
+	/**
+	 * Parsed effective `LangflowerConfig.embedding` (`providerId/modelId`).
+	 * Empty embed-node `providerId` / `model` params fall back to these.
+	 */
+	readonly defaultEmbedding?: {
 		readonly providerId: string;
 		readonly model: string;
 	};

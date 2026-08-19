@@ -4,6 +4,7 @@
 export {
 	configToDraft,
 	defaultProviderStaticModelIds,
+	staticModelIdsForProvider,
 	draftAfterLayerSnapshot,
 	draftToSavePayload,
 	mergeDraftPatch,

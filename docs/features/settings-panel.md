@@ -31,9 +31,10 @@ orchestrator).
 
 ### v1 in scope / out of scope
 
-**In scope (v1):** default chat model (provider + model selects), provider list
-(id, base URL, models), embedding provider block, API key fields, server logs
-(Off / Default / On).
+**In scope (v1):** default chat model (provider + model selects), **default
+embedding model** (provider + model selects — independent from chat),
+provider list (id, base URL, models), API key fields, server logs (Off /
+Default / On).
 
 **Out of scope (v1 → hand-edit):** permission rules, MCP server config, and
 other dense CONFIG blocks not needed for the provider happy path.
@@ -61,10 +62,10 @@ coding samples.
 - **Header:** "Settings" title + close control.
 - **Scope switch:** **Project** | **Global** tabs (or equivalent segmented
   control). Active scope labels which file/layer Save writes to.
-- **Project scope:** default chat model (provider + model selects), provider
-  list (id, base URL, models), embedding provider block, API key fields per
-  provider, server logs radio (Off / Default / On; Default omits `serverLogs`
-  in the project file).
+- **Project scope:** default chat model (provider + model selects), **default
+  embedding model** (provider + model selects), provider list (id, base URL,
+  models), API key fields per provider, server logs radio (Off / Default / On;
+  Default omits `serverLogs` in the project file).
 - **Global scope:** same v1 field groups for user-wide defaults; read-only
   path hint showing the **server-resolved** global file path on this OS.
 - **Footer actions:** **Save** (primary), **Discard** (revert unsaved form
@@ -80,6 +81,20 @@ coding samples.
 - Empty node `providerId` / `model` at run time fall back to this effective
   default; Inspector empty choice becomes `Default (provider/model)`.
 
+### Default embedding model
+
+- **Default embedding provider** select — same provider list as chat default.
+- **Default embedding model** select — same static + live catalog merge as
+  chat default (`langflower.providers` / `langflower.models`).
+- Independent from **Default chat model** — chat and embedding defaults may
+  point at different provider/model pairs.
+- Save writes composite `embedding: "providerId/modelId"` (empty string clears
+  the active scope layer).
+- Empty panel `providerId` / `model` on **Embed text** / **Embed provider**
+  catalog nodes fall back to this effective default at run time.
+- After Save, Inspector / palette embedding-node selects MUST refresh from the
+  new snapshot (same bar as chat default — no connect-only cache).
+
 ### Provider and model fields
 
 - Add / remove / rename provider entries by id.
@@ -87,8 +102,9 @@ coding samples.
   API key → Models (comma-separated)**.
 - Connection indicator under Base URL comes from the server draft snapshot
   (`idle` / `checking` / `ok` + model count / `error`) — not UI-only probes.
-- Default chat model and embedding model selectors MUST list providers from the
-  active scope (and model options from static + fetched catalogs).
+- Default chat model and **default embedding model** selectors MUST list
+  providers from the active scope (and model options from static + fetched
+  catalogs).
 
 ### API key fields
 
@@ -116,11 +132,10 @@ coding samples.
 - **Save:** validate required ids/URLs; persist session draft for active scope;
   server MUST re-emit `langflower.config.snapshot` + draft snapshot so the
   editor updates **without** page reload.
-- **Inspector / LLM options feedback (known gap if missed):** consumers that
-  fill `providerId` / model selects from config (inspector panel params with
-  `optionsSource: langflower.providers`, and any equivalent palette/preview
-  sources) MUST rebuild option lists on **every** snapshot — including
-  post-Save. Connect-only caching is a product bug against
+- **Inspector / embedding feedback:** consumers that fill embedding-node
+  `providerId` / model selects (`optionsSource: langflower.providers` /
+  `langflower.models`) MUST rebuild option lists on **every** snapshot —
+  including post-Save. Same bar as LLM Inspector refresh in
   [settings-panel use case S2](../use-cases/settings-panel.md#s2--edit-project-providers-and-models).
 - Run resolution MUST use the saved effective config on the next Start.
 - **Discard:** `draft.discard.requested` re-seeds the session draft from the

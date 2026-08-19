@@ -13,7 +13,6 @@ import {
 	type ToolHandle,
 } from '@langflower/node-sdk';
 import type { LlmExecutionCaps } from '@langflower/node-sdk/llm';
-import type { McpHandle } from '@langflower/node-sdk/mcp';
 import type { NodeId, RuntimeSeedPortValue } from '@langflower/runtime';
 import {
 	parseDefaultChatModel,
@@ -24,8 +23,9 @@ import {
 	collectEnabledMcpIdsFromNodes,
 	createSystemMcpHandles,
 	filterMcpFailuresForNode,
-	filterMcpHandlesByIds,
+	filterSystemMcpToolsByServerIds,
 	parseEnabledMcpIds,
+	type SystemMcpServerTools,
 } from '@langflower/tools/create-system-mcp-handles';
 import {
 	createProjectHarness,
@@ -39,6 +39,7 @@ import {
 } from '@langflower/tools/permission';
 import { isObservable, throwError, type Observable } from 'rxjs';
 import { bindCreateChatCompletionStream } from './bind-llm-context.js';
+import { bindCreateEmbedding } from './bind-embed-context.js';
 import { wrapBuiltinToolHandles } from './wrap-builtin-tool-handles.js';
 import { readAgentsMarkdown } from '../skills/read-agents-markdown.js';
 import { readSkillMarkdown } from '../skills/read-skill-markdown.js';
@@ -105,7 +106,7 @@ export const buildExecutionContext = async (
 	node: WorkflowGraphNode,
 	hooks?: BuildHarnessHooks,
 	preloadedConfig?: LangflowerConfig,
-	runMcpHandles?: readonly McpHandle[],
+	runMcpHandles?: readonly SystemMcpServerTools[],
 ): Promise<ExecutionContext<never, LlmExecutionCaps>> => {
 	const rolePreset = parseLlmRolePreset(node.params.rolePreset);
 	const skillId = resolveEffectiveSkillId(rolePreset, node.params.skillId);
@@ -170,10 +171,10 @@ export const buildExecutionContext = async (
 		enabledToolIds,
 		permission,
 	);
-	const mcpTools = filterMcpHandlesByIds(
+	const mcpTools = filterSystemMcpToolsByServerIds(
 		runMcpHandles ?? [],
 		parseEnabledMcpIds(node.params.enabledMcpIds),
-	).flatMap((handle) => handle.tools);
+	).flatMap((entry) => entry.tools);
 	const toolHandles = [...builtinHandles, ...mcpTools];
 
 	const base: ExecutionContext<never, LlmExecutionCaps> = {
@@ -192,6 +193,7 @@ export const buildExecutionContext = async (
 	};
 
 	const defaultChat = parseDefaultChatModel(config.model);
+	const defaultEmbedding = parseDefaultChatModel(config.embedding);
 
 	return attachRunHostServices(base, {
 		...(node.type !== 'common-fake-llm'
@@ -201,7 +203,9 @@ export const buildExecutionContext = async (
 					),
 				}
 			: {}),
+		createEmbedding: bindCreateEmbedding(context.langflowerConfigService),
 		...(defaultChat !== null ? { defaultChat } : {}),
+		...(defaultEmbedding !== null ? { defaultEmbedding } : {}),
 		...(skillMarkdown.length > 0 ? { skillMarkdown } : {}),
 		...(agentsMarkdown.length > 0 ? { agentsMarkdown } : {}),
 		...(toolHarness.authorize !== undefined

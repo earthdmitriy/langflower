@@ -27,6 +27,8 @@ const isSettingsDraft = (value: unknown): value is SettingsDraft => {
 	return (
 		typeof draft['defaultProviderId'] === 'string' &&
 		typeof draft['defaultModelId'] === 'string' &&
+		typeof draft['defaultEmbeddingProviderId'] === 'string' &&
+		typeof draft['defaultEmbeddingModelId'] === 'string' &&
 		Array.isArray(draft['providers']) &&
 		(draft['serverLogs'] === 'off' ||
 			draft['serverLogs'] === 'default' ||

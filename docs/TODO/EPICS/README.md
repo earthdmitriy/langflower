@@ -1,7 +1,8 @@
 # Epics — use-case readiness queue (active)
 
-**Active** under [`docs/TODO/`](../README.md). Epics **00–38** and **40–41** are
-archived in [`docs/DONE/EPICS/`](../../DONE/EPICS/README.md) once landed.
+**Active** under [`docs/TODO/`](../README.md). Epics **00–38**, **40–41**, and
+**42** are archived in [`docs/DONE/EPICS/`](../../DONE/EPICS/README.md) once
+landed.
 
 Further product work also comes from
 [`docs/code-regression/`](../../code-regression/SUMMARY.md) (orchestrator may
@@ -11,24 +12,29 @@ Do **not** re-open epic 15.
 
 ## Status today
 
-| Layer                       | State                                                                                          |
-| --------------------------- | ---------------------------------------------------------------------------------------------- |
-| Agent runtime (epics 00–25) | Archived in DONE                                                                               |
-| Code-regression epics       | **26–28 landed** — next from [SUMMARY](../../code-regression/SUMMARY.md)                       |
-| Custom-nodes SDK            | **29–33, 40 landed** (defineNode → compiler → bootstrap → reload)                              |
-| Feed / interrupt / composer | **34–36 landed** (feed segments, composer shell, Stop/Pause/Steer)                             |
-| Deterministic feed fold     | **37 landed** — abstraction only; UI switch is a follow-up                                     |
-| LLM autokick / dead-loop    | **38 landed** — default autokick + HTTP join + pinned feed banner                              |
-| common-nodes `ai/` layout   | **39 queued** — after 38; `ai/nodes/` vs `ai/features/`                                        |
-| Custom node reload          | **40 landed** — [hot-swap + compile tool](../../DONE/EPICS/40-custom-node-recompile-reload.md) |
-| Uniform tool shape          | **41 landed** — MCP + Sub-Agent + optional Tool collection as `ToolHandle[]`                   |
-| Use-cases                   | None Implementable — [use-cases](../../use-cases/README.md)                                    |
+| Layer                       | State                                                                                           |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| Agent runtime (epics 00–25) | Archived in DONE                                                                                |
+| Code-regression epics       | **26–28 landed** — next from [SUMMARY](../../code-regression/SUMMARY.md)                        |
+| Custom-nodes SDK            | **29–33, 40 landed** (defineNode → compiler → bootstrap → reload)                               |
+| Feed / interrupt / composer | **34–36 landed** (feed segments, composer shell, Stop/Pause/Steer)                              |
+| Deterministic feed fold     | **37 landed** — abstraction only; UI switch is a follow-up                                      |
+| LLM autokick / dead-loop    | **38 landed** — default autokick + HTTP join + pinned feed banner                               |
+| common-nodes `ai/` layout   | **39 landed** — `ai/nodes/` vs `ai/features/`                                                   |
+| Embedding providers         | **42 landed** — Settings default + `EmbedHandle` catalog (not `common-kb-*` / not `ToolHandle`) |
+| Custom node reload          | **40 landed** — [hot-swap + compile tool](../../DONE/EPICS/40-custom-node-recompile-reload.md)  |
+| Uniform tool shape          | **41 landed** — MCP + Sub-Agent + optional Tool collection as `ToolHandle[]`                    |
+| Use-cases                   | None Implementable — [use-cases](../../use-cases/README.md)                                     |
 
 ## Order
 
-| #   | File                                                                          | Status                                                       |
-| --- | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| 39  | [39-ai-package-restructure.md](../../DONE/EPICS/39-ai-package-restructure.md) | Queued — after 38; `ai/nodes/` + `ai/features/` named slices |
+| #   | File                                                                          | Status                                                   |
+| --- | ----------------------------------------------------------------------------- | -------------------------------------------------------- |
+| 39  | [39-ai-package-restructure.md](../../DONE/EPICS/39-ai-package-restructure.md) | Landed — `ai/nodes/` + `ai/features/` named slices       |
+| 42  | [42-embedding-providers.md](../../DONE/EPICS/42-embedding-providers.md)       | Landed — Settings embedding default + `EmbedHandle` wire |
+
+_No other numbered epics are queued here._ Next work: code-regression Critical
+findings and use-case Missing parts.
 
 Roadmap context: palette normalize `docs/palette.html` §7–8. Remaining
 skeleton work: packaged `dist/skeleton` layout (S1) and Sample workflows

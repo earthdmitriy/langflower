@@ -97,17 +97,14 @@ export const mcpStdioNode = defineReactiveNode({
 									return;
 								}
 
-								const handle = await buildMcpHandle({
-									id: params.nodeId,
-									client,
-								});
+								const tools = await buildMcpHandle({ client });
 
 								if (closed) {
 									await client.close();
 									return;
 								}
 
-								subscriber.next(handle.tools);
+								subscriber.next(tools);
 							};
 
 							void run().catch(fail);

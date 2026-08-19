@@ -410,8 +410,8 @@ Node type: `common-openai-llm` (`packages/common-nodes/src/ai/nodes/openai-llm/`
 Node type: `common-review` (`packages/common-nodes/src/ai/nodes/review/`).
 Adversarial sibling: `common-critique` (`packages/common-nodes/src/ai/nodes/critique/`)
 — same path-choice tools, ports `assignment` / `packet` (attack framing).
-`defineLlmNode`, `McpHandle`, and `ToolHandle` live in
-`@langflower/node-sdk`.
+`defineLlmNode` and `ToolHandle` live in `@langflower/node-sdk`. MCP tools
+are `ToolHandle[]` from `@langflower/tools/build-mcp-handle`.
 
 Both share the `llmPanelUiSchema` floor (role / tools / MCP / AGENTS.md /
 feedback caps) and expand with path-choice `maxIterations` defaults plus
