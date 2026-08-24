@@ -414,8 +414,11 @@ export const subAgentNode = defineLlmNode({
 	type: 'common-sub-agent',
 	displayName: 'Sub-Agent',
 	category: 'AI',
-	description:
-		'OpenAI-compatible specialist agent. Wire `tools` into a parent agent; invoke runs this node in-graph.',
+	description: `
+A specialist agent on the canvas. Wire it into a parent agent's **tools** so the parent can delegate a task.
+
+The specialist streams in its own work-log card. Set name, role, and skills on this node.
+`.trim(),
 	uiSchema: [
 		{
 			field: 'name',

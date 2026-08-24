@@ -26,8 +26,13 @@ export const switchNode = defineReactiveNode({
 	displayName: 'Switch',
 	category: 'Logic',
 	paletteSecondary: true,
-	description:
-		'Routes string `value` to the first matching rule output (`pass` / `fail`) or `default`.',
+	description: `
+Match a string against rules and send it to **pass**, **fail**, or **default**.
+
+Typical uses:
+- Route by status text
+- Several named outcomes without stacking IF nodes
+`.trim(),
 	uiSchema: [
 		{
 			field: 'rules',

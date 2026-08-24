@@ -16,8 +16,13 @@ export const delayNode = defineReactiveNode({
 	displayName: 'Delay',
 	category: 'Flow',
 	paletteSecondary: true,
-	description:
-		'Passes through the wired `value` after an inline **delay** in milliseconds.',
+	description: `
+Hold a value for a number of milliseconds, then pass it on unchanged.
+
+Typical uses:
+- Pace a Repeat or Split (paced) loop
+- Wait before the next API or file step
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput, combineInputs }) {
 		const value = makeInput<unknown>('value', {

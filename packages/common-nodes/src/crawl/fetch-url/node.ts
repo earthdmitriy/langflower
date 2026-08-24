@@ -25,8 +25,13 @@ export const fetchUrlNode = defineReactiveNode({
 	displayName: 'Fetch URL',
 	category: 'Crawl',
 	paletteSecondary: true,
-	description:
-		'Fetches a URL through the SSRF-guarded harness and emits HTML + plain text.',
+	description: `
+Download a page and get HTML plus readable text.
+
+Typical uses:
+- Pull an article before Extract Links or an LLM
+- Seed a Crawl
+`.trim(),
 	uiSchema: [
 		{
 			field: 'timeoutMs',

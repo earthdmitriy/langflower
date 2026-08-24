@@ -5,8 +5,11 @@ export const concatNode = defineReactiveNode({
 	type: 'common-concat',
 	displayName: 'Concat',
 	category: 'Text',
-	description:
-		'Joins wired string `value` slots with a `separator` into one string. Emits only when every wired `value` slot has a new event (`multi: zip`). In `separator`, `\\n` is replaced with a line break.',
+	description: `
+Join several strings with a **separator**. Emits only when every wired string has a fresh value.
+
+Type \`\\n\` in the separator for a line break.
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput, combineInputs }) {
 		const separator$ = makeInput<string>('separator', {

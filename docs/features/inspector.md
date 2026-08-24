@@ -30,12 +30,14 @@ without opening a separate window.
 **Leave:** deselect (or clear selection) → sidebar returns to the feed work
 log.
 
-**Contents:** input ports (wired and unwired), inline editors where declared,
-panel `uiSchema` fields (including config-backed provider/model dropdowns),
-read-only cached outputs from the last run when present. Multiline textareas
-can be dragged taller (`resize: vertical`; height is ephemeral, not
-persisted). After Settings Save, those dropdown option lists MUST reflect the
-new snapshot without requiring the operator to reload the editor.
+**Contents:** markdown **description** under the title (same copy as the
+palette hover popover), input ports (wired and unwired), inline editors
+where declared, panel `uiSchema` fields (including config-backed
+provider/model dropdowns), read-only cached outputs from the last run when
+present. Multiline textareas can be dragged taller (`resize: vertical`;
+height is ephemeral, not persisted). After Settings Save, those dropdown
+option lists MUST reflect the new snapshot without requiring the operator
+to reload the editor.
 
 **While a run is active:** inspector remains available for the selected node
 but is **read-only** — inline inputs, panel params, and tool-permission

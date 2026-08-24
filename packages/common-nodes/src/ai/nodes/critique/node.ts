@@ -199,8 +199,11 @@ export const critiqueNode = defineLlmNode({
 	type: 'common-critique',
 	displayName: 'Critique',
 	category: 'AI',
-	description:
-		'Adversarial Critique: first input is the original assignment/topic; second is the packet to attack. Finish with accept (agreed enough) or feedback (findings). Requires native tool / function calling. Optional wired tools / MCP / Sub-Agents may run via harness first.',
+	description: `
+Attack the work against the original assignment. **Accept** when it is good enough, or send **feedback** with findings.
+
+Wire the assignment on the first input and the packet to critique on the second. Needs a model that can call tools.
+`.trim(),
 	uiSchema: [
 		...llmPanelUiSchema.filter((item) => item.field !== 'maxIterations'),
 		llmMaxIterationsUiField(

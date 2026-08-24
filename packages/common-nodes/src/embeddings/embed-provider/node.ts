@@ -109,8 +109,11 @@ export const embedProviderNode = defineReactiveNode({
 	type: 'common-embed-provider',
 	displayName: 'Embed provider',
 	category: 'Embeddings',
-	description:
-		'Embeds via the Settings embedding default (or panel provider/model) and emits a typed **embed** handle for batch consumers.',
+	description: `
+Share an embedding model with custom nodes. Wire **embed** into a pack that needs batch vectors.
+
+Uses the Settings default model, or pick one on this node.
+`.trim(),
 	uiSchema: embedPanelUiSchema,
 	bind(ctx, { configureOutput, combineInputs }) {
 		const embed$ = combineInputs([ctx], ([ec]) => ec).pipeValue(

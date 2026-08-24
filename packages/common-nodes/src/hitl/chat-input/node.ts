@@ -9,9 +9,11 @@ export const chatInputNode = defineReactiveNode({
 	type: 'common-chat-input',
 	displayName: 'Chat Input',
 	category: 'HITL',
-	description:
-		'Starts a chat-style run from the feed composer. Clusters with this ' +
-		'node are **not** started by plain Run — submit a message instead.',
+	description: `
+Start this graph from the composer **Start** control — not plain Run.
+
+Type a message to kick off the chat. Graphs with this node wait for that message.
+`.trim(),
 	chatEntry: true,
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {

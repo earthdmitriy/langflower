@@ -193,6 +193,25 @@ export const prefixNode = defineReactiveNode({
 Every node must have a top-level JSDoc block describing **what it does** and
 **when to use it**. Input/output params get inline JSDoc or descriptive meta.
 
+### 3.1 User-facing `description` (palette + inspector)
+
+`description` on the definition is **operator** copy, not JSDoc. It is
+markdown in the palette hover popover and the inspector header. Use a
+template literal and write use cases. Do **not** mention `wireType`, `ctx`,
+internals, or roadmap.
+
+```ts
+description: `
+Put a short constant string on the canvas and wire it onward.
+
+Typical uses:
+- A file path for Read File
+- A short label or prompt fragment
+`.trim(),
+```
+
+JSDoc on the exported const stays for authors.
+
 ### Template
 
 ```ts
@@ -375,6 +394,7 @@ Before submitting a new node:
 - [ ] No references to internal presets, constants, or lookup maps
 - [ ] JSDoc with purpose, use-when, and example
 - [ ] Port descriptions in both JSDoc and meta
+- [ ] User-facing `description` markdown (use cases; palette + inspector)
 - [ ] Unique `type` string
 - [ ] Correct `category`
 - [ ] Companion `node.test.ts` for non-trivial logic

@@ -19,8 +19,11 @@ export const repeatNode = defineReactiveNode({
 	displayName: 'Repeat',
 	category: 'Flow',
 	paletteSecondary: true,
-	description:
-		'Repeats wired `value` **count** times. First emit ASAP; later emits wait for `trigger`. After the last value, the next trigger emits `done: true` instead of another value.',
+	description: `
+Send the same value several times. The first copy starts immediately; pulse **trigger** for the next.
+
+After the last copy, the next trigger fires **done** instead of another value. **index** counts from 0 so you can show progress.
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput, combineInputs }) {
 		const value = makeInput<unknown>('value', {

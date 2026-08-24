@@ -31,8 +31,13 @@ export const mcpStdioNode = defineReactiveNode({
 	type: 'common-mcp-stdio',
 	displayName: 'MCP stdio',
 	category: 'Tools',
-	description:
-		'Launches an MCP server over stdio from a shell command line and emits its tools for LLM `tools` ports.',
+	description: `
+Launch an MCP server from a command and give its tools to an agent.
+
+Typical uses:
+- Local stdio MCP (filesystem, browser, …)
+- Extra tools without writing a custom node
+`.trim(),
 	uiSchema: [] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
 		const command = makeInput<string>('command', {

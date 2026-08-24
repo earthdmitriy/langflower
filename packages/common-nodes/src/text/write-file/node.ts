@@ -10,8 +10,13 @@ export const writeFileNode = defineReactiveNode({
 	type: 'common-write-file',
 	displayName: 'Write File',
 	category: 'Text',
-	description:
-		'Writes `content` to a project-relative `path` (creates parents). Absolute paths are rejected.',
+	description: `
+Write **content** to a file inside the project (creates folders if needed). Absolute paths are refused.
+
+Typical uses:
+- Save an LLM draft
+- Persist a generated config
+`.trim(),
 	uiSchema: [] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
 		const pathInput = makeInput<string>('path', {

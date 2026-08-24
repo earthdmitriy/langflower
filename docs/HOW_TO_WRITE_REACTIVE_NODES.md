@@ -83,7 +83,12 @@ export const shoutNode = defineReactiveNode({
 	type: 'common-shout',
 	displayName: 'Shout',
 	category: 'Text',
-	description: 'Uppercases the wired string.',
+	description: `
+Uppercase the wired string.
+
+Typical uses:
+- Normalize a label before Compare
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {
 		const text = makeInput<string>('text', {
@@ -107,6 +112,8 @@ export const shoutNode = defineReactiveNode({
 Rules baked into this shape:
 
 - One named export from `node.ts` (see [NODES.md](NODES.md)).
+- `description` is user markdown for the palette popover and inspector
+  (use cases; not author internals). JSDoc on the const is for authors.
 - `bind` runs once as a discarded metadata probe, then once for each
   `getInstance()` live graph. It does not run again when that instance restarts
   a run (`done` / Stop / next Start).

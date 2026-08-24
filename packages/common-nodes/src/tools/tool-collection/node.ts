@@ -28,9 +28,11 @@ export const toolCollectionNode = defineReactiveNode({
 	type: 'common-tool-collection',
 	displayName: 'Tool collection',
 	category: 'Tools',
-	description:
-		'Merges many `tools` wires into one `ToolHandle[]`. ' +
-		'Duplicate toolId last-wins. Optional — agents still accept multi combine.',
+	description: `
+Combine several tool wires into one before an agent. Duplicate names: the last wire wins.
+
+Optional — you can still plug many tool packs straight into the agent.
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {
 		const tools = makeInput<readonly unknown[]>('tools', {

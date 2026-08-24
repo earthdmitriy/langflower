@@ -12,7 +12,13 @@ export const extractLinksNode = defineReactiveNode({
 	displayName: 'Extract Links',
 	category: 'Crawl',
 	paletteSecondary: true,
-	description: 'Resolves `href` values from HTML into an absolute URL list.',
+	description: `
+Pull absolute URLs from HTML.
+
+Typical uses:
+- List outbound links after Fetch URL
+- Feed those URLs into Crawl or another fetch
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput, combineInputs }) {
 		const html = makeInput<string>('html', {

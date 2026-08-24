@@ -11,8 +11,13 @@ export const compareNode = defineReactiveNode({
 	displayName: 'Compare',
 	category: 'Logic',
 	paletteSecondary: true,
-	description:
-		'Compares wired `a` and `b` with panel operator (`eq`, `ne`, `lt`, …) → boolean `result`.',
+	description: `
+Compare **a** and **b** (equals, not-equals, less than, …) and emit a boolean.
+
+Typical uses:
+- Drive IF or Gate
+- Check a score or a count
+`.trim(),
 	uiSchema: [
 		{
 			field: 'op',

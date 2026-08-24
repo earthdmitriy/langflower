@@ -86,8 +86,11 @@ export const openAiLlmNode = defineLlmNode({
 	type: 'common-openai-llm',
 	displayName: 'OpenAI-compatible LLM',
 	category: 'AI',
-	description:
-		'Streams chat completions from an OpenAI-compatible API. Invokes allowlisted builtins and mapped MCP tools via an internal tool loop (`ctx.toolHandles`).',
+	description: `
+Talk to an OpenAI-compatible model. Pick provider, model, and role in the inspector.
+
+Wire tools and skills so the model can search, edit files, or call specialists. The reply streams in the work log.
+`.trim(),
 	uiSchema: [
 		...llmPanelUiSchema,
 		...llmCompactionUiSchema,

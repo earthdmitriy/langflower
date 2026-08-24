@@ -33,8 +33,11 @@ export const mcpHttpNode = defineReactiveNode({
 	type: 'common-mcp-http',
 	displayName: 'MCP http',
 	category: 'Tools',
-	description:
-		'Connects to an MCP server over Streamable HTTP and emits its tools for LLM `tools` ports. Optional shell command launches a local process first; URL alone targets an already-running server.',
+	description: `
+Connect to an MCP server over HTTP and give its tools to an agent.
+
+Paste a URL for a server that is already running, or set a launch command to start one first.
+`.trim(),
 	uiSchema: [] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
 		const url = makeInput<string>('url', {

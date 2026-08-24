@@ -5,7 +5,13 @@ export const stringNode = defineReactiveNode({
 	type: 'common-string',
 	displayName: 'String',
 	category: 'Primitives',
-	description: 'Emits a **string literal** from the inline `value` field.',
+	description: `
+Put a short constant string on the canvas and wire it onward.
+
+Typical uses:
+- A file path for Read File
+- A short label or prompt fragment
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {
 		const value$ = makeInput<string>('value', {

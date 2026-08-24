@@ -89,8 +89,11 @@ export const langflowerToolsNode = defineReactiveNode({
 	type: 'common-langflower-tools',
 	displayName: 'Langflower Tools',
 	category: 'Tools',
-	description:
-		'Emits compile_custom_nodes (Custom → Update over the bus). Wire tools to opt in; later bus actions may be added to this pack.',
+	description: `
+Wire this into an agent so it can recompile custom nodes from chat — same intent as Custom → **Update**.
+
+On starter, Helper and Writer already have this wired.
+`.trim(),
 	uiSchema: [] as const,
 	bind(ctx, { configureOutput }) {
 		return {

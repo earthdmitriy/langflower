@@ -7,8 +7,13 @@ export const gateNode = defineReactiveNode({
 	displayName: 'Gate',
 	category: 'Logic',
 	paletteSecondary: true,
-	description:
-		'Forwards wired `value` only when boolean `pass` is true; otherwise emits nothing.',
+	description: `
+Forward **value** only when **pass** is true. Otherwise nothing is emitted.
+
+Typical uses:
+- Drop failed reviews
+- Continue a loop only while a flag stays true
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput, combineInputs }) {
 		const pass = makeInput<boolean>('pass', {

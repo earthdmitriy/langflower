@@ -5,8 +5,11 @@ export const finishNode = defineReactiveNode({
 	type: 'common-finish',
 	displayName: 'Finish',
 	category: 'Output',
-	description:
-		'Passthrough sink — the first output emission **stops the run**.',
+	description: `
+Last step of a run. When this node outputs, the run **stops**.
+
+Wire the final result here so Start/Stop settle instead of hanging on open work.
+`.trim(),
 	stopsRun: true,
 	emitOncePerActivation: true,
 	uiSchema: [] as const,

@@ -15,8 +15,13 @@ export const loopNode = defineReactiveNode({
 	displayName: 'Loop',
 	category: 'Flow',
 	paletteSecondary: true,
-	description:
-		'Map-collect over a runtime list: emit each **item** to an external body, collect **results** (JSON array). Dynamic N without graph rewrite.',
+	description: `
+For each item in a list, run the body you wire, then collect the results.
+
+Typical uses:
+- Process many files or topics without duplicating nodes
+- Map a list through an LLM or a file write
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {
 		const items = makeInput<unknown>('items', {

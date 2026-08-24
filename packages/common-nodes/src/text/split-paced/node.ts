@@ -37,8 +37,13 @@ export const splitPacedNode = defineReactiveNode({
 	type: 'common-split-paced',
 	displayName: 'Split (paced)',
 	category: 'Text',
-	description:
-		'Splits `text` on `divider` and emits **one non-empty chunk at a time**. First chunk ASAP; later chunks wait for `trigger`. After the last chunk, the next trigger emits `finish: true`. `startFrom` skips leading chunks (absolute 0-based index). In `divider`, `\\n` is replaced with a line break.',
+	description: `
+Walk a large text one piece at a time — CSV rows, log lines, paragraphs.
+
+The first piece starts immediately. Pulse **trigger** for the next. After the last piece, **finish** fires so you can stop the loop.
+
+Skip ahead with **start from**. Empty pieces are ignored. In **divider**, type \`\\n\` for a line break.
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput, combineInputs }) {
 		const text = makeInput<string>('text', {

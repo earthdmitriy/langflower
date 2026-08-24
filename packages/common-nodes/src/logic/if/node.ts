@@ -7,8 +7,13 @@ export const ifNode = defineReactiveNode({
 	displayName: 'IF',
 	category: 'Logic',
 	paletteSecondary: true,
-	description:
-		'Routes wired `value` to the `true` or `false` output from boolean `condition`.',
+	description: `
+Send **value** out **true** or **false** depending on **condition**.
+
+Typical uses:
+- Branch after Compare or Assert
+- Two different follow-up paths from one check
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput, combineInputs }) {
 		const condition = makeInput<boolean>('condition', {

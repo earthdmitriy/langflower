@@ -32,8 +32,13 @@ export const crawlNode = defineReactiveNode({
 	displayName: 'Crawl',
 	category: 'Crawl',
 	paletteSecondary: true,
-	description:
-		'BFS crawl from a seed URL with depth/page limits; saves pages into the crawl run.',
+	description: `
+Start from a URL and follow links up to a depth and page cap. Pages are saved as they are visited.
+
+Typical uses:
+- Research a site without clicking by hand
+- Collect a small corpus for an LLM
+`.trim(),
 	uiSchema: [
 		{
 			field: 'maxDepth',

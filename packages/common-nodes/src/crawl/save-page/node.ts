@@ -13,8 +13,13 @@ export const savePageNode = defineReactiveNode({
 	displayName: 'Save Page',
 	category: 'Crawl',
 	paletteSecondary: true,
-	description:
-		'Saves url/html/text into the run crawl directory and emits saved metadata.',
+	description: `
+Store a fetched page in this run's crawl folder and emit where it was saved.
+
+Typical uses:
+- Keep HTML/text for later review
+- Persist a page before the next crawl hop
+`.trim(),
 	uiSchema: [] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
 		const url = makeInput<string>('url', {

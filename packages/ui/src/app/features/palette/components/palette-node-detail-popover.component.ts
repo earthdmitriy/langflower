@@ -15,7 +15,7 @@ import {
 	clampPopoverTop,
 } from '../utils/clamp-popover-top.js';
 import { PaletteNodePreviewComponent } from './palette-node-preview.component';
-import { renderMarkdown as renderMarkdownHtml } from '../../../utils/render-markdown.js';
+import { renderNodeDescriptionMarkdown } from '../../../utils/render-markdown.js';
 
 type PaletteUiSchemaItem = {
 	readonly field: string;
@@ -30,14 +30,6 @@ export type PalettePopoverAnchor = {
 	readonly height: number;
 	readonly width: number;
 };
-
-function renderMarkdown(markdown: string | undefined): string | null {
-	if (markdown === undefined || markdown.trim().length === 0) {
-		return null;
-	}
-	const html = renderMarkdownHtml(markdown);
-	return html.length > 0 ? html : null;
-}
 
 @Component({
 	selector: 'lf-palette-node-detail-popover',
@@ -146,7 +138,7 @@ export class PaletteNodeDetailPopoverComponent {
 			return null;
 		}
 
-		return renderMarkdown(current.description);
+		return renderNodeDescriptionMarkdown(current.description);
 	});
 
 	readonly popoverLeft = computed(() => {

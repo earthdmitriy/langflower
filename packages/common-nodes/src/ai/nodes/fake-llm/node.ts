@@ -217,8 +217,13 @@ export const fakeLlmNode = defineLlmNode({
 	type: 'common-fake-llm',
 	displayName: 'Fake LLM',
 	category: 'AI',
-	description:
-		'Imitates an LLM for demos: streams **reasoning** and **draftResponse**, then **response**. Optional scripted tool loop invokes `ctx.harness`.',
+	description: `
+Demo stand-in for a real model. Streams reasoning, then a reply — no API key needed.
+
+Typical uses:
+- Smoke-test a graph
+- Scripted tool calls in CI
+`.trim(),
 	uiSchema: [
 		...llmPanelUiSchema,
 		...llmRecoveryUiSchema,

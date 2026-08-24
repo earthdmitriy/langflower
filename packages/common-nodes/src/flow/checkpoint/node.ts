@@ -12,10 +12,13 @@ export const checkpointNode = defineReactiveNode({
 	displayName: 'Checkpoint',
 	category: 'Flow',
 	paletteSecondary: true,
-	description:
-		'Passthrough that **writes a durable checkpoint** when crossed. ' +
-		'Stop without crossing a Checkpoint does not create a resume point. ' +
-		'Optional **label** appears in the Continue picker.',
+	description: `
+Save a resume point when the run passes this node. Stop without crossing it does **not** create Continue.
+
+Typical uses:
+- A safe place to resume a long job
+- Optional **label** in the Continue picker
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {
 		const value = makeInput<unknown>('value', {

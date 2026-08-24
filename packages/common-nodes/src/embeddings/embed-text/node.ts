@@ -45,8 +45,13 @@ export const embedTextNode = defineReactiveNode({
 	type: 'common-embed-text',
 	displayName: 'Embed text',
 	category: 'Embeddings',
-	description:
-		'Embeds wired **text** with the Settings embedding default (or panel provider/model). Emits **vector**, **dim**, and a compact **preview**.',
+	description: `
+Turn wired text into an embedding vector. Uses the Settings default model, or pick one on the node.
+
+Typical uses:
+- String → Embed text → Preview
+- Feed **vector** into Embed similarity
+`.trim(),
 	uiSchema: embedPanelUiSchema,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
 		const text = makeInput<string>('text', {

@@ -202,8 +202,13 @@ export const reviewNode = defineLlmNode({
 	type: 'common-review',
 	displayName: 'Review',
 	category: 'AI',
-	description:
-		'Forced-tool Review: finish with accept or feedback (requires a model with native tool / function calling — prose or markdown tool_code will not route). Optional wired tools / MCP / Sub-Agents may run via harness first.',
+	description: `
+A reviewer that must **accept** the work or send **feedback**. Needs a model that can call tools.
+
+Typical uses:
+- Gate a draft before the next stage
+- Optional extra tools or Sub-Agents for the reviewer to use first
+`.trim(),
 	uiSchema: [
 		...llmPanelUiSchema.filter((item) => item.field !== 'maxIterations'),
 		llmMaxIterationsUiField(

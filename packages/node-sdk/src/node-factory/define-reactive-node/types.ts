@@ -76,9 +76,10 @@ export type DefinedReactiveNodeConfig<
 	 */
 	readonly paletteSecondary?: boolean;
 	/**
-	 * Optional markdown for the palette detail popover footer
-	 * (`renderMarkdown`). Omitted → no description block. Copied onto the
-	 * definition / `PaletteNodeDefinition` when set.
+	 * Optional markdown for the palette detail popover and inspector.
+	 * Omitted → no description block. Copied onto the definition /
+	 * `PaletteNodeDefinition` when set. Write user-facing use cases, not
+	 * author internals.
 	 */
 	readonly description?: string;
 	/**

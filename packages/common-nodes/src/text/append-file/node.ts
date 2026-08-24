@@ -11,8 +11,13 @@ export const appendFileNode = defineReactiveNode({
 	type: 'common-append-file',
 	displayName: 'Append File',
 	category: 'Text',
-	description:
-		'Appends `content` to a project-relative file. When the file is non-empty, inserts `delimiter` before the new content.',
+	description: `
+Add **content** to the end of a project file. If the file already has text, **delimiter** is inserted first.
+
+Typical uses:
+- Append a log line
+- Grow a notes file across loop iterations
+`.trim(),
 	uiSchema: [] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
 		const pathInput = makeInput<string>('path', {

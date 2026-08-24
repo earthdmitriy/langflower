@@ -22,8 +22,13 @@ export const previewNode = defineReactiveNode({
 	type: 'common-preview',
 	displayName: 'Preview',
 	category: 'Output',
-	description:
-		'Displays wired **text** in a read-only preview area on the canvas.',
+	description: `
+Show a wired value on the canvas and in the work log so you can inspect it.
+
+Typical uses:
+- Debug a mid-pipeline value
+- A human-readable end of a small graph
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {
 		const text = makeInput('text', {

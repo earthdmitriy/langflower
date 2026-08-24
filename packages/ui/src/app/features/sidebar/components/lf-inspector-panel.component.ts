@@ -42,6 +42,7 @@ import { ModelsCatalogProjectionService } from '../../../services/models-catalog
 import { SelectedNodeProjectionService } from '../../../services/selected-node-projection.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import { LfInlineFieldComponent } from '../../canvas/components/lf-inline-field.component';
+import { renderNodeDescriptionMarkdown } from '../../../utils/render-markdown.js';
 import { formatPortValue } from '../format-port-value';
 import {
 	resolveModelsFieldPresentation,
@@ -394,6 +395,12 @@ const buildPanelRows = (
 					>
 						{{ node.type }} · {{ node.id }}
 					</p>
+					@if (descriptionHtml() !== null) {
+						<div
+							class="prose prose-xs mt-2 max-w-none text-zinc-600 dark:prose-invert dark:text-zinc-300"
+							[innerHTML]="descriptionHtml()"
+						></div>
+					}
 				</div>
 
 				@if (panelRows$ | async; as rows) {
@@ -556,6 +563,15 @@ export class LfInspectorPanelComponent {
 	private readonly selection = inject(SelectedNodeProjectionService);
 
 	readonly selectedNode = this.selection.selectedNode;
+	readonly descriptionHtml = computed(() => {
+		const node = this.selectedNode();
+
+		if (node === null) {
+			return null;
+		}
+
+		return renderNodeDescriptionMarkdown(node.definition.description);
+	});
 	readonly langflowerConfig = this.configProjection.config;
 	readonly activeGraph = this.execution.activeGraph;
 	readonly isRunning = this.execution.isRunning;

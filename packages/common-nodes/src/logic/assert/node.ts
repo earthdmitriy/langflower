@@ -10,8 +10,13 @@ export const assertNode = defineReactiveNode({
 	displayName: 'Assert',
 	category: 'Logic',
 	paletteSecondary: true,
-	description:
-		'Fails the run branch when `condition` is not true; otherwise passthrough `value`.',
+	description: `
+Stop this branch if **condition** is not true. Otherwise the **value** passes through.
+
+Typical uses:
+- Fail the run when tests did not pass
+- Block the next stage until a check is green
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput, combineInputs }) {
 		const condition = makeInput<boolean>('condition', {

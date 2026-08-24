@@ -11,8 +11,11 @@ export const readFileNode = defineReactiveNode({
 	type: 'common-read-file',
 	displayName: 'Read File',
 	category: 'Text',
-	description:
-		'Reads a project-relative file into `content`. Absolute paths are rejected. Emit on `update` to re-read.',
+	description: `
+Read a file inside the project into **content**. Absolute paths are refused.
+
+Pulse **update** to read the same path again after it changes on disk.
+`.trim(),
 	uiSchema: [] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
 		const pathInput = makeInput<string>('path', {

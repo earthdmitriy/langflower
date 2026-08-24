@@ -9,7 +9,10 @@ export const crawlToolsNode = defineToolRegistrations({
 	type: 'common-crawl-tools',
 	displayName: 'Crawl Tools',
 	category: 'Tools',
-	description:
-		'Emits crawl_fetch / crawl_extract_links / crawl_save_page / crawl_bfs with imported handlers for agent inventory.',
+	description: `
+Give an agent fetch, extract-links, save-page, and crawl tools.
+
+Wire **tools** into an LLM so it can research the web from chat.
+`.trim(),
 	tools: CRAWL_TOOL_CONFIGS,
 });

@@ -8,7 +8,8 @@ export type PaletteNodeSource = 'system' | 'custom';
  * node factory, plus wire-only {@link PaletteNodeSource}.
  *
  * Port metadata lives in `inputsConfigs` / `outputsConfigs` (`config` fields).
- * Optional `description` is markdown for the palette detail popover footer.
+ * Optional `description` is markdown for the palette detail popover footer
+ * and the inspector header.
  */
 export type PaletteNodeDefinition = Omit<
 	ReactiveNodeDefinition,

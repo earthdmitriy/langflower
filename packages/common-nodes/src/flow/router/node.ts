@@ -7,8 +7,13 @@ export const routerNode = defineReactiveNode({
 	type: COMMON_ROUTER_TYPE,
 	displayName: 'Router',
 	category: 'Flow',
-	description:
-		'Use for **visual organisation of edges** in complex workflows. Any number of inputs can be connected — input ports expand dynamically.',
+	description: `
+Tidy a busy canvas: any number of inputs can connect, and extra ports appear as you wire more.
+
+Typical uses:
+- Group many edges so they stay readable
+- Fan-out one stream to several destinations
+`.trim(),
 	uiSchema: [] as const,
 	bind() {
 		return { inputs: [], outputs: [] };

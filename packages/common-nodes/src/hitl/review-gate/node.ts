@@ -6,8 +6,13 @@ export const hitlReviewGateNode = defineReactiveNode({
 	type: 'common-hitl-review-gate',
 	displayName: 'Review Gate',
 	category: 'HITL',
-	description:
-		'HITL gate with separate **Approve** and **Request changes** actions.',
+	description: `
+Pause for a human. **Approve** to continue, or **Request changes** with feedback.
+
+Typical uses:
+- Gate a draft before the next stage
+- Collect edits without leaving the editor
+`.trim(),
 	uiSchema: [],
 	bind(_ctx, { makeInput, configureOutput }) {
 		const result = makeInput<string>('result', {

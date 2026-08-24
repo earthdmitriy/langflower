@@ -9,7 +9,10 @@ export const memoryToolsNode = defineToolRegistrations({
 	type: 'common-memory-tools',
 	displayName: 'Memory Tools',
 	category: 'Tools',
-	description:
-		'Emits get_memory_tree / read_memory_section / search_memory_grep / append_memory_log / update_memory_section / create_memory_file for agent inventory.',
+	description: `
+Give an agent tools to read and write the project wiki (tree, search, append, update, create).
+
+Wire **tools** into an LLM. Notes live under the project's memory folder.
+`.trim(),
 	tools: MEMORY_TOOL_CONFIGS,
 });

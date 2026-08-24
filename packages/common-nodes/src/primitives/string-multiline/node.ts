@@ -5,8 +5,13 @@ export const stringMultilineNode = defineReactiveNode({
 	type: 'common-string-multiline',
 	displayName: 'String (multiline)',
 	category: 'Primitives',
-	description:
-		'Emits a **multiline string literal** from the inline `value` textarea.',
+	description: `
+Paste longer text on the node — several lines, not a single field.
+
+Typical uses:
+- A prompt or email draft
+- CSV or log text to feed into Split (paced)
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {
 		const value$ = makeInput<string>('value', {

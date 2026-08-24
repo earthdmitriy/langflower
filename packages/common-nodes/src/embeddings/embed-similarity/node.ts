@@ -60,8 +60,13 @@ export const embedSimilarityNode = defineReactiveNode({
 	type: 'common-embed-similarity',
 	displayName: 'Embed similarity',
 	category: 'Embeddings',
-	description:
-		'Computes cosine similarity between wired **a** and **b** JSON vectors (L2-normalized dot).',
+	description: `
+Score how close two vectors are (cosine, typically 0–1).
+
+Typical uses:
+- Compare two Embed text outputs
+- Rank which snippet matches a query
+`.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput, combineInputs }) {
 		const a = makeInput<unknown>('a', {
