@@ -67,7 +67,7 @@ the server continues serving and prints one concise stderr diagnostic instead.
 
 Authoritative implementation: [`emit-bootstrap.ts`](emit-bootstrap.ts).
 
-1. `session.state.snapshot` (version + dividers + selected node + settings; slim — not fat feed)
+1. `session.state.snapshot` (version + dividers + paletteVisible + selected node + settings; slim — not fat feed)
 2. `runner.snapshot`
 3. `executionFeed.snapshot`
 4. `runner.checkpoints.snapshot`
@@ -109,6 +109,7 @@ There is no separate `viewport.snapshot` event — pan/zoom reconnects from
 | `editor.removeNode.requested`          | `wire-editor-handlers`            | `applyEditorRemoveNode`                                           | `editor.deleteNodes`, status                                                      |
 | `editor.viewport.requested`            | `wire-editor-handlers`            | session graph viewport                                            | `editor.viewport.delta`, status                                                   |
 | `editor.dividers.requested`            | `wire-editor-handlers`            | session + config persist                                          | `editor.dividers.snapshot`                                                        |
+| `editor.paletteVisible.requested`      | `wire-editor-handlers`            | session + config persist                                          | `editor.paletteVisible.snapshot`                                                  |
 | `editor.settings.requested`            | `wire-editor-handlers`            | session settings chrome                                           | `editor.settings.snapshot`                                                        |
 | `editor.selectNode.requested`          | `wire-editor-handlers`            | `buildSelectedNodePayload`                                        | `editor.settings.snapshot` (if closing) + `editor.nodeSelected`                   |
 | `runner.start.requested`               | `wire-runner-handlers`            | `runner.start`                                                    | `runner.started` (broadcast) + live                                               |

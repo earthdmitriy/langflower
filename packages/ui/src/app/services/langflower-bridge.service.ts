@@ -34,6 +34,7 @@ const CACHED_BRIDGE_EVENTS = [
 	'executionFeed.snapshot',
 	'toolConfig.snapshot',
 	'editor.dividers.snapshot',
+	'editor.paletteVisible.snapshot',
 	'runner.checkpoints.snapshot',
 ] as const satisfies ReadonlyArray<keyof LangflowerBridgeClient>;
 

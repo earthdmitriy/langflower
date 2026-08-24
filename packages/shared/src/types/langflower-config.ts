@@ -126,6 +126,11 @@ export type LangflowerConfig = {
 	/** Editor divider positions (sidebar + composer sizes). */
 	readonly dividerPositions?: DividerPositions;
 	/**
+	 * Left node palette shown. Project jsonc only (same class as
+	 * {@link LangflowerConfig.dividerPositions}). Omit = visible.
+	 */
+	readonly paletteVisible?: boolean;
+	/**
 	 * Runtime allow/ask/deny for harness tools (≠ author-time `enabledToolIds`).
 	 */
 	readonly permission?: LangflowerPermissionConfig;

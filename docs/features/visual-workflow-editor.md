@@ -31,8 +31,12 @@ immediately.
 The editor screen has four areas:
 
 - **Left palette** — every available node type, grouped by category, that
-  can be dragged onto the canvas. Less-common / dual-surface graph I/O types
-  live under a collapsed **Advanced** group
+  can be dragged onto the canvas. Collapse it with `<<` on the Palette title
+  row; a floating `>>` at the canvas top-left restores it (`Show palette`
+  tip to the right). Visibility is shared across tabs and survives restart
+  (`paletteVisible` in project `langflower.jsonc`; missing key = shown).
+  Less-common / dual-surface graph I/O types live under a collapsed
+  **Advanced** group
   ([ADR-023](../ADR.md#adr-023--palette-palettesecondary--collapsed-advanced)).
 - **Center canvas** — the interactive graph: place node instances, draw
   connections between ports, move/delete nodes and edges, pan and zoom.

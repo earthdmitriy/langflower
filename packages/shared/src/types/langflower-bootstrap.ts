@@ -67,6 +67,12 @@ export type SessionStateSnapshotPayload = {
 	readonly langflowerConfig: LangflowerConfig;
 	/** Editor divider positions (sidebar + composer sizes). */
 	readonly dividerPositions: DividerPositions;
+	/**
+	 * Left node palette shown. Hydrated from project `langflower.jsonc`
+	 * (`paletteVisible`; missing key → `true`) and updated live via
+	 * `editor.paletteVisible.snapshot`.
+	 */
+	readonly paletteVisible: boolean;
 	/** Currently selected canvas node (in memory, shared across tabs), or `null`. */
 	readonly selectedNode: EditorSelectedNodePayload['node'];
 	/**

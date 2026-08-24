@@ -128,9 +128,11 @@ client must show the same state without asking which tab caused a change.
 **Reconnect sequence:**
 
 1. `session.state.snapshot` is deliberately slim: `version`,
-   `langflowerConfig`, `dividerPositions`, `selectedNode`, and `settings`
-   only. It does not contain workflow, viewport, runner, execution feed, tool
-   config, or palette. Live Settings updates use `editor.settings.snapshot`.
+   `langflowerConfig`, `dividerPositions`, `paletteVisible`, `selectedNode`,
+   and `settings` only. It does not contain workflow, viewport, runner,
+   execution feed, tool config, or palette catalog. Live Settings updates
+   use `editor.settings.snapshot`. Live palette chrome uses
+   `editor.paletteVisible.snapshot`.
 2. Authoritative connect/reconnect order from
    `packages/server/src/bridge/emit-bootstrap.ts`:
    `session.state.snapshot` → `runner.snapshot` →

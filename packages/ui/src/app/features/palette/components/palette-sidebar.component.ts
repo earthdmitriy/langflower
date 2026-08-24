@@ -15,6 +15,8 @@ import type {
 	PaletteNodeSource,
 } from '@langflower/shared/langflower';
 import { combineLatest, map, startWith } from 'rxjs';
+import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component';
+import { EditorPaletteVisibleProjectionService } from '../services/editor-palette-visible-projection.service';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import {
@@ -59,17 +61,29 @@ const CHEVRON_PATH =
 @Component({
 	selector: 'lf-palette-sidebar',
 	standalone: true,
-	imports: [PaletteNodeDetailPopoverComponent],
+	imports: [PaletteNodeDetailPopoverComponent, LfHoverTipComponent],
 	host: {
 		class: 'block h-full min-h-0',
 	},
 	template: `
 		<div class="relative flex h-full min-h-0 flex-col">
-			<h2
-				class="shrink-0 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
-			>
-				Palette
-			</h2>
+			<div class="flex shrink-0 items-center justify-between gap-2">
+				<h2
+					class="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+				>
+					Palette
+				</h2>
+				<lf-hover-tip tip="Hide palette" side="left" align="center">
+					<button
+						type="button"
+						aria-label="Hide palette"
+						class="rounded-md border border-zinc-200 px-1.5 py-0.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+						(click)="hidePalette()"
+					>
+						&lt;&lt;
+					</button>
+				</lf-hover-tip>
+			</div>
 
 			<input
 				type="search"
@@ -375,6 +389,9 @@ const CHEVRON_PATH =
 export class PaletteSidebarComponent {
 	private readonly bridge = inject(LangflowerBridgeService);
 	private readonly execution = inject(WorkflowExecutionService);
+	private readonly paletteChrome = inject(
+		EditorPaletteVisibleProjectionService,
+	);
 	private readonly appRef = inject(ApplicationRef);
 	private readonly environmentInjector = inject(EnvironmentInjector);
 	private seededCategoryExpansion = false;
@@ -489,6 +506,10 @@ export class PaletteSidebarComponent {
 		}
 
 		this.filterQuery.set(target.value);
+	}
+
+	hidePalette(): void {
+		this.paletteChrome.requestHide();
 	}
 
 	requestCustomPaletteUpdate(): void {

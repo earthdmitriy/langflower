@@ -16,7 +16,7 @@ import {
 } from './settings-draft-session.js';
 
 const SESSION_READY_VERSION = 1;
-const SNAPSHOT_VERSION = 6;
+const SNAPSHOT_VERSION = 7;
 
 export class LangflowerSession {
 	readonly runtime = new RuntimeFacade({ log: true });
@@ -34,6 +34,8 @@ export class LangflowerSession {
 		rightWidth: 360,
 		composerHeight: 168,
 	};
+	/** Left node palette shown. Hydrated from project jsonc; default visible. */
+	paletteVisible = true;
 	/** In-memory canvas selection, shared across tabs. `null` = nothing selected. */
 	selectedNodeId: string | null = null;
 	/** Settings aside chrome — session memory only (not persisted to disk). */

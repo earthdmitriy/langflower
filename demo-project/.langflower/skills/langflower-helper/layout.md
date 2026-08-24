@@ -7,7 +7,10 @@ Facts for UI chrome and on-disk paths. Prefer this file over guessing.
 - **Topbar** — workflow list (switch / create / rename as shipped), gear →
   **Settings**.
 - **Left palette** — built-in nodes; **Custom** packs; **Update** reloads
-  custom packs after disk changes.
+  custom packs after disk changes. Collapse with `<<` on the Palette title
+  row; restore with floating `>>` at the canvas top-left. Visibility is
+  project `paletteVisible` (missing key = shown) and is allowed during a
+  run.
 - **Center** — canvas (nodes, edges, selection).
 - **Right aside** — mutually exclusive modes: **feed** | **inspector** |
   **Settings**. Opening Settings (gear or empty-provider onboarding) swaps out
@@ -28,6 +31,7 @@ Facts for UI chrome and on-disk paths. Prefer this file over guessing.
 | Hard-stop a run                        | Composer **Stop**                                                                                                                                                                                                                                                                                                    |
 | Edit selected node params / ports      | Select node → right aside **inspector** (not Settings). Read-only while a run is active — Stop first.                                                                                                                                                                                                                |
 | Add a node from the palette            | Drag from the left palette onto the canvas. Disabled while a run is active (`cursor-not-allowed`) — Stop first.                                                                                                                                                                                                      |
+| Hide / show the node palette           | Palette title `<<` / canvas `>>`. Shared across tabs; stored as `paletteVisible` in project `langflower.jsonc`. Allowed during a run.                                                                                                                                                                                |
 | Add or reload custom nodes             | Pack under `.langflower/nodes/<pack>/`. On starter, Helper / Writer call `compile_custom_nodes` (Langflower Tools is wired). Else Custom → **Update**. Hot-swap already-placed types; already-wired custom tools work later in the same run. New types: user places from Custom (no auto-place / auto-wire mid-run). |
 | Switch workflow                        | Topbar workflow list. Load / New / Copy / rename / Delete are locked while a run is active — Stop first.                                                                                                                                                                                                             |
 | Open Settings without leaving canvas   | Gear — Settings in right aside                                                                                                                                                                                                                                                                                       |

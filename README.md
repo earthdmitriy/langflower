@@ -95,6 +95,9 @@ project folder stays where the work happens.
 
 Requires **Node.js ≥ 22**.
 
+One-shot OS installers (Node LTS if needed + global `langflower`):
+[install/](install/) (`windows.ps1`, `linux.sh`, `macos.sh`).
+
 ```bash
 npm install -g langflower
 langflower

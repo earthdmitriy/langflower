@@ -42,6 +42,7 @@ export async function buildSessionBootstrap(
 		version: LangflowerSession.snapshotVersion,
 		langflowerConfig,
 		dividerPositions: session.dividerPositions,
+		paletteVisible: session.paletteVisible,
 		selectedNode: buildSelectedNodePayload(session, resolveDefinition).node,
 		settings: session.settings,
 	};

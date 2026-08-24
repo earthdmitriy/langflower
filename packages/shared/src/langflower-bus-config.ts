@@ -173,6 +173,15 @@ const editorConfig = {
 		'editor.dividers.requested': message<DividerPositions>(),
 
 		/**
+		 * Left palette shown/hidden — client sends on hide (`<<`) / show (`>>`).
+		 *
+		 * Server validates, updates session, broadcasts to all tabs, and
+		 * persists `paletteVisible` to project `langflower.jsonc`. Missing
+		 * jsonc key means visible (`true`).
+		 */
+		'editor.paletteVisible.requested': message<boolean>(),
+
+		/**
 		 * Canvas selection changed — `nodeId` is the clicked node, or `null`
 		 * to clear. Shared session state, like {@link CanvasViewport}: not
 		 * locked with graph edits, not persisted to the workflow document.
@@ -216,6 +225,13 @@ const editorConfig = {
 
 		/** Divider positions — broadcast to all tabs after server persistence. */
 		'editor.dividers.snapshot': message<DividerPositions>(),
+
+		/**
+		 * Left palette visibility — broadcast to all tabs after server
+		 * persistence. Hydrated on connect via
+		 * {@link SessionStateSnapshotPayload.paletteVisible}.
+		 */
+		'editor.paletteVisible.snapshot': message<boolean>(),
 
 		/**
 		 * Authoritative selected node — full {@link WorkflowNodePersisted}
@@ -403,7 +419,7 @@ const runnerConfig = {
  * slice from its own key — there is no fat all-domains bootstrap payload.
  *
  * **Slim `session.state.snapshot` only:** `version`, `langflowerConfig`,
- * `dividerPositions`, `selectedNode`, `settings`.
+ * `dividerPositions`, `paletteVisible`, `selectedNode`, `settings`.
  *
  * **Do not put here** (dedicated keys, see emit order on
  * {@link langflowerWsConfig}): workflows, viewport, runner gate, execution
@@ -421,11 +437,13 @@ const bootstrapConfig = {
 		 * `session.ready`).
 		 *
 		 * Payload is only {@link SessionStateSnapshotPayload}: `version`,
-		 * `langflowerConfig`, `dividerPositions`, `selectedNode`, `settings`.
-		 * Replace those slices from this event; hydrate workflows / runner /
-		 * feed / viewport / tool config from their dedicated snapshot keys
-		 * (see state-sync table on {@link langflowerWsConfig}). Live Settings
-		 * updates after connect use `editor.settings.snapshot`.
+		 * `langflowerConfig`, `dividerPositions`, `paletteVisible`,
+		 * `selectedNode`, `settings`. Replace those slices from this event;
+		 * hydrate workflows / runner / feed / viewport / tool config from
+		 * their dedicated snapshot keys (see state-sync table on
+		 * {@link langflowerWsConfig}). Live Settings updates after connect use
+		 * `editor.settings.snapshot`; live palette chrome uses
+		 * `editor.paletteVisible.snapshot`.
 		 */
 		'session.state.snapshot': message<SessionStateSnapshotPayload>(),
 
@@ -723,7 +741,7 @@ const workflowManagerConfig = {
  *
  * | Domain | Model | Reconnect | Live updates |
  * | ------ | ----- | --------- | -------------- |
- * | Session chrome (dividers, selection, settings) + effective `langflowerConfig` | **snapshot only** | slim `session.state.snapshot` | dividers / selection / settings via `editor.dividers.snapshot` / `editor.nodeSelected` / `editor.settings.snapshot` |
+ * | Session chrome (dividers, palette visibility, selection, settings) + effective `langflowerConfig` | **snapshot only** | slim `session.state.snapshot` | dividers / palette / selection / settings via `editor.dividers.snapshot` / `editor.paletteVisible.snapshot` / `editor.nodeSelected` / `editor.settings.snapshot` |
  * | Langflower project config (full layers) | **snapshot only** | `langflower.config.snapshot` after `session.ready`; effective also in slim session | full slice replace |
  * | Live provider model catalogs | **snapshot only** | `langflower.models.catalog.snapshot` after config (async on connect) + after Save | full map replace |
  * | Tool config | **snapshot only** | `toolConfig.snapshot` | full slice replace |

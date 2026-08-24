@@ -253,6 +253,9 @@ function parseLangflowerConfig(raw: unknown): LangflowerConfig {
 		...(harness !== undefined ? { harness } : {}),
 		...(mcp !== undefined ? { mcp } : {}),
 		...parseDividerPositions(raw.dividerPositions),
+		...(typeof raw.paletteVisible === 'boolean'
+			? { paletteVisible: raw.paletteVisible }
+			: {}),
 	};
 }
 
@@ -345,6 +348,10 @@ function mergeLangflowerConfig(
 
 	if (patch.dividerPositions !== undefined) {
 		merged.dividerPositions = patch.dividerPositions;
+	}
+
+	if (patch.paletteVisible !== undefined) {
+		merged.paletteVisible = patch.paletteVisible;
 	}
 
 	return merged;
@@ -575,6 +582,18 @@ export class LangflowerConfigService {
 			await this.readRawAt(this.projectConfigPath()),
 			{
 				dividerPositions: positions,
+			},
+		);
+
+		await this.writeRawAt(this.projectConfigPath(), merged);
+		return parseLangflowerConfig(merged);
+	}
+
+	async setPaletteVisible(visible: boolean): Promise<LangflowerConfig> {
+		const merged = mergeLangflowerConfig(
+			await this.readRawAt(this.projectConfigPath()),
+			{
+				paletteVisible: visible,
 			},
 		);
 

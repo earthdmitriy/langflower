@@ -91,6 +91,10 @@
 				"composerHeight": { "type": "number" }
 			}
 		},
+		"paletteVisible": {
+			"type": "boolean",
+			"description": "Left node palette shown. Omit = visible. Project-only (not merged from global config as a product key; same class as dividerPositions)."
+		},
 		"permission": {
 			"type": "object",
 			"description": "Runtime allow/ask/deny for harness tools (≠ Inspector enabledToolIds).",

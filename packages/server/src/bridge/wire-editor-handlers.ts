@@ -319,6 +319,27 @@ export const wireEditorHandlers = (
 	);
 
 	subscription.add(
+		bridge['editor.paletteVisible.requested'].subscribe((raw) => {
+			if (!isInboundEvent<boolean>(raw)) {
+				return;
+			}
+
+			if (findClientById(bridge, raw.clientId) === undefined) {
+				return;
+			}
+
+			if (typeof raw.payload !== 'boolean') {
+				return;
+			}
+
+			session.paletteVisible = raw.payload;
+			bridgeEmit(bridge, 'editor.paletteVisible.snapshot', raw.payload);
+
+			void context.langflowerConfigService.setPaletteVisible(raw.payload);
+		}),
+	);
+
+	subscription.add(
 		bridge['editor.settings.requested'].subscribe((raw) => {
 			if (!isInboundEvent<EditorSettingsRequestedPayload>(raw)) {
 				return;

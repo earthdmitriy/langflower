@@ -48,7 +48,11 @@ export const emitBootstrap = async (
 		session.dividerPositions = langflowerConfig.dividerPositions;
 	}
 
-	// Thin bootstrap — version + config + dividers + selected node only
+	if (langflowerConfig.paletteVisible !== undefined) {
+		session.paletteVisible = langflowerConfig.paletteVisible;
+	}
+
+	// Thin bootstrap — version + config + dividers + palette chrome + selected node only
 	const bootstrap = await buildSessionBootstrap(
 		session,
 		context.langflowerConfigService,

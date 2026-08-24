@@ -6,6 +6,13 @@
 - A project folder on your machine (code, docs, or any workspace you want
   Langflower to work in)
 
+To install Node (latest LTS when missing or too old) and the global CLI in
+one step, download a single script from
+[install/](../../install/):
+[windows.ps1](../../install/windows.ps1),
+[linux.sh](../../install/linux.sh), or
+[macos.sh](../../install/macos.sh).
+
 ## Install and run
 
 ```bash

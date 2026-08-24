@@ -6,11 +6,11 @@ global `langflower` CLI.
 
 Download **one** file for your OS — no other repo files are required.
 
-| OS | Script |
-| --- | --- |
+| OS      | Script                     |
+| ------- | -------------------------- |
 | Windows | [windows.ps1](windows.ps1) |
-| Linux | [linux.sh](linux.sh) |
-| macOS | [macos.sh](macos.sh) |
+| Linux   | [linux.sh](linux.sh)       |
+| macOS   | [macos.sh](macos.sh)       |
 
 ## What the script does
 

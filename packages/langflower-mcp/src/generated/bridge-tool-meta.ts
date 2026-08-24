@@ -84,6 +84,16 @@ export const BRIDGE_TOOL_META = {
 			additionalProperties: true,
 		},
 	},
+	'editor.paletteVisible.requested': {
+		description:
+			'Left palette shown/hidden — client sends on hide (`<<`) / show (`>>`). Server validates, updates session, broadcasts to all tabs, and persists `paletteVisible` to project `langflower.jsonc`. Missing jsonc key means visible (`true`).',
+		typeExpr: 'boolean',
+		inputSchema: {
+			type: 'object',
+			description: 'TypeScript payload: boolean',
+			additionalProperties: true,
+		},
+	},
 	'editor.selectNode.requested': {
 		description:
 			'Canvas selection changed — `nodeId` is the clicked node, or `null` to clear. Shared session state, like {@link CanvasViewport}: not locked with graph edits, not persisted to the workflow document. Server validates `nodeId` against the active graph, stores it on the session, and broadcasts `editor.nodeSelected` to all tabs. Selecting a node while Settings is open also closes Settings (`editor.settings.snapshot` with `open: false`).',
@@ -171,6 +181,16 @@ export const BRIDGE_TOOL_META = {
 		inputSchema: {
 			type: 'object',
 			description: 'TypeScript payload: DividerPositions',
+			additionalProperties: true,
+		},
+	},
+	'editor.paletteVisible.snapshot': {
+		description:
+			'Left palette visibility — broadcast to all tabs after server persistence. Hydrated on connect via',
+		typeExpr: 'boolean',
+		inputSchema: {
+			type: 'object',
+			description: 'TypeScript payload: boolean',
 			additionalProperties: true,
 		},
 	},
@@ -419,7 +439,7 @@ export const BRIDGE_TOOL_META = {
 	},
 	'session.state.snapshot': {
 		description:
-			'Slim session projection — emitted on **every** connect and reconnect, first in the bootstrap sequence (before domain snapshots and `session.ready`). Payload is only {@link SessionStateSnapshotPayload}: `version`, `langflowerConfig`, `dividerPositions`, `selectedNode`, `settings`. Replace those slices from this event; hydrate workflows / runner / feed / viewport / tool config from their dedicated snapshot keys (see state-sync table on {@link langflowerWsConfig}). Live Settings updates after connect use `editor.settings.snapshot`.',
+			'Slim session projection — emitted on **every** connect and reconnect, first in the bootstrap sequence (before domain snapshots and `session.ready`). Payload is only {@link SessionStateSnapshotPayload}: `version`, `langflowerConfig`, `dividerPositions`, `paletteVisible`, `selectedNode`, `settings`. Replace those slices from this event; hydrate workflows / runner / feed / viewport / tool config from their dedicated snapshot keys (see state-sync table on `editor.settings.snapshot`; live palette chrome uses `editor.paletteVisible.snapshot`.',
 		typeExpr: 'SessionStateSnapshotPayload',
 		inputSchema: {
 			type: 'object',

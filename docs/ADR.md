@@ -121,7 +121,7 @@ runs, skills, and permissions stay project-local (global does not own them).
 
 - `LangflowerConfigService` reads/writes project + global layers; effective
   config for runs and `langflower.config.snapshot` is the merge.
-- Project-only fields (`currentWorkflowId`, `dividerPositions`, `permission`,
+- Project-only fields (`currentWorkflowId`, `dividerPositions`, `paletteVisible`, `permission`,
   `harness`, `mcp`, …) remain project file only.
 
 ---

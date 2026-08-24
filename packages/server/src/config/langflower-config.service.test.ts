@@ -483,4 +483,51 @@ describe('LangflowerConfigService', () => {
 		expect(raw).not.toHaveProperty('embedding');
 		expect((await service.read()).embedding).toBeUndefined();
 	});
+
+	it('parses paletteVisible from langflower.jsonc', async () => {
+		const configPath = path.join(
+			projectDir,
+			'.langflower',
+			'langflower.jsonc',
+		);
+		await fs.mkdir(path.dirname(configPath), { recursive: true });
+		await fs.writeFile(
+			configPath,
+			`${JSON.stringify({ paletteVisible: false })}\n`,
+			'utf8',
+		);
+
+		await expect(service.read()).resolves.toEqual({
+			paletteVisible: false,
+		});
+	});
+
+	it('ignores non-boolean paletteVisible when reading', async () => {
+		const configPath = path.join(
+			projectDir,
+			'.langflower',
+			'langflower.jsonc',
+		);
+		await fs.mkdir(path.dirname(configPath), { recursive: true });
+		await fs.writeFile(
+			configPath,
+			`${JSON.stringify({ paletteVisible: 'no' })}\n`,
+			'utf8',
+		);
+
+		await expect(service.read()).resolves.toEqual({});
+	});
+
+	it('persists paletteVisible via setPaletteVisible', async () => {
+		await service.setPaletteVisible(false);
+
+		await expect(service.read()).resolves.toEqual({
+			paletteVisible: false,
+		});
+
+		await service.setPaletteVisible(true);
+		await expect(service.read()).resolves.toEqual({
+			paletteVisible: true,
+		});
+	});
 });

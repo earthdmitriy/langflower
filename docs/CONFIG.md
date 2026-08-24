@@ -33,9 +33,24 @@ the Inspector table.
 
 Personal defaults shared across projects (Settings **Global** scope). Settings
 v1 edits `model` / `provider` / `embedding` / `serverLogs` in that file.
-Project-only keys (`currentWorkflowId`, `dividerPositions`, `permission`,
+Project-only keys (`currentWorkflowId`, `dividerPositions`, `paletteVisible`, `permission`,
 `harness`, `mcp`, …) belong in the project file — do not put them in global;
 hand-edit escape hatch still exists for power users.
+
+### `paletteVisible` (left palette chrome)
+
+Optional boolean on the **project** file only. Controls whether the left node
+palette and its resize gutter are shown. Collapse with `<<` on the Palette
+title row; restore with the floating `>>` on the canvas. The last valid
+value is broadcast to all tabs (`editor.paletteVisible.snapshot`) and
+written here. Hide does **not** persist `leftWidth: 0` — divider width
+stays the last size.
+
+| Value on disk         | Meaning                |
+| --------------------- | ---------------------- |
+| omitted / non-boolean | Palette shown (`true`) |
+| `true`                | Palette shown          |
+| `false`               | Palette hidden         |
 
 ### `serverLogs` (bridge diagnostics)
 

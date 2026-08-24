@@ -16,6 +16,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import type { DividerPositions } from '@langflower/shared/langflower';
 import { tap } from 'rxjs';
 import { EditorSettingsProjectionService } from '../../../services/editor-settings-projection.service';
+import { EditorPaletteVisibleProjectionService } from '../../palette/services/editor-palette-visible-projection.service';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { LangflowerConfigProjectionService } from '../../../services/langflower-config-projection.service';
 import { ModelsCatalogProjectionService } from '../../../services/models-catalog-projection.service';
@@ -181,32 +182,56 @@ type MeasuredLayout = {
 			</header>
 
 			@if (sessionSnapshot$ | async; as sessionSnapshot) {
+				@let paletteVisible = paletteVisible$ | async;
 				<div #editorRow class="flex min-h-0 flex-1">
-					<aside
-						class="flex min-h-0 min-w-[120px] shrink-0 flex-col overflow-hidden border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-						[style.width.px]="
-							leftWidth() ??
-							sessionSnapshot.dividerPositions.leftWidth
-						"
-					>
-						<section class="flex h-full min-h-0 flex-col p-4">
-							<lf-palette-sidebar />
-						</section>
-					</aside>
+					@if (paletteVisible === true) {
+						<aside
+							#leftAside
+							class="flex min-h-0 min-w-[120px] shrink-0 flex-col overflow-hidden border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+							[style.width.px]="
+								leftWidth() ??
+								sessionSnapshot.dividerPositions.leftWidth
+							"
+						>
+							<section class="flex h-full min-h-0 flex-col p-4">
+								<lf-palette-sidebar />
+							</section>
+						</aside>
 
-					<button
-						type="button"
-						aria-label="Resize left sidebar"
-						class="w-1 cursor-col-resize bg-zinc-200 transition hover:bg-zinc-400 dark:bg-zinc-800 dark:hover:bg-zinc-500"
-						(pointerdown)="startResize($event, 'left')"
-					></button>
+						<button
+							type="button"
+							aria-label="Resize left sidebar"
+							class="w-1 cursor-col-resize bg-zinc-200 transition hover:bg-zinc-400 dark:bg-zinc-800 dark:hover:bg-zinc-500"
+							(pointerdown)="startResize($event, 'left')"
+						></button>
+					}
 
 					<main
 						class="relative min-w-0 flex-1 overflow-hidden bg-zinc-100 dark:bg-zinc-950"
 					>
-						<section class="relative h-full min-h-0">
+						<section class="relative z-0 h-full min-h-0">
 							<lf-canvas-container />
 						</section>
+						@if (paletteVisible === false) {
+							<div
+								class="pointer-events-auto absolute left-2 top-2 z-20"
+							>
+								<lf-hover-tip
+									tip="Show palette"
+									side="right"
+									align="start"
+								>
+									<button
+										type="button"
+										aria-label="Show palette"
+										class="rounded-md border border-zinc-200 bg-white p-1.5 font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+										(click)="showPalette()"
+									>
+										&gt;&gt;
+									</button>
+								</lf-hover-tip>
+							</div>
+						}
 					</main>
 
 					<button
@@ -271,11 +296,14 @@ export class EditorShellComponent {
 	private readonly activeResize = signal<ResizeDrag | null>(null);
 	private readonly editorRow =
 		viewChild<ElementRef<HTMLElement>>('editorRow');
+	private readonly leftAside =
+		viewChild<ElementRef<HTMLElement>>('leftAside');
 	private readonly rightAside =
 		viewChild<ElementRef<HTMLElement>>('rightAside');
 	private layoutObserver: ResizeObserver | null = null;
 	private persistTimer: ReturnType<typeof setTimeout> | null = null;
 	private serverPoke: WsServerPokeHandle | null = null;
+	private lastSessionLeftWidth = 280;
 
 	/**
 	 * Real bootstrap fact — layout mounts only after async materializes this.
@@ -285,7 +313,8 @@ export class EditorShellComponent {
 	readonly sessionSnapshot$ = this.bridge.cached[
 		'session.state.snapshot'
 	].pipe(
-		tap(() => {
+		tap((snapshot) => {
+			this.lastSessionLeftWidth = snapshot.dividerPositions.leftWidth;
 			if (this.activeResize() !== null) {
 				return;
 			}
@@ -315,8 +344,12 @@ export class EditorShellComponent {
 
 	private readonly selection = inject(SelectedNodeProjectionService);
 	private readonly editorSettings = inject(EditorSettingsProjectionService);
+	private readonly paletteChrome = inject(
+		EditorPaletteVisibleProjectionService,
+	);
 	readonly hasSelectedNode = this.selection.hasSelectedNode;
 	readonly settingsOpen = this.editorSettings.open;
+	readonly paletteVisible$ = this.paletteChrome.paletteVisible$;
 
 	constructor() {
 		// Warm config / models-catalog projections before Inspector mounts.
@@ -399,6 +432,10 @@ export class EditorShellComponent {
 		}
 
 		this.editorSettings.requestOpen('project');
+	}
+
+	showPalette(): void {
+		this.paletteChrome.requestShow();
 	}
 
 	toggleTheme(): void {
@@ -485,9 +522,11 @@ export class EditorShellComponent {
 			if (override !== null) {
 				return override;
 			}
-			const row = this.editorRow()?.nativeElement;
-			const leftAside = row?.children[0] as HTMLElement | undefined;
-			return leftAside?.clientWidth ?? null;
+			const aside = this.leftAside()?.nativeElement;
+			if (aside !== undefined) {
+				return aside.clientWidth;
+			}
+			return this.lastSessionLeftWidth;
 		}
 
 		if (target === 'right') {

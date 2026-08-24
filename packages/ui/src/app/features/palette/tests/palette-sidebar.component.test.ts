@@ -38,6 +38,9 @@ function createRaw() {
 		'runner.startNode.started': new Subject(),
 		'runner.done': new Subject(),
 		'runner.interrupted': new Subject(),
+		'session.state.snapshot': new Subject(),
+		'editor.paletteVisible.snapshot': new Subject<boolean>(),
+		'editor.paletteVisible.requested': new Subject<boolean>(),
 	} as const;
 }
 
@@ -90,5 +93,17 @@ describe('PaletteSidebarComponent run lock', () => {
 
 		expect(preventDefault).toHaveBeenCalledOnce();
 		expect(setData).not.toHaveBeenCalled();
+	});
+
+	it('emits paletteVisible.requested false from the hide control', () => {
+		const spy = vi.spyOn(raw['editor.paletteVisible.requested'], 'next');
+		const hide = fixture.nativeElement.querySelector(
+			'[aria-label="Hide palette"]',
+		) as HTMLButtonElement | null;
+
+		expect(hide).not.toBeNull();
+		hide?.click();
+
+		expect(spy).toHaveBeenCalledWith(false);
 	});
 });
