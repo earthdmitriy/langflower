@@ -183,6 +183,7 @@ shipped**.
 | Node                      | Type                      | Status      | Notes                                                                                       |
 | ------------------------- | ------------------------- | ----------- | ------------------------------------------------------------------------------------------- |
 | String / Number / Boolean | `common-string`, …        | **done**    | Literals                                                                                    |
+| String (multiline)        | `common-string-multiline` | **done**    | Literal textarea (`inline: 'text-multiline'`)                                               |
 | Merge                     | `common-merge`            | **done**    | Flow                                                                                        |
 | Delay                     | `common-delay`            | **done**    | Flow                                                                                        |
 | Loop                      | `common-loop`             | **done**    | External map-collect for dynamic N (epic 07)                                                |
@@ -192,6 +193,7 @@ shipped**.
 | Finish                    | `common-finish`           | **done**    | `stopsRun`                                                                                  |
 | Checkpoint                | `common-checkpoint`       | **done**    | Explicit durable boundary + picker resume (epic 20)                                         |
 | Concat                    | `common-concat`           | **done**    | Text                                                                                        |
+| Split (paced)             | `common-split-paced`      | **done**    | Text — one non-empty chunk per trigger (first ASAP), `index`, then `finish`                 |
 | Read File                 | `common-read-file`        | **done**    | Text — `ctx.files` (relative-only, no permission ask)                                       |
 | Write File                | `common-write-file`       | **done**    | Text — `ctx.files`                                                                          |
 | Append File               | `common-append-file`      | **done**    | Text — `ctx.files` + delimiter                                                              |
@@ -224,7 +226,7 @@ shipped**.
 | Area                               | Types / path                                  | Status                                               | Track                                                                                                       |
 | ---------------------------------- | --------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | Agent palette types                | `common-agent-*`                              | **planned** (roles = LLM presets)                    | [EPICS](DONE/EPICS/README.md) 01/04                                                                         |
-| Text beyond Concat / file I/O      | Template, Split, …                            | **stub** / **planned**                               | node-library §7 (Read/Write/Append File shipped)                                                            |
+| Text beyond Concat / file I/O      | Template, one-shot Split, …                   | **stub** / **planned**                               | node-library §7 — `common-split-paced` shipped; `common-split` (`parts[]`) still planned                    |
 | JSON helpers                       | Parse, Stringify, Set Fields                  | **stub** / **planned**                               | node-library §7                                                                                             |
 | Harness FS/shell nodes             | list/glob/grep/edit/bash as palette nodes     | **planned**                                          | Read/Write/Append File ship as Text via `ctx.files` (not harness ask)                                       |
 | Tool-loop + builtins               | invoke `read`…`bash` via `@langflower/tools`  | **done**                                             | epic 01                                                                                                     |

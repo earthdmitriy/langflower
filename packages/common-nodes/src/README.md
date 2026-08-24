@@ -10,9 +10,9 @@ Built-in workflow nodes for Langflower. **Runtime registry:**
 | [`mcp/`](./mcp/)               | MCP resolve + MCP Server node                                    |
 | [`hitl/`](./hitl/)             | Review Gate, Chat Input                                          |
 | [`output/`](./output/)         | Preview, Finish                                                  |
-| [`primitives/`](./primitives/) | String, Number, Boolean                                          |
+| [`primitives/`](./primitives/) | String, String (multiline), Number, Boolean                      |
 | [`flow/`](./flow/)             | Router, Merge, Delay                                             |
-| [`text/`](./text/)             | Concat (+ other text NODE.md stubs)                              |
+| [`text/`](./text/)             | Concat, Split (paced), Read/Write/Append File                    |
 | [`logic/`](./logic/)           | Assert/IF/Switch/… **NODE.md stubs** (Router/Merge live in flow) |
 | [`memory/`](./memory/)         | Memory tools pack only                                           |
 | [`crawl/`](./crawl/)           | Crawl nodes — **NODE.md stubs** (+ `html/` utilities)            |

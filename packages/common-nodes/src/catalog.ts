@@ -24,9 +24,11 @@ import { previewNode } from './output/preview/node.js';
 import { booleanNode } from './primitives/boolean/node.js';
 import { numberNode } from './primitives/number/node.js';
 import { stringNode } from './primitives/string/node.js';
+import { stringMultilineNode } from './primitives/string-multiline/node.js';
 import { appendFileNode } from './text/append-file/node.js';
 import { concatNode } from './text/concat/node.js';
 import { readFileNode } from './text/read-file/node.js';
+import { splitPacedNode } from './text/split-paced/node.js';
 import { writeFileNode } from './text/write-file/node.js';
 import { crawlNode } from './crawl/crawl/node.js';
 import { crawlToolsNode } from './crawl/crawl-tools/node.js';
@@ -44,6 +46,7 @@ const COMMON_REACTIVE_NODES = [
 	booleanNode,
 	numberNode,
 	stringNode,
+	stringMultilineNode,
 	mergeNode,
 	delayNode,
 	checkpointNode,
@@ -53,6 +56,7 @@ const COMMON_REACTIVE_NODES = [
 	previewNode,
 	finishNode,
 	concatNode,
+	splitPacedNode,
 	readFileNode,
 	writeFileNode,
 	appendFileNode,

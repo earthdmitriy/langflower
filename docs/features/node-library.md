@@ -66,8 +66,10 @@ that does **not** make coding-agent Implementable.
 - **Logic** — Router + Merge + Assert / IF / Switch / Compare / Gate
   **shipped** (hard harness).
 - **Flow** — Delay + Checkpoint + Loop + Repeat **shipped**.
-- **Text** — Concat + Read/Write/Append File **shipped**; Template, Split, Replace, … planned/stub.
-- **Primitives** — String, Number, Boolean **shipped**; JSON helpers planned.
+- **Text** — Concat + Split (paced) + Read/Write/Append File **shipped**;
+  Template, one-shot Split (`parts[]`), Replace, … planned/stub.
+- **Primitives** — String, String (multiline), Number, Boolean **shipped**;
+  JSON helpers planned.
 - **Output** — Preview + Finish **shipped**.
 - **Harness (target)** — Read/List/Glob/Grep/Web Fetch/Write/Edit/Bash as
   palette nodes and/or agent tools — **not shipped** (epic 01).
@@ -175,10 +177,12 @@ subset is **production**; draft/test types stay out of the palette (see
 | Checkpoint                | `common-checkpoint`                                | reactive | **done** |
 | Repeat                    | `common-repeat`                                    | reactive | **done** |
 | Concat                    | `common-concat`                                    | reactive | **done** |
+| Split (paced)             | `common-split-paced`                               | reactive | **done** |
 | Read File                 | `common-read-file`                                 | reactive | **done** |
 | Write File                | `common-write-file`                                | reactive | **done** |
 | Append File               | `common-append-file`                               | reactive | **done** |
 | String / Number / Boolean | `common-string`, `common-number`, `common-boolean` | reactive | **done** |
+| String (multiline)        | `common-string-multiline`                          | reactive | **done** |
 | Preview                   | `common-preview`                                   | reactive | **done** |
 | Finish                    | `common-finish`                                    | reactive | **done** |
 
@@ -510,6 +514,18 @@ the input straight through.
 | ------- | ------- |
 | `value` | boolean |
 
+### 6.4 String (multiline) — `common-string-multiline`
+
+Same passthrough as String; the on-node editor is a textarea.
+
+| Input   | Type   | `inline`           | Default |
+| ------- | ------ | ------------------ | ------- |
+| `value` | string | `'text-multiline'` | `''`    |
+
+| Output  | Type   |
+| ------- | ------ |
+| `value` | string |
+
 **Migration:** workflows using `common-constant` map `params.value` → `common-string`
 with the same value moved to `inputs.value`. Numeric/boolean literals require
 explicit node type.
@@ -542,11 +558,12 @@ Statuses below match [STATUS.md](../STATUS.md) / `catalog.ts` (2026-07-19).
 | Node           | Type                    | P   | Status   | Description                                                           |
 | -------------- | ----------------------- | --- | -------- | --------------------------------------------------------------------- |
 | Concat         | `common-concat`         | P1  | **done** | Multi `value` (`zip`) + `separator` → join when all slots fresh       |
+| Split (paced)  | `common-split-paced`    | P1  | **done** | Split on divider; one non-empty chunk per trigger; `index` + `finish` |
 | Read File      | `common-read-file`      | P0  | **done** | `ctx.files.read`; `update` dynamic re-read; relative-only             |
 | Write File     | `common-write-file`     | P1  | **done** | `ctx.files.write`; path inline + content wire-only; no permission ask |
 | Append File    | `common-append-file`    | P1  | **done** | `ctx.files.append` + multiline delimiter                              |
 | Template       | `common-template`       | P0  | planned  | `{{var}}` substitution from `context` json                            |
-| Split          | `common-split`          | P0  | planned  | Delimiter split → `parts[]`                                           |
+| Split          | `common-split`          | P0  | planned  | Delimiter split → `parts[]` (not paced emit)                          |
 | Replace        | `common-replace`        | P0  | planned  | Find/replace (literal or regex)                                       |
 | Regex Extract  | `common-regex-extract`  | P0  | planned  | Pattern → `matches[]`                                                 |
 | Join           | `common-join`           | P1  | planned  | `lines[]` + separator                                                 |
@@ -958,17 +975,17 @@ Runtime Level-2 labels come from each node's `category` (`AI`, `Tools`,
 `HITL`, `Flow`, …). Historical / aspirational names may still appear in older
 sections of this file — treat `catalog.ts` + this table as the palette SoT.
 
-| Section        | Nodes (shipped grouping)                                                    |
-| -------------- | --------------------------------------------------------------------------- |
-| **AI**         | OpenAI LLM, Fake LLM, Sub-Agent, Review, Critique                           |
-| **Embeddings** | Embed text, Embed similarity, Embed provider                                |
-| **Tools**      | MCP stdio, MCP http, Memory Tools, Crawl Tools, Tool collection             |
-| **Primitives** | String, Number, Boolean, Set Fields, JSON Parse/Stringify                   |
-| **Flow**       | Router only (primary)                                                       |
-| **Text**       | Template, Split, Replace, Regex Extract, Join                               |
-| **Output**     | Preview, Run Output                                                         |
-| **HITL**       | Review Gate, Chat Input                                                     |
-| **Advanced**   | `paletteSecondary: true` — Logic (all), Flow except Router, Crawl graph I/O |
+| Section        | Nodes (shipped grouping)                                                      |
+| -------------- | ----------------------------------------------------------------------------- |
+| **AI**         | OpenAI LLM, Fake LLM, Sub-Agent, Review, Critique                             |
+| **Embeddings** | Embed text, Embed similarity, Embed provider                                  |
+| **Tools**      | MCP stdio, MCP http, Memory Tools, Crawl Tools, Tool collection               |
+| **Primitives** | String, String (multiline), Number, Boolean, Set Fields, JSON Parse/Stringify |
+| **Flow**       | Router only (primary)                                                         |
+| **Text**       | Concat, Split (paced), Read/Write/Append File; Template, Split, Replace…      |
+| **Output**     | Preview, Run Output                                                           |
+| **HITL**       | Review Gate, Chat Input                                                       |
+| **Advanced**   | `paletteSecondary: true` — Logic (all), Flow except Router, Crawl graph I/O   |
 
 **Dual-surface / secondary (normative):** [ADR-023](../ADR.md#adr-023--palette-palettesecondary--collapsed-advanced).
 Primary **Tools** holds MCP wire nodes, tool registration packs

@@ -122,6 +122,14 @@ do not say coding pipelines “don’t exist” or are unavailable.
   ([ADR-033](../../../../../docs/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
   Use `ToolHandle` for batch float vectors.
 
+### 4c. Primitives and paced split
+
+- **Can:** Palette **Primitives** include String, **String (multiline)**
+  (`common-string-multiline`, textarea), Number, Boolean. **Text** includes
+  Concat, Read/Write/Append File, and **Split (paced)** (`common-split-paced`)
+  — one non-empty chunk per `trigger` (first ASAP; `finish` after the last;
+  CSV / logs line-by-line). Not the planned one-shot Split (`parts[]`).
+
 ### 5. Editor chrome
 
 - **Can:** Chat Input graphs start from the composer **Start** control. Plain
