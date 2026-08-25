@@ -44,8 +44,12 @@ the workflow.
 
 ## Custom nodes and skills
 
+MCP and skills are the common agent primitives. Custom nodes add graph
+processing or custom tools via **ToolHandle**.
+
 - Skills: markdown under `.langflower/skills/<name>/`
 - Custom nodes: packs under `.langflower/nodes/<pack>/`
+- MCP: palette nodes plus optional project `mcp` in `langflower.jsonc`
 
 See [Extending Langflower](extending.md).
 

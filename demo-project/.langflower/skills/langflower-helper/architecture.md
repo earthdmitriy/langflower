@@ -5,7 +5,8 @@ this file over inventing infrastructure.
 
 ## What it is
 
-- Local, **project-scoped** coding agent.
+- Local, **folder-scoped reactive node graph**. The LLM is a node, not the
+  product.
 - The **workflow graph** is the pipeline law (hard harness): stages and edges
   are authored; the model does not freely skip QA/review/gates outside the
   graph.

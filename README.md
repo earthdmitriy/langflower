@@ -3,38 +3,63 @@
 > **Disclaimer:** Langflower is currently in internal testing. Anyone can
 > download and try it, but some functions may not be stable.
 
-**Turn a local folder into a repeatable AI workflow.**
+## Key concept: everything is a node
 
-Point Langflower at a workspace, choose or create a visual workflow, and let
-it read, create, review, and update files there. You see every stage on the
-canvas and decide what must happen before the next stage begins.
+Langflower is not built around the LLM as a first-class citizen. The core
+abstraction is a **reactive node**: several typed inputs, several typed
+outputs. Each port acts independently — a node can receive on one input
+and emit on one output at any time, without waiting for the rest. The
+runtime wires those nodes into a workflow.
 
-The workflow decides the process — not a model deciding it is “done.”
+That is enough for complex processing chains — including loops and
+conditions.
+
+The trick is the same rule applied to models. Because ports fire on their
+own, an LLM agent is just another reactive node: prompt and tools in;
+response out; streaming tool log, reasoning, and draft as extra outputs
+that can update while the run continues. All LLM-specific logic stays as
+that node's internal state. It does not leak through the rest of the app.
+
+## Open possibilities
+
+Because every unit of work is a node, Langflower is not pinned to one
+product shape — coding harness, chat harness, or any other fixed loop.
+Workflows stay flexible. With the right wiring they fit the job.
+
+Need a chat? Wire user input, an agent, and HITL feedback. Agent-to-agent
+dialogue is two agents connected together. Coding is the same graph plus
+file-ops tools. Tired of “I’m done” while the code still does not compile?
+Write a custom review-gate node. The agent never gets a path around it.
+
+## Hard harness
+
+The sequence is the workflow topology. That is how Langflower orchestrates
+complex work: QA, review, and code checks sit on the graph, so agents
+cannot skip them. A well-configured workflow forces high-quality output —
+the model does not get to declare itself finished.
+
+**Not another chat harness. A local node graph.**
+
+### Keep everything local
+
+Langflower runs on your machine and does not expose your project as a
+hosted product. Files stay where they are. You can reproduce what mature
+cloud tools offer — at home, or on a closed network with internal LLM
+providers.
+
+### Scoped to a folder
+
+You start from a folder. Data, custom nodes, and workflows are scoped to
+that workspace. Open the folder, and the graph, files, and run belong
+together.
+
+### Extensible even now
+
+This is still an early version, but Langflower already supports custom
+nodes and custom node packs. Share and reuse workflows and nodes the same
+way you share the rest of the project.
 
 ![Langflower starter workflow](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/starter.png)
-
-## What can you use it for?
-
-### Ship a code change
-
-Turn a task into a visible pipeline: clarify the request, implement the
-change, review it, run QA, and accept the result. You can stop or redirect
-the work at the stages that matter.
-
-### Write and refine files
-
-Create an article or prompt in your workspace, review its tone and facts, then
-revise it in place. The useful output is a file you own, not only a chat
-transcript.
-
-### Build a knowledge base
-
-Ingest project documentation, resolve duplicates or contradictions, review the
-proposed changes, and maintain a project wiki or Obsidian vault.
-
-Langflower also supports research fan-out and synthesis, reusable skills,
-prompt refinement, regression gates, and multi-agent review. Browse the
-[workflow ideas](https://github.com/earthdmitriy/langflower/blob/master/docs/public/workflows.md).
 
 ## How it works
 
@@ -46,50 +71,53 @@ prompt refinement, regression gates, and multi-agent review. Browse the
    decision.
 5. Find the resulting files and data in the same workspace.
 
-The graph is a **hard harness**: it defines the order of work. If review, QA,
-or approval is part of the workflow, an agent cannot silently skip it because
-it is confident in its own answer. Bring your own review gate — Langflower
-enforces it, so LLMs cannot skip or bypass that step.
+## Under the hood
 
-## Why Langflower
+The core is a reactive runtime that wires nodes together. The **node SDK**
+is the public contract: any node that follows it can run on that runtime.
+**Common nodes** is the built-in catalog. It uses the same SDK as custom
+node packs.
 
-- **Your folder stays the centre of work.** Read and write files locally,
-  rather than leaving the result in a provider-hosted chat history.
-- **You stay in control.** Workflows can request approval before sensitive
-  file edits or shell commands run.
-- **Human review is built in.** Ask for a plan review, fact check, rewrite, or
-  approval exactly where it makes sense in the process.
-- **Long tasks do not own your browser tab.** Close the tab and return later;
-  the session continues and the UI catches up when you reconnect.
-- **Reuse a process, not just a prompt.** Build a workflow once, then apply it
-  to similar folders and tasks.
-- **Extend it when the defaults are not enough.** Add markdown skills under
-  `.langflower/skills/` or custom nodes under `.langflower/nodes/`.
-
-## Why it stays reliable while you work
-
-Langflower's runtime treats every workflow step as a live exchange of data.
-That means a step can naturally wait for your input and continue when you
-reply — human review is part of the workflow, not a special interruption
-mode.
-
-The server owns the active session, while the browser is a view of it. Closing
-or reopening a tab does not create a competing workflow state or cancel a
-long-running job; the UI reconnects to the current progress.
+The **server** composes those pieces, compiles user-defined nodes, and owns
+the live run. The **UI** is a thin browser client. It listens to WebSocket
+events from the server; it does not own the workflow. Close the tab while a
+long run continues. Reopen it, and the server catches the UI up, so the
+canvas stays in sync.
 
 For a short builder-oriented picture, see
 [How it works](https://github.com/earthdmitriy/langflower/blob/master/docs/public/how-it-works.md).
 
+## Why Langflower
+
+- **You stay in control.** Workflows can request approval before sensitive
+  file edits or shell commands run.
+- **Use the browser you already have.** Other harnesses pack a web UI into
+  a built-in browser such as Electron. Langflower uses your existing
+  browser, so you can close the tab, free those resources, and let the
+  server keep the run; reopen it and the UI catches up.
+- **Extend it when the defaults are not enough.** Langflower uses common
+  agent primitives — **MCP** and **skills** — and lets you define **custom
+  nodes** on top: processing in the graph, or custom tools for agents via
+  the same **ToolHandle** contract as built-ins.
+
 ## How it compares
 
-Langflower gives you graph-based chaining like mature orchestration tools —
-stages, branches, and review gates — but it is aimed at **local daily use**,
-not at shipping a backend service or wiring a cloud automation platform.
+Versus chat-style harnesses (often an Electron shell around a model loop):
+Langflower is a local node graph. The LLM is a node, not the product.
+Order comes from topology, not from the model deciding it is done.
+The UI is your existing browser, not a bundled one.
 
-Build a reusable workflow once for coding, documentation, article writing, or
-any similar desk work, then run it against the folders and tasks you already
-touch every day. The canvas keeps the process visible and repeatable; the
-project folder stays where the work happens.
+Versus cloud graph tools: the same idea of wiring nodes, but aimed at a
+folder on your machine — home or a closed network with internal
+providers — not at hosting a service or cloning ETL in the cloud.
+
+## What it lacks
+
+- **Chat sessions.** Node-internal state is the current architecture, so
+  serializable chat-session mechanics are hard. Maybe later.
+- **Image and video.** No asset management for multimodal models. Not yet.
+- **No built-in IDE or git UI.** We are not reinventing those wheels. Use
+  the editor and git tools you already have.
 
 ## Quick start
 
@@ -125,17 +153,12 @@ Maintainers (monorepo only): [docs/RELEASE.md](https://github.com/earthdmitriy/l
 
 Shipped with the npm package under [`docs/public/`](https://github.com/earthdmitriy/langflower/tree/master/docs/public):
 
-| Want to…                     | Start here                                                                                                 |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Install and first run        | [Getting started](https://github.com/earthdmitriy/langflower/blob/master/docs/public/getting-started.md)   |
-| Understand the product       | [Product overview](https://github.com/earthdmitriy/langflower/blob/master/docs/public/product.md)          |
-| Use the canvas and runs      | [Using the editor](https://github.com/earthdmitriy/langflower/blob/master/docs/public/using-the-editor.md) |
-| Browse workflow ideas        | [Workflow ideas](https://github.com/earthdmitriy/langflower/blob/master/docs/public/workflows.md)          |
-| Configure providers and keys | [Configuration](https://github.com/earthdmitriy/langflower/blob/master/docs/public/configuration.md)       |
-| Add skills or custom nodes   | [Extending](https://github.com/earthdmitriy/langflower/blob/master/docs/public/extending.md)               |
-| Builder runtime picture      | [How it works](https://github.com/earthdmitriy/langflower/blob/master/docs/public/how-it-works.md)         |
-
-## What Langflower is not
-
-Langflower is local and project-scoped. It is not a hosted multi-tenant cloud
-product or a generic cloud ETL clone.
+| Want to…                         | Start here                                                                                                 |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Install and first run            | [Getting started](https://github.com/earthdmitriy/langflower/blob/master/docs/public/getting-started.md)   |
+| Understand the product           | [Product overview](https://github.com/earthdmitriy/langflower/blob/master/docs/public/product.md)          |
+| Use the canvas and runs          | [Using the editor](https://github.com/earthdmitriy/langflower/blob/master/docs/public/using-the-editor.md) |
+| Browse workflow ideas            | [Workflow ideas](https://github.com/earthdmitriy/langflower/blob/master/docs/public/workflows.md)          |
+| Configure providers and keys     | [Configuration](https://github.com/earthdmitriy/langflower/blob/master/docs/public/configuration.md)       |
+| Add MCP, skills, or custom nodes | [Extending](https://github.com/earthdmitriy/langflower/blob/master/docs/public/extending.md)               |
+| Builder runtime picture          | [How it works](https://github.com/earthdmitriy/langflower/blob/master/docs/public/how-it-works.md)         |

@@ -5,11 +5,17 @@ architecture spec.
 
 ## Pieces you interact with
 
-1. **CLI** — starts a local server for one project folder and opens the UI.
-2. **Server** — owns the session, workflows on disk, and the live run.
-3. **Runtime** — executes the graph: nodes exchange data on typed ports.
-4. **UI** — canvas + feed are views of server-owned state over a WebSocket
-   contract. Reconnecting the browser does not invent a second run.
+1. **CLI** — starts a local server for one project folder and opens the UI
+   in your existing browser (not a bundled Electron shell).
+2. **Runtime** — wires **reactive nodes**. Ports are independent: a node can
+   receive on one input and emit on one output at any time.
+3. **Node SDK** — public contract (`@langflower/node-sdk`). Built-in
+   **common nodes** and custom packs use the same SDK.
+4. **Server** — composes those pieces, compiles user-defined node packs, and
+   owns the live run.
+5. **UI** — thin browser client. Canvas + feed listen to WebSocket events
+   from the server. Closing the tab does not stop the run; reopen and the
+   server catches the UI up.
 
 ## Why review “just works”
 
@@ -24,12 +30,13 @@ model cannot skip it by claiming it is finished.
 
 ## Extensibility surface
 
-| You add…     | Where                          |
-| ------------ | ------------------------------ |
-| Skills       | `.langflower/skills/`          |
-| Custom nodes | `.langflower/nodes/<pack>/`    |
-| Workflows    | `.langflower/workflows/`       |
-| Providers    | `.langflower/langflower.jsonc` |
+| You add…     | Where                                                        |
+| ------------ | ------------------------------------------------------------ |
+| MCP          | Palette MCP nodes + optional `mcp` in JSONC                  |
+| Skills       | `.langflower/skills/`                                        |
+| Custom nodes | `.langflower/nodes/<pack>/` — processing or ToolHandle tools |
+| Workflows    | `.langflower/workflows/`                                     |
+| Providers    | `.langflower/langflower.jsonc`                               |
 
 See [Extending](extending.md) and [Configuration](configuration.md).
 

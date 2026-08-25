@@ -54,11 +54,15 @@ On-demand only (not auto-injected). Use harness `read`:
 
 ### 1. Product
 
-- **Can:** Local, project-scoped coding agent. The **workflow graph** is the
-  pipeline law (hard harness) — stages and edges are authored, not chosen
-  ad hoc by the model each turn.
+- **Can:** Local, folder-scoped **reactive node graph**. The LLM is a node,
+  not the product. The **workflow graph** is the pipeline law (hard harness)
+  — stages and edges are authored, not chosen ad hoc by the model each turn.
+  Extend with **MCP** and **skills**, plus **custom nodes** for graph
+  processing or custom tools via the same **ToolHandle** contract as built-ins.
 - **Cannot:** Require a cloud account. Let the model skip graph stages
-  (QA/review/gates) by “deciding what’s next” outside the graph.
+  (QA/review/gates) by “deciding what’s next” outside the graph. Claim
+  serializable **chat sessions**, **image/video** asset management for
+  multimodal models, or a built-in **IDE / git UI**.
 
 ### 2. Project layout and bootstrap
 

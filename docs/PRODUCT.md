@@ -8,10 +8,10 @@ replace ADRs or feature docs.
 
 ## Purpose
 
-Langflower is a **local, project-scoped coding agent** with a **visual workflow
-graph**. It competes with chat-style harnesses (e.g. OpenCode / Cursor-like
-agents) by making the pipeline explicit on a canvas — not by copying another
-graph ETL tool.
+Langflower is a **local, folder-scoped reactive node graph**. The LLM is a
+node, not the product. It competes with chat-style harnesses (e.g. OpenCode /
+Cursor-like agents) by making the pipeline explicit on a canvas — not by
+copying another graph ETL tool.
 
 OpenCode influences UX and config shape; Langflower is a **separate product**.
 
@@ -26,18 +26,19 @@ See [use-cases/coding-agent.md](use-cases/coding-agent.md).
 
 ## Primary user
 
-**Near term:** a developer running Langflower against an existing code repo.
+**Near term:** a developer running Langflower against an existing code repo
+(delivery bar: coding-agent use case).
 
-**Later (distant):** engineers assembling multi-LLM / research / KB workflows
-on the same graph runtime.
+**Same runtime:** anyone wiring chat, agent-to-agent, research, KB, or custom
+gates on a local folder — not a distant second product.
 
 ## Differentiators
 
-| Vs chat harnesses (OpenCode-like)                                                                                                           | Vs graph tools (Langflow, n8n)                                                                                                        |
-| ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Hard harness:** workflow graph defines execution order; Assert/IF/Gate fail-closed where needed. LLM fluctuation must not skip QA/review. | **Easy bootstrap** into a real project folder; graphs aimed at **common tasks** (coding first), not only generic automation plumbing. |
-| **Graph prototyping** — author and see agent/HITL loops on the canvas.                                                                      | Same runtime, friendlier path from empty folder → useful coding workflow.                                                             |
-| **Extensibility** — custom nodes via the same authoring API as built-ins (`defineNode` default).                                            |                                                                                                                                       |
+| Vs chat harnesses (OpenCode-like)                                                                                                           | Vs graph tools (Langflow, n8n)                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Hard harness:** workflow graph defines execution order; Assert/IF/Gate fail-closed where needed. LLM fluctuation must not skip QA/review. | **Easy bootstrap** into a real project folder; graphs for **folder-scoped work**, not only generic automation plumbing. |
+| **Graph prototyping** — author and see agent/HITL loops on the canvas. The LLM is a node, not the product.                                  | Same runtime, friendlier path from empty folder → useful workflow.                                                      |
+| **Extensibility** — MCP and skills as common agent primitives; custom nodes for graph processing or custom tools via **ToolHandle**.        |                                                                                                                         |
 
 ### Hard harness (product meaning)
 
@@ -57,8 +58,8 @@ RxJS / StatefulObservable. Pack layout and npm model:
 **Runtime loading differs on purpose** ([ADR-020](ADR.md#adr-020--built-in-vs-custom-node-loading)):
 built-ins are imported from the npm package (no per-start bundler/scan) to keep
 startup fast. Custom packs are scanned and bundled by `@langflower/compiler`
-(epic 32 — not shipped yet). Sandboxed execution of arbitrary user-node code
-remains **out of scope** until explicitly planned.
+([STATUS](STATUS.md) **done**). Sandboxed execution of arbitrary user-node
+code remains **out of scope** until explicitly planned.
 
 ### Sub-Agent (target)
 
@@ -103,6 +104,9 @@ UX is not inlined here. Global config + Settings dual path: epic 18 Partial.
 
 - Hosted multi-tenant cloud product
 - Electron / Tauri desktop shell (unless later decided)
+- Serializable chat-session mechanics (node-internal state; maybe later)
+- Image / video asset management for multimodal models
+- Built-in IDE or git UI (use tools you already have)
 - Sandboxed user-node execution (deferred)
 - Replacing OpenCode config/tools 1:1 for compatibility’s sake
 - Marketing a thin Plan → Coder demo as the coding-agent product claim

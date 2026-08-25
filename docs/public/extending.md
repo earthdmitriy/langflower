@@ -1,5 +1,18 @@
 # Extending Langflower
 
+Langflower uses common agent primitives — **MCP** and **skills** — and
+lets you define **custom nodes** on top: processing in the graph, or
+custom tools for agents via the same **ToolHandle** contract as built-ins.
+
+## MCP and skills
+
+Optional `mcp` entries in `.langflower/langflower.jsonc` declare stdio/http
+servers; palette MCP nodes emit **ToolHandle**s. Agents do not spawn MCP
+themselves. Permission floors for harness tools live in project config.
+Skills are markdown playbooks under `.langflower/skills/` (next section).
+
+See [Configuration](configuration.md).
+
 ## Skills
 
 Skills are markdown playbooks the agent can load. Add a folder:
@@ -15,8 +28,11 @@ do in your project.
 
 ## Custom nodes
 
-Built-in catalog nodes and your packs share the same authoring SDK. Default
-path for a simple node:
+Custom nodes share the same authoring SDK as the built-in catalog. Use them
+for graph processing, or to expose custom tools to agents as **ToolHandle**s
+on `tools` ports.
+
+Default path for a simple node:
 
 ```ts
 import { defineNode } from '@langflower/node-sdk';

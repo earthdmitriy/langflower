@@ -1,40 +1,50 @@
 # Product overview
 
-Langflower turns a **local folder** into a **repeatable AI workflow**.
+Langflower is not built around the LLM as a first-class citizen. The core
+abstraction is a **reactive node**: several typed inputs, several typed
+outputs. Each port acts independently — a node can receive on one input
+and emit on one output at any time, without waiting for the rest. The
+runtime wires those nodes into a workflow.
 
-You point it at a workspace, open or create a visual workflow on a canvas, and
-let agents read, create, review, and update files there. You see every stage
-and decide what must happen before the next stage begins.
+Because ports fire on their own, an LLM agent is just another node: prompt
+and tools in; response out; streaming tool log, reasoning, and draft as
+extra outputs. LLM-specific logic stays inside that node. It does not leak
+through the rest of the app.
 
-**The workflow decides the process — not a model deciding it is “done.”**
+**Not another chat harness. A local node graph.**
+
+Langflower runs on your machine, scoped to a folder you open. Data, custom
+nodes, and workflows live there. You can reproduce what mature cloud tools
+offer at home, or on a closed network with internal LLM providers.
+
+The sequence is the workflow topology (a **hard harness**). QA, review, and
+code checks sit on the graph, so agents cannot skip them. Coding, chat,
+agent-to-agent dialogue, and custom gates are the same idea: wire nodes.
 
 ## Who it is for
 
-- **Near term:** developers running Langflower against an existing code repo
-- **Also useful for:** writing and refining files, research-style fan-out, and
-  maintaining project documentation in the same folder
+Anyone with a local folder and a process they want on a graph. Coding in a
+repo is one scenario among others — writing, research fan-out, knowledge
+bases, and custom pipelines. Browse [workflow ideas](workflows.md).
 
-## What makes it different
+## How it compares
 
-| Chat-style agent harnesses                           | Cloud / ETL graph tools                              |
-| ---------------------------------------------------- | ---------------------------------------------------- |
-| Pipeline order is fixed on the canvas (hard harness) | Aimed at **local daily work**, not hosting a service |
-| Review and QA stages cannot be skipped by the model  | Bootstrap into a real project folder quickly         |
-| You stay on your files, not only in chat history     | Same idea: reusable process, local folder centre     |
+Versus chat-style harnesses (often an Electron shell around a model loop):
+Langflower is a local node graph. The LLM is a node, not the product.
+Order comes from topology, not from the model deciding it is done.
+The UI is your existing browser, not a bundled one.
 
-### Hard harness
+Versus cloud graph tools: the same idea of wiring nodes, but aimed at a
+folder on your machine — home or a closed network with internal
+providers — not at hosting a service or cloning ETL in the cloud.
 
-1. The **graph** is the law — stages and edges are authored, not chosen by the
-   model at runtime.
-2. Logic nodes (gates, asserts, branches) can fail closed between agents when
-   you need a check.
+## What it lacks
 
-## What Langflower is not
-
-- Not a hosted multi-tenant cloud product
-- Not a generic cloud ETL clone
-- Not a replacement for your editor — it works **with** the files in your
-  project folder
+- **Chat sessions.** Node-internal state is the current architecture, so
+  serializable chat-session mechanics are hard. Maybe later.
+- **Image and video.** No asset management for multimodal models. Not yet.
+- **No built-in IDE or git UI.** We are not reinventing those wheels. Use
+  the editor and git tools you already have.
 
 ## Learn more
 

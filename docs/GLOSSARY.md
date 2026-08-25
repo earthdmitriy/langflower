@@ -22,11 +22,11 @@ Entries are ordered for **UX**: framing and common questions first (not A–Z).
 
 #### Langflower
 
-A local, project-scoped coding agent with a visual workflow graph. It makes
-the agent pipeline explicit on a canvas rather than hiding it in a chat
-harness or copying a generic ETL graph tool.
+A local, folder-scoped **reactive node graph**. The LLM is a node, not the
+product. The canvas makes the pipeline explicit rather than hiding it in a
+chat harness or copying a generic ETL graph tool.
 
-See [PRODUCT](PRODUCT.md).
+See [PRODUCT](PRODUCT.md) and the repo [README](../README.md).
 
 #### Hard harness
 
