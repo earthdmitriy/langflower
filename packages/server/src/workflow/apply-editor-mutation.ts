@@ -261,6 +261,13 @@ const materializeRuntimeNode = (
 			continue;
 		}
 
+		// HITL ports stay inactive until `pushIntoInput` (composer Start /
+		// reply). Connecting a persisted Chat Input message here would
+		// double-emit when cold-start does startNode + pushIntoInput.
+		if (config.hitl !== undefined) {
+			continue;
+		}
+
 		if (Object.hasOwn(node.inputs, config.portId)) {
 			input.connect(of(node.inputs[config.portId]));
 			continue;

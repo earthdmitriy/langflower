@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { resolveComposerActionPayload } from '../hitl-action-payload';
-import type { HitlControlProjection } from '../hitl-projection';
+import type { HitlControlProjection } from '../../../services/hitl-projection';
 
 const textareaEntry = (
 	portId: string,

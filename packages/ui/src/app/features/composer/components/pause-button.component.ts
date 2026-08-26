@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service.js';
+import { ComposerService } from '../composer.service';
 
 /**
  * Soft Pause — `{ kind: 'pause' }` on the last feed section's `steerControl`
@@ -45,26 +46,27 @@ import { WorkflowExecutionService } from '../../../services/workflow-execution.s
 })
 export class PauseButtonComponent {
 	private readonly execution = inject(WorkflowExecutionService);
+	private readonly composer = inject(ComposerService);
 
 	readonly visible = computed(
 		() =>
 			this.execution.isRunning() &&
-			this.execution.pausableFeedNodeId() !== null,
+			this.composer.pausableFeedNodeId() !== null,
 	);
 
 	readonly canPause = computed(
-		() => this.execution.pausableFeedNodeId() !== null,
+		() => this.composer.pausableFeedNodeId() !== null,
 	);
 
 	readonly pauseTip = computed(() => {
 		// Touch liveness tick so the tip softens while the agent stays quiet.
 		this.execution.livenessNowMs();
-		return this.execution.pausableFeedIsQuiet()
+		return this.composer.pausableFeedIsQuiet()
 			? 'API quiet — Pause to nudge'
 			: 'Pause — soft interrupt';
 	});
 
 	onPause(): void {
-		this.execution.requestSoftPause();
+		this.composer.requestSoftPause();
 	}
 }

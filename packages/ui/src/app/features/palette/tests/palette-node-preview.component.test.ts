@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { delayNode } from '../../../../../../common-nodes/src/flow/delay/node.js';
 import { hitlReviewGateNode } from '../../../../../../common-nodes/src/hitl/review-gate/node.js';
+import { chatInputNode } from '../../../../../../common-nodes/src/hitl/chat-input/node.js';
 import { previewNode } from '../../../../../../common-nodes/src/output/preview/node.js';
 import { stringNode } from '../../../../../../common-nodes/src/primitives/string/node.js';
 import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
@@ -54,5 +55,16 @@ describe('PaletteNodePreviewComponent rows', () => {
 
 		expect(inputRows.map((row) => row.leftDot?.portId)).toEqual(['Result']);
 		expect(outputIds).toEqual(['feedback', 'preview', 'response']);
+	});
+
+	it('renders Chat Input multiline without an incoming port dot', () => {
+		const { getInstance: _ignored, ...definition } = chatInputNode;
+		const rows = buildPreviewRowsForTest(asPaletteNode(definition));
+
+		expect(rows.some((row) => row.inline === 'text-multiline')).toBe(true);
+		expect(rows.some((row) => row.leftDot !== null)).toBe(false);
+		expect(rows.some((row) => row.rightDot?.portId === 'message')).toBe(
+			true,
+		);
 	});
 });

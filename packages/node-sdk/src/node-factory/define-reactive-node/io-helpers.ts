@@ -102,6 +102,10 @@ export type InputParams<T> = {
 	readonly defaultValue?: T;
 	/** On-node editor kind — unset means no on-node control at all. */
 	readonly inline?: InlineConfig;
+	/**
+	 * Hidden wire port — no canvas handle. With editable `inline`, still a
+	 * visible on-node / inspector field (Chat Input `message`).
+	 */
 	readonly hidden?: boolean;
 	readonly dynamic?: boolean;
 	readonly hitl?: HitlInputConfig;

@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import type { HitlInputConfig } from '@langflower/node-sdk';
 import { NodeHoverService } from '../../../services/node-hover.service';
-import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
+import { ComposerService } from '../composer.service';
 
 /**
  * Full-bleed HITL textarea for the composer shell (palette §8). Fills the
@@ -37,7 +37,7 @@ import { WorkflowExecutionService } from '../../../services/workflow-execution.s
 						[class.pt-3]="!padTopForTabs"
 						[attr.aria-label]="config.title"
 						[placeholder]="config.placeholder ?? ''"
-						[value]="execution.hitlDraft(nodeId, portId)"
+						[value]="composer.composerText(nodeId, portId)"
 						(input)="onDraft($event)"
 						(keydown)="onKeydown($event)"
 						(keyup)="onKeyup($event)"
@@ -58,14 +58,14 @@ export class LfHitlTextareaComponent {
 	/** Enter (no Shift) while focused — activate rightmost footer CTA. */
 	@Output() enterActivate = new EventEmitter<void>();
 
-	readonly execution = inject(WorkflowExecutionService);
+	readonly composer = inject(ComposerService);
 	private readonly hover = inject(NodeHoverService);
 
 	private pointerInside = false;
 	private focused = false;
 
 	onDraft(event: Event): void {
-		this.execution.setHitlDraft(
+		this.composer.setComposerText(
 			this.nodeId,
 			this.portId,
 			(event.target as HTMLTextAreaElement).value,

@@ -200,10 +200,11 @@ Current features:
 
 - `canvas/` — diagram canvas, node rendering, viewport sync
 - `canvas-node-status-folding/` — per-node execution chrome (`status$` / `pulse$`)
-- `editor/` — editor shell, run button
+- `composer/` — HITL composer, drafts, permission asks, Pause
+- `editor/` — editor shell (composes canvas, palette, sidebar, composer)
 - `feed-folding/` — work-log nested feed projection
 - `palette/` — node palette sidebar, drag preview, node previews
-- `sidebar/` — work log, HITL composer, inspector, settings
+- `sidebar/` — work log, inspector, settings
 - `topbar/` — workflow topbar, catalog management
 
 ## Entry Points
@@ -212,13 +213,17 @@ Current features:
 - `src/app/app.routes.ts` — root route.
 - `src/app/features/editor/components/editor-shell.component.ts` — editor chrome.
 - `src/app/features/canvas/components/flow-canvas.component.ts` — ngDiagram host.
-- `src/app/features/sidebar/` — work log, HITL, inspector, and settings slice.
+- `src/app/features/composer/composer.service.ts` — composer HITL, drafts,
+  permission asks, Pause. Injects WES / feed / bridge. WES must not inject
+  `ComposerService`.
+- `src/app/features/sidebar/` — work log, inspector, and settings slice.
 - `src/app/features/topbar/components/workflow-topbar.component.ts` — workflow catalog UI.
 - `src/app/services/langflower-bridge.service.ts` — typed bridge client owner.
 - `src/app/services/bridge-diagram.service.ts` — pure one-way persisted graph →
   ngDiagram conversion boundary (not an injectable despite the filename).
 - `src/app/services/workflow-execution.service.ts` — cross-feature execution
-  façade; folds live in sibling `execution-*-fold.ts` modules.
+  façade (run gate, live graph, labels, chrome). HITL / drafts / Pause live
+  on `ComposerService`, not here.
 - `src/app/services/*-projection*.ts` — remount-safe root projections.
 - `src/app/services/theme.service.ts` — UI-only dark/light mode.
 
@@ -283,10 +288,12 @@ Location: `src/app/features/palette/`.
 | `components/palette-node-preview.component.ts`        | Borderless mini-node body (`@Input node`) — port dots L/R with `name · wireType`, editable `inline` port stub (disabled) |
 | `components/palette-node-detail-popover.component.ts` | Fixed popover shell — **single border**; preview → panel `uiSchema` → markdown `description`                             |
 
-**Canvas parity:** skip `inputsConfigs` / `outputsConfigs` with `hidden: true`; input
-port `inline: InlineConfig` renders `lf-inline-field` under the row (preview-family
-kinds — `'preview'` / `'preview-markdown'` / `'preview-code'` — are skipped in the
-static palette card, nothing to preview without a run); `uiSchema.placement`
+**Canvas parity:** skip `outputsConfigs` with `hidden: true`. Skip hidden
+inputs unless they have an editable `inline` (not preview-*) — then show the
+field and omit the left handle. Input port `inline: InlineConfig` renders
+`lf-inline-field` under the row (preview-family kinds — `'preview'` /
+`'preview-markdown'` / `'preview-code'` — are skipped in the static palette
+card, nothing to preview without a run); `uiSchema.placement`
 (`panel` under card — `inline` placement is retired, see below).
 See [`docs/DIAGRAM_CANVAS.md`](docs/DIAGRAM_CANVAS.md) § Port layout.
 

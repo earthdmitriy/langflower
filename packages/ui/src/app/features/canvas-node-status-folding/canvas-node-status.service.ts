@@ -19,7 +19,7 @@ import type {
 
 /**
  * Per-node canvas chrome: filter bridge facts → fold status + pulse.
- * Simplified node-scoped HITL for ring only — composer HITL stays on WES.
+ * Simplified node-scoped HITL for ring only — composer HITL stays on ComposerService.
  */
 @Injectable({ providedIn: 'root' })
 export class CanvasNodeStatusService {

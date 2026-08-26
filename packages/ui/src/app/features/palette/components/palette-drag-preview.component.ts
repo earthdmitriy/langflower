@@ -30,6 +30,7 @@ import { LfNodePortRowStaticComponent } from '../../canvas/components/lf-node-po
 					side="in"
 					[label]="row.label"
 					[wireType]="row.wireType"
+					[hidden]="row.hidden"
 				/>
 			}
 

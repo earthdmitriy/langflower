@@ -137,5 +137,52 @@ describe('execute Chat Input (WS bridge)', () => {
 			sub.unsubscribe();
 			expect(started).toEqual([]);
 		});
+
+		it('restarts from the same Chat Input message after interrupt', async () => {
+			const workflow = chatInputMultiTurnWorkflow();
+			const seeded = {
+				...workflow,
+				graph: {
+					...workflow.graph,
+					nodes: workflow.graph.nodes.map((node) =>
+						node.id === 'chat'
+							? { ...node, inputs: { message: 'hello agent' } }
+							: node,
+					),
+				},
+			};
+			await seedWorkflowFromDisk(client, projectDir, seeded);
+
+			const firstPreview = waitForRunnerOutput(client, {
+				nodeId: 'preview',
+				portId: 'text',
+				predicate: (value) =>
+					typeof value === 'string' && value.includes('hello agent'),
+			});
+
+			await sendHitlInput(client, {
+				nodeId: 'chat',
+				portId: 'message',
+				payload: 'hello agent',
+			});
+			await firstPreview;
+
+			await interruptRunner(client);
+
+			const secondPreview = waitForRunnerOutput(client, {
+				nodeId: 'preview',
+				portId: 'text',
+				predicate: (value) =>
+					typeof value === 'string' && value.includes('hello agent'),
+			});
+
+			await sendHitlInput(client, {
+				nodeId: 'chat',
+				portId: 'message',
+				payload: 'hello agent',
+			});
+			const turn2 = await secondPreview;
+			expect(String(turn2[3].value)).toContain('hello agent');
+		});
 	});
 });

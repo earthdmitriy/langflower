@@ -19,12 +19,12 @@ import {
 	startWith,
 	switchMap,
 } from 'rxjs/operators';
-import { paletteByType as paletteNodesByType } from './bridge-diagram.service';
+import { paletteByType as paletteNodesByType } from '../../services/bridge-diagram.service';
 import {
 	definitionForNode,
 	nodeTypeByIdFromWorkflow,
 	resolveOutputFeedRole,
-} from './execution-catalog';
+} from '../../services/execution-catalog';
 import {
 	isLlmRecoverySuspended,
 	RECOVERY_PORT_ID,
@@ -35,8 +35,8 @@ import {
 	hitlReplyReceived,
 	nonHitlInputReceived,
 	steerControlHitlTransition,
-} from './hitl-projection';
-import type { OutputPortTelemetry } from './execution-chrome-fold';
+} from '../../services/hitl-projection';
+import type { OutputPortTelemetry } from '../../services/execution-chrome-fold';
 
 type InputPortTelemetry = PortTelemetry & {
 	readonly 0: 'in';

@@ -4,8 +4,9 @@ import type { ResolveNodeDefinition } from './workflow-document.js';
 
 /**
  * Persisted `node.inputs` hold visible UI overrides only (ADR-028).
- * Wire-only / hidden / preview ports and values equal to the current
- * definition `defaultValue` must not be written to disk.
+ * Wire-only / preview ports and values equal to the current definition
+ * `defaultValue` must not be written to disk. Hidden ports with an
+ * editable `inline` still persist (Chat Input `message`).
  */
 
 const valuesEqual = (left: unknown, right: unknown): boolean =>
@@ -32,14 +33,10 @@ const isPreviewInline = (inline: unknown): boolean => {
 	return false;
 };
 
-/** Visible editable field on the canvas / inspector (not wire-only, not preview). */
+/** Editable inline field (canvas / inspector), including hidden+inline. */
 const hasVisibleUiInputField = (config: {
-	readonly hidden?: boolean;
 	readonly inline?: unknown;
-}): boolean =>
-	config.hidden !== true &&
-	config.inline !== undefined &&
-	!isPreviewInline(config.inline);
+}): boolean => config.inline !== undefined && !isPreviewInline(config.inline);
 
 /**
  * Keep only persistable overrides: visible UI field and value !== current
@@ -61,6 +58,10 @@ export const prunePersistedInputs = (
 		}
 
 		if (!hasVisibleUiInputField(config)) {
+			continue;
+		}
+
+		if (typeof value === 'string' && value.trim() === '') {
 			continue;
 		}
 

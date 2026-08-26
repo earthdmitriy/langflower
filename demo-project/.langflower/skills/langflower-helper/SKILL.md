@@ -137,7 +137,8 @@ do not say coding pipelines “don’t exist” or are unavailable.
 ### 5. Editor chrome
 
 - **Can:** Chat Input graphs start from the composer **Start** control. Plain
-  **Run** stays disabled for those graphs.
+  **Run** stays disabled for those graphs. Prefill or last typed text lives on
+  the Chat Input node (`inputs.message`) and reappears after Stop.
 - **Can:** While running — Hard **Stop**, soft **Pause**, HITL and
   `permission.ask` in the composer. Work log **clears** on successful
   workflow load / create / copy (not rename).

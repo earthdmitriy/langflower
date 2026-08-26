@@ -14,6 +14,7 @@ describe('common-chat-input', () => {
 		);
 
 		expect(messageMeta?.hidden).toBe(true);
+		expect(messageMeta?.inline).toBe('text-multiline');
 		expect(messageMeta?.hitl?.kind).toBe('textarea');
 		expect(
 			messageMeta?.hitl?.kind === 'textarea'

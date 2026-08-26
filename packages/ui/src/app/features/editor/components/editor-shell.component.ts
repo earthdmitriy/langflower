@@ -30,7 +30,7 @@ import { LfWorkLogPanelComponent } from '../../sidebar/components/lf-work-log-pa
 import { ProjectDirComponent } from '../../topbar/components/project-dir.component';
 import { WorkflowTopbarComponent } from '../../topbar/components/workflow-topbar.component';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
-import { LfComposerShellComponent } from './lf-composer-shell.component';
+import { LfComposerShellComponent } from '../../composer/components/lf-composer-shell.component';
 import {
 	clampDividerDrag,
 	clampDividerPositionsToViewport,

@@ -90,9 +90,13 @@ layout table: [feed-panel.md](feed-panel.md) § Composer layout):
 **Entry vs mid-run composer.** Two different jobs share the same surface.
 
 - **Entry (Chat Input, `chatEntry`)** — cold-starts the cluster. Footer
-  **Start** (emerald play). No chrome Run; no field labels. After submit the
-  entry surface may clear; the chat footer must remain for the active run
-  (Stop / Pause chrome — see below).
+  **Start** (emerald play). No chrome Run; no field labels. The node's
+  `inputs.message` is the same value as the on-node field and the inspector
+  — composer, canvas, and inspector all bind to that input (no separate
+  composer overlay). Typing in any of them persists so Stop then Start reuses
+  the same text. After submit the composer shows `working . . .`
+  while the run is active; the chat footer must remain (Stop / Pause chrome —
+  see below).
 - **Mid-run gates (Review Gate, …)** — reply while a run is already active.
   Reply CTAs stay text pills (`Send`, `Send feedback`, Approve, …) on the
   right. Hard **Stop** is rose (left while running / after Pause); soft **Pause**
@@ -126,13 +130,17 @@ reviewer hats. With 2+ open gates the tab strip lists every gate; each
   `common-hitl-review-gate`, `common-review` — see
   [node-library.md](node-library.md).
 - Chat Input idle composer + plain-Run exclusion:
-  `WorkflowExecutionService.idleChatEntryNodeIds` /
-  `hasPlainStartTargets`; runtime `chatEntry` on
-  `RuntimeRunner.start`.
+  `ComposerService.idleChatEntryNodeIds` /
+  `WorkflowExecutionService.hasPlainStartTargets`; runtime `chatEntry` on
+  `RuntimeRunner.start`. Idle composer, canvas, and inspector share
+  `inputs.message`. Composer follows live `editor.updateNodes` (same delta
+  as the canvas), not snapshot-only `workflow.current.snapshot`. Canvas:
+  hidden HITL without `inline` stays off the canvas; `hidden` + editable
+  `inline` is a field with no incoming handle.
 - Feedback-edge detection used to exclude feedback wiring from normal
   upstream walks: `packages/shared/src/execution/feedback-edges.ts`.
 - HITL UI surface (composer):
-  `packages/ui/src/app/features/editor/components/lf-composer-shell.component.ts`
+  `packages/ui/src/app/features/composer/components/lf-composer-shell.component.ts`
   (stage + footer; Start / Stop / Pause), `lf-hitl-textarea.component.ts`,
   `lf-hitl-actions.component.ts`, `run-button.component.ts`,
   `pause-button.component.ts`. Layout contract:

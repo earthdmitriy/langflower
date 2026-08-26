@@ -120,6 +120,7 @@ const displayLabel = (data: WorkflowNodePersisted): string => {
 							[inline]="row.inline"
 							[value]="row.value"
 							[disabled]="row.connected || isRunning()"
+							[hidden]="row.hidden"
 							[previewValue]="previewValueFor(row.basePortId)"
 							[nodeSelected]="node().selected ?? false"
 							[endpointHighlighted]="

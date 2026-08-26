@@ -25,8 +25,11 @@
       `input-received` event for a port _without_ `config.hitl`), not merely because
       the run started. The HITL-marked ports are the user-action surface that opens
       in response.
-    - **HITL ports are invisible and unwireable:** inputs carrying `config.hitl`
-      must **not** render as canvas ports and must **not** accept wire connections.
+    - **Hidden HITL vs hidden+inline:** HITL without `inline` stays off the
+      canvas (Review Gate). `hidden` + editable `inline` (Chat Input `message`)
+      is a visible on-node / inspector / composer field with no left handle.
+      Idle composer binds to the same `inputs.message` as canvas and inspector
+      (`editor.updateNode.requested`); it does not keep a separate draft overlay.
     - **Multiple HITL inputs render together:** when a HITL node has several
       `config.hitl` inputs (e.g. review-gate's approve vs request-changes), the feed
       renders **all** of them at once so the user chooses the feedback type.
@@ -69,7 +72,7 @@
     - `packages/ui/src/app/features/editor/components/editor-shell.component.ts`:
       the **right sidebar** hosts the work-log timeline (top, scrollable) and a
       **bottom composer** that is the HITL input surface. When one or more nodes
-      are awaiting a human reply (`WorkflowExecutionService.hitlTriggeredNodeIds()`,
+      are awaiting a human reply (`ComposerService.hitlTriggeredNodeIds()`,
       chat-style), the composer becomes the HITL surface:
         - **Exactly one** triggered node → its `lf-hitl-textarea` renders directly
           (no tab strip); the user's action (text / approve / deny) reads as the
@@ -98,15 +101,16 @@
           the per-node awaiting fold (same open/close rules as live events); a late
           completed/null snapshot must not wipe siblings already opened by live
           `input-received`.
-    - `packages/ui/src/app/features/editor/components/run-button.component.ts`:
+    - `packages/ui/src/app/features/composer/components/run-button.component.ts`:
       the **existing** run-active gate — `runnerStatus` `toSignal` already folds
       `runner.snapshot` / `runner.started` / `runner.interrupted` / `runner.done`
       into `'running' | 'idle'` (lines 73–94). Reuse this exact derivation; do not
       re-introduce a parallel status signal. Surface it via a shared service
       (`WorkflowExecutionService`) so the work-log reads the same `isRunning`.
     - `packages/ui/src/app/services/workflow-execution.service.ts`: the single
-      shared fold backing both work-log and canvas chrome (lines 23–68). Add a
-      `hitlControls(nodeId)` projection sourced from node `inputsConfigs[].config.hitl`
+      shared fold backing run-gate / live graph / canvas chrome. HITL controls
+      live on `ComposerService` (`features/composer/`), sourced from node
+      `inputsConfigs[].config.hitl`.
         - `NodePreviewValuesService` (submitted values). Read run-active from the
           shared `runnerStatus` signal so canvas chrome and the feed never drift.
     - `packages/ui/src/app/features/sidebar/feed-section.ts`: pure fold helpers
@@ -164,7 +168,7 @@
   status emission, shared WS protocol types.
 - **Affected Files Inventory:**
     - **New Files:**
-        - `packages/ui/src/app/features/sidebar/components/lf-hitl-textarea.component.ts`:
+        - `packages/ui/src/app/features/composer/components/lf-hitl-textarea.component.ts`:
           the single full-height HITL textarea surface in the composer — one
           `(nodeId, portId)`, floating title inside the textarea, emits
           `runner.hitl.event` on submit. It stays visible the whole time the node is
@@ -184,25 +188,20 @@
           above the composer.
         - `packages/ui/src/app/services/workflow-execution.service.ts`: expose a
           shared `isRunning` (reuse the `run-button.component.ts` `runnerStatus`
-          derivation, centralized here) plus a `hitlControls(nodeId)` `computed`
-          projection over `inputsConfigs[].config.hitl` and a
-          `hitlTriggered(nodeId)` signal driven by `input-received` events on the
-          node's non-HITL inputs.
-        - `packages/ui/src/app/features/editor/components/run-button.component.ts`:
+          derivation, centralized here). HITL `hitlControls(nodeId)` /
+          `hitlTriggered(nodeId)` live on `ComposerService`.
+        - `packages/ui/src/app/features/composer/components/run-button.component.ts`:
           consume the centralized `isRunning` from `WorkflowExecutionService`
           instead of maintaining its own `toSignal` (delete the local `runnerStatus`
           derivation to avoid two sources of truth).
         - `packages/ui/src/app/diagram/resolve-diagram-node-ports.ts`:
-          exclude HITL-marked inputs (`entry.hitl` / `entry.config?.hitl`) from
-          `resolveInputPortRows` so they render **no canvas port dot / handle** and
-          cannot be wired. HITL inputs stay excluded from `inputPorts` but remain
-          reachable from `PaletteNodeDefinition.inputsConfigs` for the feed. (No
-          server change needed — `pushIntoInput` already rejects edge-occupied /
-          multi ports, so a wired HITL port is doubly impossible.)
+          Review Gate HITL inputs stay `hidden` without `inline` (no canvas
+          row). Chat Input `message` is `hidden` + editable `inline` — a
+          canvas row with no left handle. Idle composer binds the same
+          `inputs.message` (no `hitlDrafts` overlay).
         - `packages/ui/src/app/features/canvas/components/lf-node.component.ts` and
-          `lf-node-port-row.component.ts`: verify no port chrome renders for HITL
-          inputs once they are excluded by `resolveNodePorts` (regression: no
-          stray dot / wire handle).
+          `lf-node-port-row.component.ts`: omit the left `ng-diagram-port` when
+          the row is `hidden`. Review Gate HITL stays off the canvas.
         - `packages/shared/src/langflower-bus-config.ts`: **no change** — reuse
           existing `runner.snapshot` (`status: RuntimeRunnerStatus`). Keep
           `runner.hitl.event` as-is.
@@ -442,15 +441,15 @@
       **per node**. The **composer** renders controls from `hitlTriggeredNodeIds()`
       (not gated on `isRunning`); the work-log **timeline** is never overridden by
       HITL controls.
-- [ ] `WorkflowExecutionService` exposes a `hitlControls(nodeId)` projection
+- [ ] `ComposerService` exposes a `hitlControls(nodeId)` projection
       sourced from node `inputsConfigs[].config.hitl` + `NodePreviewValuesService`.
 - [ ] **Multiple HITL inputs** on one node all render together (one control per
       `config.hitl` port) so the user chooses the feedback type; each is independently
       submittable.
-- [ ] **HITL ports are invisible & unwireable:** inputs carrying `config.hitl` are
-      excluded from `resolveNodePorts` (no canvas port dot / handle) and cannot accept
-      wires; they exist only as feed controls. (No server change — `pushIntoInput`
-      already rejects edge-occupied ports.)
+- [ ] **Hidden HITL vs hidden+inline:** HITL without `inline` stays off the
+      canvas. `hidden` + editable `inline` (Chat Input `message`) shows an
+      on-node multiline field without a left handle. Idle composer, canvas,
+      and inspector share `inputs.message` — no composer overlay for Chat Input.
 - [ ] `promptFrom` output value is shown as control context, drawn from existing
       feed/preview values (no new protocol for prompt text).
 - [ ] Submitting a control emits `runner.hitl.event` with the active `runId`

@@ -950,11 +950,14 @@ tools whose effective decision (floor + node) is not `deny`. Runtime gates use
 
 **Category:** AI · **Mode:** reactive · **Status:** done (epic 13)
 
-The entry point for chat-style runs. It has no wireable input ports — it is
-where a run _starts_, not a step reached from upstream.
+The entry point for chat-style runs. `message` is a hidden HITL port with an
+editable inline — on-node multiline (like String) and composer, no incoming
+handle. Prefill on the node body or in the composer; the text is stored as
+`inputs.message` so Stop then Start reuses it.
 
 | Direction | Port      | Type   | Notes                                                 |
 | --------- | --------- | ------ | ----------------------------------------------------- |
+| In        | `message` | string | `hidden` + `inline`; on-node / composer; no handle    |
 | Out       | `message` | string | the user's message, submitted via the feed's composer |
 
 A workflow that contains a Chat Input node cannot be started with the plain

@@ -119,13 +119,15 @@ Browser disconnect / reopen while the process stays up is
   [EXECUTION_ARCHITECTURE.md](../EXECUTION_ARCHITECTURE.md) § Partial runs.
 - Run-control resolution (plain Run vs Run-from-node vs chat composer,
   cluster selection when several clusters have their own Chat Input node)
-  belongs beside the run action in `packages/ui/src/app/features/editor/`;
+  belongs beside the run action in `packages/ui/src/app/features/composer/`;
   the single-active-run rule is enforced session-wide by
   `WorkflowExecutorService` (server), see
   [EXECUTION_ARCHITECTURE.md](../EXECUTION_ARCHITECTURE.md) § Run lifecycle
   ("One active run").
 - UI execution state projection:
-  `packages/ui/src/app/services/workflow-execution.service.ts`.
+  `packages/ui/src/app/services/workflow-execution.service.ts` (run gate,
+  live graph, labels, chrome);
+  composer HITL / drafts / Pause: `packages/ui/src/app/features/composer/`.
 - WebSocket protocol (namespaces, snapshot vs event-sourcing model):
   [docs/ARCHITECTURE.md](../ARCHITECTURE.md) § WebSocket Protocol.
 - Runtime engine internals (v2 `Runtime`, StatefulObservable graph):

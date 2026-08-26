@@ -1,4 +1,4 @@
-import type { HitlControlProjection } from './hitl-projection';
+import type { HitlControlProjection } from '../../services/hitl-projection';
 
 /** Empty textarea drafts cannot activate Send/Start; buttons always can. */
 export const resolveComposerActionPayload = (

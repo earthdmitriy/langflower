@@ -30,7 +30,7 @@ Composer HITL and canvas chrome HITL are **intentionally separate**:
 
 | ------------ | ----------------------------- | -------------------------------------------- |
 
-| Composer HITL | `WorkflowExecutionService` + `execution-hitl-fold.ts` | Tabs, optimistic soft Pause, idle chat-entry |
+| Composer HITL | `ComposerService` + `features/composer/execution-hitl-fold.ts` | Tabs, optimistic soft Pause, idle chat-entry |
 
 | Chrome HITL | this feature (`fold-canvas-node-hitl.ts`) | Node ring `hitl` from port events + palette |
 
@@ -40,15 +40,19 @@ Composer HITL and canvas chrome HITL are **intentionally separate**:
 
 ❌ CanvasNodeStatusService → WES
 
+❌ WES → ComposerService
+
+✅ ComposerService → WES (run gate, live graph, labels)
+
 ✅ LfNode ring/pulse ← factory only
 
-✅ Composer tabs ← WES hitlTriggeredNodeIds only
+✅ Composer tabs ← ComposerService.hitlTriggeredNodeIds only
 
 ```
 
 Chrome HITL is simplified: no optimistic open/resolve, no idle chat-entry,
 
-no permission asks (composer/WES owns those).
+no permission asks (composer owns those).
 
 ## Status rules
 
@@ -87,7 +91,7 @@ reset.
 
 - Edge chrome (`WorkflowExecutionService.wireStatus` / raw port states)
 
-- Composer HITL tabs / idle chat-entry / permission UI (WES)
+- Composer HITL tabs / idle chat-entry / permission UI (`ComposerService`)
 
 - Selected / hover (diagram + `NodeHoverService`; CSS cascade overrides status)
 

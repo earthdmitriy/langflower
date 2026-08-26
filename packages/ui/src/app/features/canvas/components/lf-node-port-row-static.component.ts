@@ -12,7 +12,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 			[class.lf-port-row--in]="side() === 'in'"
 			[class.lf-port-row--out]="side() === 'out'"
 		>
-			@if (side() === 'in') {
+			@if (side() === 'in' && !hidden()) {
 				<div class="lf-port-anchor lf-port-anchor--in">
 					<span class="lf-port-dot" aria-hidden="true"></span>
 				</div>
@@ -39,4 +39,5 @@ export class LfNodePortRowStaticComponent {
 	readonly side = input.required<'in' | 'out'>();
 	readonly label = input.required<string>();
 	readonly wireType = input.required<string>();
+	readonly hidden = input(false);
 }

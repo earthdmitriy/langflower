@@ -2,8 +2,8 @@ import { defineReactiveNode } from '@langflower/node-sdk';
 import { map } from 'rxjs';
 
 /**
- * Conversational run entry — no wireable inputs; the feed composer submits
- * `message`, which cold-starts the cluster via `pushIntoInput`.
+ * Conversational run entry. `message` is hidden + inline: field, no handle.
+ * Prefill on the node or in the composer; Start cold-starts via `pushIntoInput`.
  */
 export const chatInputNode = defineReactiveNode({
 	type: 'common-chat-input',
@@ -12,7 +12,7 @@ export const chatInputNode = defineReactiveNode({
 	description: `
 Start this graph from the composer **Start** control — not plain Run.
 
-Type a message to kick off the chat. Graphs with this node wait for that message.
+Prefill a message on the node or type in the composer. Stop then Start reuses it.
 `.trim(),
 	chatEntry: true,
 	uiSchema: [] as const,
@@ -21,6 +21,7 @@ Type a message to kick off the chat. Graphs with this node wait for that message
 			name: 'Message',
 			wireType: 'string',
 			hidden: true,
+			inline: 'text-multiline',
 			hitl: {
 				title: 'Message',
 				kind: 'textarea',

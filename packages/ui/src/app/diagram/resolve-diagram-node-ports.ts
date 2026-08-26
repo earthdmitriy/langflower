@@ -23,6 +23,8 @@ export type DiagramInputPortRow = {
 	readonly value: unknown;
 	/** Whether an edge is wired into this specific handle. */
 	readonly connected: boolean;
+	/** Hidden wire port — no incoming handle; may still show `inline`. */
+	readonly hidden: boolean;
 };
 
 export type DiagramOutputPortRow = {
@@ -62,11 +64,41 @@ function isHidden(value: { readonly hidden?: boolean } | undefined): boolean {
 	return value?.hidden === true;
 }
 
-function isVisiblePort(entry: {
+function isEditableInline(inline: unknown): boolean {
+	if (inline === undefined) {
+		return false;
+	}
+
+	if (typeof inline === 'string') {
+		return !inline.startsWith('preview');
+	}
+
+	if (typeof inline === 'object' && inline !== null && 'type' in inline) {
+		const type = (inline as { readonly type: unknown }).type;
+		return typeof type === 'string' && !type.startsWith('preview');
+	}
+
+	return true;
+}
+
+function isVisibleOutputPort(entry: {
 	readonly portId?: string | symbol;
 	readonly hidden?: boolean;
 }): boolean {
 	return typeof entry.portId !== 'symbol' && !isHidden(entry);
+}
+
+/** Canvas row: ordinary ports, plus hidden ports that still have an editable inline. */
+function isShownInputPort(entry: PortInputConfig): boolean {
+	if (typeof entry.portId === 'symbol') {
+		return false;
+	}
+
+	if (!isHidden(entry)) {
+		return true;
+	}
+
+	return isEditableInline(entry.inline);
 }
 
 function inputWireType(config: PortInputConfig): string {
@@ -130,13 +162,14 @@ function resolveInputPortRows(
 	const rows: DiagramInputPortRow[] = [];
 
 	for (const entry of config.inputsConfigs) {
-		if (!isVisiblePort(entry)) {
+		if (!isShownInputPort(entry)) {
 			continue;
 		}
 
 		const basePortId = String(entry.portId ?? entry.name ?? 'unknown');
 		const label = entry.name ?? basePortId;
 		const wireType = inputWireType(entry);
+		const hidden = isHidden(entry);
 		const value =
 			nodeInputs[basePortId] !== undefined
 				? nodeInputs[basePortId]
@@ -158,6 +191,7 @@ function resolveInputPortRows(
 					inline: slot === 0 ? (entry.inline ?? null) : null,
 					value: slot === 0 ? value : undefined,
 					connected: isHandleConnected(edges, nodeId, handle),
+					hidden,
 				});
 			}
 
@@ -174,6 +208,7 @@ function resolveInputPortRows(
 			inline: entry.inline ?? null,
 			value,
 			connected: isHandleConnected(edges, nodeId, basePortId),
+			hidden,
 		});
 	}
 
@@ -190,7 +225,7 @@ function resolveOutputPortRows(
 	const rows: DiagramOutputPortRow[] = [];
 
 	for (const entry of config.outputsConfigs) {
-		if (entry === undefined || !isVisiblePort(entry)) {
+		if (entry === undefined || !isVisibleOutputPort(entry)) {
 			continue;
 		}
 

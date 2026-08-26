@@ -37,7 +37,7 @@ import { LfInlineFieldComponent } from './lf-inline-field.component';
 				[class.lf-port-row--in]="side() === 'in'"
 				[class.lf-port-row--out]="side() === 'out'"
 			>
-				@if (side() === 'in') {
+				@if (side() === 'in' && !hidden()) {
 					<div
 						class="lf-port-anchor lf-port-anchor--in"
 						[class.lf-port-anchor--endpoint]="endpointHighlighted()"
@@ -107,6 +107,7 @@ export class LfNodePortRowComponent {
 	readonly value = input<unknown>(undefined);
 	readonly previewValue = input<unknown>(undefined);
 	readonly disabled = input<boolean>(false);
+	readonly hidden = input<boolean>(false);
 	readonly nodeSelected = input<boolean>(false);
 	readonly endpointHighlighted = input<boolean>(false);
 

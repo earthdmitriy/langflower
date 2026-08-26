@@ -76,6 +76,7 @@ describe('resolveNodePorts (canvas port resolution)', () => {
 				inline: null,
 				value: undefined,
 				connected: false,
+				hidden: false,
 			},
 		] satisfies DiagramInputPortRow[]);
 	});
@@ -121,6 +122,7 @@ describe('resolveNodePorts (canvas port resolution)', () => {
 				inline: 'text',
 				value: 'hello',
 				connected: false,
+				hidden: false,
 			},
 			{
 				handle: 'other',
@@ -132,6 +134,7 @@ describe('resolveNodePorts (canvas port resolution)', () => {
 				inline: 'text',
 				value: 'fallback',
 				connected: true,
+				hidden: false,
 			},
 		] satisfies DiagramInputPortRow[]);
 	});
@@ -222,6 +225,46 @@ describe('resolveNodePorts (canvas port resolution)', () => {
 		const { inputPorts } = resolveNodePorts(config, 'n1', []);
 
 		expect(inputPorts.map((p) => p.handle)).toEqual(['value']);
+	});
+
+	it('shows hidden ports that have an editable inline, without a wire handle', () => {
+		const config = portsConfig({
+			inputsConfigs: [
+				{
+					dir: 'in',
+					portId: 'message',
+					name: 'Message',
+					wireType: 'string',
+					hidden: true,
+					inline: 'text-multiline',
+					hitl: {
+						title: 'Message',
+						kind: 'textarea',
+						role: 'chat-start',
+					},
+				},
+			],
+			outputsConfigs: [],
+		});
+
+		const { inputPorts } = resolveNodePorts(config, 'n1', [], {
+			message: 'saved',
+		});
+
+		expect(inputPorts).toEqual([
+			{
+				handle: 'message',
+				portId: 'in:message',
+				label: 'Message',
+				wireType: 'string',
+				basePortId: 'message',
+				slotIndex: 0,
+				inline: 'text-multiline',
+				value: 'saved',
+				connected: false,
+				hidden: true,
+			},
+		] satisfies DiagramInputPortRow[]);
 	});
 
 	it('expands multi inputs from connected edges, showing +1 free slot', () => {

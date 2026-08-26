@@ -9,12 +9,13 @@ import {
 import type { RunnerPermissionAskPayload } from '@langflower/shared/langflower';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
 import { NodeHoverService } from '../../../services/node-hover.service';
-import { resolveComposerActionPayload } from '../../../services/hitl-action-payload';
 import type { HitlControlProjection } from '../../../services/hitl-projection';
+import { ComposerService } from '../composer.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
-import { LfHitlActionsComponent } from '../../sidebar/components/lf-hitl-actions.component';
-import { LfHitlTextareaComponent } from '../../sidebar/components/lf-hitl-textarea.component';
-import { resolveComposerFooterMode } from '../utils/composer-footer-mode';
+import { resolveComposerActionPayload } from '../hitl-action-payload';
+import { resolveComposerFooterMode } from '../composer-footer-mode';
+import { LfHitlActionsComponent } from './lf-hitl-actions.component';
+import { LfHitlTextareaComponent } from './lf-hitl-textarea.component';
 import { ContinueButtonComponent } from './continue-button.component';
 import { PauseButtonComponent } from './pause-button.component';
 import { RunButtonComponent } from './run-button.component';
@@ -237,10 +238,11 @@ export class LfComposerShellComponent {
 	@Input({ required: true }) height!: number;
 
 	readonly execution = inject(WorkflowExecutionService);
+	readonly composer = inject(ComposerService);
 	readonly hover = inject(NodeHoverService);
 
 	readonly activePermissionAsk = computed(
-		() => this.execution.pendingPermissionAsks()[0] ?? null,
+		() => this.composer.pendingPermissionAsks()[0] ?? null,
 	);
 
 	readonly hitlTabs = computed<
@@ -251,8 +253,8 @@ export class LfComposerShellComponent {
 			readonly actions: readonly HitlControlProjection[];
 		}>
 	>(() =>
-		this.execution.hitlTriggeredNodeIds().map((nodeId) => {
-			const controls = this.execution.hitlControls(nodeId);
+		this.composer.hitlTriggeredNodeIds().map((nodeId) => {
+			const controls = this.composer.hitlControls(nodeId);
 			return {
 				nodeId,
 				label: this.execution.nodeLabel(nodeId),
@@ -326,7 +328,7 @@ export class LfComposerShellComponent {
 	onHitlSubmit(
 		event: readonly [nodeId: string, portId: string, payload: unknown],
 	): void {
-		this.execution.submitHitl(event);
+		this.composer.submitHitl(event);
 	}
 
 	/** Enter in the focused textarea → same as clicking the rightmost CTA. */
@@ -341,7 +343,7 @@ export class LfComposerShellComponent {
 		if (rightmost === null) {
 			return;
 		}
-		const draft = this.execution.hitlDraft(
+		const draft = this.composer.composerText(
 			rightmost.nodeId,
 			rightmost.portId,
 		);
@@ -360,7 +362,7 @@ export class LfComposerShellComponent {
 		ask: RunnerPermissionAskPayload,
 		decision: 'allow' | 'deny',
 	): void {
-		this.execution.submitPermissionReply(ask, decision);
+		this.composer.submitPermissionReply(ask, decision);
 	}
 
 	permissionAskMeta(ask: RunnerPermissionAskPayload): string {

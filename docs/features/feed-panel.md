@@ -295,8 +295,8 @@ the active document’s node-id set changes with the workflow id.
 - Feed ↔ canvas highlight: `packages/ui/src/app/services/node-hover.service.ts`.
 - Shared control tooltips: `packages/ui/src/app/components/lf-hover-tip.component.ts`
   ([THEMES.md](../../packages/ui/docs/THEMES.md) § Buttons and tooltips).
-- HITL composer: `lf-composer-shell.component.ts` (stage + footer),
-  `lf-hitl-textarea.component.ts`, `lf-hitl-actions.component.ts`,
+- HITL composer: `packages/ui/src/app/features/composer/components/lf-composer-shell.component.ts`
+  (stage + footer), `lf-hitl-textarea.component.ts`, `lf-hitl-actions.component.ts`,
   `run-button.component.ts` / `pause-button.component.ts`. Protocol:
   [EXECUTION_ARCHITECTURE.md](../EXECUTION_ARCHITECTURE.md)
   § LLM + human-in-the-loop ("Work log chat (interactive HITL)").

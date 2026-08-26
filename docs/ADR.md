@@ -1660,8 +1660,10 @@ defaults into JSON also freezes stale values across node upgrades.
 **Decision:**
 
 1. **Persist** `node.inputs[port]` only when the port has a **visible UI field**
-   (`hidden !== true`, editable `inline`, not preview-*) **and** the value is
-   **not** deep-equal to the current definition `defaultValue`.
+   (editable `inline`, not preview-*, **including** `hidden: true` + inline —
+   Chat Input `message`) **and** the value is **not** deep-equal to the current
+   definition `defaultValue`. Hidden HITL without inline (Review Gate) is not
+   persistable.
 2. **On load / materialize**, for each input with `defaultValue` and no saved
    override, `connect(of(currentDefault))` from the live definition (not from
    a historical baked copy).

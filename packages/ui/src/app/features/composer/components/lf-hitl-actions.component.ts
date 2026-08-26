@@ -7,9 +7,9 @@ import {
 	inject,
 } from '@angular/core';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
-import { resolveComposerActionPayload } from '../../../services/hitl-action-payload';
+import { resolveComposerActionPayload } from '../hitl-action-payload';
 import type { HitlControlProjection } from '../../../services/hitl-projection';
-import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
+import { ComposerService } from '../composer.service';
 
 /**
  * Footer CTAs for HITL replies and Chat Input Start. Text buttons are
@@ -99,10 +99,10 @@ export class LfHitlActionsComponent {
 		readonly [nodeId: string, portId: string, payload: unknown]
 	>();
 
-	readonly execution = inject(WorkflowExecutionService);
+	readonly composer = inject(ComposerService);
 
 	draftOf(entry: HitlControlProjection): string {
-		return this.execution.hitlDraft(entry.nodeId, entry.portId);
+		return this.composer.composerText(entry.nodeId, entry.portId);
 	}
 
 	canSubmitStart(entry: HitlControlProjection): boolean {

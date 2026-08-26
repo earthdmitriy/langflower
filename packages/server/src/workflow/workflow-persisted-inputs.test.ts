@@ -59,6 +59,21 @@ describe('prunePersistedInputs', () => {
 			),
 		).toEqual({ systemPrompt: 'Be brief' });
 	});
+
+	it('keeps Chat Input message overrides and omits empty text', () => {
+		const definition = resolveDefinition({
+			type: 'common-chat-input',
+			params: {},
+		});
+		expect(definition).toBeDefined();
+		expect(
+			prunePersistedInputs({ message: 'Hello from chat' }, definition!),
+		).toEqual({ message: 'Hello from chat' });
+		expect(prunePersistedInputs({ message: '' }, definition!)).toEqual({});
+		expect(prunePersistedInputs({ message: '   ' }, definition!)).toEqual(
+			{},
+		);
+	});
 });
 
 describe('normalizeWorkflowDocumentInputs', () => {

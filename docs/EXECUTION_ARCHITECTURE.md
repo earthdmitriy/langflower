@@ -272,15 +272,17 @@ Sources:
 
 ## UI execution projections
 
-`WorkflowExecutionService` wires bridge streams into focused RxJS folds:
+`WorkflowExecutionService` wires run-gate, live graph, labels, and chrome.
+`ComposerService` (`features/composer/`) wires HITL and permission folds.
+`ExecutionFeedService` owns the nested work-log.
 
-| Fold                                  | Projection                                                                                                       |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `execution-run-gate-fold.ts`          | running state from feed snapshot, started events, done, and interruption                                         |
-| `execution-chrome-fold.ts`            | last output state per node/port and edge, replayed identically from the feed                                     |
-| `features/feed-folding/` (see README) | append-only `FeedProjection` → nested node → port → item work-log; **never re-fold full history on live tokens** |
-| `execution-hitl-fold.ts`              | nodes currently awaiting human input, reconstructed from input history                                           |
-| `execution-permission-fold.ts`        | pending tool permission asks                                                                                     |
+| Fold                                             | Projection                                                                                                       |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `execution-run-gate-fold.ts`                     | running state from feed snapshot, started events, done, and interruption                                         |
+| `execution-chrome-fold.ts`                       | last output state per node/port and edge, replayed identically from the feed                                     |
+| `features/feed-folding/` (see README)            | append-only `FeedProjection` → nested node → port → item work-log; **never re-fold full history on live tokens** |
+| `features/composer/execution-hitl-fold.ts`       | nodes currently awaiting human input, reconstructed from input history                                           |
+| `features/composer/execution-permission-fold.ts` | pending tool permission asks                                                                                     |
 
 Hydration policy is concern-specific. Feed and chrome replay the execution-feed
 history; HITL may ignore a stale hydrate after live actions have advanced its
@@ -299,8 +301,9 @@ Sources:
 - `packages/ui/src/app/services/execution-run-gate-fold.ts`
 - `packages/ui/src/app/services/execution-chrome-fold.ts`
 - `packages/ui/src/app/features/feed-folding/execution-feed.service.ts`
-- `packages/ui/src/app/services/execution-hitl-fold.ts`
-- `packages/ui/src/app/services/execution-permission-fold.ts`
+- `packages/ui/src/app/features/composer/composer.service.ts`
+- `packages/ui/src/app/features/composer/execution-hitl-fold.ts`
+- `packages/ui/src/app/features/composer/execution-permission-fold.ts`
 
 ## HITL and permissions
 
@@ -347,8 +350,8 @@ Sources:
 - `packages/server/src/bridge/wire-runner-handlers.ts`
 - `packages/server/src/session/langflower-session.ts`
 - `packages/server/src/bridge/emit-bootstrap.ts`
-- `packages/ui/src/app/services/execution-hitl-fold.ts`
-- `packages/ui/src/app/services/execution-permission-fold.ts`
+- `packages/ui/src/app/features/composer/execution-hitl-fold.ts`
+- `packages/ui/src/app/features/composer/execution-permission-fold.ts`
 
 ## Durable checkpoints
 

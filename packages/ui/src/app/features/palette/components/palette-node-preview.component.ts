@@ -87,7 +87,9 @@ function editableInline(config: InlineConfig | undefined): InlineConfig | null {
 function visibleInputs(
 	node: PaletteNodeDefinition,
 ): readonly InputPortMeta<unknown>[] {
-	return node.inputsConfigs.filter((entry) => !isHidden(entry));
+	return node.inputsConfigs.filter(
+		(entry) => !isHidden(entry) || editableInline(entry.inline) !== null,
+	);
 }
 
 function visibleOutputs(
@@ -109,7 +111,10 @@ function buildPreviewRows(node: PaletteNodeDefinition): PreviewBodyRow[] {
 		const outputConfig = outputs[index];
 
 		rows.push({
-			leftDot: inputConfig !== undefined ? toInputDot(inputConfig) : null,
+			leftDot:
+				inputConfig !== undefined && !isHidden(inputConfig)
+					? toInputDot(inputConfig)
+					: null,
 			rightDot:
 				outputConfig !== undefined ? toOutputDot(outputConfig) : null,
 			inline: editableInline(inputConfig?.inline),
