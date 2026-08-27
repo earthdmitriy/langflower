@@ -15,6 +15,10 @@ export default defineConfig({
 	],
 	resolve: {
 		alias: {
+			'@langflower/node-sdk/testing': path.join(
+				ROOT,
+				'packages/node-sdk/src/testing/create-node-harness.ts',
+			),
 			'@langflower/node-sdk/llm': path.join(
 				ROOT,
 				'packages/node-sdk/src/node-factory/define-llm-node/define-llm-node.ts',
@@ -182,6 +186,7 @@ export default defineConfig({
 					environment: 'node',
 					include: [
 						'packages/**/src/**/*.test.ts',
+						'packages/server/skeleton/nodes/hello-embed/**/*.test.ts',
 						'tests/unit/**/*.test.ts',
 					],
 					exclude: ['packages/runtime/src/v2/**'],

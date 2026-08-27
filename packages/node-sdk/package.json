@@ -17,6 +17,10 @@
 		"./create-typed-ui-schema": {
 			"types": "./dist/node-factory/define-reactive-node/ui-schema-inference.d.ts",
 			"import": "./dist/node-factory/define-reactive-node/ui-schema-inference.js"
+		},
+		"./testing": {
+			"types": "./dist/testing/create-node-harness.d.ts",
+			"import": "./dist/testing/create-node-harness.js"
 		}
 	},
 	"scripts": {

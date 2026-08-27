@@ -21,7 +21,7 @@ const FIRST_RUN_LANGFLOWER_JSONC = {
 
 export type BootstrapProjectOptions = {
 	readonly mode?: SeedSkeletonMode;
-	/** When false, skip seeding skeleton `my-nodes`. Default true. */
+	/** When false, skip seeding skeleton custom-node packs. Default true. */
 	readonly seedCustomNodes?: boolean;
 };
 

@@ -1,7 +1,8 @@
 # Custom Nodes
 
-Author packs under `.langflower/nodes/<pack>/`. Default seed pack:
-**`my-nodes/`**.
+Author packs under `.langflower/nodes/<pack>/`. Default seed packs:
+**`my-nodes/`** (git-diff / review-gate) and **`hello-embed/`** (markdown
+→ local sqlite embeddings; copy as a starting point).
 
 Import **`defineNode`** (default), `defineToolRegistrations` (LLM tool packs),
 or `defineReactiveNode` from `@langflower/node-sdk` — not from a root
@@ -10,8 +11,19 @@ or `defineReactiveNode` from `@langflower/node-sdk` — not from a root
 Each `*.ts` file may `export default` a definition or an array. No required
 `index.ts`. Run `npm install` inside the pack when you add author dependencies;
 Langflower does **not** auto-install on start, bootstrap, or palette reload.
+Startup **does** compile packs under `.langflower/nodes/`.
 
-See [`nodes/my-nodes/README.md`](nodes/my-nodes/README.md) for the full
+If pack files `import` each other with a **`.ts` suffix**, set
+`"allowImportingTsExtensions": true` next to `"noEmit": true` in the pack
+`tsconfig.json` (hello-embed seed). Without it the pack does not compile.
+`my-nodes` uses extensionless imports and does not need the flag.
+
+- `hello-embed/` — sample embedding KB (`ingest` / `search` /
+  `search-handle`). See [`nodes/hello-embed/README.md`](nodes/hello-embed/README.md).
+  Workflows: `kb-ingest`, `kb-manual-search`, `kb-tool`, `kb-rag`.
+  Settings default embedding model required.
+
+See [`nodes/my-nodes/README.md`](nodes/my-nodes/README.md) for the author
 contract.
 
 ## Seed demo

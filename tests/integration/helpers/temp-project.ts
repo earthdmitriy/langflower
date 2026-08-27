@@ -6,7 +6,7 @@ import { getTestsTmpDir } from './repo-paths.js';
 import { bootstrapExampleWorkflow } from './scenarios/smoke.js';
 
 export type CreateTempProjectOptions = {
-	/** When true, seed skeleton `my-nodes`. Default false for fast WS suites. */
+	/** When true, seed skeleton node packs (`my-nodes`, `hello-embed`, …). Default false for fast WS suites. */
 	readonly seedCustomNodes?: boolean;
 };
 

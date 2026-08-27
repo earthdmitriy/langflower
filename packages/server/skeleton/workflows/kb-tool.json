@@ -1,0 +1,111 @@
+{
+	"$schema": "../schemas/workflow.schema.json",
+	"metadata": {
+		"name": "KB tool",
+		"description": "Sample embedding tool loop: run KB ingest first, set Settings default embedding model. Chat Start. The agent calls project_search (hello-embed-search-handle) and cites path + heading.",
+		"createdAt": "2026-08-26T00:00:00.000Z",
+		"updatedAt": "2026-08-26T00:00:00.000Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 0,
+			"y": 0,
+			"scale": 0.9,
+			"width": 1200,
+			"height": 800
+		},
+		"nodes": [
+			{
+				"id": "chat",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 40, "y": 200 },
+					"label": "Ask"
+				}
+			},
+			{
+				"id": "embed-provider",
+				"type": "common-embed-provider",
+				"params": {
+					"providerId": "",
+					"model": ""
+				},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 40, "y": 40 },
+					"label": "Embed provider"
+				}
+			},
+			{
+				"id": "search-handle",
+				"type": "hello-embed-search-handle",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 320, "y": 40 },
+					"label": "Project search"
+				}
+			},
+			{
+				"id": "agent",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "custom",
+					"providerId": "",
+					"model": "",
+					"maxIterations": 8,
+					"maxFeedbackTurns": 4
+				},
+				"inputs": {
+					"systemPrompt": "You answer questions about this project using the project_search tool (markdown chunks with embeddings). Always call project_search first. Cite file path and heading from the hits. If hits are weak or the index is empty, say so — do not invent. On HITL feedback, search again if needed and revise."
+				},
+				"ui": {
+					"position": { "x": 320, "y": 200 },
+					"label": "Agent"
+				}
+			},
+			{
+				"id": "review",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 640, "y": 220 },
+					"label": "Review"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-chat-agent",
+				"fromNodeId": "chat",
+				"fromPort": ["message", 0],
+				"toNodeId": "agent",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-embed-handle",
+				"fromNodeId": "embed-provider",
+				"fromPort": ["embed", 0],
+				"toNodeId": "search-handle",
+				"toPort": ["embed", 0]
+			},
+			{
+				"edgeId": "e-tools-agent",
+				"fromNodeId": "search-handle",
+				"fromPort": ["tools", 0],
+				"toNodeId": "agent",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "e-agent-review",
+				"fromNodeId": "agent",
+				"fromPort": ["response", 0],
+				"toNodeId": "review",
+				"toPort": ["result", 0]
+			}
+		]
+	}
+}

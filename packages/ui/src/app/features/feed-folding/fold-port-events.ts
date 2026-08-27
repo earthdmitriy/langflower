@@ -126,6 +126,7 @@ const permissionDecisionEvent = (
 const isRuntimeFeedRole = (role: string | undefined): role is RuntimeFeedRole =>
 	role === 'none' ||
 	role === 'reasoning' ||
+	role === 'progress' ||
 	role === 'draft' ||
 	role === 'tool' ||
 	role === 'shell' ||
@@ -136,6 +137,7 @@ type RolePresentation =
 	| 'omit'
 	| 'data'
 	| 'reasoning'
+	| 'progress'
 	| 'draft'
 	| 'tool'
 	| 'shell'

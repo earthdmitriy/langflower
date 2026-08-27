@@ -14,15 +14,35 @@ export type WireType = string & { __brand: 'RuntimeWireType' };
 
 export type InputPortMode = 'single' | 'merge' | 'combine' | 'zip' | 'bypass';
 
+/**
+ * Sidebar work-log role stamped on a port's `feed.role`.
+ *
+ * - `none` — omit from the work log
+ * - `reasoning` — technical growing stream; caption Reasoning (LLM thinking)
+ * - `progress` — same layout as reasoning; caption PROGRESS (ingest/crawl/job logs)
+ * - `draft` — markdown draft bubble
+ * - `tool` / `shell` — tool/shell rows (growing when streaming)
+ * - `result` — conversation bubble; one row per emit (not for multi-emit logs)
+ * - `recovery` — amber recovery banner
+ */
 export type FeedRole =
-	'none' | 'reasoning' | 'draft' | 'tool' | 'shell' | 'result' | 'recovery';
+	| 'none'
+	| 'reasoning'
+	| 'progress'
+	| 'draft'
+	| 'tool'
+	| 'shell'
+	| 'result'
+	| 'recovery';
 
 /**
  * Feed projection metadata shared by input and output port contracts.
  *
- * `streaming: true` keeps the visit open (chunks / interleaved streams).
- * Omit it so the frame closes the visit; same-node frames while last still
- * append to that visit.
+ * `streaming: true` keeps the visit open and appends chunks on growing
+ * roles (`reasoning`, `progress`, `draft`, `tool`, `shell`). Omit
+ * `streaming` so the frame closes the visit.
+ *
+ * Progress logs use `{ role: 'progress', streaming: true }`.
  */
 export type FeedPortMeta = {
 	readonly role?: FeedRole;

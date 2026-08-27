@@ -1,4 +1,4 @@
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
@@ -48,6 +48,8 @@ const presentationLabel = (item: PortStreamItem): string => {
 	switch (item.meta.presentation) {
 		case 'reasoning':
 			return 'Reasoning';
+		case 'progress':
+			return 'PROGRESS';
 		case 'draft':
 			return 'Draft';
 		case 'tool':
@@ -82,7 +84,7 @@ const presentationLabel = (item: PortStreamItem): string => {
 @Component({
 	selector: 'lf-work-log-panel',
 	standalone: true,
-	imports: [AsyncPipe, LfHoverTipComponent],
+	imports: [AsyncPipe, NgTemplateOutlet, LfHoverTipComponent],
 	host: { class: 'block h-full' },
 	template: `
 		<div class="flex h-full min-h-0 flex-col">
@@ -385,63 +387,28 @@ const presentationLabel = (item: PortStreamItem): string => {
 															}
 														}
 														@case ('reasoning') {
-															@if (
-																!visit.isClosed &&
-																isLastSegment
-															) {
-																<div
-																	class="flex min-w-0 flex-col gap-0.5"
-																>
-																	<div
-																		class="flex min-w-0 items-baseline gap-1 text-[9px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500"
-																	>
-																		<span
-																			>Reasoning</span
-																		>
-																		<span
-																			class="normal-case tracking-normal text-amber-600 dark:text-amber-400"
-																			>streaming…</span
-																		>
-																	</div>
-																	<div
-																		class="h-[2lh] min-w-0 w-full overflow-hidden text-[11px] leading-4 text-zinc-600 dark:text-zinc-300"
-																	>
-																		<div
-																			class="flex h-full min-h-0 flex-col justify-end"
-																		>
-																			<pre
-																				class="whitespace-pre-wrap break-words font-sans"
-																				>{{
-																					itemText(
-																						item
-																					)
-																				}}</pre>
-																		</div>
-																	</div>
-																</div>
-															} @else {
-																<details
-																	class="min-w-0 text-[11px] text-zinc-500 dark:text-zinc-400"
-																>
-																	<summary
-																		class="cursor-pointer select-none list-none truncate text-zinc-600 dark:text-zinc-300 [&::-webkit-details-marker]:hidden"
-																	>
-																		Reasoning:
-																		{{
-																			itemText(
-																				item
-																			)
-																		}}
-																	</summary>
-																	<pre
-																		class="mt-1 whitespace-pre-wrap break-words font-sans"
-																		>{{
-																			itemText(
-																				item
-																			)
-																		}}</pre>
-																</details>
-															}
+															<ng-container
+																[ngTemplateOutlet]="
+																	growingLogTpl
+																"
+																[ngTemplateOutletContext]="{
+																	item,
+																	visit,
+																	isLastSegment,
+																}"
+															/>
+														}
+														@case ('progress') {
+															<ng-container
+																[ngTemplateOutlet]="
+																	growingLogTpl
+																"
+																[ngTemplateOutletContext]="{
+																	item,
+																	visit,
+																	isLastSegment,
+																}"
+															/>
 														}
 														@default {
 															<details
@@ -497,6 +464,49 @@ const presentationLabel = (item: PortStreamItem): string => {
 				}
 			}
 		</div>
+		<ng-template
+			#growingLogTpl
+			let-item="item"
+			let-visit="visit"
+			let-isLastSegment="isLastSegment"
+		>
+			@if (!visit.isClosed && isLastSegment) {
+				<div class="flex min-w-0 flex-col gap-0.5">
+					<div
+						class="flex min-w-0 items-baseline gap-1 text-[9px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500"
+					>
+						<span>{{ presentationLabel(item) }}</span>
+						<span
+							class="normal-case tracking-normal text-amber-600 dark:text-amber-400"
+							>streaming…</span
+						>
+					</div>
+					<div
+						class="h-[2lh] min-w-0 w-full overflow-hidden text-[11px] leading-4 text-zinc-600 dark:text-zinc-300"
+					>
+						<div class="flex h-full min-h-0 flex-col justify-end">
+							<pre
+								class="whitespace-pre-wrap break-words font-sans"
+								>{{ itemText(item) }}</pre>
+						</div>
+					</div>
+				</div>
+			} @else {
+				<details
+					class="min-w-0 text-[11px] text-zinc-500 dark:text-zinc-400"
+				>
+					<summary
+						class="cursor-pointer select-none list-none truncate text-zinc-600 dark:text-zinc-300 [&::-webkit-details-marker]:hidden"
+					>
+						{{ presentationLabel(item) }}:
+						{{ itemText(item) }}
+					</summary>
+					<pre
+						class="mt-1 whitespace-pre-wrap break-words font-sans"
+						>{{ itemText(item) }}</pre>
+				</details>
+			}
+		</ng-template>
 	`,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 })

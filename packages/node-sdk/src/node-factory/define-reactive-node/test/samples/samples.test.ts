@@ -1,4 +1,4 @@
-import { firstValueFrom, of } from 'rxjs';
+import { createNodeHarness } from '@langflower/node-sdk/testing';
 import { describe, expect, it } from 'vitest';
 import { agentSampleNode } from './agent-node.js';
 import { combineSampleNode } from './combine-node.js';
@@ -87,19 +87,21 @@ describe('defineReactiveNode samples', () => {
 			submitLabel: 'Send',
 		});
 
-		const first = hitlSampleNode.getInstance();
-		const second = hitlSampleNode.getInstance();
+		const first = createNodeHarness(hitlSampleNode);
+		const second = createNodeHarness(hitlSampleNode);
 
-		expect(first.inputs.reply).not.toBe(second.inputs.reply);
-
-		first.inputs.reply.connect(of('first'));
-		second.inputs.reply.connect(of('second'));
-
-		await expect(firstValueFrom(first.outputs.reply.value$)).resolves.toBe(
-			'first',
+		expect(first.instance.inputs.reply).not.toBe(
+			second.instance.inputs.reply,
 		);
-		await expect(firstValueFrom(second.outputs.reply.value$)).resolves.toBe(
-			'second',
-		);
+
+		const firstReply = first.next<string>('reply');
+		const secondReply = second.next<string>('reply');
+		first.send('reply', 'first');
+		second.send('reply', 'second');
+
+		await expect(firstReply).resolves.toBe('first');
+		await expect(secondReply).resolves.toBe('second');
+		first.dispose();
+		second.dispose();
 	});
 });

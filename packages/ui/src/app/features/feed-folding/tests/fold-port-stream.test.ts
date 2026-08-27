@@ -75,6 +75,21 @@ describe('foldPortStream (event-sourced)', () => {
 		]);
 	});
 
+	it('folds consecutive progress frames into one growing item', () => {
+		expect(
+			replayPortStream([
+				frame(0, 'scan\n', { presentation: 'progress' }),
+				frame(1, 'embed\n', { presentation: 'progress' }),
+			]),
+		).toEqual([
+			expect.objectContaining({
+				seq: 0,
+				value: 'scan\nembed\n',
+				meta: { presentation: 'progress' },
+			}),
+		]);
+	});
+
 	it('replays a snapshot array through the same reducer', () => {
 		const snapshot = [
 			frame(0, 'Think', { presentation: 'reasoning' }),

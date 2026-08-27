@@ -215,6 +215,25 @@ recoverable provider failures
 ([LLM_RECOVERY.md](LLM_RECOVERY.md)), but that does not define general graph
 recovery.
 
+### TBD-009 — Embedding sample / catalog rerank
+
+**Horizon:** far · **Area:** product / nodes
+
+**Goal:** Second-stage rank after hello-embed (or a catalog node): retrieve a
+larger pool, keep top-N for the generation prompt.
+
+**Why hard:** Three incompatible shapes — (1) lexical boost (cheap, not a
+cross-encoder), (2) LLM-as-judge needs **chat** on the retrieve path (pack must
+not see `apiKey`; host bind or extra graph LLM), (3) dedicated cross-encoder is
+a new Settings model, not `embeddings.create`. Unsettled whether rerank belongs
+in the skeleton pack vs catalog.
+
+**Not yet:** Pick one shape and whether the sample RAG loop still needs rerank
+once hybrid retrieve and full-chunk packing ship.
+
+**Related:** [EMBEDDING.md](EMBEDDING.md) · skeleton
+`nodes/hello-embed/lib/search.ts`
+
 ---
 
 ## Promoted (left for trace)

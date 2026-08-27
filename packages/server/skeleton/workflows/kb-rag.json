@@ -1,0 +1,192 @@
+{
+	"$schema": "../schemas/workflow.schema.json",
+	"metadata": {
+		"name": "KB RAG",
+		"description": "Simplified RAG: run KB ingest first, set Settings default embedding model. Chat Start. Hybrid retrieve packs Question + full-chunk Context into the LLM userPrompt. project_search is a second retrieve; grep/read open hit paths. Review feedback loops; Approve stops the run.",
+		"createdAt": "2026-08-26T00:00:00.000Z",
+		"updatedAt": "2026-08-26T20:30:34.296Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 77.33349609375,
+			"y": 180.26641845703125,
+			"scale": 0.85,
+			"width": 672.71875,
+			"height": 1005.328125
+		},
+		"nodes": [
+			{
+				"id": "chat",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {
+					"message": "project overview"
+				},
+				"ui": {
+					"position": {
+						"x": 120,
+						"y": 200
+					},
+					"label": "Ask"
+				}
+			},
+			{
+				"id": "embed-provider",
+				"type": "common-embed-provider",
+				"params": {
+					"providerId": "",
+					"model": ""
+				},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 80,
+						"y": 540
+					},
+					"label": "Embed provider"
+				}
+			},
+			{
+				"id": "search",
+				"type": "hello-embed-search",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 400,
+						"y": 340
+					},
+					"label": "Vector search"
+				}
+			},
+			{
+				"id": "search-handle",
+				"type": "hello-embed-search-handle",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 360,
+						"y": 600
+					},
+					"label": "Project search"
+				}
+			},
+			{
+				"id": "agent",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "custom",
+					"providerId": "",
+					"model": "",
+					"maxIterations": 8,
+					"maxFeedbackTurns": 4,
+					"toolPermissions": {
+						"read": "allow",
+						"glob": "allow",
+						"grep": "allow",
+						"edit": "deny",
+						"write": "deny",
+						"create": "deny",
+						"delete": "deny",
+						"bash": "deny"
+					}
+				},
+				"inputs": {
+					"systemPrompt": "The user message is Question plus Context: hybrid-retrieved markdown chunks (full bodies, path, heading, score). Answer from Context. Cite path and heading. Call project_search, grep, or read only when Context is missing the detail. If hits are missing or weak, retrieve again rather than inventing. On HITL feedback, search or grep again if needed and revise."
+				},
+				"ui": {
+					"position": {
+						"x": 620,
+						"y": 180
+					},
+					"label": "Agent"
+				}
+			},
+			{
+				"id": "review",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 880,
+						"y": 520
+					},
+					"label": "Review"
+				}
+			},
+			{
+				"id": "done",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 1100,
+						"y": 560
+					},
+					"label": "Finish"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-chat-search",
+				"fromNodeId": "chat",
+				"fromPort": ["message", 0],
+				"toNodeId": "search",
+				"toPort": ["query", 0]
+			},
+			{
+				"edgeId": "e-embed-search",
+				"fromNodeId": "embed-provider",
+				"fromPort": ["embed", 0],
+				"toNodeId": "search",
+				"toPort": ["embed", 0]
+			},
+			{
+				"edgeId": "e-embed-handle",
+				"fromNodeId": "embed-provider",
+				"fromPort": ["embed", 0],
+				"toNodeId": "search-handle",
+				"toPort": ["embed", 0]
+			},
+			{
+				"edgeId": "e-search-agent",
+				"fromNodeId": "search",
+				"fromPort": ["text", 0],
+				"toNodeId": "agent",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-tools-agent",
+				"fromNodeId": "search-handle",
+				"fromPort": ["tools", 0],
+				"toNodeId": "agent",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "e-agent-review",
+				"fromNodeId": "agent",
+				"fromPort": ["response", 0],
+				"toNodeId": "review",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-review-feedback",
+				"fromNodeId": "review",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "agent",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-review-done",
+				"fromNodeId": "review",
+				"fromPort": ["response", 0],
+				"toNodeId": "done",
+				"toPort": ["value", 0]
+			}
+		]
+	}
+}

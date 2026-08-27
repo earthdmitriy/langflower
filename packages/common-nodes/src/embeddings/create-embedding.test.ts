@@ -3,11 +3,14 @@ import { createEmbedding, type EmbeddingsClient } from './create-embedding.js';
 
 const vectorClient = (
 	embeddings: readonly (readonly number[])[],
-	onCreate?: (signal: AbortSignal | undefined) => void,
+	onCreate?: (
+		signal: AbortSignal | undefined,
+		body: { readonly encoding_format?: 'float' | 'base64' },
+	) => void,
 ): EmbeddingsClient => ({
 	embeddings: {
-		create: async (_body, options) => {
-			onCreate?.(options?.signal);
+		create: async (body, options) => {
+			onCreate?.(options?.signal, body);
 			return {
 				data: embeddings.map((embedding) => ({ embedding })),
 			};
@@ -66,6 +69,54 @@ describe('createEmbedding', () => {
 		expect(result.vectors).toHaveLength(2);
 		expect(Array.from(result.vectors[0] ?? [])).toEqual([1, 2, 3]);
 		expect(result.vectors[0]).toBeInstanceOf(Float32Array);
+	});
+
+	it('maps Float32Array embeddings from the client', async () => {
+		const factory = createEmbedding({
+			resolveProvider: async () => ({ apiKey: 'test' }),
+			createClient: () => ({
+				embeddings: {
+					create: async () => ({
+						data: [{ embedding: Float32Array.from([1, 2, 3]) }],
+					}),
+				},
+			}),
+		});
+
+		const result = await factory({
+			providerId: 'openai',
+			model: 'text-embedding-3-small',
+			texts: ['a'],
+		});
+		expect(Array.from(result.vectors[0] ?? [])).toEqual([1, 2, 3]);
+	});
+
+	it('throws when embedding is not a numeric array', async () => {
+		const factory = createEmbedding({
+			resolveProvider: async () => ({ apiKey: 'test' }),
+			createClient: () => ({
+				embeddings: {
+					create: async () => ({
+						data: [{ embedding: { length: 256 } }],
+					}),
+				},
+			}),
+		});
+
+		await expect(
+			factory({
+				providerId: 'openai',
+				model: 'text-embedding-3-small',
+				texts: ['a'],
+			}),
+		).rejects.toThrow(/numeric embedding array/);
+		await expect(
+			factory({
+				providerId: 'openai',
+				model: 'text-embedding-3-small',
+				texts: ['a'],
+			}),
+		).rejects.toThrow(/embeddingIsArray":false/);
 	});
 
 	it('throws when batch vectors have mixed dims', async () => {
@@ -129,6 +180,70 @@ describe('createEmbedding', () => {
 		});
 
 		expect(seen).toEqual([controller.signal]);
+	});
+
+	it('requests encoding_format float so the SDK skips base64 unwrap', async () => {
+		const bodies: { readonly encoding_format?: 'float' | 'base64' }[] = [];
+		const factory = createEmbedding({
+			resolveProvider: async () => ({ apiKey: 'test' }),
+			createClient: () =>
+				vectorClient([[1, 0]], (_signal, body) => {
+					bodies.push(body);
+				}),
+		});
+
+		await factory({
+			providerId: 'openai',
+			model: 'text-embedding-3-small',
+			texts: ['a'],
+		});
+
+		expect(bodies.map((body) => body.encoding_format)).toEqual(['float']);
+	});
+
+	it('orders client rows by index', async () => {
+		const factory = createEmbedding({
+			resolveProvider: async () => ({ apiKey: 'test' }),
+			createClient: () => ({
+				embeddings: {
+					create: async () => ({
+						data: [
+							{ index: 1, embedding: [0, 1] },
+							{ index: 0, embedding: [1, 0] },
+						],
+					}),
+				},
+			}),
+		});
+
+		const result = await factory({
+			providerId: 'openai',
+			model: 'text-embedding-3-small',
+			texts: ['a', 'b'],
+		});
+		expect(Array.from(result.vectors[0] ?? [])).toEqual([1, 0]);
+		expect(Array.from(result.vectors[1] ?? [])).toEqual([0, 1]);
+	});
+
+	it('rejects a zero-norm Float32Array from the client', async () => {
+		const factory = createEmbedding({
+			resolveProvider: async () => ({ apiKey: 'test' }),
+			createClient: () => ({
+				embeddings: {
+					create: async () => ({
+						data: [{ embedding: new Float32Array(256) }],
+					}),
+				},
+			}),
+		});
+
+		await expect(
+			factory({
+				providerId: 'openai',
+				model: 'text-embedding-3-small',
+				texts: ['a'],
+			}),
+		).rejects.toThrow(/zero embedding vector/);
 	});
 
 	it('fails closed when the signal is already aborted', async () => {

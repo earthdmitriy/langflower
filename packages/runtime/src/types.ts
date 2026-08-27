@@ -15,7 +15,14 @@ export type RunId = string & { readonly __brand: 'RunId' };
 type RuntimeInputPortMode = 'single' | 'merge' | 'combine' | 'zip' | 'bypass';
 
 export type RuntimeFeedRole =
-	'none' | 'reasoning' | 'draft' | 'tool' | 'shell' | 'result' | 'recovery';
+	| 'none'
+	| 'reasoning'
+	| 'progress'
+	| 'draft'
+	| 'tool'
+	| 'shell'
+	| 'result'
+	| 'recovery';
 
 export type RuntimeFeedPortMeta = {
 	readonly role?: RuntimeFeedRole;

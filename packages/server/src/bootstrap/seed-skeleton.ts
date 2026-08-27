@@ -39,12 +39,27 @@ const listSkeletonSkillIds = async (
 
 export type SeedSkeletonOptions = {
 	readonly mode: SeedSkeletonMode;
-	/** When false, leave `nodes/` empty (no skeleton `my-nodes`). Default true. */
+	/** When false, leave `nodes/` empty (no skeleton packs). Default true. */
 	readonly seedCustomNodes?: boolean;
 };
 
+const listSkeletonPackIds = async (
+	skeletonRoot: string,
+): Promise<readonly string[]> => {
+	const nodesDir = path.join(skeletonRoot, 'nodes');
+	try {
+		const entries = await fs.readdir(nodesDir, { withFileTypes: true });
+		return entries
+			.filter((entry) => entry.isDirectory())
+			.map((entry) => entry.name)
+			.sort();
+	} catch {
+		return [];
+	}
+};
+
 /**
- * Copy skeleton workflows, skills, my-nodes, and instructions into
+ * Copy skeleton workflows, skills, custom-node packs, and instructions into
  * `.langflower/`. Create mode skips existing paths; force overwrites
  * skeleton-owned files (extra project-only files stay).
  */
@@ -59,10 +74,12 @@ export const seedSkeletonContent = async (
 	const copyDir = mode === 'force' ? copyDirForce : copyDirIfMissing;
 
 	if (seedCustomNodes) {
-		await copyDir(
-			path.join(skeletonRoot, 'nodes', 'my-nodes'),
-			path.join(langflowerDir, 'nodes', 'my-nodes'),
-		);
+		for (const packId of await listSkeletonPackIds(skeletonRoot)) {
+			await copyDir(
+				path.join(skeletonRoot, 'nodes', packId),
+				path.join(langflowerDir, 'nodes', packId),
+			);
+		}
 	} else {
 		await fs.mkdir(path.join(langflowerDir, 'nodes'), { recursive: true });
 	}

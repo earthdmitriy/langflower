@@ -71,11 +71,13 @@ templates in the skeleton are **already usable** once copied into the project �
 do not say coding pipelines “don’t exist” or are unavailable.
 
 - **Can:** `langflower start [project-dir]` (default port **4010**) creates
-  `.langflower/`, config, `instructions.md`, pack `nodes/my-nodes/`, skills
+  `.langflower/`, config, `instructions.md`, packs `nodes/my-nodes/` and
+  `nodes/hello-embed/`, skills
   `langflower-helper`, `langflower-node-writer`, and
   `langflower-workflow-writer`, and opens workflow **`starter`** first.
 - **Can:** Skeleton already ships coding and KB sample workflows
-  (`simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`, …). With a
+  (`simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`,
+  `kb-ingest`, `kb-manual-search`, `kb-tool`, `kb-rag`, …). With a
   provider configured, they are seeded on first-run → load → composer **Start**.
 - **Can:** Second `langflower start` on an existing `.langflower/` **reuses**
   it as-is (no wipe).
@@ -92,10 +94,12 @@ do not say coding pipelines “don’t exist” or are unavailable.
 ### 3. Skeleton and samples
 
 - **Can:** First-run seed = config + **all** skeleton workflows (including
-  `starter`, coding samples, `kb-create`, `kb-navigate`) + three skills +
-  `my-nodes` + instructions.
+  `starter`, coding samples, `kb-create`, `kb-navigate`, `kb-ingest`,
+  `kb-manual-search`, `kb-tool`, `kb-rag`) + three skills + `my-nodes` +
+  `hello-embed` + instructions.
 - **Can:** Skeleton inventory includes `node-writer`, `agents-dialog`,
-  `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate` (and other
+  `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`,
+  `kb-ingest`, `kb-manual-search`, `kb-tool`, `kb-rag` (and other
   samples under `packages/server/skeleton/` / demo-project).
 - **Cannot:** Claim a Sample workflows **catalog UI** (browse / help /
   one-click copy) is shipped.
@@ -122,9 +126,15 @@ do not say coding pipelines “don’t exist” or are unavailable.
   `common-embed-provider`; custom packs wire **`embed`** (`EmbedHandle` from
   `@langflower/node-sdk`); server binds embedding HTTP — packs never see
   `apiKey`. Manual check: String → Embed text → Preview on **`preview`**.
-- **Cannot:** Vector KB / `.langflower/kb/` / `common-kb-*` as base product
-  ([ADR-033](../../../../../docs/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
-  Use `ToolHandle` for batch float vectors.
+  Sample pack **`hello-embed`**: ingest project `.md` → sqlite (vectors + FTS5);
+  hybrid retrieve (cosine + keyword, RRF) packs **Question + full-chunk Context**
+  for `hello-embed-search` / `project_search`.
+  Workflows `kb-ingest` / `kb-manual-search` / `kb-tool` / `kb-rag`. Needs
+  the default embedding model (`langflower start` compiles the pack). Copy
+  the pack for a different corpus — see `nodes/hello-embed/README.md`.
+- **Cannot:** Treat embeddings as a host catalog feature. Use **`EmbedHandle`**
+  (not `ToolHandle`) for batch float vectors. hello-embed sqlite lives under
+  `.langflower/.cache/hello-embed/`.
 
 ### 4c. Primitives and paced split
 
@@ -160,16 +170,20 @@ do not say coding pipelines “don’t exist” or are unavailable.
 
 ### 6. Coding workflows
 
-| Name           | Fact                                                                                                                                                                                                                                                                                              |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `starter`      | Onboarding chat + this skill + Writer Sub-Agent (`langflower-workflow-writer` + `langflower-node-writer`) — default open after seed                                                                                                                                                               |
-| Skeleton stubs | `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`, … seeded on first-run; with provider → Start                                                                                                                                                                                        |
-| `simple-coder` | Plan⇄HITL→Coder⇄HITL→Finish smoke spine + `common-memory-tools` on Plan/Coder/Researcher/Worker; Researcher Sub-Agent under Plan, Worker under Coder — **not** full multi-loop `coding-agent`                                                                                                     |
-| `kb-create`    | Memory / project wiki create: Orchestrator **indexes** the repo with `glob`/`read`, persists `history/work-queue.md`, then **serially** calls Explorer → Composer **one unit at a time**; `common-memory-tools` writes `core/*` + `modules/*`; Review rejects non-empty Pending or thin overviews |
-| `kb-navigate`  | Memory navigate: Navigator + Searcher + memory tree/grep/section tools; HITL Review Gate for follow-ups                                                                                                                                                                                           |
-| `basic-coder`  | Basic coding harness (Plan⇄HITL→Coder⇄HITL→Finish) — not a toy, **not** full multi-loop `coding-agent`                                                                                                                                                                                            |
-| `coding-agent` | Clarify HITL → red team → plan gate → coder → QA → `common-review` → result HITL; **graph** orders stages                                                                                                                                                                                         |
-| Status         | Use-case **Partial**; real-LLM Implementable bar open; Fake CI ≠ end-user proof — **not** “no templates”                                                                                                                                                                                          |
+| Name               | Fact                                                                                                                                                                                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `starter`          | Onboarding chat + this skill + Writer Sub-Agent (`langflower-workflow-writer` + `langflower-node-writer`) — default open after seed                                                                                                                                                               |
+| Skeleton stubs     | `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`, `kb-ingest`, `kb-manual-search`, `kb-tool`, `kb-rag`, … seeded on first-run; with provider → Start                                                                                                                                  |
+| `simple-coder`     | Plan⇄HITL→Coder⇄HITL→Finish smoke spine + `common-memory-tools` on Plan/Coder/Researcher/Worker; Researcher Sub-Agent under Plan, Worker under Coder — **not** full multi-loop `coding-agent`                                                                                                     |
+| `kb-create`        | Memory / project wiki create: Orchestrator **indexes** the repo with `glob`/`read`, persists `history/work-queue.md`, then **serially** calls Explorer → Composer **one unit at a time**; `common-memory-tools` writes `core/*` + `modules/*`; Review rejects non-empty Pending or thin overviews |
+| `kb-navigate`      | Memory navigate: Navigator + Searcher + memory tree/grep/section tools; HITL Review Gate for follow-ups                                                                                                                                                                                           |
+| `kb-ingest`        | Sample **hello-embed** ingest (Settings embedding model; pack compiles on `langflower start`)                                                                                                                                                                                                     |
+| `kb-manual-search` | Sample hello-embed query → Preview / Finish                                                                                                                                                                                                                                                       |
+| `kb-tool`          | Sample hello-embed `project_search` ToolHandle → agent                                                                                                                                                                                                                                            |
+| `kb-rag`           | Simplified RAG: hybrid retrieve packs Question + full chunks into the LLM; `project_search` + grep/read; Review feedback / Approve → Finish                                                                                                                                                       |
+| `basic-coder`      | Basic coding harness (Plan⇄HITL→Coder⇄HITL→Finish) — not a toy, **not** full multi-loop `coding-agent`                                                                                                                                                                                            |
+| `coding-agent`     | Clarify HITL → red team → plan gate → coder → QA → `common-review` → result HITL; **graph** orders stages                                                                                                                                                                                         |
+| Status             | Use-case **Partial**; real-LLM Implementable bar open; Fake CI ≠ end-user proof — **not** “no templates”                                                                                                                                                                                          |
 
 ### 7. Run lifecycle
 
@@ -259,13 +273,15 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
   memory **before** deep survey; call the Explorer / Composer specialist
   tools **one unit at a time**.
 - **Cannot:** Recommend one LLM that “reads the whole repo once and dumps a
-  wiki”. Claim vector/`common-kb-*` KB as base. Claim Obsidian vault helpers as
-  shipped.
+  wiki”. Claim Obsidian vault helpers as shipped. For semantic search over
+  markdown, point at **hello-embed** (`kb-ingest` / `kb-rag`) rather than
+  inventing catalog embedding-KB nodes.
 
 ### 11. Custom nodes
 
 - **Can:** **TypeScript** via `@langflower/node-sdk` — first-class language;
-  `tsc` / IDE types act as compile-time validators. After file changes call
+  `tsc` / IDE types act as compile-time validators. **`langflower start`**
+  compiles packs under `.langflower/nodes/`. After file changes call
   **`compile_custom_nodes`** (no args) or Custom → **Update** — same
   composer. On starter you already have the tool (Langflower Tools wired).
   Stop is not required for already-placed custom types (hot-swap).
@@ -274,6 +290,10 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
   auto-place or auto-wire them mid-run.
   Packs under `.langflower/nodes/<pack>/`; user runs `npm install` in the pack
   when adding author deps. See `instructions.md` and `nodes/my-nodes/README.md`.
+  Pack `tsconfig.json` gates compile (`tsc --noEmit`). `from './file.ts'`
+  requires `"allowImportingTsExtensions": true` next to `"noEmit": true`
+  (hello-embed); otherwise the pack does not compile. Extensionless imports
+  (`my-nodes`) do not need the flag.
   Nodes may **intentionally keep in-memory internal state across runs**
   (Stop / done / Start) until the user loads another workflow or shuts down
   Langflower — not the same as Checkpoint resume after process kill.
@@ -290,7 +310,9 @@ When the user asks to add or change a custom node from this starter chat:
 1. Call Writer (or edit `.langflower/nodes/<pack>/*.ts` yourself).
 2. Call **`compile_custom_nodes`** (no args). Report `status` / `nodeTypes` /
    `errors` from the tool text. Pack failures also write
-   `COMPILATION_ERRORS.md`.
+   `COMPILATION_ERRORS.md`. If tsc rejects `.ts` import paths, add
+   `allowImportingTsExtensions` next to `noEmit` in the pack `tsconfig.json`
+   (copy hello-embed), then compile again.
 3. **Already on the canvas** → live now, no Stop. **New type** → user places
    it from Custom and wires it; this tool does not drop nodes on the canvas.
 4. If a custom tools pack is already wired into this agent, you may call those

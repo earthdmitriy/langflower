@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -105,6 +105,11 @@ export default defineNode({
 
 const VALID_NODE = validNode('fixture-echo', 'Fixture Echo');
 
+const SKELETON_HELLO_EMBED = path.resolve(
+	path.dirname(fileURLToPath(import.meta.url)),
+	'../../server/skeleton/nodes/hello-embed',
+);
+
 afterEach(async () => {
 	await Promise.all(
 		tempRoots
@@ -125,6 +130,72 @@ describe('compileProjectNodes', () => {
 		await expect(
 			fs.access(path.join(projectDir, '.langflower', '.cache', 'nodes')),
 		).rejects.toMatchObject({ code: 'ENOENT' });
+	});
+
+	it('compiles internal .ts imports when allowImportingTsExtensions is set', async () => {
+		const projectDir = await makeProject();
+		await writePack(projectDir, 'ts-ext', {
+			'tsconfig.json': `{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"strict": true,
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"skipLibCheck": true,
+		"types": ["node"]
+	},
+	"include": ["./**/*.ts"],
+	"exclude": ["./**/*.test.ts", "node_modules"]
+}
+`,
+			'lib/ok.ts': 'export const ok = (): string => "ok";\n',
+			'echo.ts': `import { ok } from './lib/ok.ts';
+import { defineNode } from '@langflower/node-sdk';
+
+export default defineNode({
+	type: 'fixture-ts-ext',
+	displayName: 'Fixture Ts Ext',
+	category: 'Text',
+	uiSchema: [] as const,
+	inputs: {
+		trigger: { wireType: 'any', required: true, dynamic: true },
+	},
+	outputs: {
+		out: { wireType: 'string' },
+	},
+	execute() {
+		return { out: ok() };
+	},
+});
+`,
+		});
+
+		const result = await compileProjectNodes(projectDir);
+
+		expect(result.errors).toEqual([]);
+		expect(result.nodes[0]?.type).toBe('fixture-ts-ext');
+	});
+
+	it('compiles skeleton hello-embed pack', async () => {
+		const projectDir = await makeProject();
+		const dest = path.join(
+			projectDir,
+			'.langflower',
+			'nodes',
+			'hello-embed',
+		);
+		await fs.cp(SKELETON_HELLO_EMBED, dest, { recursive: true });
+
+		const result = await compileProjectNodes(projectDir);
+
+		expect(result.errors).toEqual([]);
+		expect([...result.nodes.map((node) => node.type)].sort()).toEqual([
+			'hello-embed-ingest',
+			'hello-embed-search',
+			'hello-embed-search-handle',
+		]);
 	});
 
 	it('compiles defineNode export default without index.ts', async () => {

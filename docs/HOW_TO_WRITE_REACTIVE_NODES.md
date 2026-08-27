@@ -5,6 +5,10 @@ Prefer **`defineNode`** for sync/Promise nodes; use **`defineReactiveNode`**
 when you need RxJS streams. Project packs:
 [ADR-030](ADR.md#adr-030--custom-node-pack-layout--npm-model),
 [seed README](../packages/server/skeleton/nodes/my-nodes/README.md).
+Multi-file packs that use `from './x.ts'` must set
+`allowImportingTsExtensions` + `noEmit` in pack `tsconfig.json` (see
+[hello-embed](../packages/server/skeleton/nodes/hello-embed/tsconfig.json));
+otherwise the pack does not compile.
 
 | Related doc                                                   | Role                                                                              |
 | ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -479,12 +483,49 @@ configureOutput('value', output$, {
 });
 ```
 
-| Meta                   | When                                                                                                                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `wireType`             | Fixed type on the canvas (named peer contracts — not generic `json`)                                                                                                           |
-| `inferTypeFrom`        | Passthrough — type follows an input                                                                                                                                            |
-| `feed.role`            | Sidebar work-log role (`reasoning`, `draft`, `result`, …)                                                                                                                      |
-| `feed.streaming: true` | Chunks append in the feed UI **and** the visit stays open (interleaved streams). Omit it so the frame closes the visit; same-node frames while last still append to that card. |
+| Meta                   | When                                                                                                                                                                                                                                                 |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wireType`             | Fixed type on the canvas (named peer contracts — not generic `json`)                                                                                                                                                                                 |
+| `inferTypeFrom`        | Passthrough — type follows an input                                                                                                                                                                                                                  |
+| `feed.role`            | Sidebar work-log role (`reasoning`, `progress`, `draft`, `result`, …). **`result`** = conversation bubble (one row per emit). **`reasoning`** = LLM thinking stream. **`progress`** = same growing layout; caption PROGRESS (ingest/crawl/job logs). |
+| `feed.streaming: true` | Chunks append in the feed UI **and** the visit stays open (interleaved streams). Omit it so the frame **closes the visit**; later same-node frames while last still append.                                                                          |
+
+**Progress / log lines** (ingest, crawlers, long jobs): use
+`{ role: 'progress', streaming: true }` — same growing layout as reasoning,
+caption **PROGRESS**. Do **not** use `result`.
+
+```ts
+configureOutput('progress', progress$, {
+	wireType: 'string',
+	feed: { role: 'progress', streaming: true },
+});
+```
+
+| Wrong                                   | What the feed does                                                                  |
+| --------------------------------------- | ----------------------------------------------------------------------------------- |
+| `{ role: 'result' }`                    | Bright bubble per emit; omitting `streaming` also **closes the visit** each time.   |
+| `{ role: 'result', streaming: true }`   | Still bubbles (`result` is not a growing role); one visit, many conversation rows.  |
+| `{ role: 'progress', streaming: true }` | One technical stream; caption PROGRESS; chunks concatenate (suffix `\n` for lines). |
+
+**Progress line text:** put a zero-padded `(n/total)` **first**, then the
+path/name, then the rest (heading, status). Do **not** put the counter
+after a variable-length path or title — it jumps in the work-log 2-line
+peek. Pad both numbers to the digit width of the total you actually
+count (chunks, if you emit one line per embed):
+`String(n).padStart(String(total).length, '0')`.
+
+```ts
+const width = String(total).length;
+const pad = (n: number) => String(n).padStart(width, '0');
+progress$.next(`(${pad(i)}/${pad(total)}) ${relPath} — ${label}\n`);
+```
+
+```text
+(01/12) notes.md — Alpha
+(0001/9999) docs/long-name.md — Intro
+```
+
+`finish` / plumbing that must not appear in the work log: `feed: { role: 'none' }`.
 
 **No fake events / no silent refusals:** do not emit placeholder values on
 feed/observability ports (`''`, synthetic config dumps, idle `of(null)`) just

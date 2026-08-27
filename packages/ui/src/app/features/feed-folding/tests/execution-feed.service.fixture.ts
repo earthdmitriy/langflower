@@ -92,6 +92,7 @@ type PortSpec = {
 	readonly role?:
 		| 'none'
 		| 'reasoning'
+		| 'progress'
 		| 'draft'
 		| 'tool'
 		| 'shell'

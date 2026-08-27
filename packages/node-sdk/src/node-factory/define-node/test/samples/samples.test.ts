@@ -1,4 +1,5 @@
 import { RuntimeFacade } from '@langflower/runtime';
+import { createNodeHarness } from '@langflower/node-sdk/testing';
 import { filter, firstValueFrom, of } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { defineNode } from '../../define-node.js';
@@ -28,21 +29,13 @@ describe('defineNode samples', () => {
 	});
 
 	it('execute maps inputs to outputs without author rxjs', async () => {
-		const instance = gateSampleNode.getInstance();
-		instance.ctxConnection.connect(
-			of({
-				projectDir: '/tmp',
-				runId: 'test',
-				nodeId: 'gate-1',
-				params: {},
-				uiSchema: gateSampleNode.uiSchema,
-			}),
-		);
-		instance.inputs.code.connect(of(0));
-
-		await expect(firstValueFrom(instance.outputs.ok.value$)).resolves.toBe(
-			true,
-		);
+		const harness = createNodeHarness(gateSampleNode, {
+			nodeId: 'gate-1',
+		});
+		const ok = harness.next<boolean>('ok');
+		harness.send('code', 0);
+		await expect(ok).resolves.toBe(true);
+		harness.dispose();
 	});
 
 	it('thrown execute error fails the output port', async () => {

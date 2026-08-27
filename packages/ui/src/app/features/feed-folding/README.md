@@ -257,10 +257,15 @@ Rules:
 A visit key is `${runId}:${nodeId}:${firstSeq}`. Authors do **not** set
 `visitBoundary`. Normalize derives close from `feed.streaming`:
 
-| Author `feed.streaming`               | Visit policy                                                                                                                                                                                                                                                                                                                          |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `true` (reasoning / draft / tool / …) | Continue open visit for `(runId, nodeId)` even if not last (`A.draft → B.draft → A.draft` ⇒ `[A, B]`). If no open visit, **while-last reopen** when the last visit is the same node (e.g. `userPrompt` then `reasoning`); otherwise open a new visit and keep it open. First `common-sub-agent` frame closes the previous visit (§9). |
-| absent / false                        | Stamp internal `meta.visitBoundary: 'close'`. Same continue/reopen rules, then mark the visit closed.                                                                                                                                                                                                                                 |
+| Author `feed.streaming`                          | Visit policy                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `true` (reasoning / progress / draft / tool / …) | Continue open visit for `(runId, nodeId)` even if not last (`A.draft → B.draft → A.draft` ⇒ `[A, B]`). If no open visit, **while-last reopen** when the last visit is the same node (e.g. `userPrompt` then `reasoning`); otherwise open a new visit and keep it open. First `common-sub-agent` frame closes the previous visit (§9). |
+| absent / false                                   | Stamp internal `meta.visitBoundary: 'close'`. Same continue/reopen rules, then mark the visit closed.                                                                                                                                                                                                                                 |
+
+`result` is **not** a growing presentation: each emit is a new conversation
+row (bubble). Multi-emit progress logs must use `role: 'progress'` **and**
+`streaming: true` so chunks append on one visit (same layout as reasoning;
+work-log caption **PROGRESS**).
 
 Inside a visit, content is a list of **port segments** (`segmentId` + `portId`).
 Items are keyed by `segmentId`. The same `portId` may appear as multiple
@@ -270,7 +275,7 @@ segments when the port re-enters after another port (LLM multi-phase timeline).
 
 Classification runs when appending (or during a one-shot snapshot/catalog
 replay). Author roles use exported `RuntimeFeedRole` from `@langflower/runtime`
-(`none | reasoning | draft | tool | shell | result | recovery`):
+(`none | reasoning | progress | draft | tool | shell | result | recovery`):
 
 - **`feed.role: 'none'`** (event or palette) → **omit** — nothing in the feed;
 - unmarked ports (no role) with a real value/error → UI `presentation: 'data'`

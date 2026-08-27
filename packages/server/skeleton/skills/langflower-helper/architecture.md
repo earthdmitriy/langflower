@@ -95,10 +95,12 @@ Project product data for Langflower lives under **`.langflower/`**.
 
 - Custom nodes use the same **`@langflower/node-sdk`** path as built-ins.
 - **TypeScript** is first-class; `tsc` / IDE types act as compile-time gates.
-  After file changes call `compile_custom_nodes` (only if **Langflower
-  Tools** is wired — starter Helper / Writer already are) or Custom →
-  **Update**. Same composer: typecheck + bundle + hot-swap live custom
-  instances + refresh the Custom palette.
+  `langflower start` compiles packs. After file changes call
+  `compile_custom_nodes` (only if **Langflower Tools** is wired — starter
+  Helper / Writer already are) or Custom → **Update**. Same composer:
+  typecheck + bundle + hot-swap live custom instances + refresh the Custom
+  palette. Pack `from './x.ts'` needs `allowImportingTsExtensions` +
+  `noEmit` in pack `tsconfig.json` or `tsc --noEmit` fails (hello-embed seed).
   Stop is not required for already-placed custom types.
   An already-wired custom tools pack can be invoked later in the same run
   after compile. Do not auto-place or auto-wire a new type mid-run.

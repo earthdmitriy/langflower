@@ -1,7 +1,7 @@
+import { bootstrapProject } from '@langflower/server/bootstrap';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { bootstrapProject } from '@langflower/server/bootstrap';
 import {
 	createTempProject,
 	removeTempProject,
@@ -11,7 +11,11 @@ const SKELETON_WORKFLOW_FILES = [
 	'agents-dialog.json',
 	'advanced-coder.json',
 	'kb-create.json',
+	'kb-ingest.json',
+	'kb-manual-search.json',
 	'kb-navigate.json',
+	'kb-rag.json',
+	'kb-tool.json',
 	'node-writer.json',
 	'simple-coder.json',
 	'starter.json',
@@ -157,6 +161,12 @@ describe('project bootstrap (integration)', () => {
 				'nodes',
 				'my-nodes',
 			);
+			const helloEmbed = path.join(
+				projectDir,
+				'.langflower',
+				'nodes',
+				'hello-embed',
+			);
 			const files = await fs.readdir(myNodes);
 			expect(files).toEqual(
 				expect.arrayContaining([
@@ -166,6 +176,15 @@ describe('project bootstrap (integration)', () => {
 					'git-diff.ts',
 				]),
 			);
+			await expect(
+				fs.stat(path.join(helloEmbed, 'ingest.ts')),
+			).resolves.toBeDefined();
+			await expect(
+				fs.stat(path.join(helloEmbed, 'search.ts')),
+			).resolves.toBeDefined();
+			await expect(
+				fs.stat(path.join(helloEmbed, 'search-handle.ts')),
+			).resolves.toBeDefined();
 
 			await expect(
 				fs.stat(

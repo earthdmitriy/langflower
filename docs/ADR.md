@@ -333,6 +333,9 @@ errors fail all entries in that pack); (2) esbuild only entries that passed
 typecheck, to stable `<pack>/<entry>.mjs`. One pack or one entry failing does
 not block siblings. Failures write `COMPILATION_ERRORS.md` in the pack and
 surface on `customPalette.snapshot` (`partial` when some nodes still loaded).
+Internal `from './file.ts'` needs pack `allowImportingTsExtensions` (valid
+only with `noEmit`); without it `tsc --noEmit` fails and the pack does not
+compile.
 
 **Host peer types for `tsc`:** resolve `@langflower/node-sdk`, `rxjs`, and
 `@rx-evo/stateful-observable` from the **compiler’s install tree**

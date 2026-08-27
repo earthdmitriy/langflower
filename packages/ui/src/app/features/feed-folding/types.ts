@@ -19,6 +19,7 @@ type FeedPresentation =
 	| 'tool-request'
 	| 'tool-response'
 	| 'reasoning'
+	| 'progress'
 	| 'draft'
 	| 'tool'
 	| 'hitl-user'

@@ -15,7 +15,8 @@
 		"packages/node-sdk": {
 			"entry": [
 				"src/node-factory/define-reactive-node/define-reactive-node.ts",
-				"src/node-factory/define-reactive-node/ui-schema-inference.ts"
+				"src/node-factory/define-reactive-node/ui-schema-inference.ts",
+				"src/testing/create-node-harness.ts"
 			],
 			"project": ["src/**/*.ts"]
 		},

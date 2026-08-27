@@ -78,9 +78,13 @@ See [`packages/ui/src/app/features/feed-folding/README.md`](../../packages/ui/sr
 - **Tool request/response** — one item per supplied `interactionId`;
   without that identity, ordinary technical `tool` data (no adjacency pairing).
 - **`result` / user / permission / recovery / error** — keep individual
-  semantic rows.
+  semantic rows. **Do not** use `result` for multi-emit progress logs
+  (ingest, crawl, …): each emit becomes a conversation bubble. Those ports
+  use `{ role: 'progress', streaming: true }` — same growing fold as
+  reasoning, caption **PROGRESS**. See
+  [HOW_TO_WRITE_REACTIVE_NODES](../HOW_TO_WRITE_REACTIVE_NODES.md) §5.
 
-### Streaming technical roles (`reasoning`, `draft`, `tool` / `shell`, MCP, `recovery`)
+### Streaming technical roles (`reasoning`, `progress`, `draft`, `tool` / `shell`, MCP, `recovery`)
 
 These are **technical**, not conversation. Default peek behaviour:
 

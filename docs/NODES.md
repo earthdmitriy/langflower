@@ -64,7 +64,10 @@ you need RxJS streams. Project packs live under
 `.langflower/nodes/<pack>/` (default seed `my-nodes`) — see
 [ADR-030](ADR.md#adr-030--custom-node-pack-layout--npm-model) and
 [`packages/server/skeleton/nodes/my-nodes/README.md`](../packages/server/skeleton/nodes/my-nodes/README.md).
-Built-in folder layout below is for `@langflower/common-nodes` only.
+Pack compile is `tsc --noEmit` from that pack’s `tsconfig.json`. If files
+`import` each other with a `.ts` suffix, set `allowImportingTsExtensions`
+(with `noEmit`); otherwise the pack does not compile. Built-in folder layout
+below is for `@langflower/common-nodes` only.
 ---
 
 ## 1.1. Context-specific node groups

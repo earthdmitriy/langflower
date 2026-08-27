@@ -23,6 +23,7 @@ const isGrowingPresentation = (
 	presentation: PortStreamFrame['meta']['presentation'],
 ): boolean =>
 	presentation === 'reasoning' ||
+	presentation === 'progress' ||
 	presentation === 'draft' ||
 	presentation === 'tool' ||
 	presentation === 'shell';

@@ -14,7 +14,11 @@ const SKELETON_WORKFLOW_IDS = [
 	'agents-dialog',
 	'advanced-coder',
 	'kb-create',
+	'kb-ingest',
+	'kb-manual-search',
 	'kb-navigate',
+	'kb-rag',
+	'kb-tool',
 	'node-writer',
 	'simple-coder',
 	'starter',
@@ -49,6 +53,7 @@ describe('bootstrapProject', () => {
 		const entries = await fs.readdir(nodesDir);
 
 		expect(entries).not.toContain('my-nodes');
+		expect(entries).not.toContain('hello-embed');
 		expect(
 			(
 				await fs.stat(
@@ -63,6 +68,7 @@ describe('bootstrapProject', () => {
 
 		const langflowerDir = path.join(projectDir, '.langflower');
 		const myNodes = path.join(langflowerDir, 'nodes', 'my-nodes');
+		const helloEmbed = path.join(langflowerDir, 'nodes', 'hello-embed');
 
 		for (const name of [
 			'package.json',
@@ -72,6 +78,16 @@ describe('bootstrapProject', () => {
 			'review-gate.ts',
 		]) {
 			const stat = await fs.stat(path.join(myNodes, name));
+			expect(stat.isFile()).toBe(true);
+		}
+
+		for (const name of [
+			'package.json',
+			'ingest.ts',
+			'search.ts',
+			'search-handle.ts',
+		]) {
+			const stat = await fs.stat(path.join(helloEmbed, name));
 			expect(stat.isFile()).toBe(true);
 		}
 

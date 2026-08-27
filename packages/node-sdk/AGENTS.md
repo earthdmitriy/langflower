@@ -48,9 +48,10 @@ the public `@langflower/node-sdk` import path.
 | `EmbedHandle`                  | Canvas wire payload for batch embeddings (not agent inventory)           |
 | `ToolHandlerContext`           | Identity only (`projectDir` / `runId`) — see boundary below              |
 
-| Subpath | Symbols                                                                   |
-| ------- | ------------------------------------------------------------------------- |
-| `/llm`  | `defineLlmNode`, `LlmExecutionCaps` (`toolHandles` only), inventory ports |
+| Subpath    | Symbols                                                                   |
+| ---------- | ------------------------------------------------------------------------- |
+| `/llm`     | `defineLlmNode`, `LlmExecutionCaps` (`toolHandles` only), inventory ports |
+| `/testing` | `createNodeHarness` — unit-test IO for a `ReactiveNodeDefinition`         |
 
 Host I/O (`files` / `crawl` / chat stream / skills) is **not**
 on public `ExecutionContext`. Specialized common-nodes create it via
@@ -63,6 +64,8 @@ Out of scope: `defineAgentNode`, second batch execution engine.
 `@rx-evo/stateful-observable`. Pack layout / default seed `my-nodes`:
 [ADR-030](../../docs/ADR.md#adr-030--custom-node-pack-layout--npm-model),
 [skeleton README](../server/skeleton/nodes/my-nodes/README.md).
+Pack `tsc --noEmit` uses the pack `tsconfig.json`. `.ts` suffix imports need
+`allowImportingTsExtensions` + `noEmit` (hello-embed seed).
 
 ## Author SDK boundary (do not widen)
 
@@ -126,6 +129,8 @@ import {
 import { defineLlmNode } from '@langflower/node-sdk/llm';
 
 import { createTypedUISchema } from '@langflower/node-sdk/create-typed-ui-schema';
+
+import { createNodeHarness } from '@langflower/node-sdk/testing';
 ```
 
 Do **not** deep-import internal files.
@@ -199,7 +204,10 @@ options is a **static** `TypedUISchema` for UI defaults / `byField` — not a re
 | Reactive samples    | `define-reactive-node/test/samples/`    | RxJS `bind` patterns    |
 
 Tests: `define-node/test/samples/samples.test.ts`,
-`define-reactive-node/test/samples/samples.test.ts`.
+`define-reactive-node/test/samples/samples.test.ts`,
+`src/testing/create-node-harness.test.ts`. Drive a definition with
+`createNodeHarness` from `@langflower/node-sdk/testing` (`send` / `next` /
+`collect`). Keep `RuntimeFacade` only for tests that need runner telemetry.
 
 ## Anti dead-code gates
 
@@ -223,5 +231,6 @@ instances — there is no `withNodeId` / `bindRuntimeNode` API in this package.
 
 ## Tests
 
-Co-located next to factories under `test/`. Prefer exercising real
-`getInstance()` graphs over mocking the factory.
+Co-located next to factories under `test/`, plus `src/testing/` for the
+author harness. Prefer exercising real `getInstance()` graphs over mocking
+the factory; use `createNodeHarness` instead of raw `connect` / `firstValueFrom`.

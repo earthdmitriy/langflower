@@ -20,6 +20,10 @@ You help the user write **custom nodes** for Langflower.
   starter, Writer has it because **Langflower Tools** is wired. Custom →
   **Update** is the same composer. Failures land in `COMPILATION_ERRORS.md`.
   Do **not** only remind the user to click Update.
+- Pack `tsconfig.json` is the `tsc --noEmit` gate. `from './lib/x.ts'`
+  requires `"allowImportingTsExtensions": true` next to `"noEmit": true`
+  (copy `hello-embed/tsconfig.json`). Without it the pack does not compile.
+  Extensionless imports (`my-nodes`) do not need the flag.
 - Langflower does **not** auto-`npm install` pack dependencies.
 - Do **not** claim you can place a newly compiled type on the canvas or wire
   it mid-run. Already-placed types hot-swap; already-wired custom tools can
@@ -64,3 +68,5 @@ You help the user write **custom nodes** for Langflower.
 - `.langflower/nodes/my-nodes/README.md`
 - Seed demos: `git-diff.ts` (`defineNode`), `git-diff-tool.ts`
   (`defineToolRegistrations`), `review-gate.ts` (`defineReactiveNode`)
+- Multi-file + `.ts` imports: `.langflower/nodes/hello-embed/` (`tsconfig.json`
+  already has `allowImportingTsExtensions`)

@@ -54,3 +54,9 @@ compile if wipe fails). Then per **pack**, then per **`export default` entry**
    `.langflower/.cache/nodes/<pack>/<entry>.mjs`.
 3. Return `{ nodes, errors }` (partial success OK). Pack
    `COMPILATION_ERRORS.md` lists failed entries only.
+
+Pack `tsconfig.json` is the typecheck config. NodeNext packs that import with
+a **`.ts` suffix** must set `allowImportingTsExtensions: true` (requires
+`noEmit`). Missing that flag fails `tsc` and the pack does not compile.
+Seed: hello-embed `tsconfig.json`. `my-nodes` uses extensionless imports and
+omits the flag.

@@ -2,6 +2,11 @@
  * Unbound OpenAI-compatible embeddings factory.
  * Caller supplies credential resolve (server injects secrets).
  * Does not rewrite texts for EmbedHandle `role` — packs/catalog do that.
+ *
+ * Always pass `encoding_format: 'float'`. openai-node otherwise defaults to
+ * `base64` and runs `toFloat32Array` on the body; local servers that return
+ * JSON `number[]` become a zero typed array. Chat completions have no such
+ * field — this is embeddings-only.
  */
 import OpenAI from 'openai';
 import type { OpenAiProviderCredentials } from '../ai/features/openai/create-chat-completion-stream.js';
@@ -25,6 +30,7 @@ export type CreateEmbedding = (
 export type EmbeddingsCreateBody = {
 	readonly model: string;
 	readonly input: readonly string[];
+	readonly encoding_format?: 'float' | 'base64';
 };
 
 export type EmbeddingsCreateOptions = {
@@ -37,7 +43,10 @@ export type EmbeddingsClient = {
 			body: EmbeddingsCreateBody,
 			options?: EmbeddingsCreateOptions,
 		) => Promise<{
-			readonly data: readonly { readonly embedding: readonly number[] }[];
+			readonly data: readonly {
+				readonly embedding: unknown;
+				readonly index?: number;
+			}[];
 		}>;
 	};
 };
@@ -93,14 +102,99 @@ const defaultCreateClient = (
 			: {}),
 	}) as unknown as EmbeddingsClient;
 
+const first8 = (value: unknown): readonly unknown[] => {
+	if (Array.isArray(value) || ArrayBuffer.isView(value)) {
+		const list = value as ArrayLike<unknown>;
+		const out: unknown[] = [];
+		const n = Math.min(8, list.length);
+		for (let i = 0; i < n; i += 1) {
+			out.push(list[i]);
+		}
+		return out;
+	}
+	return [];
+};
+
+const embeddingSnapshot = (embedding: unknown): string => {
+	const embeddingLen =
+		Array.isArray(embedding) || ArrayBuffer.isView(embedding)
+			? (embedding as ArrayLike<unknown>).length
+			: undefined;
+	return JSON.stringify({
+		embeddingIsArray: Array.isArray(embedding),
+		embeddingType: embedding === null ? 'null' : typeof embedding,
+		embeddingCtor:
+			typeof embedding === 'object' && embedding !== null
+				? embedding.constructor.name
+				: undefined,
+		embeddingLen,
+		embeddingFirst8: first8(embedding),
+	});
+};
+
+const missingNumericMessage = (embedding: unknown): string =>
+	`Embedding item is missing a numeric embedding array (is a chat model loaded instead of an embedding model?). ${embeddingSnapshot(embedding)}`;
+
+const asNumericVector = (embedding: unknown): ArrayLike<number> => {
+	if (
+		embedding instanceof Float32Array ||
+		embedding instanceof Float64Array
+	) {
+		return embedding;
+	}
+	if (Array.isArray(embedding)) {
+		const numbers = embedding.filter(
+			(item): item is number =>
+				typeof item === 'number' && Number.isFinite(item),
+		);
+		if (numbers.length !== embedding.length) {
+			throw new Error(missingNumericMessage(embedding));
+		}
+		return numbers;
+	}
+	throw new Error(missingNumericMessage(embedding));
+};
+
+const l2Norm = (values: ArrayLike<number>): number => {
+	let sumSq = 0;
+	for (let i = 0; i < values.length; i += 1) {
+		const n = Number(values[i] ?? 0);
+		sumSq += n * n;
+	}
+	return Math.sqrt(sumSq);
+};
+
+const orderByIndex = (
+	data: readonly {
+		readonly embedding?: unknown;
+		readonly index?: unknown;
+	}[],
+	textCount: number,
+): readonly { readonly embedding: unknown }[] => {
+	const byIndex = new Map<number, unknown>();
+	data.forEach((item, fallbackIndex) => {
+		const index =
+			typeof item.index === 'number' ? item.index : fallbackIndex;
+		byIndex.set(index, item.embedding);
+	});
+	return Array.from({ length: textCount }, (_, index) => {
+		if (!byIndex.has(index)) {
+			throw new Error(`Embedding batch missing index ${String(index)}`);
+		}
+		return { embedding: byIndex.get(index) };
+	});
+};
+
 const toVectors = (
-	data: readonly { readonly embedding: readonly number[] }[],
+	data: readonly { readonly embedding: unknown }[],
 ): CreateEmbeddingResult => {
 	if (data.length === 0) {
 		throw new Error('Provider returned no embedding vectors');
 	}
 
-	const vectors = data.map((row) => Float32Array.from(row.embedding));
+	const vectors = data.map((row) =>
+		Float32Array.from(asNumericVector(row.embedding)),
+	);
 	const dim = vectors[0]?.length ?? 0;
 
 	if (dim === 0) {
@@ -111,6 +205,11 @@ const toVectors = (
 		if (vector.length !== dim) {
 			throw new Error(
 				`Embedding batch dim mismatch: expected ${dim}, got ${vector.length}`,
+			);
+		}
+		if (l2Norm(vector) === 0) {
+			throw new Error(
+				'Provider returned a zero embedding vector (is a chat model loaded instead of an embedding model?).',
 			);
 		}
 	}
@@ -147,11 +246,12 @@ export const createEmbedding = (deps: CreateEmbeddingDeps): CreateEmbedding => {
 				{
 					model,
 					input: [...args.texts],
+					encoding_format: 'float',
 				},
 				args.signal !== undefined ? { signal: args.signal } : {},
 			);
 
-			return toVectors(response.data);
+			return toVectors(orderByIndex(response.data, args.texts.length));
 		} catch (error) {
 			if (error instanceof Error && error.name === 'AbortError') {
 				throw error;

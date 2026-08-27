@@ -247,8 +247,9 @@ indexes (sqlite BLOBs, etc.) stay in the pack.
    search consumers. Ingest uses `embedTexts(..., { role: 'document' })`; search uses
    `{ role: 'query' }`.
 
-HTTP uses OpenAI-compatible `POST /v1/embeddings`. Runner **Stop** aborts in-flight
-embed calls when nodes pass the teardown `AbortSignal`.
+HTTP uses OpenAI-compatible `POST /v1/embeddings`. Always send
+`encoding_format: 'float'` — see [EMBEDDING.md](EMBEDDING.md). Runner **Stop**
+aborts in-flight embed calls when nodes pass the teardown `AbortSignal`.
 
 ### Local LM Studio example
 

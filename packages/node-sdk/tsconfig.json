@@ -5,6 +5,6 @@
 		"outDir": "dist",
 		"lib": ["ES2022", "DOM"]
 	},
-	"include": ["src/node-factory/**/*.ts"],
+	"include": ["src/node-factory/**/*.ts", "src/testing/**/*.ts"],
 	"exclude": ["src/**/*.test.ts", "src/**/*.test-d.ts"]
 }

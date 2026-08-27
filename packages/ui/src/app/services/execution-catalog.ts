@@ -86,6 +86,7 @@ export const definitionForNode = (
 const FEED_ROLES = new Set<FeedRole>([
 	'none',
 	'reasoning',
+	'progress',
 	'draft',
 	'tool',
 	'shell',
