@@ -1,7 +1,8 @@
 # Grok feed
 
-**Status:** Partial — chat-dense projection landed (epic 17); Implementable bar
-still wants end-user proof on a live provider path where claimed.
+**Status:** Partial — chat-dense projection (epic 17) and hide unmarked
+(epic 43) landed; Implementable bar still wants end-user proof on a live
+provider path where claimed.
 
 ## Value
 
@@ -23,14 +24,15 @@ answer — not a wall of ports.
 
 - User message MUST appear on the **user side**.
 - Agent **final / result** MUST be the primary agent bubble.
-- **Phase density:** while a turn is in flight, technical roles
+- **Phase density:** while a turn is in flight, opted-in technical roles
   (`reasoning` / `draft` / tools / shell / MCP) MAY stream open; when the turn
-  settles, the story MUST be user + result + muted **last-port-event**
-  one-liners only (no wall of bright cards).
+  settles, the story MUST be user + result + muted peeks for those opted-in
+  ports only (no wall of bright cards). Unmarked plumbing MUST NOT appear
+  even as muted one-liners.
 - Technical streams MUST grow **in place** (no new card per chunk); MUST
   **auto-collapse** when final / result lands; if the operator manually
   re-opens after collapse, that expand MUST stay sticky until they collapse it.
-- Unmarked / plumbing ports MUST NOT compete as conversation cards.
+- Unmarked / plumbing ports MUST NOT appear in the feed at all.
 - Composer layout MUST match [feed-panel](../features/feed-panel.md) Composer
   layout (and [run-interruption](run-interruption.md) for Stop / Pause):
     - Idle Chat Input: **Start** (emerald) on the right (not chrome; not
@@ -137,22 +139,23 @@ chrome.
 
 ## Runtime requirements
 
-| Need                                | Why (scenario)                                                                                                                                                                         | Today                             | Caution                                                                    |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------- |
-| `feed.role` (and unmarked ports)    | Classify reasoning / draft / tools / shell / MCP / plumbing as technical ([S1](#s1--chat-with-an-agent-on-a-graph-default), [S2](#s2--peek-under-the-hood-when-something-looks-wrong)) | Weak hints today                  | Unmarked intermediate ports MUST NOT become conversation cards             |
-| HITL reply / review events          | User-side bubbles + composer control ([S3](#s3--answer-hitl-and-keep-the-thread-readable))                                                                                             | Interactive HITL in feed/composer | Timeline MUST show the turn as chat, not only Inputs / node reply sections |
-| `permission.ask` Allow/Deny         | Short cue + composer actions without a dump ([S5](#s5--permission-gate-without-losing-the-chat))                                                                                       | Landed (epic 02)                  | Composer gate ≠ chat-density contract done                                 |
-| Reconnect snapshot then live append | Chat-dense restore after reload ([S6](#s6--reload-mid-run-or-after-finish))                                                                                                            | Snapshot + live path exists       | Restored feed MUST NOT be richer than live                                 |
+| Need                                | Why (scenario)                                                                                                                                                                                      | Today                                                           | Caution                                                                    |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `feed.role` (and unmarked ports)    | Classify reasoning / draft / tools / shell / MCP as technical; hide unmarked plumbing ([S1](#s1--chat-with-an-agent-on-a-graph-default), [S2](#s2--peek-under-the-hood-when-something-looks-wrong)) | Landed (epic 43) — missing / `'none'` omit; opted-in roles only | Unmarked intermediate ports MUST NOT appear at all (not even muted `data`) |
+| HITL reply / review events          | User-side bubbles + composer control ([S3](#s3--answer-hitl-and-keep-the-thread-readable))                                                                                                          | Interactive HITL in feed/composer                               | Timeline MUST show the turn as chat, not only Inputs / node reply sections |
+| `permission.ask` Allow/Deny         | Short cue + composer actions without a dump ([S5](#s5--permission-gate-without-losing-the-chat))                                                                                                    | Landed (epic 02)                                                | Composer gate ≠ chat-density contract done                                 |
+| Reconnect snapshot then live append | Chat-dense restore after reload ([S6](#s6--reload-mid-run-or-after-finish))                                                                                                                         | Snapshot + live path exists                                     | Restored feed MUST NOT be richer than live                                 |
 
 No new runtime surface — feed projects events already on the wire.
 
 ## Status
 
-**Partial** — epic 17 landed chat-dense projection (`projectFeedTimeline`):
-user/result bubbles, muted last-port technical rows, HITL user-side turns,
-composer Start/Stop parity, reconnect uses the same projection. Unit density
-tests green; do not treat Fake/`basic-coder` alone as full end-user
-Implementable proof on a live provider.
+**Partial** — epic 17 landed chat-dense projection (`projectFeedTimeline`);
+epic 43 hides unmarked / `'none'` ports. User/result bubbles, opted-in
+technical peeks, HITL user-side turns, composer Start/Stop parity, reconnect
+uses the same projection. Unit density tests green; do not treat
+Fake/`basic-coder` alone as full end-user Implementable proof on a live
+provider.
 
 **Implementable when** S1–S6 Expects pass on `basic-coder` with a real
 OpenAI-compatible path where quality/mood is claimed (density contract itself
@@ -177,3 +180,5 @@ For node fields and cached ports when S2 expand is insufficient, use the
 - Long multi-stage readability: denser graphs (e.g. [coding-agent](coding-agent.md))
   once that demo exists — not claimed by basic-coder alone.
 - Epic: [17-grok-feed-chat-density](../DONE/EPICS/17-grok-feed-chat-density.md)
+  (density projection);
+  [43-feed-sanity](../DONE/EPICS/43-feed-sanity.md) (hide unmarked / `'none'`).

@@ -1,6 +1,6 @@
 # Epics — use-case readiness roadmap (completed)
 
-**Archived** under [`docs/DONE/`](../README.md). Epics **00–38**, **40–42** are
+**Archived** under [`docs/DONE/`](../README.md). Epics **00–43** are
 landed. Active queue: see [`docs/TODO/EPICS/`](../../TODO/EPICS/README.md).
 Further work also follows use-case Missing parts
 and [`docs/code-regression/`](../../code-regression/SUMMARY.md) Critical
@@ -22,6 +22,7 @@ Status only after `verify`.
 | Agent runtime (epics 00–25)  | **Landed** (07 Memory deferred; MCP optional; 17–25 product)                              |
 | Custom-nodes SDK (29–33, 40) | **29–33, 40 landed**                                                                      |
 | Use-cases                    | Many **Partial**; none **Implementable** yet — see [use-cases](../../use-cases/README.md) |
+| Feed sanity (43)             | **Landed** — hide unmarked / `'none'`; Finish `done`; Preview bubble + size               |
 
 ## Order
 
@@ -98,6 +99,7 @@ Status only after `verify`.
 | 40  | [40-custom-node-recompile-reload.md](40-custom-node-recompile-reload.md)               | CN    | **landed** — stable cache, hot-swap, `compile_custom_nodes`, same-turn `getTools`             |
 | 41  | [41-uniform-tool-shape.md](41-uniform-tool-shape.md)                                   | Tools | **landed** — MCP + Sub-Agent + optional Tool collection as `ToolHandle[]`                     |
 | 42  | [42-embedding-providers.md](42-embedding-providers.md)                                 | Embed | **landed** — Settings `embedding` + `EmbedHandle` + Embeddings catalog (ADR-033 amend)        |
+| 43  | [43-feed-sanity.md](43-feed-sanity.md)                                                 | Feed  | **landed** — hide unmarked / `'none'`; Finish `done`; Preview result bubble + stable size     |
 
 ## Contracts
 

@@ -1,8 +1,8 @@
 # Epics — use-case readiness queue (active)
 
-**Active** under [`docs/TODO/`](../README.md). Epics **00–38**, **40–41**, and
-**42** are archived in [`docs/DONE/EPICS/`](../../DONE/EPICS/README.md) once
-landed.
+**Active** under [`docs/TODO/`](../README.md). Epics **00–43** are
+archived in [`docs/DONE/EPICS/`](../../DONE/EPICS/README.md) once landed.
+This queue is empty of numbered epics.
 
 Further product work also comes from
 [`docs/code-regression/`](../../code-regression/SUMMARY.md) (orchestrator may
@@ -25,16 +25,17 @@ Do **not** re-open epic 15.
 | Custom node reload          | **40 landed** — [hot-swap + compile tool](../../DONE/EPICS/40-custom-node-recompile-reload.md)  |
 | Uniform tool shape          | **41 landed** — MCP + Sub-Agent + optional Tool collection as `ToolHandle[]`                    |
 | Use-cases                   | None Implementable — [use-cases](../../use-cases/README.md)                                     |
+| Feed sanity                 | **43 landed** — UI hides unmarked / `'none'`; Finish `done`; Preview bubble + stable size       |
 
 ## Order
 
-| #   | File                                                                          | Status                                                   |
-| --- | ----------------------------------------------------------------------------- | -------------------------------------------------------- |
-| 39  | [39-ai-package-restructure.md](../../DONE/EPICS/39-ai-package-restructure.md) | Landed — `ai/nodes/` + `ai/features/` named slices       |
-| 42  | [42-embedding-providers.md](../../DONE/EPICS/42-embedding-providers.md)       | Landed — Settings embedding default + `EmbedHandle` wire |
+| #   | File                                                                          | Status                                                                    |
+| --- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| 39  | [39-ai-package-restructure.md](../../DONE/EPICS/39-ai-package-restructure.md) | Landed — `ai/nodes/` + `ai/features/` named slices                        |
+| 42  | [42-embedding-providers.md](../../DONE/EPICS/42-embedding-providers.md)       | Landed — Settings embedding default + `EmbedHandle` wire                  |
+| 43  | [43-feed-sanity.md](../../DONE/EPICS/43-feed-sanity.md)                       | Landed — hide unmarked ports; Finish `done`; Preview bubble + stable size |
 
-_No other numbered epics are queued here._ Next work: code-regression Critical
-findings and use-case Missing parts.
+Next: code-regression Critical findings and remaining use-case Missing parts.
 
 Roadmap context: palette normalize `docs/palette.html` §7–8. Remaining
 skeleton work: packaged `dist/skeleton` layout (S1) and Sample workflows

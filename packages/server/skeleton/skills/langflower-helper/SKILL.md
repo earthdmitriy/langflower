@@ -157,6 +157,11 @@ do not say coding pipelines “don’t exist” or are unavailable.
   drag (`cursor-not-allowed`).
 - **Cannot:** Tell users to press plain **Run** to start a Chat Input graph.
 - **Cannot:** Claim the feed after reload must be **richer** than live.
+- **Can:** Work log shows opted-in roles (`reasoning` / `draft` / `result` /
+  tools / `progress`) plus Finish **`done`** and Preview content as result
+  bubbles. Unmarked ports and `feed.role: 'none'` are omitted.
+- **Cannot:** Claim unmarked plumbing (`prompt` / `value` wires) appears as
+  muted technical rows — use the inspector for those values.
 - **Cannot:** Claim `basic-coder` proves chat-dense mood for the full
   `coding-agent` pipeline.
 
@@ -167,6 +172,27 @@ do not say coding pipelines “don’t exist” or are unavailable.
   **dirty**. A short topbar notice explains the repair; **Save** writes the
   cleaned graph. Catalog list still shows the file (metadata-only).
 - **Cannot:** Silently rewrite disk on load. Invent port renames — only drop.
+
+### 5c. Multi input ports
+
+Extra empty handles on a node are **one logical port** authored with `multi`
+(`merge` / `combine` / `zip`). Wiring a slot **grows a trailing empty slot**
+on that same port so you can connect another source. Leave the empty row
+unwired — it is not a duplicate Helper, not a second node, and not a bug.
+
+- **Can (starter Helper `feedback`):** `multi: 'merge'` — several sources can
+  kick a new agent turn. Example: Review Gate HITL **and** `common-review`
+  auto-review.
+- **Can (starter Helper `tools`):** `multi: 'combine'` — several packs land on
+  one agent. Example: Langflower Tools **and** Writer Sub-Agent. Optional
+  **Tool collection** (`common-tool-collection`) can still merge wires first;
+  direct multi-wire still works.
+- **Can (Router):** `common-router` uses the same extra-slot growth for
+  channels (`ch` / `ch@1` / …) so many edges stay readable.
+- **Cannot:** Claim every port grows this way — `userPrompt` / `systemPrompt`
+  stay single. Claim the empty slot must be wired. Equate `merge` (each emit
+  is a turn) with `combine` (inventory array) with `zip` (lockstep, e.g.
+  Concat).
 
 ### 6. Coding workflows
 

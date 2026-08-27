@@ -1,7 +1,7 @@
-import type {
-	ToolHandle,
-	configureOutput,
-	makeInput,
+import {
+	type ToolHandle,
+	type configureOutput,
+	type makeInput,
 } from '@langflower/node-sdk';
 import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
 import type { PermissionAskRequest } from '@langflower/tools/permission';
@@ -13,15 +13,18 @@ import {
 	type SteerControlPayload,
 } from '@langflower/node-sdk/llm';
 import type { PortMeta } from '@langflower/node-sdk';
-import type {
-	combineStatefulObservables,
-	StatefulObservable,
+import {
+	statefulObservable,
+	type combineStatefulObservables,
+	type StatefulObservable,
 } from '@rx-evo/stateful-observable';
 import {
+	concatMap,
 	filter,
 	map,
 	pipe,
 	shareReplay,
+	startWith,
 	switchMap,
 	type Observable,
 	type OperatorFunction,
@@ -44,7 +47,11 @@ import {
 } from '../prompt/normalize-max-iterations.js';
 import type { LlmRecoveryPolicy } from '../llm-loop/llm-loop-types.js';
 import { normalizeLlmRecoveryPolicy } from '../llm-loop/normalize-llm-recovery-policy.js';
-import { runLlmSessionMachine } from './run-session-machine.js';
+import {
+	isBlankTurn,
+	runTurnFromState,
+	type LlmSessionState,
+} from './run-session-machine.js';
 
 /** Shared inventory + panel fields assembled for OpenAI / Fake agent binds. */
 export type LlmAgentInventoryContext = {
@@ -332,20 +339,80 @@ export const createLlmSessionCycle$ = <
 ): StatefulObservable<Chunk, Deps, Meta> => {
 	const primeTurn0 = options?.primeTurn0 ?? true;
 
-	return context$
-		.pipeValue(
-			switchMap((context) => {
-				const prep = prepareSession(context);
-				return runLlmSessionMachine(
-					context,
-					turn$,
-					prep,
-					runTurn,
-					primeTurn0,
-				);
-			}),
-		)
-		.pipe(shareReplay({ bufferSize: 1, refCount: true }));
+	type CycleTick = {
+		readonly context: Context;
+		readonly prep: LlmFeedbackSessionPrep<Session>;
+		readonly raw: unknown;
+	};
+
+	const ticks$ = context$.pipeValue(
+		switchMap((context) => {
+			const prep = prepareSession(context);
+			const turns$ = primeTurn0 ? turn$.pipe(startWith('')) : turn$;
+			return turns$.pipe(
+				map((raw): CycleTick => ({ context, prep, raw })),
+			);
+		}),
+	);
+
+	let state: LlmSessionState<Session, Chunk> | undefined;
+
+	const isSkippableTick = (tick: CycleTick): boolean => {
+		const prepChanged =
+			state === undefined || state.preparation !== tick.prep;
+		if (prepChanged || !state?.turn0Done) {
+			return !primeTurn0 && isBlankTurn(tick.raw);
+		}
+
+		return isBlankTurn(tick.raw);
+	};
+
+	const workTicks$ = ticks$.pipeValue(
+		filter((tick) => !isSkippableTick(tick)),
+	);
+
+	// pipeValue uses switchMap and would cancel an in-flight turn when the
+	// next tick arrives (startWith + a blank BehaviorSubject, or feedback
+	// during a stream). Queue turns with concatMap so pending comes from
+	// the loader, matching withLoading() + sequential I/O.
+	return statefulObservable({
+		input: workTicks$.value$,
+		mapOperator: concatMap,
+		loader: (tick: CycleTick) => {
+			const { context, prep, raw } = tick;
+			if (state === undefined || state.preparation !== prep) {
+				state = {
+					history: [...prep.history],
+					turn0Done: false,
+					feedbackTurns: 0,
+					preparation: prep,
+				};
+			}
+
+			return runTurnFromState(
+				context,
+				state,
+				raw,
+				primeTurn0,
+				runTurn,
+			).pipe(
+				map((next) => {
+					state = next;
+					return next;
+				}),
+				filter(
+					(
+						next,
+					): next is LlmSessionState<Session, Chunk> & {
+						readonly emitted: Chunk;
+					} => next.emitted !== undefined,
+				),
+				map((next) => next.emitted),
+			);
+		},
+	}).pipe(
+		shareReplay({ bufferSize: 1, refCount: true }),
+	) as StatefulObservable<Chunk, Deps, Meta>;
 };
 
 type BindLlmAgentSessionOptions<

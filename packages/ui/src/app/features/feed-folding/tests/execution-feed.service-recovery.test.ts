@@ -62,6 +62,9 @@ describe('ExecutionFeedService recovery pin', () => {
 				'Reasoning: The user has provided a revised SDXL prompt.',
 			),
 		);
+		expect(await readPin(harness.latestNodes()[0]!)).toMatchObject({
+			value: { reason: 'idle', attempt: 1 },
+		});
 		harness.raw.runnerPort$.next(
 			outputEvent('review', 'recovery', retryNotice('dead-loop')),
 		);
@@ -108,6 +111,10 @@ describe('ExecutionFeedService recovery pin', () => {
 
 		harness.raw.runnerPort$.next(
 			inputEvent('review', 'result', 'artifact'),
+		);
+		expect(seen.at(-1)).toBe('idle');
+		harness.raw.runnerPort$.next(
+			outputEvent('review', 'reasoning', 'continuing'),
 		);
 		expect(seen.at(-1)).toBeUndefined();
 		harness.raw.runnerPort$.next(

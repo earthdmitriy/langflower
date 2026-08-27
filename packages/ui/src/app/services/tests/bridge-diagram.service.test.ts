@@ -1,6 +1,7 @@
 import type { WorkflowNodePersisted } from '@langflower/shared/langflower';
 import { describe, expect, it } from 'vitest';
 import { persistedNodeToDiagram } from '../bridge-diagram.service.js';
+import { previewNodeDefaultSize } from '../../features/canvas/utils/preview-node-default-size.js';
 
 const baseNode = (
 	position: {
@@ -64,5 +65,28 @@ describe('persistedNodeToDiagram sizing', () => {
 
 		expect(diagram.autoSize).toBe(false);
 		expect(diagram.size).toEqual({ width: 200, height: 72 });
+	});
+
+	it('locks common-preview to 320×280 when width is unset', () => {
+		const diagram = persistedNodeToDiagram(
+			{ ...baseNode(), type: 'common-preview' },
+			new Map(),
+		);
+
+		expect(diagram.autoSize).toBe(false);
+		expect(diagram.size).toEqual(previewNodeDefaultSize);
+	});
+
+	it('keeps a persisted Preview size over the default', () => {
+		const diagram = persistedNodeToDiagram(
+			{
+				...baseNode({ width: 400, height: 200 }),
+				type: 'common-preview',
+			},
+			new Map(),
+		);
+
+		expect(diagram.autoSize).toBe(false);
+		expect(diagram.size).toEqual({ width: 400, height: 200 });
 	});
 });

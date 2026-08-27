@@ -1,7 +1,10 @@
 import type { PortMeta } from '../define-reactive-node/port-meta.js';
 import { type StatefulObservable } from '@rx-evo/stateful-observable';
 import { from, mergeMap, of, throwError } from 'rxjs';
-import { type InputParams } from '../define-reactive-node/io-helpers.js';
+import {
+	type InputParams,
+	withLoading,
+} from '../define-reactive-node/io-helpers.js';
 import {
 	defineReactiveNode,
 	type DefinedReactiveNodeConfig,
@@ -72,6 +75,8 @@ const inputParamsFromMeta = (
 /**
  * Simple authoring factory: sync/Promise `execute` without RxJS.
  * Adapter over {@link defineReactiveNode} (one reactive runtime path).
+ * Stamps `{ pending: true }` on outputs before each `execute` via
+ * {@link withLoading} — authors do not call it.
  */
 export const defineNode = <const UI extends readonly UISchemaConstItem[]>(
 	config: DefineNodeConfig<UI>,
@@ -126,7 +131,7 @@ export const defineNode = <const UI extends readonly UISchemaConstItem[]>(
 				return { ec, inputs };
 			});
 
-			const result$ = combined$.pipeValue(
+			const result$ = combined$.pipe(withLoading()).pipeValue(
 				mergeMap(({ ec, inputs }) =>
 					from(
 						Promise.resolve(config.execute(ec, inputs)).then(

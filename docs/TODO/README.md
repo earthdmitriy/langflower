@@ -3,12 +3,12 @@
 Queued implementation plans. **Completed** plans live under
 [`docs/DONE/`](../DONE/README.md).
 
-| Area                        | Location                                                  |
-| --------------------------- | --------------------------------------------------------- |
-| **Active epics**            | [TODO/EPICS](EPICS/README.md) (see queue — **42** landed) |
-| Epics 00–38, 40–42 (landed) | [DONE/EPICS](../DONE/EPICS/README.md)                     |
-| LLM phases 1–6 (landed)     | [DONE/LLM-NODES](../DONE/LLM-NODES/llm-nodes-README.md)   |
-| Canvas UI (landed)          | [DONE/UI](../DONE/UI/README.md)                           |
+| Area                    | Location                                                      |
+| ----------------------- | ------------------------------------------------------------- |
+| **Active epics**        | [TODO/EPICS](EPICS/README.md) (queue empty; **00–43** landed) |
+| Epics 00–43 (landed)    | [DONE/EPICS](../DONE/EPICS/README.md)                         |
+| LLM phases 1–6 (landed) | [DONE/LLM-NODES](../DONE/LLM-NODES/llm-nodes-README.md)       |
+| Canvas UI (landed)      | [DONE/UI](../DONE/UI/README.md)                               |
 
 ## Rules
 

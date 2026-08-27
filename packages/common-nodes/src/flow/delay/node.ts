@@ -1,15 +1,11 @@
-import { defineReactiveNode } from '@langflower/node-sdk';
 import { concatMap, delay, of } from 'rxjs';
+import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
 
 /**
  * Pass-through with configurable RxJS delay on inline `delay` input (ms).
  *
- * Built with `combineInputs(...).pipeValue(concatMap(...))`. The runtime's
- * `tapOutputPort` taps this output and forwards its `pending`/`value` lifecycle
- * over the WS bridge — the bridge now holds an always-on `events$` subscription
- * (see BUG-2026-07-14 in `docs/FOUND_BUGS.md`), so the `pending` pulse is
- * delivered to the UI. `delayMs` is annotated because `combineInputs` passes the
- * combined value as an untyped tuple.
+ * Stamp pending with {@link withLoading} on the raw stream before async
+ * `pipeValue`. `pipeValue(concatMap(delay))` only delays success.
  */
 export const delayNode = defineReactiveNode({
 	type: 'common-delay',
@@ -40,11 +36,15 @@ Typical uses:
 		const output$ = combineInputs(
 			[value, delayInput],
 			([inputValue, delayMs]) => ({ inputValue, delayMs }),
-		).pipeValue(
-			concatMap(({ inputValue, delayMs }) =>
-				of(inputValue).pipe(delay(delayMs)),
-			),
-		);
+		)
+			.pipe(withLoading())
+			.pipeValue(
+				concatMap(({ inputValue, delayMs }) =>
+					of(inputValue).pipe(
+						delay(Math.max(0, Number(delayMs) || 0)),
+					),
+				),
+			);
 
 		return {
 			inputs: [value, delayInput],

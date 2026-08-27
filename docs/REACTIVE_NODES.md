@@ -96,8 +96,12 @@ port can never emit again. Feed behavior belongs in
   `runner.input-received`) mirrors those states — including errors — so the UI
   can show failure without a synthetic success value.
 - `pipeValue` transforms successful values while preserving inactive, loading,
-  and error states. Use `statefulObservable({ input, loader })` when the loader
-  is genuinely asynchronous or multi-step, not for a simple identity/map.
+  and error states. Async waits use `.pipe(withLoading()).pipeValue(...)` so
+  each new success stamps pending before the delayed/Promise/HTTP work.
+  LLM/agent cycles stamp pending **once per turn** via `statefulObservable` +
+  `concatMap` (`pipeValue` is `switchMap` and would cancel an in-flight turn).
+  HITL Review Gate `response` / `feedback` stay pending after `result` until
+  the human replies; Chat Input does not (composer wait).
 - **Fail visibly:** when a node must refuse further work (cap, validation,
   unrecoverable I/O), error the `StatefulObservable` cycle. Do not emit fake
   placeholder values to clear loading, and do not drop the refusal with bare

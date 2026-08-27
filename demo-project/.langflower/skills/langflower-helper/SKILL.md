@@ -126,11 +126,12 @@ do not say coding pipelines “don’t exist” or are unavailable.
   `common-embed-provider`; custom packs wire **`embed`** (`EmbedHandle` from
   `@langflower/node-sdk`); server binds embedding HTTP — packs never see
   `apiKey`. Manual check: String → Embed text → Preview on **`preview`**.
-  Sample pack **`hello-embed`**: ingest project `.md` → sqlite vectors,
-  `hello-embed-search`, `hello-embed-search-handle` (`project_search`).
+  Sample pack **`hello-embed`**: ingest project `.md` → sqlite (vectors + FTS5);
+  hybrid retrieve (cosine + keyword, RRF) packs **Question + full-chunk Context**
+  for `hello-embed-search` / `project_search`.
   Workflows `kb-ingest` / `kb-manual-search` / `kb-tool` / `kb-rag`. Needs
   the default embedding model (`langflower start` compiles the pack). Copy
-  the pack for a different corpus or ranking — see `nodes/hello-embed/README.md`.
+  the pack for a different corpus — see `nodes/hello-embed/README.md`.
 - **Cannot:** Treat embeddings as a host catalog feature. Use **`EmbedHandle`**
   (not `ToolHandle`) for batch float vectors. hello-embed sqlite lives under
   `.langflower/.cache/hello-embed/`.
@@ -156,6 +157,11 @@ do not say coding pipelines “don’t exist” or are unavailable.
   drag (`cursor-not-allowed`).
 - **Cannot:** Tell users to press plain **Run** to start a Chat Input graph.
 - **Cannot:** Claim the feed after reload must be **richer** than live.
+- **Can:** Work log shows opted-in roles (`reasoning` / `draft` / `result` /
+  tools / `progress`) plus Finish **`done`** and Preview content as result
+  bubbles. Unmarked ports and `feed.role: 'none'` are omitted.
+- **Cannot:** Claim unmarked plumbing (`prompt` / `value` wires) appears as
+  muted technical rows — use the inspector for those values.
 - **Cannot:** Claim `basic-coder` proves chat-dense mood for the full
   `coding-agent` pipeline.
 
@@ -166,6 +172,27 @@ do not say coding pipelines “don’t exist” or are unavailable.
   **dirty**. A short topbar notice explains the repair; **Save** writes the
   cleaned graph. Catalog list still shows the file (metadata-only).
 - **Cannot:** Silently rewrite disk on load. Invent port renames — only drop.
+
+### 5c. Multi input ports
+
+Extra empty handles on a node are **one logical port** authored with `multi`
+(`merge` / `combine` / `zip`). Wiring a slot **grows a trailing empty slot**
+on that same port so you can connect another source. Leave the empty row
+unwired — it is not a duplicate Helper, not a second node, and not a bug.
+
+- **Can (starter Helper `feedback`):** `multi: 'merge'` — several sources can
+  kick a new agent turn. Example: Review Gate HITL **and** `common-review`
+  auto-review.
+- **Can (starter Helper `tools`):** `multi: 'combine'` — several packs land on
+  one agent. Example: Langflower Tools **and** Writer Sub-Agent. Optional
+  **Tool collection** (`common-tool-collection`) can still merge wires first;
+  direct multi-wire still works.
+- **Can (Router):** `common-router` uses the same extra-slot growth for
+  channels (`ch` / `ch@1` / …) so many edges stay readable.
+- **Cannot:** Claim every port grows this way — `userPrompt` / `systemPrompt`
+  stay single. Claim the empty slot must be wired. Equate `merge` (each emit
+  is a turn) with `combine` (inventory array) with `zip` (lockstep, e.g.
+  Concat).
 
 ### 6. Coding workflows
 
@@ -179,7 +206,7 @@ do not say coding pipelines “don’t exist” or are unavailable.
 | `kb-ingest`        | Sample **hello-embed** ingest (Settings embedding model; pack compiles on `langflower start`)                                                                                                                                                                                                     |
 | `kb-manual-search` | Sample hello-embed query → Preview / Finish                                                                                                                                                                                                                                                       |
 | `kb-tool`          | Sample hello-embed `project_search` ToolHandle → agent                                                                                                                                                                                                                                            |
-| `kb-rag`           | Sample RAG imitation: user prompt through search.text into the LLM (no tools)                                                                                                                                                                                                                     |
+| `kb-rag`           | Simplified RAG: hybrid retrieve packs Question + full chunks into the LLM; `project_search` + grep/read; Review feedback / Approve → Finish                                                                                                                                                       |
 | `basic-coder`      | Basic coding harness (Plan⇄HITL→Coder⇄HITL→Finish) — not a toy, **not** full multi-loop `coding-agent`                                                                                                                                                                                            |
 | `coding-agent`     | Clarify HITL → red team → plan gate → coder → QA → `common-review` → result HITL; **graph** orders stages                                                                                                                                                                                         |
 | Status             | Use-case **Partial**; real-LLM Implementable bar open; Fake CI ≠ end-user proof — **not** “no templates”                                                                                                                                                                                          |

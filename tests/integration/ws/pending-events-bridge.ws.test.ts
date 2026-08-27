@@ -124,13 +124,35 @@ describe('runner pending events reach WS bridge', () => {
 		await outputPromise;
 		sub.unsubscribe();
 
-		const delayEvents = allEvents.filter(
-			(e) => e[0] === 'out' && e[1] === 'delay-1' && e[2] === 'value',
+		const delayInIdx = allEvents.findIndex(
+			(e) =>
+				e[0] === 'in' &&
+				e[1] === 'delay-1' &&
+				e[2] === 'value' &&
+				'value' in e[3],
+		);
+		const delayPendingIdx = allEvents.findIndex(
+			(e, i) =>
+				i > delayInIdx &&
+				e[0] === 'out' &&
+				e[1] === 'delay-1' &&
+				e[2] === 'value' &&
+				typeof e[3] === 'object' &&
+				e[3] !== null &&
+				'pending' in e[3] &&
+				e[3].pending === true,
+		);
+		const delayValueIdx = allEvents.findIndex(
+			(e) =>
+				e[0] === 'out' &&
+				e[1] === 'delay-1' &&
+				e[2] === 'value' &&
+				'value' in e[3],
 		);
 
-		const states = delayEvents.map((e) => e[3]);
-		expect(dtoHas(states, 'pending')).toBe(true);
-		expect(dtoHas(states, 'value')).toBe(true);
+		expect(delayInIdx).toBeGreaterThanOrEqual(0);
+		expect(delayPendingIdx).toBeGreaterThan(delayInIdx);
+		expect(delayValueIdx).toBeGreaterThan(delayPendingIdx);
 	});
 
 	it('single always-on subscription fans pending out to all connected clients', async () => {

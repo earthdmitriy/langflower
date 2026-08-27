@@ -182,6 +182,24 @@ describe('canvas-node-status-projection (single-node)', () => {
 		).toHaveLength(1);
 	});
 
+	it('returns to pending when output pending arrives after a settled result', () => {
+		let state = appendNodeChromeFrame(
+			emptyNodeChromeFoldState(),
+			['out', nodeId, 'result', { value: 'done' }, 0, [], null],
+			catalogWithStreamingDraft(),
+			null,
+		);
+		expect(foldStatusFromNodeState(state)).toBe('value');
+
+		state = appendNodeChromeFrame(
+			state,
+			['out', nodeId, 'result', { pending: true }, 0, [], null],
+			catalogWithStreamingDraft(),
+			null,
+		);
+		expect(foldStatusFromNodeState(state)).toBe('pending');
+	});
+
 	it('returns to pending when input arrives after a settled result', () => {
 		let state = appendNodeChromeFrame(
 			emptyNodeChromeFoldState(),

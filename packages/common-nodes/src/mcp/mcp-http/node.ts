@@ -1,12 +1,13 @@
 import {
 	defineReactiveNode,
+	withLoading,
 	TOOL_HANDLE_WIRE_TYPE,
 	type ToolHandle,
 } from '@langflower/node-sdk';
 import { buildMcpHandle } from '@langflower/tools/build-mcp-handle';
 import { formatMcpConnectError } from '@langflower/tools/format-mcp-connect-error';
 import { connectMcpHttpWithOptionalLaunch } from '@langflower/tools/mcp-http-client';
-import { distinctUntilChanged, EMPTY, Observable, pipe, switchMap } from 'rxjs';
+import { distinctUntilChanged, filter, Observable, switchMap } from 'rxjs';
 
 type HttpParams = {
 	readonly nodeId: string;
@@ -54,7 +55,7 @@ Paste a URL for a server that is already running, or set a launch command to sta
 			defaultValue: '',
 		});
 
-		const handle$ = combineInputs(
+		const params$ = combineInputs(
 			[ctx, url, command],
 			([ec, serverUrl, cli]) =>
 				({
@@ -64,20 +65,23 @@ Paste a URL for a server that is already running, or set a launch command to sta
 					command: String(cli ?? '').trim(),
 				}) satisfies HttpParams,
 		).pipeValue(
-			pipe(
-				distinctUntilChanged(
-					(left, right) => paramsKey(left) === paramsKey(right),
+			distinctUntilChanged(
+				(left, right) => paramsKey(left) === paramsKey(right),
+			),
+		);
+		const handle$ = params$
+			.pipeValue(
+				filter(
+					(params) =>
+						params.url.length > 0 &&
+						params.nodeId.trim().length > 0,
 				),
-				switchMap((params) => {
-					if (
-						params.url.length === 0 ||
-						params.nodeId.trim().length === 0
-					) {
-						return EMPTY;
-					}
-
-					return new Observable<readonly ToolHandle[]>(
-						(subscriber) => {
+			)
+			.pipe(withLoading())
+			.pipeValue(
+				switchMap(
+					(params) =>
+						new Observable<readonly ToolHandle[]>((subscriber) => {
 							let closed = false;
 							let closeSession: (() => Promise<void>) | undefined;
 
@@ -131,11 +135,9 @@ Paste a URL for a server that is already running, or set a launch command to sta
 								closed = true;
 								void closeSession?.();
 							};
-						},
-					);
-				}),
-			),
-		);
+						}),
+				),
+			);
 
 		return {
 			inputs: [url, command],

@@ -20,6 +20,24 @@ const failingSampleNode = defineNode({
 	},
 });
 
+const delayedSampleNode = defineNode({
+	type: 'sample-delayed',
+	displayName: 'Delayed',
+	uiSchema: [] as const,
+	inputs: {
+		value: { wireType: 'string', required: true },
+	},
+	outputs: {
+		result: { wireType: 'string' },
+	},
+	async execute(_ctx, inputs) {
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 30);
+		});
+		return { result: String(inputs.value ?? '') };
+	},
+});
+
 describe('defineNode samples', () => {
 	it('exposes catalog metadata without bind on the definition', () => {
 		expect('bind' in gateSampleNode).toBe(false);
@@ -36,6 +54,37 @@ describe('defineNode samples', () => {
 		harness.send('code', 0);
 		await expect(ok).resolves.toBe(true);
 		harness.dispose();
+	});
+
+	it('async execute emits pending before the result', async () => {
+		const harness = createNodeHarness(delayedSampleNode, {
+			nodeId: 'delayed-1',
+		});
+		const pendingSeen: boolean[] = [];
+		const values: unknown[] = [];
+		const output = harness.instance.outputs.result;
+		if (output === undefined) {
+			throw new Error('delayed sample missing result output');
+		}
+		const sub = output.subscribe({
+			pending: (pending) => {
+				pendingSeen.push(pending);
+			},
+			next: (value) => {
+				values.push(value);
+			},
+		});
+		harness.send('value', 'later');
+		await expect(harness.next<string>('result')).resolves.toBe('later');
+		sub.unsubscribe();
+		harness.dispose();
+		expect(pendingSeen).toContain(true);
+		expect(values).toEqual(['later']);
+		expect(pendingSeen.indexOf(true)).toBeLessThan(
+			pendingSeen.lastIndexOf(false) === -1
+				? pendingSeen.length
+				: pendingSeen.lastIndexOf(false),
+		);
 	});
 
 	it('thrown execute error fails the output port', async () => {

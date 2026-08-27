@@ -1,4 +1,4 @@
-import { defineReactiveNode } from '@langflower/node-sdk';
+import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
 import { map, switchMap } from 'rxjs';
 import { getRunHostServices } from '../../ai/features/run-host-services.js';
 import { fromEmbedding } from '../from-embedding.js';
@@ -68,43 +68,43 @@ Typical uses:
 					rawText: String(rawText ?? ''),
 					ec,
 				}) as const,
-		).pipeValue(
-			switchMap(({ rawText, ec }) =>
-				fromEmbedding(async (signal): Promise<EmbedTextSession> => {
-					const host = getRunHostServices(ec);
-					const create = host?.createEmbedding;
-					if (create === undefined) {
-						throw new Error(
-							'OpenAI-compatible embeddings are only available during server workflow runs',
-						);
-					}
+		)
+			.pipe(withLoading())
+			.pipeValue(
+				switchMap(({ rawText, ec }) =>
+					fromEmbedding(async (signal): Promise<EmbedTextSession> => {
+						const host = getRunHostServices(ec);
+						const create = host?.createEmbedding;
+						if (create === undefined) {
+							throw new Error(
+								'OpenAI-compatible embeddings are only available during server workflow runs',
+							);
+						}
 
-					const { providerId, model } = resolveEmbeddingProviderModel(
-						ec.params,
-						host,
-					);
-					const result = await create({
-						providerId,
-						model,
-						texts: [rawText],
-						signal,
-					});
-					const first = result.vectors[0];
-					if (first === undefined) {
-						throw new Error(
-							'Provider returned no embedding vectors',
-						);
-					}
+						const { providerId, model } =
+							resolveEmbeddingProviderModel(ec.params, host);
+						const result = await create({
+							providerId,
+							model,
+							texts: [rawText],
+							signal,
+						});
+						const first = result.vectors[0];
+						if (first === undefined) {
+							throw new Error(
+								'Provider returned no embedding vectors',
+							);
+						}
 
-					const vector = Array.from(first);
-					return {
-						vector,
-						dim: result.dim,
-						preview: formatEmbedPreview(result.dim, vector),
-					};
-				}),
-			),
-		);
+						const vector = Array.from(first);
+						return {
+							vector,
+							dim: result.dim,
+							preview: formatEmbedPreview(result.dim, vector),
+						};
+					}),
+				),
+			);
 
 		return {
 			inputs: [text],

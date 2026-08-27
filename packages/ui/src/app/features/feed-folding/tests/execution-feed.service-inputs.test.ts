@@ -18,7 +18,7 @@ const readPortIds = async (node: NodeFeedItem): Promise<readonly string[]> => {
 };
 
 describe('ExecutionFeedService unmarked inputs', () => {
-	it('keeps input value under the receiving portId as technical data', async () => {
+	it('omits unmarked input values from the feed', async () => {
 		const agent = paletteDefinition('agent', [
 			{ portId: 'prompt', direction: 'in' },
 			{
@@ -32,14 +32,7 @@ describe('ExecutionFeedService unmarked inputs', () => {
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
 		harness.raw.runnerPort$.next(inputEvent('agent', 'prompt', 'hello'));
 
-		const visit = harness.latestNodes()[0]!;
-		expect(await readPortIds(visit)).toContain('prompt');
-		expect(await readItems(visit, 'prompt')).toEqual([
-			expect.objectContaining({
-				value: 'hello',
-				meta: expect.objectContaining({ presentation: 'data' }),
-			}),
-		]);
+		expect(harness.latestNodes()).toEqual([]);
 	});
 
 	it('drops pending null output frames and does not stringify them into the visit', async () => {
@@ -101,9 +94,9 @@ describe('ExecutionFeedService unmarked inputs', () => {
 		).toEqual(['context more']);
 	});
 
-	it('drops pending undefined input frames and keeps the real value', async () => {
+	it('drops pending undefined input frames and keeps the real marked value', async () => {
 		const agent = paletteDefinition('agent', [
-			{ portId: 'prompt', direction: 'in' },
+			{ portId: 'prompt', direction: 'in', role: 'result' },
 		]);
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
@@ -168,10 +161,34 @@ describe('ExecutionFeedService unmarked inputs', () => {
 		expect(harness.latestNodes()).toEqual([]);
 	});
 
-	it('keeps separate input ports as separate streams', async () => {
+	it('omits empty FeedPortMeta on the event', async () => {
 		const agent = paletteDefinition('agent', [
-			{ portId: 'a', direction: 'in' },
-			{ portId: 'b', direction: 'in' },
+			{ portId: 'prompt', direction: 'in', role: 'result' },
+		]);
+		const harness = createExecutionFeedHarness();
+		harness.seedCatalog({ agent: 'agent' }, [agent]);
+		harness.raw.runnerPort$.next(
+			inputEvent('agent', 'prompt', 'hello', { feed: {} }),
+		);
+
+		expect(harness.latestNodes()).toEqual([]);
+	});
+
+	it('omits empty palette FeedPortMeta when the event feed slot is null', async () => {
+		const agent = paletteDefinition('agent', [
+			{ portId: 'prompt', direction: 'in', emptyFeed: true },
+		]);
+		const harness = createExecutionFeedHarness();
+		harness.seedCatalog({ agent: 'agent' }, [agent]);
+		harness.raw.runnerPort$.next(inputEvent('agent', 'prompt', 'hello'));
+
+		expect(harness.latestNodes()).toEqual([]);
+	});
+
+	it('keeps separate marked input ports as separate streams', async () => {
+		const agent = paletteDefinition('agent', [
+			{ portId: 'a', direction: 'in', role: 'result' },
+			{ portId: 'b', direction: 'in', role: 'result' },
 		]);
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
@@ -184,7 +201,7 @@ describe('ExecutionFeedService unmarked inputs', () => {
 		expect((await readItems(visit, 'b'))[0]?.value).toBe('B');
 	});
 
-	it('uses null feed slot when feed meta is absent', async () => {
+	it('omits unmarked ports when the event feed slot is null', async () => {
 		const agent = paletteDefinition('agent', [
 			{ portId: 'prompt', direction: 'in' },
 		]);
@@ -192,13 +209,6 @@ describe('ExecutionFeedService unmarked inputs', () => {
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
 		harness.raw.runnerPort$.next(inputEvent('agent', 'prompt', 'hello'));
 
-		const visit = harness.latestNodes()[0]!;
-		expect(await readItems(visit, 'prompt')).toEqual([
-			expect.objectContaining({
-				value: 'hello',
-				meta: expect.objectContaining({ presentation: 'data' }),
-			}),
-		]);
-		expect(harness.latestNodes()).toHaveLength(1);
+		expect(harness.latestNodes()).toEqual([]);
 	});
 });

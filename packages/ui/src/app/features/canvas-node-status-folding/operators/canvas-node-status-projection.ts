@@ -84,6 +84,14 @@ export const appendNodeChromeFrame = (
 			runId: runId ?? state.runId,
 		};
 	}
+	if (portDir === 'out' && 'pending' in response) {
+		return {
+			seen: true,
+			hasError: state.hasError,
+			hasNonStreamingValue: false,
+			runId: runId ?? state.runId,
+		};
+	}
 	if (
 		portDir === 'out' &&
 		'value' in response &&

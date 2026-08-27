@@ -56,6 +56,7 @@ and RxJS stay external.
 ## Author API
 
 Prefer **`defineNode`** for sync/Promise nodes (no RxJS in the author file).
+Async `execute` already stamps pending on outputs — do not call `withLoading`.
 
 Use **`defineToolRegistrations`** when the node should emit LLM-callable
 `ToolHandle`s on a `tools` port (wire into an agent / LLM `tools` input).

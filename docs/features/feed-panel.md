@@ -10,10 +10,10 @@ interruption (Stop / Pause / Steer):
 [run-interruption](../use-cases/run-interruption.md).
 
 **Partial today:** settled turns project as user + result bubbles plus muted
-last-port technical one-liners; live **draft/tool segments** (epic 34) and
-composer shell layout (epic 35) are shipped. Do not treat Fake unit density
-alone as live-provider Implementable proof
-([grok-feed](../use-cases/grok-feed.md)).
+peeks for **opted-in** technical roles; unmarked / `'none'` ports are omitted
+(epic 43). Live **draft/tool segments** (epic 34) and composer shell layout
+(epic 35) are shipped. Do not treat Fake unit density alone as live-provider
+Implementable proof ([grok-feed](../use-cases/grok-feed.md)).
 
 ## Core Principles
 
@@ -46,10 +46,11 @@ alone as live-provider Implementable proof
 | Layer                        | Contents                                                                                                                                          | Visual                                                                                       | Default                                                                                                          |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | **Important (conversation)** | Chat Input user turns; agent **final / result** (inside the same-node container when the node also has technical peek); short permission-ask cues | Bright chat bubbles / primary text; Chat Input on the **opposite side** from the agent       | Conversation turns always; permission cue only while pending; remove only on server `runner.permission.accepted` |
-| **Technical**                | `reasoning`, `draft`, `tool`, `shell`, **MCP**, unmarked ports, Inputs dumps; **HITL gate replies nested under that node**                        | One **node container** (single hover highlight) holds peek + nested replies + result bubbles | Peek = last port (4-line while active, one line settled, left-aligned); expand for Inputs/history                |
+| **Technical**                | `reasoning`, `draft`, `tool`, `shell`, **MCP**, Inputs dumps for opted-in ports; **HITL gate replies nested under that node**                     | One **node container** (single hover highlight) holds peek + nested replies + result bubbles | Peek = last port (4-line while active, one line settled, left-aligned); expand for Inputs/history                |
 
-Authors mark roles via `feed.role`. The UI must demote technical roles and
-must not promote unmarked intermediate ports to conversation cards.
+Authors mark roles via `feed.role`. Omitting `feed` or using `role: 'none'`
+hides the port. The UI must demote technical roles and must not promote
+unmarked intermediate ports to conversation cards (or muted `data` rows).
 
 ### Collapsed technical block
 
@@ -150,9 +151,9 @@ Rules:
    visit close above).
 2. Final / result is the only agent content that stays in the **important**
    layer by default.
-3. `feed.role: 'none'` is omitted from the feed entirely; unmarked plumbing is
-   muted technical `data` labeled by **receiving `portId`** (never a generic
-   “Data” summary alone).
+3. `feed.role: 'none'`, missing role, and empty `feed: {}` are omitted from
+   the feed entirely. Authors **opt in**. Port values that used to dump as
+   muted `data` live on the selected node in the inspector.
 
 ### HITL / user turns
 

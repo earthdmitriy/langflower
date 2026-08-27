@@ -224,7 +224,7 @@ describe('HITL common nodes (runtime smoke)', () => {
 			{ value: 'approved draft' },
 			0,
 			[],
-			null,
+			{ role: 'result' },
 		]);
 
 		runtime.runner.interrupt('cancel');

@@ -1,5 +1,5 @@
 import { concatMap, delay, of } from 'rxjs';
-import { defineReactiveNode } from '../../define-reactive-node.js';
+import { defineReactiveNode, withLoading } from '../../define-reactive-node.js';
 
 /** Pass-through with async delay on `value` input. */
 export const delaySampleNode = defineReactiveNode({
@@ -13,11 +13,13 @@ export const delaySampleNode = defineReactiveNode({
 		const output$ = combineInputs([value, ctx], ([inputValue, ec]) => {
 			const delayMs = Math.max(0, Number(ec.params?.delayMs ?? 50));
 			return { inputValue, delayMs };
-		}).pipeValue(
-			concatMap(({ inputValue, delayMs }) =>
-				of(inputValue).pipe(delay(delayMs)),
-			),
-		);
+		})
+			.pipe(withLoading())
+			.pipeValue(
+				concatMap(({ inputValue, delayMs }) =>
+					of(inputValue).pipe(delay(delayMs)),
+				),
+			);
 
 		return {
 			inputs: [value],

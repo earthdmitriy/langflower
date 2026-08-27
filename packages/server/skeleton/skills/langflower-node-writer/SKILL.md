@@ -32,7 +32,8 @@ You help the user write **custom nodes** for Langflower.
 ## Contract (do not invent forks)
 
 - Default pack: `.langflower/nodes/my-nodes/` (one folder = one `package.json`).
-- Prefer **`defineNode`** for sync/Promise nodes. Use
+- Prefer **`defineNode`** for sync/Promise nodes (`execute` stamps pending
+  on outputs). Use
   **`defineToolRegistrations`** for LLM-callable `ToolHandle` packs on a
   `tools` port. Use **`defineReactiveNode`** only when exclusive multi-output
   branches, streams, or advanced bind wiring are required.

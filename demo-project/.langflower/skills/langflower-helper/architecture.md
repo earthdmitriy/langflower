@@ -83,7 +83,9 @@ Project product data for Langflower lives under **`.langflower/`**.
   the parent work-log visit; the specialist streams as its own card, and
   the parent continues in a new visit below. Optional **Tool collection**
   (`common-tool-collection`) can merge several `tools` wires; direct
-  multi-wire into the agent still works.
+  multi-wire into the agent still works. Extra empty canvas slots on
+  `multi` ports (`feedback` merge, `tools` combine) and Router channels
+  (`ch` / `ch@1`) are intentional fan-in — not cloned ports.
 - **Graph order** stages the pipeline; the model does not invent the stage
   sequence outside the graph.
 - Project memory / wiki create is **queue-driven**: index with harness `glob`,

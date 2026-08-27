@@ -418,7 +418,7 @@ Sizing is **width-gated** in
 
 | Mode             | Condition                                          | `autoSize` | Behavior                                                                                                                 |
 | ---------------- | -------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
-| A — content auto | `ui.position.width` unset                          | `true`     | Both axes follow content; Preview/textareas are CSS-capped so huge text does not dominate height                         |
+| A — content auto | `ui.position.width` unset                          | `true`     | Both axes follow content (`common-preview` is excepted: default 320×280, mode B)                                         |
 | B — width locked | `ui.position.width` set (SE resize / paste / load) | `false`    | Width sticky; on **port row-count** change, height is re-fitted and persisted via `updateNode` `{ ui: { height } }` only |
 
 - All custom nodes are `resizable: true` and wrap content in
@@ -452,8 +452,9 @@ Sizing is **width-gated** in
 
 **Rule:** In mode B, if content exceeds `size.height` before the next
 row-count sync, bottom ports may be unreachable until height re-fits (or the
-user SE-resizes). Preview text scrolls inside a `max-height` box and must not
-drive node height. Opted-in multiline fields fill leftover height instead of
+user SE-resizes). Preview `inline` rows grow-fill leftover node height; the
+measure floor is label + 16px (`--lf-multiline-min`), so payload must not
+drive node size. Opted-in multiline fields fill leftover height instead of
 growing the node from the textarea.
 
 ---
@@ -464,12 +465,18 @@ Preview (`common-preview`) is not special-cased in the template — it renders
 through the generic `inputPortRows` / `lf-node-port-row` path like every other
 node:
 
-- Input `text` has `inline: 'preview'` — `lf-inline-field` renders a read-only
-  `<pre>` (or `preview-markdown` / `preview-code` variants) instead of an
-  editable control; preview kinds are never `disabled` since there is nothing
-  to edit.
-- Preview containers use `max-height` + `overflow-y: auto` + `.lf-scroll` so
-  multi-KB values scroll inside the field without resizing the node.
+- Input `text` has `inline: 'preview-markdown'` — `lf-inline-field` runs
+  `renderMarkdown` on the live value (plain `'preview'` / `'preview-code'`
+  still exist for other nodes). Preview kinds are never `disabled` since
+  there is nothing to edit.
+- Canvas preview rows use `lf-port-row-host--grow` + `--preview`: they fill
+  leftover node height; payload scrolls inside (`overflow-y: auto`). Measure
+  floor is 16px, not live `offsetHeight` / `max-height: 10rem`. Inspector
+  (no `fill`) still caps at `max-height: 10rem`.
+- Operator SE-resize still changes the node; extra height goes to the pane.
+  Incoming `runner.input-received` must not change width or height.
+  Default drop / unset size is **320×280** (mode B) so markdown cannot
+  autoSize the node wider.
 - Live value: `NodePreviewValuesService` (`node-preview-values.service.ts`)
   subscribes to `runner.input-received` and keys values by
   `${nodeId}:${portId}`; `LfNodeComponent.previewValueFor(basePortId)` feeds

@@ -11,6 +11,10 @@ import {
 } from '../diagram/diagram-port-id.js';
 import type { PortsConfig } from '../diagram/resolve-diagram-node-ports.js';
 import type { LfNodeData } from '../features/canvas/components/lf-node.component.js';
+import {
+	PREVIEW_NODE_TYPE,
+	previewNodeDefaultSize,
+} from '../features/canvas/utils/preview-node-default-size.js';
 
 const emptyPortsConfig: PortsConfig = {
 	inputsConfigs: [],
@@ -39,6 +43,8 @@ export const portsConfigForType = (
  * `ui.position.width` is set do we emit a fixed `size` and
  * `autoSize: false`. Height-only persistence must not invent a width
  * (legacy default 180 would silently lock mode B).
+ * Exception: `common-preview` defaults both axes (320×280) when width is
+ * unset so markdown payload cannot autoSize the node wider.
  */
 const nodeSize = (
 	node: WorkflowNodePersisted,
@@ -46,7 +52,9 @@ const nodeSize = (
 	const width = node.ui.position.width;
 
 	if (width === undefined) {
-		return undefined;
+		return node.type === PREVIEW_NODE_TYPE
+			? previewNodeDefaultSize
+			: undefined;
 	}
 
 	return {

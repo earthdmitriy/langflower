@@ -343,11 +343,19 @@ describe('common-sub-agent', () => {
 		subscription.unsubscribe();
 
 		expect(text).toBe('done');
-		expect(pendingByPort.get('toolLog') ?? 0).toBe(0);
-		expect(pendingByPort.get('recovery') ?? 0).toBe(0);
-		expect(pendingByPort.get('response') ?? 0).toBe(0);
-		expect(pendingByPort.get('draftResponse') ?? 0).toBe(0);
-		expect(pendingByPort.get('reasoning') ?? 0).toBe(0);
+		// One pending per invoke (demux fans loading). Four inner chunks
+		// must not re-stamp pending on siblings.
+		for (const portId of [
+			'toolLog',
+			'recovery',
+			'response',
+			'draftResponse',
+			'reasoning',
+		]) {
+			const count = pendingByPort.get(portId) ?? 0;
+			expect(count).toBeGreaterThanOrEqual(1);
+			expect(count).toBeLessThan(4);
+		}
 	});
 
 	it('exposes inventory tools in and specialist registration out without spawn ports', () => {

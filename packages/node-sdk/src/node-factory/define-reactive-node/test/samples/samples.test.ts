@@ -104,4 +104,35 @@ describe('defineReactiveNode samples', () => {
 		first.dispose();
 		second.dispose();
 	});
+
+	it('delay sample emits pending before the delayed value', async () => {
+		const harness = createNodeHarness(delaySampleNode, {
+			params: { delayMs: 30 },
+		});
+		const pendingSeen: boolean[] = [];
+		const values: unknown[] = [];
+		const output = harness.instance.outputs.value;
+		if (output === undefined) {
+			throw new Error('delay sample missing value output');
+		}
+		const sub = output.subscribe({
+			pending: (pending) => {
+				pendingSeen.push(pending);
+			},
+			next: (value) => {
+				values.push(value);
+			},
+		});
+		harness.send('value', 'later');
+		await expect(harness.next<string>('value')).resolves.toBe('later');
+		sub.unsubscribe();
+		harness.dispose();
+		expect(pendingSeen).toContain(true);
+		expect(values).toEqual(['later']);
+		expect(pendingSeen.indexOf(true)).toBeLessThan(
+			pendingSeen.lastIndexOf(false) === -1
+				? pendingSeen.length
+				: pendingSeen.lastIndexOf(false),
+		);
+	});
 });

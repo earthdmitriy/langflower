@@ -1,12 +1,13 @@
 import {
 	defineReactiveNode,
+	withLoading,
 	TOOL_HANDLE_WIRE_TYPE,
 	type ToolHandle,
 } from '@langflower/node-sdk';
 import { buildMcpHandle } from '@langflower/tools/build-mcp-handle';
 import { formatMcpConnectError } from '@langflower/tools/format-mcp-connect-error';
 import { connectMcpStdioFromCli } from '@langflower/tools/mcp-stdio-client';
-import { distinctUntilChanged, EMPTY, Observable, pipe, switchMap } from 'rxjs';
+import { distinctUntilChanged, filter, Observable, switchMap } from 'rxjs';
 
 type StdioParams = {
 	readonly nodeId: string;
@@ -48,7 +49,7 @@ Typical uses:
 			required: true,
 		});
 
-		const handle$ = combineInputs(
+		const params$ = combineInputs(
 			[ctx, command],
 			([ec, cli]) =>
 				({
@@ -57,20 +58,23 @@ Typical uses:
 					command: String(cli ?? '').trim(),
 				}) satisfies StdioParams,
 		).pipeValue(
-			pipe(
-				distinctUntilChanged(
-					(left, right) => paramsKey(left) === paramsKey(right),
+			distinctUntilChanged(
+				(left, right) => paramsKey(left) === paramsKey(right),
+			),
+		);
+		const handle$ = params$
+			.pipeValue(
+				filter(
+					(params) =>
+						params.command.length > 0 &&
+						params.nodeId.trim().length > 0,
 				),
-				switchMap((params) => {
-					if (
-						params.command.length === 0 ||
-						params.nodeId.trim().length === 0
-					) {
-						return EMPTY;
-					}
-
-					return new Observable<readonly ToolHandle[]>(
-						(subscriber) => {
+			)
+			.pipe(withLoading())
+			.pipeValue(
+				switchMap(
+					(params) =>
+						new Observable<readonly ToolHandle[]>((subscriber) => {
 							let closed = false;
 							let closeClient: (() => Promise<void>) | undefined;
 
@@ -118,11 +122,9 @@ Typical uses:
 								closed = true;
 								void closeClient?.();
 							};
-						},
-					);
-				}),
-			),
-		);
+						}),
+				),
+			);
 
 		return {
 			inputs: [command],

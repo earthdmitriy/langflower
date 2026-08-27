@@ -50,6 +50,36 @@ describe('common-read-file', () => {
 		await expect(next).resolves.toBe('v2');
 	});
 
+	it('emits pending before file content', async () => {
+		await fs.writeFile(path.join(projectDir, 'notes.txt'), 'v1', 'utf8');
+
+		const instance = readFileNode.getInstance();
+		const pendingSeen: boolean[] = [];
+		const sub = instance.outputs.content.subscribe({
+			pending: (pending) => {
+				pendingSeen.push(pending);
+			},
+		});
+
+		instance.ctxConnection.connect(
+			of({
+				projectDir,
+				runId: 'test',
+				nodeId: 'read-1',
+				params: {},
+				uiSchema: readFileNode.uiSchema,
+			}),
+		);
+		instance.inputs.update.connect(of(null));
+		instance.inputs.path.connect(of('notes.txt'));
+
+		await expect(
+			firstValueFrom(instance.outputs.content.value$),
+		).resolves.toBe('v1');
+		sub.unsubscribe();
+		expect(pendingSeen).toContain(true);
+	});
+
 	it('errors when path is empty', async () => {
 		const runtime = new RuntimeFacade({ log: false });
 		const read = readFileNode.getInstance();

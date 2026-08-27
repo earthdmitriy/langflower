@@ -1,4 +1,4 @@
-import { defineReactiveNode } from '@langflower/node-sdk';
+import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
 import { createProjectFilesContext } from '@langflower/tools/create-project-files-context';
 import { from, map, mergeMap, throwError } from 'rxjs';
 import { getRunHostServices } from '../../ai/features/run-host-services.js';
@@ -40,26 +40,30 @@ Typical uses:
 				content: String(rawContent ?? ''),
 				ec,
 			}),
-		).pipeValue(
-			mergeMap(({ path: filePath, content: fileContent, ec }) => {
-				if (filePath.length === 0) {
-					return throwError(
-						() =>
-							new Error('Write File requires a non-empty path.'),
+		)
+			.pipe(withLoading())
+			.pipeValue(
+				mergeMap(({ path: filePath, content: fileContent, ec }) => {
+					if (filePath.length === 0) {
+						return throwError(
+							() =>
+								new Error(
+									'Write File requires a non-empty path.',
+								),
+						);
+					}
+
+					const denyPaths = getRunHostServices(ec)?.denyPaths;
+					const files = createProjectFilesContext({
+						projectRoot: ec.projectDir,
+						...(denyPaths !== undefined ? { denyPaths } : {}),
+					});
+
+					return from(files.write(filePath, fileContent)).pipe(
+						map(() => filePath),
 					);
-				}
-
-				const denyPaths = getRunHostServices(ec)?.denyPaths;
-				const files = createProjectFilesContext({
-					projectRoot: ec.projectDir,
-					...(denyPaths !== undefined ? { denyPaths } : {}),
-				});
-
-				return from(files.write(filePath, fileContent)).pipe(
-					map(() => filePath),
-				);
-			}),
-		);
+				}),
+			);
 
 		return {
 			inputs: [pathInput, content],

@@ -64,7 +64,7 @@ path-choice, OpenAI HTTP). Do not copy detector / autokick into a node folder.
 
 ## Reactive `bind()` (see `@langflower/node-sdk`)
 
-- Outputs: **`configureOutput(portId, stream, meta)`** — stream from `connection.pipeValue(...)`, passthrough via `connection` + `inferTypeFrom`, or `statefulObservable` when the loader is non-trivial.
+- Outputs: **`configureOutput(portId, stream, meta)`** — stream from `connection.pipeValue(...)`, passthrough via `connection` + `inferTypeFrom`, or `.pipe(withLoading()).pipeValue(...)` when the work waits (timer, I/O, HITL). LLM turns are queued in `createLlmSessionCycle$` (`statefulObservable` + `concatMap` loader), not `pipeValue` (`switchMap` would cancel an in-flight turn).
 - Input → output map: **`input.pipeValue(map(...))`** — not
   `statefulObservable({ input: input.value$, loader: (v) => of(...) })`.
 - Reusable value-lane transforms: **`OperatorFunction` + `pipeValue(op)`**
@@ -80,8 +80,9 @@ path-choice, OpenAI HTTP). Do not copy detector / autokick into a node folder.
   § Multi-output paced sessions; reference `flow/repeat/node.ts`.
 - Passthrough: **`configureOutput(portId, input, { inferTypeFrom: input })`** —
   no wrapper.
-- Combine inputs: **`combineInputs([a, b], mapFn).pipeValue(...)`** — not raw
-  `combineLatest`. Keep pacing triggers **out** of that combine (ASAP + wait).
+- Combine inputs: **`combineInputs([a, b], mapFn).pipe(withLoading()).pipeValue(...)`**
+  for async waits; skip `withLoading` for sync maps. Not raw `combineLatest`.
+  Keep pacing triggers **out** of that combine (ASAP + wait).
 - Multi-slot fan-in: `multi: 'combine'` (combineLatest), `'zip'` (flush — every
   slot needs a new event; used by Concat), or `'merge'` (flatten).
 - Panel params: include the hidden `ctx` port in `combineInputs` and read
@@ -91,10 +92,13 @@ path-choice, OpenAI HTTP). Do not copy detector / autokick into a node folder.
   feed/observability outs; refuse via `StatefulObservable` **error** (e.g.
   `maxFeedbackTurns`), not placeholders or bare `EMPTY`. See
   [LLM_NODES.md](../../docs/LLM_NODES.md) § Port events.
-- LLM nodes use `runLlmSessionMachine` for queued turns/history and
-  `runLlmLoop` for provider/tools/Sub-Agent/Steer. Do not add async-IIFE
-  Observables, mutable history, duplicated path-choice loops, or provider
-  `for await` consumption outside the provider RxJS operator.
+- LLM nodes use `createLlmSessionCycle$` (`statefulObservable` + `concatMap`
+  loader so pending is **per turn** and ticks queue) / `runTurnFromState` for
+  queued turns/history and `runLlmLoop` for provider/tools/Sub-Agent/Steer. Do
+  not wrap chunk streams as `statefulObservable({ input: chunks$ })` or put
+  `withLoading()` on them (pending per token fans through demux). Do not add
+  async-IIFE Observables, duplicated path-choice loops, or provider `for await`
+  consumption outside the provider RxJS operator.
 - Recoverable provider failures reduce to loop suspension; only fatal failures
   enter the StatefulObservable error lane. Keep partial streamed text out of
   committed history after a failed round. Stuck / dead-loop strategy:

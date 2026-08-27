@@ -1,4 +1,4 @@
-import { defineReactiveNode } from '@langflower/node-sdk';
+import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
 import { createCrawlContext } from '@langflower/tools/create-crawl-context';
 import { from, mergeMap, throwError } from 'rxjs';
 import { extractHtmlTitle } from '@langflower/tools/html';
@@ -49,28 +49,38 @@ Typical uses:
 				text: String(rawText ?? ''),
 				ec,
 			}),
-		).pipeValue(
-			mergeMap(({ url: pageUrl, html: pageHtml, text: pageText, ec }) => {
-				if (pageUrl.length === 0) {
-					return throwError(
-						() => new Error('Save Page requires a non-empty url.'),
-					);
-				}
+		)
+			.pipe(withLoading())
+			.pipeValue(
+				mergeMap(
+					({ url: pageUrl, html: pageHtml, text: pageText, ec }) => {
+						if (pageUrl.length === 0) {
+							return throwError(
+								() =>
+									new Error(
+										'Save Page requires a non-empty url.',
+									),
+							);
+						}
 
-				const crawl = createCrawlContext(ec.projectDir, ec.runId);
+						const crawl = createCrawlContext(
+							ec.projectDir,
+							ec.runId,
+						);
 
-				const title = extractHtmlTitle(pageHtml);
+						const title = extractHtmlTitle(pageHtml);
 
-				return from(
-					crawl.savePage({
-						url: pageUrl,
-						html: pageHtml,
-						text: pageText,
-						...(title !== undefined ? { title } : {}),
-					}),
-				);
-			}),
-		);
+						return from(
+							crawl.savePage({
+								url: pageUrl,
+								html: pageHtml,
+								text: pageText,
+								...(title !== undefined ? { title } : {}),
+							}),
+						);
+					},
+				),
+			);
 
 		return {
 			inputs: [url, html, text],

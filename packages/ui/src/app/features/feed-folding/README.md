@@ -70,24 +70,26 @@ These are easy to get wrong. Do not “simplify” them away.
 ✅ Concat → Agent → Concat  ⇒  visits [Concat, Agent, Concat]
 ```
 
+Only when Concat ports **opt in** with a feed role (unmarked Concat is omitted).
 `feed.streaming` absent ⇒ frame closes the visit. While-last reopen keeps
 consecutive Concat emits on one card **only while that visit is still last**.
 
-### 2. Registration then LLM stream
+### 2. Unmarked setup does not open a visit
 
 ```text
-❌ Helper.userPrompt then Helper.reasoning ⇒ two Helper cards
-✅ Helper.userPrompt → Helper.reasoning → Helper.result ⇒ one Helper card
+❌ Helper.userPrompt (unmarked) opens a card before reasoning
+✅ Unmarked userPrompt / tools are omitted; the visit opens on the first
+   visible port (reasoning / draft / result)
 
-❌ Orchestrator tools/userPrompt open a card; after Explorer/Composer,
+❌ Orchestrator unmarked tools/userPrompt open a card; after Explorer,
    Orchestrator.reasoning appends into that early card
-✅ Orchestrator(reg) → Explorer → Orchestrator.reasoning
+✅ Orchestrator.draft → Explorer.draft → Orchestrator.reasoning
    ⇒  [Orchestrator, Explorer, Orchestrator]  // stream at bottom
 ```
 
-Non-streaming setup closes. Streaming continues an open visit, or **while-last
-reopens** the last visit when it is the same node (inputs + stream together).
-Streaming after **other** nodes intervene opens a **new** visit.
+Streaming continues an open visit, or **while-last reopens** the last visit
+when it is the same node. Streaming after **other** nodes intervene opens a
+**new** visit. Unmarked plumbing cannot create or keep a visit.
 
 ### 3. Concurrent streaming agents
 
@@ -277,9 +279,8 @@ Classification runs when appending (or during a one-shot snapshot/catalog
 replay). Author roles use exported `RuntimeFeedRole` from `@langflower/runtime`
 (`none | reasoning | progress | draft | tool | shell | result | recovery`):
 
-- **`feed.role: 'none'`** (event or palette) → **omit** — nothing in the feed;
-- unmarked ports (no role) with a real value/error → UI `presentation: 'data'`
-  under that **`portId`** (technical dump; never label the row only as “Data”);
+- **`feed.role: 'none'`** or **no role** (event or palette) → **none** —
+  nothing in the feed;
 - drop pending frames with `value: undefined` or `value: null`
   (wire loading noise; JSON/WS serializes loading as `null`);
 - drop `done`, non-port events, and symbol ports;

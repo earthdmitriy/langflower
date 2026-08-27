@@ -1,4 +1,4 @@
-import { defineReactiveNode } from '@langflower/node-sdk';
+import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
 import { createCrawlContext } from '@langflower/tools/create-crawl-context';
 import { createWebFetch } from '@langflower/tools/create-web-fetch';
 import { runBfsCrawl } from '@langflower/tools/run-bfs-crawl';
@@ -82,66 +82,71 @@ Typical uses:
 		const pages$ = combineInputs([startUrl, ctx], ([rawUrl, ec]) => ({
 			startUrl: String(rawUrl ?? '').trim(),
 			ec,
-		})).pipeValue(
-			mergeMap(({ startUrl: seed, ec }) => {
-				if (seed.length === 0) {
-					return throwError(
-						() => new Error('Crawl requires a non-empty startUrl.'),
+		}))
+			.pipe(withLoading())
+			.pipeValue(
+				mergeMap(({ startUrl: seed, ec }) => {
+					if (seed.length === 0) {
+						return throwError(
+							() =>
+								new Error(
+									'Crawl requires a non-empty startUrl.',
+								),
+						);
+					}
+
+					const hostServices = getRunHostServices(ec);
+					const webFetch = createWebFetch({
+						...(hostServices?.allowedHosts !== undefined
+							? { allowedHosts: hostServices.allowedHosts }
+							: {}),
+					});
+					const crawl = createCrawlContext(ec.projectDir, ec.runId);
+
+					return from(
+						runBfsCrawl({
+							startUrl: seed,
+							maxDepth: normalizeLimit(ec.params.maxDepth, 1, 5),
+							maxPages: normalizeLimit(ec.params.maxPages, 8, 50),
+							sameHostOnly: ec.params.sameHostOnly !== false,
+							timeoutMs: normalizeLimit(
+								ec.params.timeoutMs,
+								30_000,
+								120_000,
+							),
+							maxBytes: normalizeLimit(
+								ec.params.maxBytes,
+								5_000_000,
+								20_000_000,
+							),
+							failureMode: 'skip',
+							enqueueBudget: 'maxPages',
+							webFetch,
+							savePage: crawl.savePage,
+						}).then((crawled) =>
+							crawled.flatMap((page) => {
+								if (!page.ok) {
+									return [];
+								}
+
+								return [
+									{
+										url: page.url,
+										text: page.text,
+										status: page.status,
+										...(page.title !== undefined
+											? { title: page.title }
+											: {}),
+										...(page.savedPath !== undefined
+											? { savedPath: page.savedPath }
+											: {}),
+									},
+								];
+							}),
+						),
 					);
-				}
-
-				const hostServices = getRunHostServices(ec);
-				const webFetch = createWebFetch({
-					...(hostServices?.allowedHosts !== undefined
-						? { allowedHosts: hostServices.allowedHosts }
-						: {}),
-				});
-				const crawl = createCrawlContext(ec.projectDir, ec.runId);
-
-				return from(
-					runBfsCrawl({
-						startUrl: seed,
-						maxDepth: normalizeLimit(ec.params.maxDepth, 1, 5),
-						maxPages: normalizeLimit(ec.params.maxPages, 8, 50),
-						sameHostOnly: ec.params.sameHostOnly !== false,
-						timeoutMs: normalizeLimit(
-							ec.params.timeoutMs,
-							30_000,
-							120_000,
-						),
-						maxBytes: normalizeLimit(
-							ec.params.maxBytes,
-							5_000_000,
-							20_000_000,
-						),
-						failureMode: 'skip',
-						enqueueBudget: 'maxPages',
-						webFetch,
-						savePage: crawl.savePage,
-					}).then((crawled) =>
-						crawled.flatMap((page) => {
-							if (!page.ok) {
-								return [];
-							}
-
-							return [
-								{
-									url: page.url,
-									text: page.text,
-									status: page.status,
-									...(page.title !== undefined
-										? { title: page.title }
-										: {}),
-									...(page.savedPath !== undefined
-										? { savedPath: page.savedPath }
-										: {}),
-								},
-							];
-						}),
-					),
-				);
-			}),
-		);
+				}),
+			);
 
 		return {
 			inputs: [startUrl],

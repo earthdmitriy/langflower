@@ -67,6 +67,7 @@ import { PALETTE_DRAG_MIME } from '../../palette/utils/palette-drag-mime.js';
 import { NodeContentMinSizeService } from '../services/node-content-min-size.service.js';
 import { createBackEdgeAwareOrthogonalRouting } from '../utils/back-edge-aware-orthogonal-routing.js';
 import { getBuiltinOrthogonalRouting } from '../utils/get-builtin-orthogonal-routing.js';
+import { withPreviewDefaultDropPosition } from '../utils/preview-node-default-size.js';
 import { LfEdgeChromeComponent } from './lf-edge-chrome.component.js';
 import { LfNodeComponent, type LfNodeData } from './lf-node.component.js';
 
@@ -473,7 +474,7 @@ export class FlowCanvasComponent {
 
 			this.bridge.raw['editor.addNode.requested'].next({
 				type: nodeType,
-				position,
+				position: withPreviewDefaultDropPosition(nodeType, position),
 			});
 		},
 	} as const;

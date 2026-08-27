@@ -134,8 +134,7 @@ const isRuntimeFeedRole = (role: string | undefined): role is RuntimeFeedRole =>
 	role === 'recovery';
 
 type RolePresentation =
-	| 'omit'
-	| 'data'
+	| 'none'
 	| 'reasoning'
 	| 'progress'
 	| 'draft'
@@ -147,11 +146,8 @@ type RolePresentation =
 const presentationFromRole = (
 	role: RuntimeFeedRole | undefined,
 ): RolePresentation => {
-	if (role === 'none') {
-		return 'omit';
-	}
-	if (role === undefined) {
-		return 'data';
+	if (role === undefined || role === 'none') {
+		return 'none';
 	}
 	return role;
 };
@@ -206,7 +202,7 @@ const withDerivedVisitClose = <T extends PortFrameMeta>(
 const catalogMeta = (
 	event: PortTelemetry,
 	catalog: FeedCatalog,
-): PortFrameMeta | 'omit' => {
+): PortFrameMeta | 'none' => {
 	const [, nodeId, , response] = event;
 	if ('error' in response) {
 		return withClosesPreviousVisit(
@@ -217,8 +213,8 @@ const catalogMeta = (
 	}
 	const resolved = resolveFeedMeta(event, catalog);
 	const presentation = presentationFromRole(resolved.role);
-	if (presentation === 'omit') {
-		return 'omit';
+	if (presentation === 'none') {
+		return 'none';
 	}
 	return withClosesPreviousVisit(
 		withDerivedVisitClose({ presentation }, resolved.streaming),
@@ -329,7 +325,7 @@ const normalizePortFrame = (
 	}
 
 	const meta = catalogMeta(event, catalog);
-	if (meta === 'omit') {
+	if (meta === 'none') {
 		return null;
 	}
 	return { ...base, meta };

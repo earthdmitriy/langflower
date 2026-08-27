@@ -29,7 +29,7 @@ type LlmSessionContext = {
 	) => Promise<'allow' | 'deny'>;
 };
 
-type LlmSessionState<Session, Chunk> = {
+export type LlmSessionState<Session, Chunk> = {
 	readonly history: readonly ChatCompletionMessage[];
 	readonly turn0Done: boolean;
 	readonly feedbackTurns: number;
@@ -37,7 +37,7 @@ type LlmSessionState<Session, Chunk> = {
 	readonly emitted?: Chunk | undefined;
 };
 
-const isBlankTurn = (raw: unknown): boolean =>
+export const isBlankTurn = (raw: unknown): boolean =>
 	raw === null ||
 	raw === undefined ||
 	(typeof raw === 'string' && raw.trim().length === 0);
@@ -148,7 +148,7 @@ const denyMaxFeedbackTurns = <Session, Chunk extends { readonly kind: string }>(
 	);
 };
 
-const runTurnFromState = <
+export const runTurnFromState = <
 	Context extends LlmSessionContext,
 	Session,
 	Chunk extends { readonly kind: string },

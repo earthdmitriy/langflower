@@ -100,6 +100,34 @@ type PortSpec = {
 		| 'recovery';
 	readonly hitl?: boolean;
 	readonly streaming?: boolean;
+	/** Palette `feed: {}` with no role — still omitted. */
+	readonly emptyFeed?: boolean;
+};
+
+const portFeed = (
+	port: PortSpec,
+): {
+	readonly feed?: {
+		readonly role?: PortSpec['role'];
+		readonly streaming?: true;
+	};
+} => {
+	if (port.emptyFeed === true) {
+		return { feed: {} };
+	}
+
+	if (port.role !== undefined || port.streaming === true) {
+		return {
+			feed: {
+				...(port.role !== undefined ? { role: port.role } : {}),
+				...(port.streaming === true
+					? { streaming: true as const }
+					: {}),
+			},
+		};
+	}
+
+	return {};
 };
 
 export const paletteDefinition = (
@@ -129,18 +157,7 @@ export const paletteDefinition = (
 							},
 						}
 					: {}),
-				...(port.role !== undefined || port.streaming === true
-					? {
-							feed: {
-								...(port.role !== undefined
-									? { role: port.role }
-									: {}),
-								...(port.streaming === true
-									? { streaming: true as const }
-									: {}),
-							},
-						}
-					: {}),
+				...portFeed(port),
 			})),
 		outputsConfigs: ports
 			.filter((port) => port.direction === 'out')
@@ -148,18 +165,7 @@ export const paletteDefinition = (
 				dir: 'out',
 				portId: port.portId,
 				wireType: 'any',
-				...(port.role !== undefined || port.streaming === true
-					? {
-							feed: {
-								...(port.role !== undefined
-									? { role: port.role }
-									: {}),
-								...(port.streaming === true
-									? { streaming: true as const }
-									: {}),
-							},
-						}
-					: {}),
+				...portFeed(port),
 			})),
 		bypassPorts: {},
 		emitOncePerActivation: false,

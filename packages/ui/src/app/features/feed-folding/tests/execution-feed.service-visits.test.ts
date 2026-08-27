@@ -9,7 +9,7 @@ import {
 } from './execution-feed.service.fixture';
 
 const concat = paletteDefinition('concat', [
-	{ portId: 'text', direction: 'out' },
+	{ portId: 'text', direction: 'out', role: 'result' },
 ]);
 
 const agent = paletteDefinition('agent', [
@@ -53,7 +53,7 @@ describe('ExecutionFeedService visit reuse', () => {
 		).toEqual(['one', 'two']);
 	});
 
-	it('keeps setup inputs and later streaming on one visit while last', async () => {
+	it('omits unmarked setup inputs and opens the visit on the first visible port', async () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
 
@@ -65,9 +65,7 @@ describe('ExecutionFeedService visit reuse', () => {
 
 		const visits = harness.latestNodes();
 		expect(visits).toHaveLength(1);
-		expect((await readItems(visits[0]!, 'userPrompt'))[0]?.value).toBe(
-			'hi',
-		);
+		expect(await readItems(visits[0]!, 'userPrompt')).toEqual([]);
 		expect((await readItems(visits[0]!, 'reasoning'))[0]?.value).toBe(
 			'think',
 		);
@@ -81,10 +79,7 @@ describe('ExecutionFeedService visit reuse', () => {
 		]);
 
 		harness.raw.runnerPort$.next(
-			inputEvent('orchestrator', 'tools', ['glob']),
-		);
-		harness.raw.runnerPort$.next(
-			inputEvent('orchestrator', 'userPrompt', 'go'),
+			outputEvent('orchestrator', 'result', 'plan'),
 		);
 		harness.raw.runnerPort$.next(
 			outputEvent('explorer', 'draft', 'explore'),
@@ -100,7 +95,7 @@ describe('ExecutionFeedService visit reuse', () => {
 			'orchestrator',
 		]);
 		expect(visits[0]!.visitId).not.toBe(visits[2]!.visitId);
-		expect(await readItems(visits[0]!, 'tools')).toHaveLength(1);
+		expect((await readItems(visits[0]!, 'result'))[0]?.value).toBe('plan');
 		expect(await readItems(visits[0]!, 'reasoning')).toEqual([]);
 		expect((await readItems(visits[2]!, 'reasoning'))[0]?.value).toBe(
 			'think',

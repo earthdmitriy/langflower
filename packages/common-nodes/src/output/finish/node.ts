@@ -1,4 +1,5 @@
 import { defineReactiveNode } from '@langflower/node-sdk';
+import { map } from 'rxjs';
 
 /** Passthrough sink — first output emission stops the run. */
 export const finishNode = defineReactiveNode({
@@ -15,12 +16,19 @@ Wire the final result here so Start/Stop settle instead of hanging on open work.
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {
 		const value = makeInput('value', { name: 'value', required: true });
+		const done$ = value.pipeValue(map(() => 'done'));
 
 		return {
 			inputs: [value],
 			outputs: [
+				configureOutput('done', done$, {
+					wireType: 'string',
+					hidden: true,
+					feed: { role: 'result' },
+				}),
 				configureOutput('value', value, {
 					inferTypeFrom: value,
+					feed: { role: 'none' },
 				}),
 			],
 		};

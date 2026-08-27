@@ -1,10 +1,11 @@
 import {
 	defineReactiveNode,
+	withLoading,
 	EMBED_HANDLE_WIRE_TYPE,
 	type EmbedHandle,
 	type EmbedTextRole,
 } from '@langflower/node-sdk';
-import { distinctUntilChanged, map, pipe, switchMap } from 'rxjs';
+import { distinctUntilChanged, map, switchMap } from 'rxjs';
 import { getRunHostServices } from '../../ai/features/run-host-services.js';
 import { fromEmbedding } from '../from-embedding.js';
 import { resolveEmbeddingProviderModel } from '../resolve-embedding-provider-model.js';
@@ -116,47 +117,44 @@ Uses the Settings default model, or pick one on this node.
 `.trim(),
 	uiSchema: embedPanelUiSchema,
 	bind(ctx, { configureOutput, combineInputs }) {
-		const embed$ = combineInputs([ctx], ([ec]) => ec).pipeValue(
-			pipe(
-				map((ec) => {
-					const host = getRunHostServices(ec);
-					const resolved = resolveEmbeddingProviderModel(
-						ec.params,
-						host,
-					);
-					return {
-						ec,
-						host,
-						key: `${resolved.providerId}/${resolved.model}`,
-						...resolved,
-					};
+		const resolved$ = combineInputs([ctx], ([ec]) => ec).pipeValue(
+			map((ec) => {
+				const host = getRunHostServices(ec);
+				const resolved = resolveEmbeddingProviderModel(ec.params, host);
+				return {
+					ec,
+					host,
+					key: `${resolved.providerId}/${resolved.model}`,
+					...resolved,
+				};
+			}),
+			distinctUntilChanged((left, right) => left.key === right.key),
+		);
+		const embed$ = resolved$.pipe(withLoading()).pipeValue(
+			switchMap(({ host, providerId, model }) =>
+				fromEmbedding(async (runSignal): Promise<EmbedHandle> => {
+					const create = host?.createEmbedding;
+					if (create === undefined) {
+						throw new Error(
+							'OpenAI-compatible embeddings are only available during server workflow runs',
+						);
+					}
+
+					const probe = await create({
+						providerId,
+						model,
+						texts: [prefixForRole('x', 'document')],
+						signal: runSignal,
+					});
+
+					return buildEmbedHandle({
+						create,
+						providerId,
+						model,
+						dim: probe.dim,
+						runSignal,
+					});
 				}),
-				distinctUntilChanged((left, right) => left.key === right.key),
-				switchMap(({ host, providerId, model }) =>
-					fromEmbedding(async (runSignal): Promise<EmbedHandle> => {
-						const create = host?.createEmbedding;
-						if (create === undefined) {
-							throw new Error(
-								'OpenAI-compatible embeddings are only available during server workflow runs',
-							);
-						}
-
-						const probe = await create({
-							providerId,
-							model,
-							texts: [prefixForRole('x', 'document')],
-							signal: runSignal,
-						});
-
-						return buildEmbedHandle({
-							create,
-							providerId,
-							model,
-							dim: probe.dim,
-							runSignal,
-						});
-					}),
-				),
 			),
 		);
 

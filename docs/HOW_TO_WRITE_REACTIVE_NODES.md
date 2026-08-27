@@ -73,6 +73,8 @@ export const gateNode = defineNode({
 - Adapter over `defineReactiveNode` (one reactive runtime).
 - `throw` / rejected Promise → port error.
 - Default `emitOncePerActivation: true`.
+- Each `execute` stamps `{ pending: true }` on outputs (`withLoading` is
+  inside the factory). Authors do not call `withLoading`.
 - Sample: `packages/node-sdk/src/node-factory/define-node/test/samples/gate-node.ts`.
 
 ---
@@ -389,18 +391,31 @@ Attach `hitl: { … }` on the reply input. Patterns:
 
 ## 4. Combining inputs and running work
 
-Prefer this shape for multi-input cycles:
+Prefer this shape for multi-input cycles. **`pipeValue` + `delay` / `from(Promise)`
+does not emit `{ pending: true }` while the work is in flight.** Stamp loading
+on the raw stream first:
 
 ```ts
+import { withLoading } from '@langflower/node-sdk';
+import { concatMap, delay, of } from 'rxjs';
+
 const output$ = combineInputs([value, delayInput], ([inputValue, delayMs]) => ({
 	inputValue,
 	delayMs,
-})).pipeValue(
-	concatMap(({ inputValue, delayMs }) =>
-		of(inputValue).pipe(delay(Number(delayMs ?? 0))),
-	),
-);
+}))
+	.pipe(withLoading())
+	.pipeValue(
+		concatMap(({ inputValue, delayMs }) =>
+			of(inputValue).pipe(delay(Number(delayMs ?? 0))),
+		),
+	);
 ```
+
+`pipeValue` stays for **sync** maps and demux (`filter` / `map` of tagged
+sessions). Async waits use `.pipe(withLoading()).pipeValue(...)` so canvas
+chrome sees pending until the first success. Queued LLM turns are an
+exception: `pipeValue` is `switchMap` and would cancel an in-flight turn —
+use `createLlmSessionCycle$` (`statefulObservable` + `concatMap` loader).
 
 ### Multi-output paced sessions (one counter, several outs)
 
@@ -483,12 +498,12 @@ configureOutput('value', output$, {
 });
 ```
 
-| Meta                   | When                                                                                                                                                                                                                                                 |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `wireType`             | Fixed type on the canvas (named peer contracts — not generic `json`)                                                                                                                                                                                 |
-| `inferTypeFrom`        | Passthrough — type follows an input                                                                                                                                                                                                                  |
-| `feed.role`            | Sidebar work-log role (`reasoning`, `progress`, `draft`, `result`, …). **`result`** = conversation bubble (one row per emit). **`reasoning`** = LLM thinking stream. **`progress`** = same growing layout; caption PROGRESS (ingest/crawl/job logs). |
-| `feed.streaming: true` | Chunks append in the feed UI **and** the visit stays open (interleaved streams). Omit it so the frame **closes the visit**; later same-node frames while last still append.                                                                          |
+| Meta                   | When                                                                                                                                                                                                                                                                                                                    |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wireType`             | Fixed type on the canvas (named peer contracts — not generic `json`)                                                                                                                                                                                                                                                    |
+| `inferTypeFrom`        | Passthrough — type follows an input                                                                                                                                                                                                                                                                                     |
+| `feed.role`            | Sidebar work-log role (`reasoning`, `progress`, `draft`, `result`, …). **Omit `feed` or use `'none'`** → hidden (not a muted `data` row). **`result`** = conversation bubble (one row per emit). **`reasoning`** = LLM thinking stream. **`progress`** = same growing layout; caption PROGRESS (ingest/crawl/job logs). |
+| `feed.streaming: true` | Chunks append in the feed UI **and** the visit stays open (interleaved streams). Omit it so the frame **closes the visit**; later same-node frames while last still append.                                                                                                                                             |
 
 **Progress / log lines** (ingest, crawlers, long jobs): use
 `{ role: 'progress', streaming: true }` — same growing layout as reasoning,
@@ -525,7 +540,26 @@ progress$.next(`(${pad(i)}/${pad(total)}) ${relPath} — ${label}\n`);
 (0001/9999) docs/long-name.md — Intro
 ```
 
-`finish` / plumbing that must not appear in the work log: `feed: { role: 'none' }`.
+Omit `feed`, or stamp `feed: { role: 'none' }`, to hide a port. Catalog
+**Finish** (`common-finish`) is not a plumbing port: it emits a hidden
+`done` output with `{ role: 'result' }` whose body is the literal `done`
+(the `value` passthrough stays `'none'`). A `finish` **port** on other
+nodes that must not appear in the work log stays `'none'` or unmarked.
+
+**Waiting work (pending on outputs).** Delay, files, HTTP, MCP, and HITL Review
+Gate `response` / `feedback` must emit `{ pending: true }` on **outputs** when
+work starts. Use `.pipe(withLoading()).pipeValue(...)` — not `pipeValue` +
+`delay` / `from(Promise)` alone, which only delays success.
+Do **not** wrap a token/chunk stream as `statefulObservable({ input: chunks$ })`
+or put `withLoading()` on that stream: loading re-fires on every token and
+`pipeValue` fans it to every demux port.
+
+HITL Review Gate: `preview` stays a passthrough; `response` and `feedback` stay
+pending after `result` until Approve / Request changes. Chat Input does not
+stamp pending (the wait lives in the composer). Agents stamp pending **once per
+turn**, not per token — `createLlmSessionCycle$` uses `statefulObservable` with
+`concatMap` so ticks queue. Do not flatten turns with `pipeValue`: it is
+`switchMap` and would cancel an in-flight turn when the next tick arrives.
 
 **No fake events / no silent refusals:** do not emit placeholder values on
 feed/observability ports (`''`, synthetic config dumps, idle `of(null)`) just

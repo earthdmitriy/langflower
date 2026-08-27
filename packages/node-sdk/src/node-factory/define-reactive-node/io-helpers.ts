@@ -6,9 +6,12 @@ import type {
 } from './port-meta.js';
 export type { FeedPortMeta, FeedRole } from './port-meta.js';
 import {
+	isSuccess,
 	statefulConnection,
 	StatefulObservable,
+	type ResponseWithStatus,
 } from '@rx-evo/stateful-observable';
+import { concat, concatMap, of, type OperatorFunction } from 'rxjs';
 import type { HitlInputConfig } from './hitl-config.js';
 
 /** One choice for the `select` / `multiselect` / `radio` inline kinds. */
@@ -253,3 +256,23 @@ export type OutputConfig = ReturnType<typeof configureOutput>;
 
 /** Serializable descriptor for one output port — `OutputConfig['meta']`. */
 export type OutputPortMeta = MetaFromStatefulObservable<OutputConfig>;
+
+const LOADING = {
+	state: Symbol.for('@rx-evo/stateful-observable/loading'),
+};
+
+/**
+ * Stamp `{ pending: true }` on each new success, then re-emit that success.
+ * Use on the raw SO stream **before** async `pipeValue` work:
+ *
+ * `combineInputs(...).pipe(withLoading()).pipeValue(concatMap(delay))`
+ *
+ * `pipeValue` + `delay` / `from(Promise)` does **not** create loading.
+ * Do not wrap token/chunk streams (re-pends every emit through demux).
+ */
+export const withLoading = <T>(): OperatorFunction<T, T> =>
+	concatMap((response) =>
+		isSuccess(response as ResponseWithStatus<T>)
+			? concat(of(LOADING as T), of(response))
+			: of(response),
+	);

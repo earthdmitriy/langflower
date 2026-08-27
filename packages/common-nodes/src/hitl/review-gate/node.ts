@@ -1,5 +1,5 @@
-import { defineReactiveNode } from '@langflower/node-sdk';
-import { filter, map, pipe, switchMap, take } from 'rxjs';
+import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
+import { filter, map, switchMap, take } from 'rxjs';
 
 /** Review gate: separate HITL inputs for approve vs request-changes. */
 export const hitlReviewGateNode = defineReactiveNode({
@@ -51,15 +51,24 @@ Typical uses:
 			feed: { role: 'none' },
 		});
 
-		const response$ = approve.pipeValue(
-			pipe(
-				filter((approved) => approved === true),
-				switchMap(() => result.value$.pipe(take(1))),
-				map((reviewed) => reviewed ?? ''),
+		const response$ = result.pipe(withLoading()).pipeValue(
+			switchMap((reviewed: string) =>
+				approve.value$.pipe(
+					filter((approved) => approved === true),
+					take(1),
+					map(() => reviewed ?? ''),
+				),
 			),
 		);
 
-		const feedback$ = requestChanges.pipeValue(map((text) => text ?? ''));
+		const feedback$ = result.pipe(withLoading()).pipeValue(
+			switchMap(() =>
+				requestChanges.value$.pipe(
+					take(1),
+					map((text) => text ?? ''),
+				),
+			),
+		);
 
 		return {
 			inputs: [result, approve, requestChanges],

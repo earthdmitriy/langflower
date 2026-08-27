@@ -1,4 +1,4 @@
-import { defineReactiveNode } from '@langflower/node-sdk';
+import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
 import { createProjectFilesContext } from '@langflower/tools/create-project-files-context';
 import { from, mergeMap, throwError } from 'rxjs';
 import { getRunHostServices } from '../../ai/features/run-host-services.js';
@@ -37,23 +37,28 @@ Pulse **update** to read the same path again after it changes on disk.
 				path: String(rawPath ?? '').trim(),
 				ec,
 			}),
-		).pipeValue(
-			mergeMap(({ path: filePath, ec }) => {
-				if (filePath.length === 0) {
-					return throwError(
-						() => new Error('Read File requires a non-empty path.'),
-					);
-				}
+		)
+			.pipe(withLoading())
+			.pipeValue(
+				mergeMap(({ path: filePath, ec }) => {
+					if (filePath.length === 0) {
+						return throwError(
+							() =>
+								new Error(
+									'Read File requires a non-empty path.',
+								),
+						);
+					}
 
-				const denyPaths = getRunHostServices(ec)?.denyPaths;
-				const files = createProjectFilesContext({
-					projectRoot: ec.projectDir,
-					...(denyPaths !== undefined ? { denyPaths } : {}),
-				});
+					const denyPaths = getRunHostServices(ec)?.denyPaths;
+					const files = createProjectFilesContext({
+						projectRoot: ec.projectDir,
+						...(denyPaths !== undefined ? { denyPaths } : {}),
+					});
 
-				return from(files.read(filePath));
-			}),
-		);
+					return from(files.read(filePath));
+				}),
+			);
 
 		return {
 			inputs: [pathInput, update],

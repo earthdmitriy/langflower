@@ -1,4 +1,4 @@
-import { defineReactiveNode } from '@langflower/node-sdk';
+import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
 import { createWebFetch } from '@langflower/tools/create-web-fetch';
 import { from, map, mergeMap, throwError } from 'rxjs';
 import { htmlToText } from '@langflower/tools/html';
@@ -57,45 +57,51 @@ Typical uses:
 		const fetched$ = combineInputs([url, ctx], ([rawUrl, ec]) => ({
 			rawUrl: String(rawUrl ?? '').trim(),
 			ec,
-		})).pipeValue(
-			mergeMap(({ rawUrl, ec }) => {
-				if (rawUrl.length === 0) {
-					return throwError(
-						() => new Error('Fetch URL requires a non-empty url.'),
+		}))
+			.pipe(withLoading())
+			.pipeValue(
+				mergeMap(({ rawUrl, ec }) => {
+					if (rawUrl.length === 0) {
+						return throwError(
+							() =>
+								new Error(
+									'Fetch URL requires a non-empty url.',
+								),
+						);
+					}
+
+					const allowedHosts = getRunHostServices(ec)?.allowedHosts;
+					const webFetch = createWebFetch({
+						...(allowedHosts !== undefined ? { allowedHosts } : {}),
+					});
+
+					const timeoutMs = Number(ec.params.timeoutMs ?? 30_000);
+					const maxBytes = Number(ec.params.maxBytes ?? 5_000_000);
+
+					return from(
+						webFetch({
+							url: rawUrl,
+							timeoutMs,
+							maxBytes,
+						}),
+					).pipe(
+						map((result): FetchedPage => {
+							if (!result.ok && result.body.length === 0) {
+								throw new Error(
+									result.error ??
+										`Fetch failed for ${rawUrl}`,
+								);
+							}
+
+							return {
+								html: result.body,
+								text: htmlToText(result.body),
+								status: result.status,
+							};
+						}),
 					);
-				}
-
-				const allowedHosts = getRunHostServices(ec)?.allowedHosts;
-				const webFetch = createWebFetch({
-					...(allowedHosts !== undefined ? { allowedHosts } : {}),
-				});
-
-				const timeoutMs = Number(ec.params.timeoutMs ?? 30_000);
-				const maxBytes = Number(ec.params.maxBytes ?? 5_000_000);
-
-				return from(
-					webFetch({
-						url: rawUrl,
-						timeoutMs,
-						maxBytes,
-					}),
-				).pipe(
-					map((result): FetchedPage => {
-						if (!result.ok && result.body.length === 0) {
-							throw new Error(
-								result.error ?? `Fetch failed for ${rawUrl}`,
-							);
-						}
-
-						return {
-							html: result.body,
-							text: htmlToText(result.body),
-							status: result.status,
-						};
-					}),
-				);
-			}),
-		);
+				}),
+			);
 
 		return {
 			inputs: [url],

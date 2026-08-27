@@ -1,4 +1,4 @@
-import { defineReactiveNode } from '@langflower/node-sdk';
+import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
 import { createProjectFilesContext } from '@langflower/tools/create-project-files-context';
 import { from, map, mergeMap, throwError } from 'rxjs';
 import { getRunHostServices } from '../../ai/features/run-host-services.js';
@@ -48,35 +48,37 @@ Typical uses:
 				content: String(rawContent ?? ''),
 				ec,
 			}),
-		).pipeValue(
-			mergeMap(
-				({
-					path: filePath,
-					delimiter: fileDelimiter,
-					content: fileContent,
-					ec,
-				}) => {
-					if (filePath.length === 0) {
-						return throwError(
-							() =>
-								new Error(
-									'Append File requires a non-empty path.',
-								),
-						);
-					}
+		)
+			.pipe(withLoading())
+			.pipeValue(
+				mergeMap(
+					({
+						path: filePath,
+						delimiter: fileDelimiter,
+						content: fileContent,
+						ec,
+					}) => {
+						if (filePath.length === 0) {
+							return throwError(
+								() =>
+									new Error(
+										'Append File requires a non-empty path.',
+									),
+							);
+						}
 
-					const denyPaths = getRunHostServices(ec)?.denyPaths;
-					const files = createProjectFilesContext({
-						projectRoot: ec.projectDir,
-						...(denyPaths !== undefined ? { denyPaths } : {}),
-					});
+						const denyPaths = getRunHostServices(ec)?.denyPaths;
+						const files = createProjectFilesContext({
+							projectRoot: ec.projectDir,
+							...(denyPaths !== undefined ? { denyPaths } : {}),
+						});
 
-					return from(
-						files.append(filePath, fileContent, fileDelimiter),
-					).pipe(map(() => filePath));
-				},
-			),
-		);
+						return from(
+							files.append(filePath, fileContent, fileDelimiter),
+						).pipe(map(() => filePath));
+					},
+				),
+			);
 
 		return {
 			inputs: [pathInput, delimiter, content],

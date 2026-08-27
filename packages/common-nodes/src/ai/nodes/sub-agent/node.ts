@@ -16,6 +16,7 @@ import { randomUUID } from 'node:crypto';
 import {
 	catchError,
 	concat,
+	concatMap,
 	filter,
 	firstValueFrom,
 	map,
@@ -23,12 +24,11 @@ import {
 	Observable,
 	of,
 	Subject,
-	switchMap,
 	take,
 	tap,
-	timeout,
 	TimeoutError,
 } from 'rxjs';
+import { statefulObservable } from '@rx-evo/stateful-observable';
 import { llmPanelUiSchema } from '../../features/ui-schema/llm-panel-ui-schema.js';
 import { llmCompactionUiSchema } from '../../features/ui-schema/llm-compaction-ui-schema.js';
 import { llmRecoveryUiSchema } from '../../features/ui-schema/llm-recovery-ui-schema.js';
@@ -366,6 +366,35 @@ const runSubAgentTurn = (
 	);
 };
 
+/** Wall-clock until the inner completes — not `timeout({ first })`, which
+ *  is satisfied by `historySync` and would never abort a hung generator. */
+const withInvokeDeadline = <T>(
+	source: Observable<T>,
+	timeoutMs: number,
+): Observable<T> =>
+	new Observable<T>((subscriber) => {
+		const handle = setTimeout(() => {
+			subscriber.error(new TimeoutError());
+		}, timeoutMs);
+		const inner = source.subscribe({
+			next: (value) => {
+				subscriber.next(value);
+			},
+			error: (err: unknown) => {
+				clearTimeout(handle);
+				subscriber.error(err);
+			},
+			complete: () => {
+				clearTimeout(handle);
+				subscriber.complete();
+			},
+		});
+		return () => {
+			clearTimeout(handle);
+			inner.unsubscribe();
+		};
+	});
+
 const parseInvokeTurn = (
 	raw: unknown,
 	skillIds: readonly string[],
@@ -451,7 +480,10 @@ The specialist streams in its own work-log card. Set name, role, and skills on t
 			defaultValue: '',
 		});
 
-		const chunks$ = new Subject<SubAgentChunk>();
+		const invoke$ = new Subject<{
+			readonly context: SubAgentContext;
+			readonly turn: InvokeTurn;
+		}>();
 		let latestContext: SubAgentContext | undefined;
 		let history: readonly ChatCompletionMessage[] = [];
 		let invokeTail: Promise<void> = Promise.resolve();
@@ -535,9 +567,45 @@ The specialist streams in its own work-log card. Set name, role, and skills on t
 			},
 		);
 
-		// Inner chunks stay values. `statefulObservable({ input: chunks$ })`
-		// re-emits loading on every token; pipeValue fans it to all demux ports.
-		const cycle$ = context$.pipeValue(switchMap(() => chunks$));
+		// Loader input is invoke start, not the chunk Subject: wrapping
+		// chunks$ would re-pending on every token (demux fans loading).
+		const cycle$ = statefulObservable({
+			input: invoke$,
+			mapOperator: concatMap,
+			loader: ({ context, turn }) => {
+				history = seedInvokeHistory(history, context);
+				const timeoutMs = context.recovery.subagentTimeoutMs;
+				const failTimedOut = (text: string) =>
+					of(
+						{ kind: 'response' as const, text },
+						{
+							kind: 'invokeDone' as const,
+							requestId: turn.requestId,
+							text,
+						},
+					);
+				const inner$ = runSubAgentTurn(context, turn, history).pipe(
+					tap((chunk) => {
+						history = reduceInvokeHistory(history, chunk);
+					}),
+				);
+				if (timeoutMs <= 0) {
+					return inner$;
+				}
+
+				return withInvokeDeadline(inner$, timeoutMs).pipe(
+					catchError((error: unknown) =>
+						failTimedOut(
+							error instanceof TimeoutError
+								? `Error: Sub-Agent timed out after ${timeoutMs}ms.`
+								: error instanceof Error
+									? `Error: ${error.message}`
+									: 'Error: Sub-Agent turn failed.',
+						),
+					),
+				);
+			},
+		});
 
 		const enqueueInvoke = (
 			announced: SubAgentContext,
@@ -554,43 +622,25 @@ The specialist streams in its own work-log card. Set name, role, and skills on t
 			}
 
 			const run = (): Promise<string> => {
-				history = seedInvokeHistory(history, context);
-				const timeoutMs = context.recovery.subagentTimeoutMs;
-				let done$ = runSubAgentTurn(context, parsed.turn, history).pipe(
-					tap((chunk) => {
-						history = reduceInvokeHistory(history, chunk);
-						chunks$.next(chunk);
-					}),
-					filter(
-						(
-							chunk,
-						): chunk is Extract<
-							SubAgentChunk,
-							{ kind: 'invokeDone' }
-						> => chunk.kind === 'invokeDone',
-					),
-					map((chunk) => chunk.text),
-					take(1),
-				);
-
-				if (timeoutMs > 0) {
-					done$ = done$.pipe(
-						timeout({ first: timeoutMs }),
-						catchError((error: unknown) =>
-							of(
-								error instanceof TimeoutError
-									? `Error: Sub-Agent timed out after ${timeoutMs}ms.`
-									: error instanceof Error
-										? `Error: ${error.message}`
-										: 'Error: Sub-Agent turn failed.',
-							),
+				const result = firstValueFrom(
+					cycle$.value$.pipe(
+						filter(
+							(
+								chunk,
+							): chunk is Extract<
+								SubAgentChunk,
+								{ kind: 'invokeDone' }
+							> =>
+								chunk.kind === 'invokeDone' &&
+								chunk.requestId === parsed.turn.requestId,
 						),
-					);
-				}
-
-				return firstValueFrom(done$, {
-					defaultValue: EMPTY_INVOKE_RESULT,
-				});
+						map((chunk) => chunk.text),
+						take(1),
+					),
+					{ defaultValue: EMPTY_INVOKE_RESULT },
+				);
+				invoke$.next({ context, turn: parsed.turn });
+				return result;
 			};
 
 			const next = invokeTail.then(run, run);

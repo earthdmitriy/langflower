@@ -37,16 +37,16 @@ the public `@langflower/node-sdk` import path.
 
 ## Scope (current slice)
 
-| Symbol                         | Role                                                                     |
-| ------------------------------ | ------------------------------------------------------------------------ |
-| `defineNode`                   | Simple sync/Promise `execute` — default custom-node path (no RxJS)       |
-| `defineReactiveNode`           | Author factory — probe `bind` for metas + `getInstance()` per live graph |
-| `defineToolRegistrations`      | Purpose utility — emit `ToolHandle` packs for LLM `tools` ports          |
-| `makeInput`, `configureOutput` | Exported pure IO helpers (`io-helpers.ts`)                               |
-| `ExecutionContext<UI, Caps>`   | Identity + panel; Caps default `{}`                                      |
-| `ToolHandle`                   | Wire payload for agent tools                                             |
-| `EmbedHandle`                  | Canvas wire payload for batch embeddings (not agent inventory)           |
-| `ToolHandlerContext`           | Identity only (`projectDir` / `runId`) — see boundary below              |
+| Symbol                                        | Role                                                                     |
+| --------------------------------------------- | ------------------------------------------------------------------------ |
+| `defineNode`                                  | Simple sync/Promise `execute` — default custom-node path (no RxJS)       |
+| `defineReactiveNode`                          | Author factory — probe `bind` for metas + `getInstance()` per live graph |
+| `defineToolRegistrations`                     | Purpose utility — emit `ToolHandle` packs for LLM `tools` ports          |
+| `makeInput`, `configureOutput`, `withLoading` | Exported pure IO helpers (`io-helpers.ts`)                               |
+| `ExecutionContext<UI, Caps>`                  | Identity + panel; Caps default `{}`                                      |
+| `ToolHandle`                                  | Wire payload for agent tools                                             |
+| `EmbedHandle`                                 | Canvas wire payload for batch embeddings (not agent inventory)           |
+| `ToolHandlerContext`                          | Identity only (`projectDir` / `runId`) — see boundary below              |
 
 | Subpath    | Symbols                                                                   |
 | ---------- | ------------------------------------------------------------------------- |
@@ -171,7 +171,8 @@ flowchart LR
    runs until workflow rematerialize or process exit — see
    [REACTIVE_NODES](../../docs/REACTIVE_NODES.md) § Instance lifetime.
 
-`defineNode` is an adapter: it builds that `bind` for you from `execute`.
+`defineNode` is an adapter: it builds that `bind` for you from `execute` and
+stamps pending via `withLoading` before the Promise/`execute` work.
 
 ## Reactive `bind()` rules
 
@@ -179,16 +180,16 @@ flowchart LR
 
 **Unit of work is `@rx-evo/stateful-observable`** — not raw RxJS `Observable`.
 
-| Use                                                                       | Do not use                                                                                 |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `connection.pipeValue(map(...))`                                          | `statefulObservable({ input: connection.value$, loader: (v) => of(...) })` for simple maps |
-| `configureOutput(..., stream, { inferTypeFrom })`                         | identity `statefulObservable` passthrough                                                  |
-| `statefulObservable({ input, loader })` when loader is async / multi-step | `new Observable(...)`, bare `of(...)` on outputs                                           |
-| Stream **error** for visible refusals (`throwError` / failing loader)     | Fake `of('')` / `of(null)` to clear loading; bare `EMPTY` on policy stops                  |
-| `makeInput<T>(portId, config)` from io-helpers                            | vanilla `Subject` / manual relays (except test harness)                                    |
-| `combineInputs([…], map).pipeValue(...)` + `defaultValue` on optionals    | raw `combineLatest` + `startWith` in bind                                                  |
-| `ec.params` via `ctx` in `combineInputs`                                  | sync `params` at define time; host I/O via tools/`create*` inside specialized nodes        |
-| `uiSchema.byField(...).default` (static fallback)                         | `uiSchema.value$`                                                                          |
+| Use                                                                       | Do not use                                                                                  |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `connection.pipeValue(map(...))`                                          | `statefulObservable({ input: connection.value$, loader: (v) => of(...) })` for simple maps  |
+| `configureOutput(..., stream, { inferTypeFrom })`                         | identity `statefulObservable` passthrough                                                   |
+| `statefulObservable({ input, loader })` when loader is async / multi-step | `new Observable(...)`, bare `of(...)` on outputs                                            |
+| Stream **error** for visible refusals (`throwError` / failing loader)     | Fake `of('')` / `of(null)` to clear loading; bare `EMPTY` on policy stops                   |
+| `makeInput<T>(portId, config)` from io-helpers                            | vanilla `Subject` / manual relays (except test harness)                                     |
+| `combineInputs([…], map).pipe(withLoading()).pipeValue(...)` for waits    | raw `combineLatest` + `startWith` in bind; `pipeValue` + delay/`from` without `withLoading` |
+| `ec.params` via `ctx` in `combineInputs`                                  | sync `params` at define time; host I/O via tools/`create*` inside specialized nodes         |
+| `uiSchema.byField(...).default` (static fallback)                         | `uiSchema.value$`                                                                           |
 
 `StatefulObservable` status (inactive / loading / value / **error**) is part of
 the dataflow — see [LLM_NODES.md](../../docs/LLM_NODES.md) § Port events.

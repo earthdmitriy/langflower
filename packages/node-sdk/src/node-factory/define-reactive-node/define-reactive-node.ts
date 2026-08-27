@@ -27,6 +27,7 @@ export type {
 	HitlUploadedFile,
 } from './hitl-config.js';
 export {
+	withLoading,
 	configureOutput,
 	DEFAULT_MULTILINE_MIN_HEIGHT_PX,
 	InlineConfig,

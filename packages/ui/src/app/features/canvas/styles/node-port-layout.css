@@ -100,6 +100,20 @@
 	overflow: hidden;
 }
 
+/*
+ * Preview payload must not become min-content (that grew the node toward
+ * max-height: 10rem). Scroll inside leftover height; measure uses the 16px
+ * --lf-multiline-min floor.
+ */
+:host.lf-port-row-host--grow.lf-port-row-host--preview,
+:host.lf-port-row-host--grow.lf-port-row-host--preview .lf-port-row-wrapper,
+:host.lf-port-row-host--grow.lf-port-row-host--preview .lf-port-row__inline,
+:host.lf-port-row-host--grow.lf-port-row-host--preview
+	.lf-port-row__inline
+	lf-inline-field {
+	min-height: 0;
+}
+
 /**
  * Node chrome cascade (same specificity → last wins):
  * 1. CanvasNodeChromeStatus (`--pending` / `--value` / `--error` / `--hitl`)

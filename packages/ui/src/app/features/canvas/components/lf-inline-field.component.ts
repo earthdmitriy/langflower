@@ -262,7 +262,7 @@ function sameValue(a: unknown, b: unknown): boolean {
 			}
 			@case ('preview-markdown') {
 				<div
-					class="lf-inline-preview lf-scroll prose prose-xs max-w-none dark:prose-invert"
+					class="lf-inline-preview lf-scroll prose prose-xs max-w-full dark:prose-invert"
 					[innerHTML]="previewHtml()"
 				></div>
 			}
@@ -357,17 +357,62 @@ function sameValue(a: unknown, b: unknown): boolean {
 		}
 		.lf-inline-preview {
 			width: 100%;
+			max-width: 100%;
 			min-height: 1rem;
 			max-height: 10rem;
 			overflow-x: hidden;
 			overflow-y: auto;
+			overflow-wrap: anywhere;
 			border-radius: 0.25rem;
 			padding: 0.125rem 0.5rem;
 			font-size: 10px;
-			color: rgb(100 116 139);
+			color: rgb(24 24 27);
 			white-space: pre-wrap;
 			word-break: break-word;
 			box-sizing: border-box;
+			--tw-prose-body: rgb(24 24 27);
+			--tw-prose-headings: rgb(24 24 27);
+			--tw-prose-bold: rgb(24 24 27);
+			--tw-prose-links: rgb(24 24 27);
+			--tw-prose-counters: rgb(24 24 27);
+			--tw-prose-bullets: rgb(24 24 27);
+			--tw-prose-quotes: rgb(24 24 27);
+			--tw-prose-captions: rgb(63 63 70);
+			--tw-prose-code: rgb(24 24 27);
+			--tw-prose-pre-code: rgb(24 24 27);
+			--tw-prose-th-borders: rgb(212 212 216);
+			--tw-prose-td-borders: rgb(228 228 231);
+		}
+		:host-context([data-theme='dark']) .lf-inline-preview {
+			color: rgb(244 244 245);
+			--tw-prose-body: rgb(244 244 245);
+			--tw-prose-headings: rgb(244 244 245);
+			--tw-prose-bold: rgb(244 244 245);
+			--tw-prose-links: rgb(244 244 245);
+			--tw-prose-counters: rgb(244 244 245);
+			--tw-prose-bullets: rgb(244 244 245);
+			--tw-prose-quotes: rgb(244 244 245);
+			--tw-prose-captions: rgb(212 212 216);
+			--tw-prose-code: rgb(244 244 245);
+			--tw-prose-pre-code: rgb(244 244 245);
+			--tw-prose-th-borders: rgb(63 63 70);
+			--tw-prose-td-borders: rgb(63 63 70);
+		}
+		:host.lf-inline-field--fill .lf-inline-preview {
+			flex: 1 1 auto;
+			height: 100%;
+			min-height: 1rem;
+			max-height: none;
+			min-width: 0;
+			max-width: 100%;
+			overflow-x: hidden;
+			overflow-y: auto;
+		}
+		:host ::ng-deep .lf-inline-preview img,
+		:host ::ng-deep .lf-inline-preview pre,
+		:host ::ng-deep .lf-inline-preview table,
+		:host ::ng-deep .lf-inline-preview code {
+			max-width: 100%;
 		}
 		.lf-inline-preview--code {
 			font-family: monospace;

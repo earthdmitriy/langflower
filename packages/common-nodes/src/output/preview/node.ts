@@ -35,7 +35,7 @@ Typical uses:
 			name: 'text',
 			wireType: 'string',
 			required: true,
-			inline: 'preview',
+			inline: 'preview-markdown',
 		});
 		const output$ = text.pipeValue(map(formatPreviewText));
 
@@ -44,6 +44,7 @@ Typical uses:
 			outputs: [
 				configureOutput('text', output$, {
 					inferTypeFrom: text,
+					feed: { role: 'result' },
 				}),
 			],
 		};

@@ -17,12 +17,28 @@ import { WorkflowExecutionService } from '../../../services/workflow-execution.s
 import { valuePulseActive$ } from '../utils/value-pulse-active.js';
 import { LfInlineFieldComponent } from './lf-inline-field.component';
 
+const PREVIEW_PANE_FLOOR_PX = 16;
+
+const isPreviewInline = (config: InlineConfig | null): boolean => {
+	if (config === null) {
+		return false;
+	}
+
+	const kind = typeof config === 'string' ? config : config.type;
+	return (
+		kind === 'preview' ||
+		kind === 'preview-markdown' ||
+		kind === 'preview-code'
+	);
+};
+
 @Component({
 	selector: 'lf-node-port-row',
 	standalone: true,
 	host: {
 		class: 'lf-port-row-host',
 		'[class.lf-port-row-host--grow]': 'growFlex() > 0',
+		'[class.lf-port-row-host--preview]': 'previewInline()',
 		'[style.--lf-inline-flex]': 'growFlex()',
 		'[style.--lf-multiline-min.px]': 'multilineMinHeightPx()',
 	},
@@ -143,9 +159,22 @@ export class LfNodePortRowComponent {
 		return config === null ? null : resolveMultilineInlineLayout(config);
 	});
 
-	readonly growFlex = computed(() => this.multilineLayout()?.flex ?? 0);
+	readonly previewInline = computed(() => isPreviewInline(this.inline()));
 
-	readonly multilineMinHeightPx = computed(
-		() => this.multilineLayout()?.minHeightPx,
-	);
+	readonly growFlex = computed(() => {
+		const multiline = this.multilineLayout()?.flex ?? 0;
+		if (multiline > 0) {
+			return multiline;
+		}
+
+		return this.previewInline() ? 1 : 0;
+	});
+
+	readonly multilineMinHeightPx = computed(() => {
+		if (this.previewInline()) {
+			return PREVIEW_PANE_FLOOR_PX;
+		}
+
+		return this.multilineLayout()?.minHeightPx;
+	});
 }

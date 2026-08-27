@@ -285,10 +285,36 @@ describe('FlowCanvasComponent', () => {
 		} as unknown as DragEvent);
 
 		expect(spy).toHaveBeenCalledOnce();
+		expect(spy.mock.calls[0]?.[0]).toEqual({
+			type: 'common-constant',
+			position: {
+				x: expect.any(Number),
+				y: expect.any(Number),
+			},
+		});
+	});
+
+	it('drops common-preview with a 320×280 size lock', () => {
+		const spy = vi.spyOn(raw['editor.addNode.requested'], 'next');
+
+		const dt = new DataTransfer();
+		dt.setData(DRAG_MIME, 'common-preview');
+
+		canvas.hostHandlers.handleDrop({
+			dataTransfer: dt,
+			preventDefault: vi.fn(),
+			stopPropagation: vi.fn(),
+			clientX: 100,
+			clientY: 200,
+		} as unknown as DragEvent);
+
 		expect(spy).toHaveBeenCalledWith(
 			expect.objectContaining({
-				type: 'common-constant',
-				position: expect.objectContaining({ x: expect.any(Number) }),
+				type: 'common-preview',
+				position: expect.objectContaining({
+					width: 320,
+					height: 280,
+				}),
 			}),
 		);
 	});
