@@ -2,8 +2,8 @@
 export const PREVIEW_NODE_TYPE = 'common-preview';
 
 /** Default canvas box — locks mode B so payload cannot grow width. */
-export const PREVIEW_DEFAULT_WIDTH_PX = 320;
-export const PREVIEW_DEFAULT_HEIGHT_PX = 280;
+const PREVIEW_DEFAULT_WIDTH_PX = 320;
+const PREVIEW_DEFAULT_HEIGHT_PX = 280;
 
 export const previewNodeDefaultSize = {
 	width: PREVIEW_DEFAULT_WIDTH_PX,

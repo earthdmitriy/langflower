@@ -12,6 +12,7 @@ import { langflowerToolsNode } from './node.js';
 const invokeCompile = async (
 	instance: ReturnType<typeof langflowerToolsNode.getInstance>,
 	agentCtx: object,
+	args: Record<string, unknown> = {},
 ): Promise<string> => {
 	const tools = (await firstValueFrom(
 		instance.outputs.tools.value$,
@@ -20,7 +21,7 @@ const invokeCompile = async (
 
 	expect(handle).toBeDefined();
 	return handle!.invoke(
-		{},
+		args,
 		agentCtx as { projectDir: string; runId: string },
 	);
 };
@@ -85,6 +86,33 @@ describe('common-langflower-tools', () => {
 		expect(text).toContain('status: partial');
 		expect(text).toContain('nodeTypes: fixture-ok');
 		expect(text).toContain('- echo-pack: Typecheck failed');
+	});
+
+	it('passes force on the bus when the tool argument is true', async () => {
+		const requestLangflowerBus = vi.fn(async () => ({
+			status: 'ok',
+			nodes: [],
+			errors: [],
+		}));
+		const instance = langflowerToolsNode.getInstance();
+		seedNodeCtx(
+			instance,
+			attachRunHostServices(
+				{ projectDir: '/tmp/p', runId: 'run-1' },
+				{ requestLangflowerBus },
+			),
+		);
+
+		await invokeCompile(
+			instance,
+			{ projectDir: '/tmp/agent', runId: 'agent-run' },
+			{ force: true },
+		);
+
+		expect(requestLangflowerBus).toHaveBeenCalledWith(
+			'customPalette.update.requested',
+			{ force: true },
+		);
 	});
 
 	it('ignores requestLangflowerBus on agent toolCtx', async () => {

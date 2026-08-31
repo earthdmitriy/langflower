@@ -1,5 +1,8 @@
 import { waitBusEvent } from '@langflower/shared/langflower-ws-waits';
-import type { CustomPaletteSnapshotPayload } from '@langflower/shared/langflower.js';
+import type {
+	CustomPaletteSnapshotPayload,
+	CustomPaletteUpdateRequestedPayload,
+} from '@langflower/shared/langflower.js';
 import type { LangflowerBusRequest } from '@langflower/common-nodes/ai/run-host-services';
 import type { LangflowerBridge } from './langflower-bridge.types.js';
 
@@ -41,7 +44,7 @@ export const createLangflowerToolsRpc = (
 				: {};
 		bridge.injectInbound(
 			intent,
-			body as Record<string, never>,
+			body as CustomPaletteUpdateRequestedPayload,
 			'langflower-tools',
 		);
 		return resultPromise;

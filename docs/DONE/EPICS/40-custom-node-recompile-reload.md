@@ -98,7 +98,9 @@ Stable paths exist so compiled bundles can be reviewed with **`git diff`**
 (same file, changed contents — not delete+add of a new uid/hash folder).
 
 Every `compileProjectNodes` **with packs**, **before** esbuild / typecheck
-write:
+write (epic 40; **superseded in part by [epic 44](44-startup-optimization.md)
+phase 2** — wipe-every-compile is no longer the default; stable paths stay;
+fingerprints + `force` Update):
 
 1. **Delete** the previous cache root
    `.langflower/.cache/nodes/` (`fs.rm({ recursive: true, force: true })`

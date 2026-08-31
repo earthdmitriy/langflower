@@ -8,6 +8,14 @@
 			"types": "./dist/compile-project-nodes.d.ts",
 			"import": "./dist/compile-project-nodes.js"
 		},
+		"./discover-packs": {
+			"types": "./dist/discover-packs.d.ts",
+			"import": "./dist/discover-packs.js"
+		},
+		"./load-project-nodes": {
+			"types": "./dist/load-project-nodes.d.ts",
+			"import": "./dist/load-project-nodes.js"
+		},
 		"./format-compilation-errors": {
 			"types": "./dist/format-compilation-errors.d.ts",
 			"import": "./dist/format-compilation-errors.js"

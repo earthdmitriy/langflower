@@ -19,6 +19,19 @@ export type CompileProjectNodesResult = {
 	readonly errors: readonly CompilePackError[];
 };
 
+export type CompileProjectNodesOptions = {
+	readonly force?: boolean;
+};
+
+export type LoadProjectNodesOptions = {
+	readonly force?: boolean;
+	readonly onCompile?: () => void;
+};
+
+export type LoadProjectNodesResult = CompileProjectNodesResult & {
+	readonly compiled: boolean;
+};
+
 export type DiscoveredPack = {
 	readonly packageName: string;
 	readonly packDir: string;

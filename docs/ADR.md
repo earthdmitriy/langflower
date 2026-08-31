@@ -47,8 +47,8 @@ fixed build order.
 **Consequences:**
 
 - `@langflower/shared` compiled first; the **root** `langflower` package is the
-  only publishable npm product (`bin` + bundled `vendor/`); `@langflower/cli` is
-  a private workspace package (see [RELEASE.md](RELEASE.md)).
+  only publishable npm product (`bin` + bundled `dist/` + host-peer `vendor/`);
+  `@langflower/cli` is a private workspace package (see [RELEASE.md](RELEASE.md)).
 - `build/build-all.mjs` encodes dependency order.
 
 ---
@@ -301,7 +301,7 @@ clear internal types before adding that surface.
 
 ## ADR-007 — esbuild for custom node packages
 
-**Status:** accepted · **Date:** 2026-06-16 · **Updated:** 2026-08-15
+**Status:** accepted · **Date:** 2026-06-16 · **Updated:** 2026-08-30
 
 **Context:** User node packs may import npm deps; load path needs a single ESM
 artifact per entry (or pack) for palette metadata and later execution. Pack
@@ -316,18 +316,22 @@ layout / npm model: [ADR-030](#adr-030--custom-node-pack-layout--npm-model).
   inconsistent UX.
 
 **Decision:** esbuild bundle to ESM; cache in `.langflower/.cache/nodes/` at
-stable `<pack>/<entry>.mjs` paths. Each `compileProjectNodes` **deletes** that
-cache root first (fail loud if wipe fails), then rewrites the same files so
-`git diff` shows bundle content. Load uses a unique temp copy of the stable
-`.mjs` so the ESM module cache cannot pin the git path. Owned by
-`@langflower/compiler` (`compileProjectNodes`), not grown as server domain
+stable `<pack>/<entry>.mjs` paths. A sidecar `manifest.json` stores pack
+fingerprints (sources + lockfiles + host peer stamp + rewrite policy id).
+Matching fingerprints **load** existing `.mjs` files without typecheck/esbuild.
+Miss compiles dirty packs only. `{ force: true }` (Custom → Update) wipes the
+cache root then rebuilds every pack. Empty / missing `nodes/` still deletes
+leftover cache. Load uses a unique temp copy of the stable `.mjs` so the ESM
+module cache cannot pin the git path. Owned by `@langflower/compiler`
+(`loadProjectNodes` / `compileProjectNodes`), not grown as server domain
 logic. Discovery: each pack `*.ts` / `*.tsx` with `export default` (definition
 or array); **no** required `index.ts`. Port metadata comes from the definition
 object (`inputs` / `outputs` / `bind` probe) — **not** from a TypeScript
 Compiler API scan of `execute` signatures.
 
-**Compile pipeline (per pack, per entry):** (0) wipe `.langflower/.cache/nodes/`
-before any write; (1) when the pack has `tsconfig.json`, run `tsc --noEmit` and
+**Compile pipeline (per pack, per entry):** (0) compare fingerprints; skip
+clean packs; wipe the cache root only on `force`, empty `nodes/`, or `EBUSY`
+recovery; (1) when the pack has `tsconfig.json`, run `tsc --noEmit` and
 attribute errors to individual `export default` entry files (shared non-entry
 errors fail all entries in that pack); (2) esbuild only entries that passed
 typecheck, to stable `<pack>/<entry>.mjs`. One pack or one entry failing does
@@ -351,9 +355,9 @@ artifact (shared module identity with the host), but bare specifiers are
 rewritten to absolute `file://` URLs resolved from the compiler install tree.
 Native `import()` of a unique temp copy of
 `.langflower/.cache/nodes/<pack>/<entry>.mjs` therefore works in an empty
-project with no project/`pack` `node_modules`. Each compile wipes that cache
-directory so install upgrades and the rewrite policy cannot leave a stale
-bundle on disk.
+project with no project/`pack` `node_modules`. A host-stamp mismatch (new
+install path / peer version) is a cache miss so upgrades cannot leave a stale
+`file://` bundle on disk.
 
 **Tradeoffs accepted:**
 
@@ -362,8 +366,9 @@ bundle on disk.
 - (+) Pack `tsconfig.json` gates Update via `tsc --noEmit` before esbuild.
 - (+) Peer-only packs work with global Langflower and an empty project tree
   (typecheck **and** runtime load).
-- (−) Wipe-then-rewrite of the same path; compile fails if the cache dir cannot
-  be deleted (e.g. Windows file lock).
+- (+) Unchanged packs skip the toolchain on start (fingerprint + host stamp).
+- (−) Force-wipe still fails loud if the cache dir cannot be deleted
+  (e.g. Windows file lock).
 - (−) Shared (non-entry) type errors fail every entry in that pack.
 - (−) Cache `.mjs` embeds absolute host paths (local machine / install layout).
 
@@ -372,6 +377,12 @@ bundle on disk.
 - Compiler returns definitions for palette + runtime merge; server only composes.
 - Do not revive `node-compile/` / TS-API signature inference.
 - Sandboxed execution of arbitrary custom code remains deferred ([TBD-001](TBD.md)).
+- Published CLI bundling (`install-local` / `pack-release`) is a **separate**
+  esbuild use: concatenate start/eval/compile chunks in product `dist/`. Keep
+  host peers, `typescript`, and `esbuild` external so custom-pack `file://`
+  identity and lazy compile still hold. Product `vendor/` is those host-peer
+  packages plus the server skeleton — not a copy of every workspace `tsc`
+  tree ([epic 44](DONE/EPICS/44-startup-optimization.md)).
 
 ---
 

@@ -9,7 +9,8 @@ Workspace package that builds the CLI. The **npm-published** product is the
 
 ## Bin
 
-`bin/langflower.js` → `dist/index.js`
+`bin/langflower.js` prints `Starting Langflower...` then dynamically imports
+`dist/index.js` (skipped for `eval` / help / version).
 
 ## Scripts
 

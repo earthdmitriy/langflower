@@ -53,23 +53,32 @@ const LANGFLOWER_BUS_TOOL_CONFIGS = [
 	{
 		toolId: 'compile_custom_nodes',
 		description:
-			'Recompile `.langflower/nodes/` packs, hot-swap live custom instances, and refresh the Custom palette (same intent as Custom → Update). No arguments. Pack failures also write COMPILATION_ERRORS.md.',
+			'Recompile `.langflower/nodes/` packs, hot-swap live custom instances, and refresh the Custom palette (same intent as Custom → Update). After writing `.ts`, hashes miss and compile without force. Pass force to rebuild even when hashes match.',
 		inputSchema: {
 			type: 'object',
-			properties: {},
+			properties: {
+				force: {
+					type: 'boolean',
+					description:
+						'Rebuild every pack even when fingerprints match (same as Custom → Update).',
+				},
+			},
 			additionalProperties: false,
 		},
-		handler: (async (_args, ctx) => {
+		handler: (async (args, ctx) => {
 			const request = getRunHostServices(ctx)?.requestLangflowerBus;
 
 			if (request === undefined) {
 				return MISSING_RPC_TEXT;
 			}
 
+			const force = isRecord(args) && args.force === true;
+			const payload = force ? { force: true } : {};
+
 			try {
 				const snapshot = await request(
 					'customPalette.update.requested',
-					{},
+					payload,
 				);
 				return formatPaletteSnapshot(snapshot);
 			} catch (error: unknown) {

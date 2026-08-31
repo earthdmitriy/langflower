@@ -1,4 +1,4 @@
-import { compileProjectNodes } from '@langflower/compiler/compile-project-nodes';
+import { loadProjectNodes } from '@langflower/compiler/load-project-nodes';
 import type { ReactiveNodeDefinition } from '@langflower/node-sdk';
 import type {
 	CustomPaletteCompilationStatus,
@@ -42,6 +42,16 @@ const statusFromResult = (
 	return 'partial';
 };
 
+export type CustomPaletteUpdateOptions = {
+	readonly force?: boolean;
+	readonly onCompile?: () => void;
+};
+
+export type CustomPaletteUpdateResult = {
+	readonly snapshot: CustomPaletteSnapshotPayload;
+	readonly compiled: boolean;
+};
+
 export class CustomPaletteService {
 	private lastSnapshot: CustomPaletteSnapshotPayload = {
 		nodes: [],
@@ -77,21 +87,29 @@ export class CustomPaletteService {
 		return snapshot;
 	}
 
-	async update(projectDir: string): Promise<CustomPaletteSnapshotPayload> {
-		const compiled = await compileProjectNodes(projectDir);
-		this.registry.setNodes(compiled.nodes);
+	async update(
+		projectDir: string,
+		options?: CustomPaletteUpdateOptions,
+	): Promise<CustomPaletteUpdateResult> {
+		const loaded = await loadProjectNodes(projectDir, {
+			force: options?.force === true,
+			...(options?.onCompile === undefined
+				? {}
+				: { onCompile: options.onCompile }),
+		});
+		this.registry.setNodes(loaded.nodes);
 
-		const nodes: readonly PaletteNodeDefinition[] = compiled.nodes.map(
+		const nodes: readonly PaletteNodeDefinition[] = loaded.nodes.map(
 			(node: ReactiveNodeDefinition) =>
 				toPaletteDefinition(node, 'custom'),
 		);
-		const errors = toPackErrors(compiled.errors);
+		const errors = toPackErrors(loaded.errors);
 		const snapshot: CustomPaletteSnapshotPayload = {
 			nodes,
 			errors,
 			status: statusFromResult(nodes.length, errors.length),
 		};
 		this.lastSnapshot = snapshot;
-		return snapshot;
+		return { snapshot, compiled: loaded.compiled };
 	}
 }

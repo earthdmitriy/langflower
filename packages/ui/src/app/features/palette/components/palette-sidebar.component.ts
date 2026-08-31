@@ -513,7 +513,9 @@ export class PaletteSidebarComponent {
 	}
 
 	requestCustomPaletteUpdate(): void {
-		this.bridge.raw['customPalette.update.requested'].next({});
+		this.bridge.raw['customPalette.update.requested'].next({
+			force: true,
+		});
 	}
 
 	readonly popoverNode = computed(

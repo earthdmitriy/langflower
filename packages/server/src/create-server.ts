@@ -1,4 +1,4 @@
-import { hasCustomNodePacks } from '@langflower/compiler/compile-project-nodes';
+import { hasCustomNodePacks } from '@langflower/compiler/discover-packs';
 import {
 	langflowerWsConfig,
 	resolveServerLogsEnabled,
@@ -29,11 +29,19 @@ const warmCustomPalette = async (
 		return;
 	}
 
-	process.stdout.write('Compiling custom nodes ...');
-	const snapshot = await context.customPaletteService.update(
+	const { snapshot, compiled } = await context.customPaletteService.update(
 		context.projectDir,
+		{
+			onCompile: () => {
+				process.stdout.write('Compiling custom nodes ...');
+			},
+		},
 	);
-	console.log(' done');
+	if (compiled) {
+		console.log(' done');
+	} else {
+		console.log('Custom nodes up to date');
+	}
 
 	if (snapshot.status === 'error' || snapshot.status === 'partial') {
 		const count = String(snapshot.errors.length);

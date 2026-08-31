@@ -71,10 +71,11 @@ const NAMED_SCHEMAS = {
 		required: ['runId'],
 		additionalProperties: false,
 	},
-	RunnerCheckpointDiscardRequestedPayload: {
+	CustomPaletteUpdateRequestedPayload: {
 		type: 'object',
-		properties: { runId: { type: 'string' } },
-		required: ['runId'],
+		properties: {
+			force: { type: 'boolean' },
+		},
 		additionalProperties: false,
 	},
 };

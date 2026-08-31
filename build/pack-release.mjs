@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
  * Materialize publish-ready layout at the repo root:
- *   dist/, bin/, ui-dist/, vendor/…, package.json deps → file:./vendor/…
- *   plus hoisted registry deps from vendor packages (rxjs, ws, express, …)
+ *   dist/, bin/, ui-dist/, vendor/{node-sdk,runtime,server/skeleton}/,
+ *   package.json deps → file:./vendor/{node-sdk,runtime} plus hoisted
+ *   registry deps (rxjs, openai, typescript, esbuild, …)
  *
  * Usage (repo root, after build-all):
  *   node build/pack-release.mjs
@@ -74,6 +75,14 @@ const assertPackedContents = (files) => {
 		{
 			re: /(^|\/)vendor\/server\/skeleton\//,
 			label: 'vendor/server/skeleton/',
+		},
+		{
+			re: /(^|\/)vendor\/node-sdk\/package\.json$/,
+			label: 'vendor/node-sdk/package.json',
+		},
+		{
+			re: /(^|\/)vendor\/runtime\/package\.json$/,
+			label: 'vendor/runtime/package.json',
 		},
 		{ re: /(^|\/)dist\/index\.js$/, label: 'dist/index.js' },
 		{ re: /(^|\/)README\.md$/, label: 'README.md' },

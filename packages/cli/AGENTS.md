@@ -7,13 +7,20 @@ Dogfood: `npm run install-local`. Local start: `npm run start -w @langflower/cli
 
 ## Entry points
 
-- `bin/langflower.js` — bin shim
+- `bin/langflower.js` — bin shim: prints `Starting Langflower...` (skipped for
+  `eval` / `--help` / `--version`), then **dynamic** `import('../dist/index.js')`
+  so ESM hoist cannot hide the heartbeat. Workspace `dist/` is `tsc` emit.
+  Published / `install-local` product `dist/` is esbuild-bundled (start chunk +
+  split eval / compile; `typescript` + esbuild + host peers external — see
+  [RELEASE.md](../../docs/RELEASE.md)). Product `vendor/` is host peers
+  (`node-sdk`, `runtime`) plus `server/skeleton` only.
 - `src/index.ts` — **process entry** (side-effect call into `cli.ts`, not a
   re-export barrel). PRINCIPLES forbid `index.ts` barrels; this file is the npm
   `main`/bin process bootstrap only.
-- `src/cli.ts` — commander setup
+- `src/cli.ts` — commander setup; `eval` is registered here but the
+  `@langflower/eval` implementation loads only when the `eval` action runs
 - `src/start-command.ts` — `langflower start`
-- `src/eval-command.ts` — `langflower eval` (fixture pack + threshold gate)
+- `src/eval-command.ts` — `langflower eval` body (fixture pack + threshold gate)
 - `src/create-fake-skill-case-runner.ts` — Fake agent-under-test when
   `--replay` is omitted (skill-token rules; no LLM inside `@langflower/eval`)
 

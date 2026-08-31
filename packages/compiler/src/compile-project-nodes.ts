@@ -1,113 +1,35 @@
 import type { ReactiveNodeDefinition } from '@langflower/node-sdk';
 import fs from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { bundleEntry } from './bundle-pack.js';
+import {
+	deleteVanishedPackDirs,
+	planPackCache,
+	writeCacheManifest,
+	type CachePackRecord,
+} from './cache-manifest.js';
+import {
+	cacheOutfile,
+	cacheRoot,
+	packCacheDir,
+	relativeEntryPosix,
+} from './cache-paths.js';
+import { wipeCacheRoot, wipePathOrCacheRoot } from './cache-wipe.js';
 import type {
 	CompilePackError,
+	CompileProjectNodesOptions,
 	CompileProjectNodesResult,
 	DiscoveredPack,
 } from './compile-types.js';
 import { discoverPacks } from './discover-packs.js';
-import { diagnosticsForEntry, typecheckPack } from './typecheck-pack.js';
 import { formatCompilePackError } from './format-compilation-errors.js';
-import { parseDefaultExport } from './validate-default-export.js';
+import { loadBundledDefault, loadPackFromCache } from './load-cached-nodes.js';
+import { HOST_REWRITE_POLICY_ID, fingerprintPack } from './pack-fingerprint.js';
+import { hostRuntimeStamp } from './resolve-host-types.js';
+import { diagnosticsForEntry, typecheckPack } from './typecheck-pack.js';
 import {
 	deleteCompilationErrorsFile,
 	writeCompilationErrorsFile,
 } from './write-compilation-errors.js';
-
-const cacheRoot = (projectDir: string): string =>
-	path.join(projectDir, '.langflower', '.cache', 'nodes');
-
-const wipeCacheRoot = async (
-	projectDir: string,
-): Promise<
-	| { readonly ok: true }
-	| { readonly ok: false; readonly error: CompilePackError }
-> => {
-	try {
-		await fs.rm(cacheRoot(projectDir), { recursive: true, force: true });
-		return { ok: true };
-	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-
-		return {
-			ok: false,
-			error: formatCompilePackError(
-				'.cache/nodes',
-				[
-					{
-						message: `Failed to delete custom-node cache: ${message}`,
-					},
-				],
-				projectDir,
-			),
-		};
-	}
-};
-
-const loadBundledDefault = async (
-	outfile: string,
-	entryPath: string,
-	packageName: string,
-	projectDir: string,
-): Promise<
-	| { readonly ok: true; readonly nodes: readonly ReactiveNodeDefinition[] }
-	| { readonly ok: false; readonly error: CompilePackError }
-> => {
-	const loadFile = path.join(
-		os.tmpdir(),
-		`lf-node-load-${process.hrtime.bigint()}.mjs`,
-	);
-
-	try {
-		// Stable outfile stays at `<pack>/<entry>.mjs` for git diff. Import a
-		// unique temp copy so Node / Vitest ESM cache cannot reuse the previous
-		// module for that path (query strings are not enough under Vitest).
-		await fs.copyFile(outfile, loadFile);
-		const href = `${pathToFileURL(loadFile).href}?t=${Date.now()}`;
-		const mod: unknown = await import(href);
-		const defaultExport =
-			typeof mod === 'object' && mod !== null && 'default' in mod
-				? mod.default
-				: undefined;
-		const parsed = parseDefaultExport(defaultExport, entryPath);
-
-		if (!parsed.ok) {
-			return {
-				ok: false,
-				error: formatCompilePackError(
-					packageName,
-					[parsed.diagnostic],
-					projectDir,
-				),
-			};
-		}
-
-		return { ok: true, nodes: parsed.nodes };
-	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-
-		return {
-			ok: false,
-			error: formatCompilePackError(
-				packageName,
-				[
-					{
-						file: entryPath,
-						message: `Failed to load bundled module: ${message}`,
-					},
-				],
-				projectDir,
-			),
-		};
-	}
-};
-
-const relativeEntry = (packDir: string, entryPath: string): string =>
-	path.relative(packDir, entryPath).split(path.sep).join('/');
 
 const compileEntry = async (
 	projectDir: string,
@@ -117,14 +39,11 @@ const compileEntry = async (
 	| { readonly ok: true; readonly nodes: readonly ReactiveNodeDefinition[] }
 	| { readonly ok: false; readonly error: CompilePackError }
 > => {
-	const relative = relativeEntry(pack.packDir, entryPath)
-		.replace(/[\\/]/g, '__')
-		.replace(/\.tsx$/u, '')
-		.replace(/\.ts$/u, '');
-	const outfile = path.join(
-		cacheRoot(projectDir),
-		pack.packageName.replace(/[^\w.-]+/g, '_'),
-		`${relative}.mjs`,
+	const outfile = cacheOutfile(
+		projectDir,
+		pack.packageName,
+		pack.packDir,
+		entryPath,
 	);
 
 	const bundled = await bundleEntry({
@@ -201,47 +120,116 @@ const compilePack = async (
 	return { nodes, errors };
 };
 
-/**
- * True when `.langflower/nodes/` has at least one pack directory.
- */
-export const hasCustomNodePacks = async (
-	projectDir: string,
-): Promise<boolean> => {
-	const packs = await discoverPacks(projectDir);
-	return packs.length > 0;
-};
+const packRecord = (
+	pack: DiscoveredPack,
+	fingerprint: string,
+): CachePackRecord => ({
+	fingerprint,
+	entries: pack.entries.map((entryPath) =>
+		relativeEntryPosix(pack.packDir, entryPath),
+	),
+});
+
+export { hasCustomNodePacks } from './discover-packs.js';
 
 /**
  * Scan `.langflower/nodes/`. Each pack runs independently; within a pack each
  * `export default` entry is typechecked then esbuilt only if clean.
  * Returns all successful definitions plus all failures (partial success OK).
- * Always deletes `.langflower/.cache/nodes/` first. Empty / missing `nodes/`
- * does not recreate the cache dir.
+ *
+ * Incremental by default: matching fingerprints load existing `.mjs` files.
+ * `{ force: true }` wipes `.langflower/.cache/nodes/` then compiles every pack.
+ * Empty / missing `nodes/` deletes leftover cache and does not recreate it.
  */
 export const compileProjectNodes = async (
 	projectDir: string,
+	options?: CompileProjectNodesOptions,
 ): Promise<CompileProjectNodesResult> => {
 	const packs = await discoverPacks(projectDir);
-	const wiped = await wipeCacheRoot(projectDir);
-
-	if (!wiped.ok) {
-		return { nodes: [], errors: [wiped.error] };
-	}
+	const force = options?.force === true;
 
 	if (packs.length === 0) {
+		const wiped = await wipeCacheRoot(projectDir);
+		if (!wiped.ok) {
+			return { nodes: [], errors: [wiped.error] };
+		}
+
 		return { nodes: [], errors: [] };
+	}
+
+	if (force) {
+		const wiped = await wipeCacheRoot(projectDir);
+		if (!wiped.ok) {
+			return { nodes: [], errors: [wiped.error] };
+		}
+	} else {
+		await deleteVanishedPackDirs(projectDir, packs);
 	}
 
 	await fs.mkdir(cacheRoot(projectDir), { recursive: true });
 
+	const plan = force
+		? {
+				hostStamp: hostRuntimeStamp(),
+				packs: await Promise.all(
+					packs.map(async (pack) => ({
+						pack,
+						fingerprint: await fingerprintPack(pack),
+						hit: false as const,
+					})),
+				),
+			}
+		: await planPackCache(projectDir, packs);
+
 	const nodes: ReactiveNodeDefinition[] = [];
 	const errors: CompilePackError[] = [];
+	const nextPacks: Record<string, CachePackRecord> = {};
 
-	for (const pack of packs) {
-		const result = await compilePack(projectDir, pack);
+	for (const decision of plan.packs) {
+		if (decision.hit) {
+			const loaded = await loadPackFromCache(projectDir, decision.pack);
+			if (loaded.ok) {
+				nodes.push(...loaded.nodes);
+				nextPacks[decision.pack.packageName] = packRecord(
+					decision.pack,
+					decision.fingerprint,
+				);
+				continue;
+			}
+		}
+
+		const packDir = packCacheDir(projectDir, decision.pack.packageName);
+		const cleared = await wipePathOrCacheRoot(projectDir, packDir);
+		if (!cleared.ok) {
+			return { nodes, errors: [...errors, cleared.error] };
+		}
+
+		if (cleared.wipedRoot && !force) {
+			return compileProjectNodes(projectDir, { force: true });
+		}
+
+		if (cleared.wipedRoot) {
+			await fs.mkdir(cacheRoot(projectDir), { recursive: true });
+		}
+
+		const result = await compilePack(projectDir, decision.pack);
 		nodes.push(...result.nodes);
 		errors.push(...result.errors);
+
+		if (result.errors.length === 0) {
+			nextPacks[decision.pack.packageName] = packRecord(
+				decision.pack,
+				decision.fingerprint,
+			);
+		}
 	}
+
+	await writeCacheManifest(projectDir, {
+		version: 1,
+		policyId: HOST_REWRITE_POLICY_ID,
+		hostStamp: plan.hostStamp,
+		packs: nextPacks,
+	});
 
 	return { nodes, errors };
 };
@@ -249,5 +237,6 @@ export const compileProjectNodes = async (
 export type {
 	CompileDiagnostic,
 	CompilePackError,
+	CompileProjectNodesOptions,
 	CompileProjectNodesResult,
 } from './compile-types.js';

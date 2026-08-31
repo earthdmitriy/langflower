@@ -92,9 +92,10 @@ export const wireProjectBootstrapHandlers = (
 				'customPalette.snapshot',
 				context.customPaletteService.compilingSnapshot(),
 			);
-			const customPalette = await context.customPaletteService.update(
-				context.projectDir,
-			);
+			const { snapshot: customPalette } =
+				await context.customPaletteService.update(context.projectDir, {
+					force: true,
+				});
 			bridgeEmit(bridge, 'customPalette.snapshot', customPalette);
 
 			emitResult({ ok: true });

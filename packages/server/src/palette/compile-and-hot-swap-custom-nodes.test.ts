@@ -37,7 +37,10 @@ describe('compileAndHotSwapCustomNodes', () => {
 					errors: [],
 					status: 'compiling' as const,
 				}),
-				update: async () => resultSnapshot,
+				update: async () => ({
+					snapshot: resultSnapshot,
+					compiled: true,
+				}),
 			},
 		} as unknown as ServerContext;
 
@@ -84,7 +87,10 @@ describe('compileAndHotSwapCustomNodes', () => {
 					errors: [],
 					status: 'compiling' as const,
 				}),
-				update: async () => resultSnapshot,
+				update: async () => ({
+					snapshot: resultSnapshot,
+					compiled: true,
+				}),
 			},
 		} as unknown as ServerContext;
 

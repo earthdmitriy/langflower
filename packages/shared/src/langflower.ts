@@ -108,6 +108,7 @@ export type {
 	CustomPaletteCompilationStatus,
 	CustomPalettePackError,
 	CustomPaletteSnapshotPayload,
+	CustomPaletteUpdateRequestedPayload,
 } from './types/langflower-custom-palette.js';
 export type {
 	ExecutionProgressStatus,

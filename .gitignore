@@ -19,6 +19,8 @@ tests/tmp/*
 **/.langflower/**/.cache/*
 !**/.langflower/**/.cache/nodes/
 !**/.langflower/**/.cache/nodes/**
+# Host stamp is machine-specific (absolute `file://` peers)
+**/.langflower/**/.cache/nodes/manifest.json
 
 # Generated custom-node compile diagnostics
 **/.langflower/nodes/**/COMPILATION_ERRORS.md

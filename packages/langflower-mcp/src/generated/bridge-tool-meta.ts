@@ -6,751 +6,704 @@ export type BridgeToolMetaEntry = {
 };
 
 export const BRIDGE_TOOL_META = {
-	'editor.addNode.requested': {
-		description:
-			"Palette drop or explicit add-node intent — minimal UI sends node `type`, canvas `position`, and optional initial `params`, `inputs`, and `label`. Server owns `nodeId` assignment, default param/input filling, runtime materialization, graph insertion, and dirty marking when runner is not `'running'`. Emits `editor.addNode.delta` with added nodes or `[]` (broadcast).",
-		typeExpr: 'EditorAddNodeRequestedPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: EditorAddNodeRequestedPayload',
-			additionalProperties: true,
-		},
+	"editor.addNode.requested": {
+		"description": "Palette drop or explicit add-node intent — minimal UI sends node `type`, canvas `position`, and optional initial `params`, `inputs`, and `label`. Server owns `nodeId` assignment, default param/input filling, runtime materialization, graph insertion, and dirty marking when runner is not `'running'`. Emits `editor.addNode.delta` with added nodes or `[]` (broadcast).",
+		"typeExpr": "EditorAddNodeRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: EditorAddNodeRequestedPayload",
+			"additionalProperties": true
+		}
 	},
-	'editor.updateNode.requested': {
-		description:
-			"Committed update for one existing node — unified Payload uses `nodeId` plus any combination of optional root-level `position`, `ui`, `params`, and `inputs`. Covers move, resize, label, panel params, inline params, and open input seed values. Server rejects payloads with no update fields and while the graph is locked. `ui` / `position` / panel `params` update the session document only (params never rebind the runtime mirror — they are next-run ctx seeds). `inputs` updates also rebind the runtime mirror while unlocked. Panel `params` apply even while `runnerStatus === 'running'`; `position` / `ui` / `inputs` return `[]` while locked. Emits `editor.updateNodes` with updated nodes or `[]` (broadcast).",
-		typeExpr: 'EditorUpdateNodeRequestedPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: EditorUpdateNodeRequestedPayload',
-			additionalProperties: true,
-		},
+	"editor.updateNode.requested": {
+		"description": "Committed update for one existing node — unified Payload uses `nodeId` plus any combination of optional root-level `position`, `ui`, `params`, and `inputs`. Covers move, resize, label, panel params, inline params, and open input seed values. Server rejects payloads with no update fields and while the graph is locked. `ui` / `position` / panel `params` update the session document only (params never rebind the runtime mirror — they are next-run ctx seeds). `inputs` updates also rebind the runtime mirror while unlocked. Panel `params` apply even while `runnerStatus === 'running'`; `position` / `ui` / `inputs` return `[]` while locked. Emits `editor.updateNodes` with updated nodes or `[]` (broadcast).",
+		"typeExpr": "EditorUpdateNodeRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: EditorUpdateNodeRequestedPayload",
+			"additionalProperties": true
+		}
 	},
-	'editor.addEdge.requested': {
-		description:
-			'User connected two ports on the canvas. Server materializes runtime ports and calls with added edges or `[]` (broadcast).',
-		typeExpr: 'EditorAddEdgeRequestedPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: EditorAddEdgeRequestedPayload',
-			additionalProperties: true,
-		},
+	"editor.addEdge.requested": {
+		"description": "User connected two ports on the canvas. Server materializes runtime ports and calls with added edges or `[]` (broadcast).",
+		"typeExpr": "EditorAddEdgeRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: EditorAddEdgeRequestedPayload",
+			"additionalProperties": true
+		}
 	},
-	'editor.paste.requested': {
-		description:
-			'Clipboard paste batch — {@link EditorPasteRequestedPayload}. Client strips optimistic local clones then sends remappable `clientId`s. Server materializes nodes (honoring optional size on `position`) and edges in one dirty mark, then emits `editor.addNodes` then `editor.addEdges` (broadcast).',
-		typeExpr: 'EditorPasteRequestedPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: EditorPasteRequestedPayload',
-			additionalProperties: true,
-		},
+	"editor.paste.requested": {
+		"description": "Clipboard paste batch — {@link EditorPasteRequestedPayload}. Client strips optimistic local clones then sends remappable `clientId`s. Server materializes nodes (honoring optional size on `position`) and edges in one dirty mark, then emits `editor.addNodes` then `editor.addEdges` (broadcast).",
+		"typeExpr": "EditorPasteRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: EditorPasteRequestedPayload",
+			"additionalProperties": true
+		}
 	},
-	'editor.removeEdge.requested': {
-		description: 'User deleted an edge — payload is the canvas edge id.',
-		typeExpr: 'string',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: string',
-			additionalProperties: true,
-		},
+	"editor.removeEdge.requested": {
+		"description": "User deleted an edge — payload is the canvas edge id.",
+		"typeExpr": "string",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: string",
+			"additionalProperties": true
+		}
 	},
-	'editor.removeNode.requested': {
-		description: 'User deleted a node — payload is the canvas node id.',
-		typeExpr: 'string',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: string',
-			additionalProperties: true,
-		},
+	"editor.removeNode.requested": {
+		"description": "User deleted a node — payload is the canvas node id.",
+		"typeExpr": "string",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: string",
+			"additionalProperties": true
+		}
 	},
-	'editor.viewport.requested': {
-		description:
-			'Canvas pan/zoom committed — shared session viewport slice. Does not lock with graph edits; server stores on session and broadcasts `editor.viewport.delta` to all tabs.',
-		typeExpr: 'CanvasViewport',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: CanvasViewport',
-			additionalProperties: true,
-		},
+	"editor.viewport.requested": {
+		"description": "Canvas pan/zoom committed — shared session viewport slice. Does not lock with graph edits; server stores on session and broadcasts `editor.viewport.delta` to all tabs.",
+		"typeExpr": "CanvasViewport",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: CanvasViewport",
+			"additionalProperties": true
+		}
 	},
-	'editor.dividers.requested': {
-		description:
-			'Divider positions changed — client sends on drag end. Server validates, updates session, broadcasts to all tabs, and persists to `langflower.jsonc`.',
-		typeExpr: 'DividerPositions',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: DividerPositions',
-			additionalProperties: true,
-		},
+	"editor.dividers.requested": {
+		"description": "Divider positions changed — client sends on drag end. Server validates, updates session, broadcasts to all tabs, and persists to `langflower.jsonc`.",
+		"typeExpr": "DividerPositions",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: DividerPositions",
+			"additionalProperties": true
+		}
 	},
-	'editor.paletteVisible.requested': {
-		description:
-			'Left palette shown/hidden — client sends on hide (`<<`) / show (`>>`). Server validates, updates session, broadcasts to all tabs, and persists `paletteVisible` to project `langflower.jsonc`. Missing jsonc key means visible (`true`).',
-		typeExpr: 'boolean',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: boolean',
-			additionalProperties: true,
-		},
+	"editor.paletteVisible.requested": {
+		"description": "Left palette shown/hidden — client sends on hide (`<<`) / show (`>>`). Server validates, updates session, broadcasts to all tabs, and persists `paletteVisible` to project `langflower.jsonc`. Missing jsonc key means visible (`true`).",
+		"typeExpr": "boolean",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: boolean",
+			"additionalProperties": true
+		}
 	},
-	'editor.selectNode.requested': {
-		description:
-			'Canvas selection changed — `nodeId` is the clicked node, or `null` to clear. Shared session state, like {@link CanvasViewport}: not locked with graph edits, not persisted to the workflow document. Server validates `nodeId` against the active graph, stores it on the session, and broadcasts `editor.nodeSelected` to all tabs. Selecting a node while Settings is open also closes Settings (`editor.settings.snapshot` with `open: false`).',
-		typeExpr: 'EditorSelectNodeRequestedPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: EditorSelectNodeRequestedPayload',
-			additionalProperties: true,
-		},
+	"editor.selectNode.requested": {
+		"description": "Canvas selection changed — `nodeId` is the clicked node, or `null` to clear. Shared session state, like {@link CanvasViewport}: not locked with graph edits, not persisted to the workflow document. Server validates `nodeId` against the active graph, stores it on the session, and broadcasts `editor.nodeSelected` to all tabs. Selecting a node while Settings is open also closes Settings (`editor.settings.snapshot` with `open: false`).",
+		"typeExpr": "EditorSelectNodeRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: EditorSelectNodeRequestedPayload",
+			"additionalProperties": true
+		}
 	},
-	'editor.settings.requested': {
-		description:
-			'Settings aside open/close + scope intent. When `open: true`, `scope` is required (`project` | `global`). When `open: false`, server keeps the prior scope. Session memory only — not written to `langflower.jsonc`. Broadcasts `editor.settings.snapshot` to all tabs.',
-		typeExpr: 'EditorSettingsRequestedPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: EditorSettingsRequestedPayload',
-			additionalProperties: true,
-		},
+	"editor.settings.requested": {
+		"description": "Settings aside open/close + scope intent. When `open: true`, `scope` is required (`project` | `global`). When `open: false`, server keeps the prior scope. Session memory only — not written to `langflower.jsonc`. Broadcasts `editor.settings.snapshot` to all tabs.",
+		"typeExpr": "EditorSettingsRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: EditorSettingsRequestedPayload",
+			"additionalProperties": true
+		}
 	},
-	'editor.addNodes': {
-		description:
-			'Added nodes — client applies delta. Empty array = no change applied.',
-		typeExpr: 'WorkflowNodePersisted[]',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: WorkflowNodePersisted[]',
-			additionalProperties: true,
-		},
+	"editor.addNodes": {
+		"description": "Added nodes — client applies delta. Empty array = no change applied.",
+		"typeExpr": "WorkflowNodePersisted[]",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: WorkflowNodePersisted[]",
+			"additionalProperties": true
+		}
 	},
-	'editor.updateNodes': {
-		description:
-			'Updated nodes — client applies delta. Empty array = no change applied.',
-		typeExpr: 'WorkflowNodePersisted[]',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: WorkflowNodePersisted[]',
-			additionalProperties: true,
-		},
+	"editor.updateNodes": {
+		"description": "Updated nodes — client applies delta. Empty array = no change applied.",
+		"typeExpr": "WorkflowNodePersisted[]",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: WorkflowNodePersisted[]",
+			"additionalProperties": true
+		}
 	},
-	'editor.addEdges': {
-		description:
-			'Added edges — client merges / remaps ids. Empty array = no change applied.',
-		typeExpr: 'RuntimeEdge[]',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: RuntimeEdge[]',
-			additionalProperties: true,
-		},
+	"editor.addEdges": {
+		"description": "Added edges — client merges / remaps ids. Empty array = no change applied.",
+		"typeExpr": "RuntimeEdge[]",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: RuntimeEdge[]",
+			"additionalProperties": true
+		}
 	},
-	'editor.deleteNodes': {
-		description:
-			'Removed nodes — client deletes by `id`. Empty array = no change applied.',
-		typeExpr: 'WorkflowNodePersisted[]',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: WorkflowNodePersisted[]',
-			additionalProperties: true,
-		},
+	"editor.deleteNodes": {
+		"description": "Removed nodes — client deletes by `id`. Empty array = no change applied.",
+		"typeExpr": "WorkflowNodePersisted[]",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: WorkflowNodePersisted[]",
+			"additionalProperties": true
+		}
 	},
-	'editor.deleteEdges': {
-		description:
-			'Removed edges (incl. cascade) — client deletes by `id`. Empty array = no change applied.',
-		typeExpr: 'RuntimeEdge[]',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: RuntimeEdge[]',
-			additionalProperties: true,
-		},
+	"editor.deleteEdges": {
+		"description": "Removed edges (incl. cascade) — client deletes by `id`. Empty array = no change applied.",
+		"typeExpr": "RuntimeEdge[]",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: RuntimeEdge[]",
+			"additionalProperties": true
+		}
 	},
-	'editor.viewport.delta': {
-		description:
-			'Shared canvas viewport — client applies via ng-diagram `setViewport`.',
-		typeExpr: 'CanvasViewport',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: CanvasViewport',
-			additionalProperties: true,
-		},
+	"editor.viewport.delta": {
+		"description": "Shared canvas viewport — client applies via ng-diagram `setViewport`.",
+		"typeExpr": "CanvasViewport",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: CanvasViewport",
+			"additionalProperties": true
+		}
 	},
-	'editor.dividers.snapshot': {
-		description:
-			'Divider positions — broadcast to all tabs after server persistence.',
-		typeExpr: 'DividerPositions',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: DividerPositions',
-			additionalProperties: true,
-		},
+	"editor.dividers.snapshot": {
+		"description": "Divider positions — broadcast to all tabs after server persistence.",
+		"typeExpr": "DividerPositions",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: DividerPositions",
+			"additionalProperties": true
+		}
 	},
-	'editor.paletteVisible.snapshot': {
-		description:
-			'Left palette visibility — broadcast to all tabs after server persistence. Hydrated on connect via',
-		typeExpr: 'boolean',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: boolean',
-			additionalProperties: true,
-		},
+	"editor.paletteVisible.snapshot": {
+		"description": "Left palette visibility — broadcast to all tabs after server persistence. Hydrated on connect via",
+		"typeExpr": "boolean",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: boolean",
+			"additionalProperties": true
+		}
 	},
-	'editor.nodeSelected': {
-		description:
-			'Authoritative selected node — full {@link WorkflowNodePersisted} plus its {@link PaletteNodeDefinition} (for Inspector panel `uiSchema` fields), or `node: null` when nothing is selected. Broadcast to all tabs after `editor.selectNode.requested`, after an `editor.updateNode.requested` that touches the selected node, and when the selection is invalidated (node removed, workflow switched). Client renders the Inspector directly from this payload — no local lookup against other node lists.',
-		typeExpr: 'EditorSelectedNodePayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: EditorSelectedNodePayload',
-			additionalProperties: true,
-		},
+	"editor.nodeSelected": {
+		"description": "Authoritative selected node — full {@link WorkflowNodePersisted} plus its {@link PaletteNodeDefinition} (for Inspector panel `uiSchema` fields), or `node: null` when nothing is selected. Broadcast to all tabs after `editor.selectNode.requested`, after an `editor.updateNode.requested` that touches the selected node, and when the selection is invalidated (node removed, workflow switched). Client renders the Inspector directly from this payload — no local lookup against other node lists.",
+		"typeExpr": "EditorSelectedNodePayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: EditorSelectedNodePayload",
+			"additionalProperties": true
+		}
 	},
-	'editor.settings.snapshot': {
-		description:
-			'Authoritative Settings aside chrome — `open` + `scope`. Broadcast after `editor.settings.requested` and when selecting a node closes Settings. Hydrated on connect via providers are empty, connect forces open Global Settings.',
-		typeExpr: 'EditorSettingsSnapshotPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: EditorSettingsSnapshotPayload',
-			additionalProperties: true,
-		},
+	"editor.settings.snapshot": {
+		"description": "Authoritative Settings aside chrome — `open` + `scope`. Broadcast after `editor.settings.requested` and when selecting a node closes Settings. Hydrated on connect via providers are empty, connect forces open Global Settings.",
+		"typeExpr": "EditorSettingsSnapshotPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: EditorSettingsSnapshotPayload",
+			"additionalProperties": true
+		}
 	},
-	'runner.start.requested': {
-		description:
-			"Run the **current session graph** (already in editor). Wires all edges, seeds open inputs, sets status `'running'`. Server calls {@link RuntimeRunnerApi.start}. Emits `runner.started` (`runId`) then port telemetry.",
-		typeExpr: "Parameters<RuntimeRunnerApi['start']>",
-		inputSchema: {
-			type: 'array',
-			description:
-				"TypeScript payload: Parameters<RuntimeRunnerApi['start']>",
-			items: {},
-		},
+	"runner.start.requested": {
+		"description": "Run the **current session graph** (already in editor). Wires all edges, seeds open inputs, sets status `'running'`. Server calls {@link RuntimeRunnerApi.start}. Emits `runner.started` (`runId`) then port telemetry.",
+		"typeExpr": "Parameters<RuntimeRunnerApi['start']>",
+		"inputSchema": {
+			"type": "array",
+			"description": "TypeScript payload: Parameters<RuntimeRunnerApi['start']>",
+			"items": {}
+		}
 	},
-	'runner.startNode.requested': {
-		description:
-			'Run-from-node — wire only the weakly connected cluster of `nodeId`. Server calls {@link RuntimeRunnerApi.startNode}. Emits `runner.startNode.started`.',
-		typeExpr: "Parameters<RuntimeRunnerApi['startNode']>",
-		inputSchema: {
-			type: 'array',
-			description:
-				"TypeScript payload: Parameters<RuntimeRunnerApi['startNode']>",
-			items: {},
-		},
+	"runner.startNode.requested": {
+		"description": "Run-from-node — wire only the weakly connected cluster of `nodeId`. Server calls {@link RuntimeRunnerApi.startNode}. Emits `runner.startNode.started`.",
+		"typeExpr": "Parameters<RuntimeRunnerApi['startNode']>",
+		"inputSchema": {
+			"type": "array",
+			"description": "TypeScript payload: Parameters<RuntimeRunnerApi['startNode']>",
+			"items": {}
+		}
 	},
-	'runner.interrupt.requested': {
-		description:
-			"Cancel active run (Stop). Unsubscribes wiring, status `'stopped'`. Server calls {@link RuntimeRunnerApi.interrupt} (`'cancel'`). Emits `runner.interrupted`.",
-		typeExpr: "Parameters<RuntimeRunnerApi['interrupt']>[0]",
-		inputSchema: {
-			type: 'string',
-			description:
-				"TypeScript payload: Parameters<RuntimeRunnerApi['interrupt']>[0]",
-		},
+	"runner.interrupt.requested": {
+		"description": "Cancel active run (Stop). Unsubscribes wiring, status `'stopped'`. Server calls {@link RuntimeRunnerApi.interrupt} (`'cancel'`). Emits `runner.interrupted`.",
+		"typeExpr": "Parameters<RuntimeRunnerApi['interrupt']>[0]",
+		"inputSchema": {
+			"type": "string",
+			"description": "TypeScript payload: Parameters<RuntimeRunnerApi['interrupt']>[0]"
+		}
 	},
-	'runner.hitl.event': {
-		description:
-			"Push a value into a node input via Used for canvas HITL gates (`inputsConfigs[].config.hitl`) and for soft Pause / Steer on the hidden LLM inventory port `steerControl` (docs ADR-032) — `{ kind: 'pause' | 'steer' | 'resume', … }`. One event targets one `nodeId` / `portId`. Multiple awaits may be open concurrently. Message name is historical; not limited to visible HITL chrome.",
-		typeExpr: "Parameters<RuntimeRunnerApi['pushIntoInput']>[0]",
-		inputSchema: {
-			type: 'object',
-			description:
-				"TypeScript payload: Parameters<RuntimeRunnerApi['pushIntoInput']>[0]",
-			additionalProperties: true,
-		},
+	"runner.hitl.event": {
+		"description": "Push a value into a node input via Used for canvas HITL gates (`inputsConfigs[].config.hitl`) and for soft Pause / Steer on the hidden LLM inventory port `steerControl` (docs ADR-032) — `{ kind: 'pause' | 'steer' | 'resume', … }`. One event targets one `nodeId` / `portId`. Multiple awaits may be open concurrently. Message name is historical; not limited to visible HITL chrome.",
+		"typeExpr": "Parameters<RuntimeRunnerApi['pushIntoInput']>[0]",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: Parameters<RuntimeRunnerApi['pushIntoInput']>[0]",
+			"additionalProperties": true
+		}
 	},
-	'runner.permission.reply': {
-		description:
-			'Allow / Deny for a runtime permission ask inside the tool loop (not a canvas HITL port — see `runner.permission.ask`).',
-		typeExpr: 'RunnerPermissionReplyPayload',
-		inputSchema: {
-			type: 'object',
-			properties: {
-				runId: {
-					type: 'string',
+	"runner.permission.reply": {
+		"description": "Allow / Deny for a runtime permission ask inside the tool loop (not a canvas HITL port — see `runner.permission.ask`).",
+		"typeExpr": "RunnerPermissionReplyPayload",
+		"inputSchema": {
+			"type": "object",
+			"properties": {
+				"runId": {
+					"type": "string"
 				},
-				askId: {
-					type: 'string',
+				"askId": {
+					"type": "string"
 				},
-				decision: {
-					type: 'string',
-					enum: ['allow', 'deny'],
-				},
+				"decision": {
+					"type": "string",
+					"enum": [
+						"allow",
+						"deny"
+					]
+				}
 			},
-			required: ['runId', 'askId', 'decision'],
-			additionalProperties: false,
-		},
+			"required": [
+				"runId",
+				"askId",
+				"decision"
+			],
+			"additionalProperties": false
+		}
 	},
-	'runner.executionFeed.clear.requested': {
-		description:
-			'Clear the execution feed (work log). Server drops the runner event log and re-broadcasts an empty `executionFeed.snapshot`. No payload.',
-		typeExpr: '{}',
-		inputSchema: {
-			type: 'object',
-			additionalProperties: false,
-		},
+	"runner.executionFeed.clear.requested": {
+		"description": "Clear the execution feed (work log). Server drops the runner event log and re-broadcasts an empty `executionFeed.snapshot`. No payload.",
+		"typeExpr": "{}",
+		"inputSchema": {
+			"type": "object",
+			"additionalProperties": false
+		}
 	},
-	'runner.resume.requested': {
-		description:
-			'Continue from a durable checkpoint after Stop / process restart. Payload requires `runId` (picker-chosen entry; no latest-only omit).',
-		typeExpr: 'RunnerResumeRequestedPayload',
-		inputSchema: {
-			type: 'object',
-			properties: {
-				runId: {
-					type: 'string',
-				},
+	"runner.resume.requested": {
+		"description": "Continue from a durable checkpoint after Stop / process restart. Payload requires `runId` (picker-chosen entry; no latest-only omit).",
+		"typeExpr": "RunnerResumeRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"properties": {
+				"runId": {
+					"type": "string"
+				}
 			},
-			required: ['runId'],
-			additionalProperties: false,
-		},
+			"required": [
+				"runId"
+			],
+			"additionalProperties": false
+		}
 	},
-	'runner.checkpoint.discard.requested': {
-		description: 'Discard a durable checkpoint (corrupt / abandoned job).',
-		typeExpr: 'RunnerCheckpointDiscardRequestedPayload',
-		inputSchema: {
-			type: 'object',
-			properties: {
-				runId: {
-					type: 'string',
+	"runner.checkpoint.discard.requested": {
+		"description": "Discard a durable checkpoint (corrupt / abandoned job).",
+		"typeExpr": "RunnerCheckpointDiscardRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: RunnerCheckpointDiscardRequestedPayload",
+			"additionalProperties": true
+		}
+	},
+	"runner.started": {
+		"description": "Empty graph → instant `runner.done` and status `'idle'`.",
+		"typeExpr": "ReturnType<RuntimeRunnerApi['start']>",
+		"inputSchema": {
+			"type": "array",
+			"description": "TypeScript payload: ReturnType<RuntimeRunnerApi['start']>",
+			"items": {}
+		}
+	},
+	"runner.startNode.started": {
+		"description": "runner.startNode.started",
+		"typeExpr": "ReturnType<RuntimeRunnerApi['startNode']>",
+		"inputSchema": {
+			"type": "array",
+			"description": "TypeScript payload: ReturnType<RuntimeRunnerApi['startNode']>",
+			"items": {}
+		}
+	},
+	"runner.resume.started": {
+		"description": "runner.resume.started",
+		"typeExpr": "ReturnType<RuntimeRunnerApi['resume']>",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: ReturnType<RuntimeRunnerApi['resume']>",
+			"additionalProperties": true
+		}
+	},
+	"runner.resume.failed": {
+		"description": "Resume rejected — corrupt / stale / missing checkpoint, or busy.",
+		"typeExpr": "RunnerResumeFailedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: RunnerResumeFailedPayload",
+			"additionalProperties": true
+		}
+	},
+	"runner.interrupted": {
+		"description": "(today only `'cancel'`).",
+		"typeExpr": "Parameters<RuntimeRunnerApi['interrupt']>[0]",
+		"inputSchema": {
+			"type": "string",
+			"description": "TypeScript payload: Parameters<RuntimeRunnerApi['interrupt']>[0]"
+		}
+	},
+	"runner.port": {
+		"description": "Port signal — {@link PortTelemetry}; direction at `payload[0]` (`'in'` | `'out'`).",
+		"typeExpr": "PortTelemetry",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: PortTelemetry",
+			"additionalProperties": true
+		}
+	},
+	"runner.done": {
+		"description": "Natural run end — {@link RuntimeDoneTelemetry}. Runner status becomes `'idle'`.",
+		"typeExpr": "RuntimeDoneTelemetry",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: RuntimeDoneTelemetry",
+			"additionalProperties": true
+		}
+	},
+	"runner.permission.ask": {
+		"description": "Runtime permission ask for a gated harness tool call (feed + composer). Stays inside the internal tool loop — not a graph HITL edge.",
+		"typeExpr": "RunnerPermissionAskPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: RunnerPermissionAskPayload",
+			"additionalProperties": true
+		}
+	},
+	"runner.permission.accepted": {
+		"description": "Server accepted one Allow / Deny reply for a still-pending permission ask. Every client removes that ask from its UI only on this fact.",
+		"typeExpr": "RunnerPermissionReplyPayload",
+		"inputSchema": {
+			"type": "object",
+			"properties": {
+				"runId": {
+					"type": "string"
 				},
+				"askId": {
+					"type": "string"
+				},
+				"decision": {
+					"type": "string",
+					"enum": [
+						"allow",
+						"deny"
+					]
+				}
 			},
-			required: ['runId'],
-			additionalProperties: false,
-		},
+			"required": [
+				"runId",
+				"askId",
+				"decision"
+			],
+			"additionalProperties": false
+		}
 	},
-	'runner.started': {
-		description: "Empty graph → instant `runner.done` and status `'idle'`.",
-		typeExpr: "ReturnType<RuntimeRunnerApi['start']>",
-		inputSchema: {
-			type: 'array',
-			description:
-				"TypeScript payload: ReturnType<RuntimeRunnerApi['start']>",
-			items: {},
-		},
+	"runner.checkpoints.snapshot": {
+		"description": "Resumable checkpoints for the active workflow (bootstrap + after Stop / discard / complete).",
+		"typeExpr": "RunnerCheckpointsSnapshotPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: RunnerCheckpointsSnapshotPayload",
+			"additionalProperties": true
+		}
 	},
-	'runner.startNode.started': {
-		description: 'runner.startNode.started',
-		typeExpr: "ReturnType<RuntimeRunnerApi['startNode']>",
-		inputSchema: {
-			type: 'array',
-			description:
-				"TypeScript payload: ReturnType<RuntimeRunnerApi['startNode']>",
-			items: {},
-		},
+	"runner.checkpointed": {
+		"description": "One checkpoint write succeeded (stage boundary or Stop).",
+		"typeExpr": "WorkflowCheckpointSummary",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: WorkflowCheckpointSummary",
+			"additionalProperties": true
+		}
 	},
-	'runner.resume.started': {
-		description: 'runner.resume.started',
-		typeExpr: "ReturnType<RuntimeRunnerApi['resume']>",
-		inputSchema: {
-			type: 'object',
-			description:
-				"TypeScript payload: ReturnType<RuntimeRunnerApi['resume']>",
-			additionalProperties: true,
-		},
+	"session.state.snapshot": {
+		"description": "Slim session projection — emitted on **every** connect and reconnect, first in the bootstrap sequence (before domain snapshots and `session.ready`). Payload is only {@link SessionStateSnapshotPayload}: `version`, `langflowerConfig`, `dividerPositions`, `paletteVisible`, `selectedNode`, `settings`. Replace those slices from this event; hydrate workflows / runner / feed / viewport / tool config from their dedicated snapshot keys (see state-sync table on `editor.settings.snapshot`; live palette chrome uses `editor.paletteVisible.snapshot`.",
+		"typeExpr": "SessionStateSnapshotPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: SessionStateSnapshotPayload",
+			"additionalProperties": true
+		}
 	},
-	'runner.resume.failed': {
-		description:
-			'Resume rejected — corrupt / stale / missing checkpoint, or busy.',
-		typeExpr: 'RunnerResumeFailedPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: RunnerResumeFailedPayload',
-			additionalProperties: true,
-		},
+	"session.ready": {
+		"description": "Terminal marker: bootstrap sequence for this connection is complete. Client enables diagram interactions after this. Follows slim `session.state.snapshot` **and** the dedicated domain snapshots on the same connection (`runner.snapshot`, `executionFeed.snapshot`, `toolConfig.snapshot`, `workflow.*.snapshot`, …). `version` bumps when bootstrap semantics change.",
+		"typeExpr": "SessionReadyPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: SessionReadyPayload",
+			"additionalProperties": true
+		}
 	},
-	'runner.interrupted': {
-		description: "(today only `'cancel'`).",
-		typeExpr: "Parameters<RuntimeRunnerApi['interrupt']>[0]",
-		inputSchema: {
-			type: 'string',
-			description:
-				"TypeScript payload: Parameters<RuntimeRunnerApi['interrupt']>[0]",
-		},
+	"runner.snapshot": {
+		"description": "Runner snapshot — run gate status (idle/running, runId, activeWorkflowId).",
+		"typeExpr": "RunnerSnapshotPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: RunnerSnapshotPayload",
+			"additionalProperties": true
+		}
 	},
-	'runner.port': {
-		description:
-			"Port signal — {@link PortTelemetry}; direction at `payload[0]` (`'in'` | `'out'`).",
-		typeExpr: 'PortTelemetry',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: PortTelemetry',
-			additionalProperties: true,
-		},
+	"executionFeed.snapshot": {
+		"description": "Execution feed snapshot — replay of `RuntimeRunnerEvent` frames. `null` when no run exists or the feed was cleared.",
+		"typeExpr": "ExecutionFeedSnapshotPayload | null",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: ExecutionFeedSnapshotPayload | null",
+			"additionalProperties": true
+		}
 	},
-	'runner.done': {
-		description:
-			"Natural run end — {@link RuntimeDoneTelemetry}. Runner status becomes `'idle'`.",
-		typeExpr: 'RuntimeDoneTelemetry',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: RuntimeDoneTelemetry',
-			additionalProperties: true,
-		},
+	"toolConfig.snapshot": {
+		"description": "Tool config snapshot — `.langflower/config.json` settings.",
+		"typeExpr": "ToolConfigSnapshotPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: ToolConfigSnapshotPayload",
+			"additionalProperties": true
+		}
 	},
-	'runner.permission.ask': {
-		description:
-			'Runtime permission ask for a gated harness tool call (feed + composer). Stays inside the internal tool loop — not a graph HITL edge.',
-		typeExpr: 'RunnerPermissionAskPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: RunnerPermissionAskPayload',
-			additionalProperties: true,
-		},
+	"langflower.config.save.requested": {
+		"description": "Settings Save — persist the **session draft** for one scope (or the payload when no draft is seeded), then broadcast",
+		"typeExpr": "LangflowerConfigSaveRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: LangflowerConfigSaveRequestedPayload",
+			"additionalProperties": true
+		}
 	},
-	'runner.permission.accepted': {
-		description:
-			'Server accepted one Allow / Deny reply for a still-pending permission ask. Every client removes that ask from its UI only on this fact.',
-		typeExpr: 'RunnerPermissionReplyPayload',
-		inputSchema: {
-			type: 'object',
-			properties: {
-				runId: {
-					type: 'string',
-				},
-				askId: {
-					type: 'string',
-				},
-				decision: {
-					type: 'string',
-					enum: ['allow', 'deny'],
-				},
+	"langflower.config.draft.patch.requested": {
+		"description": "Replace the session Settings draft for a scope. Server probes connection when a provider `baseURL` / `apiKey` changes.",
+		"typeExpr": "LangflowerConfigDraftPatchRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: LangflowerConfigDraftPatchRequestedPayload",
+			"additionalProperties": true
+		}
+	},
+	"langflower.config.draft.discard.requested": {
+		"description": "Reset the session draft from the saved layer for a scope.",
+		"typeExpr": "LangflowerConfigDraftDiscardRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: LangflowerConfigDraftDiscardRequestedPayload",
+			"additionalProperties": true
+		}
+	},
+	"project.bootstrap.requested": {
+		"description": "Settings → Bootstrap — force-reseed skeleton templates into the open project (workflows / skills / my-nodes / instructions). Never rewrites `langflower.jsonc`. Rejected while a run is active. Replies with {@link ProjectBootstrapResultPayload}; on success also broadcasts workflow / custom-palette snapshots.",
+		"typeExpr": "Record<string, never>",
+		"inputSchema": {
+			"type": "object",
+			"additionalProperties": false
+		}
+	},
+	"langflower.config.snapshot": {
+		"description": "Authoritative config — emitted per connection after `session.ready` and after Settings Save. Includes effective + layer slices.",
+		"typeExpr": "LangflowerConfigSnapshotPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: LangflowerConfigSnapshotPayload",
+			"additionalProperties": true
+		}
+	},
+	"langflower.config.draft.snapshot": {
+		"description": "Authoritative unsaved Settings draft + connection statuses for one scope. Session memory; broadcast after patch / discard / save / scope change / connect.",
+		"typeExpr": "LangflowerConfigDraftSnapshotPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: LangflowerConfigDraftSnapshotPayload",
+			"additionalProperties": true
+		}
+	},
+	"langflower.models.catalog.snapshot": {
+		"description": "Authoritative live model catalogs for all configured providers. Server-pushed after {@link LangflowerConfigSnapshotPayload} on connect (async, non-blocking) and after Settings Save. Static jsonc models remain in config; UI merges both. No client refresh intent — server owns fetch.",
+		"typeExpr": "LangflowerModelsCatalogSnapshotPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: LangflowerModelsCatalogSnapshotPayload",
+			"additionalProperties": true
+		}
+	},
+	"project.bootstrap.result": {
+		"description": "Outcome of `project.bootstrap.requested` (Result — expected failures are `ok: false`, not throws).",
+		"typeExpr": "ProjectBootstrapResultPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: ProjectBootstrapResultPayload",
+			"additionalProperties": true
+		}
+	},
+	"palette.reload.requested": {
+		"description": "Refresh the system palette catalog (no custom-node compile). Emits `palette.snapshot`. May broadcast to other connections.",
+		"typeExpr": "Record<string, never>",
+		"inputSchema": {
+			"type": "object",
+			"additionalProperties": false
+		}
+	},
+	"palette.snapshot": {
+		"description": "Authoritative **system** catalog — outcome of `palette.reload.requested` or connect bootstrap.",
+		"typeExpr": "PaletteConfigPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: PaletteConfigPayload",
+			"additionalProperties": true
+		}
+	},
+	"customPalette.update.requested": {
+		"description": "Recompile project custom packs and refresh the custom registry. Server broadcasts `customPalette.snapshot` (`compiling`, then final).",
+		"typeExpr": "CustomPaletteUpdateRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"properties": {
+				"force": {
+					"type": "boolean"
+				}
 			},
-			required: ['runId', 'askId', 'decision'],
-			additionalProperties: false,
-		},
+			"additionalProperties": false
+		}
 	},
-	'runner.checkpoints.snapshot': {
-		description:
-			'Resumable checkpoints for the active workflow (bootstrap + after Stop / discard / complete).',
-		typeExpr: 'RunnerCheckpointsSnapshotPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: RunnerCheckpointsSnapshotPayload',
-			additionalProperties: true,
-		},
+	"customPalette.snapshot": {
+		"description": "Authoritative custom-node slice for the Custom palette section.",
+		"typeExpr": "CustomPaletteSnapshotPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: CustomPaletteSnapshotPayload",
+			"additionalProperties": true
+		}
 	},
-	'runner.checkpointed': {
-		description: 'One checkpoint write succeeded (stage boundary or Stop).',
-		typeExpr: 'WorkflowCheckpointSummary',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: WorkflowCheckpointSummary',
-			additionalProperties: true,
-		},
+	"workflow.saveCurrent.requested": {
+		"description": "Serialize the session's in-memory active workflow to disk. Server builds the save payload from `session.activeWorkflow`.",
+		"typeExpr": "WorkflowSaveCurrentPayload",
+		"inputSchema": {
+			"type": "object",
+			"additionalProperties": false
+		}
 	},
-	'session.state.snapshot': {
-		description:
-			'Slim session projection — emitted on **every** connect and reconnect, first in the bootstrap sequence (before domain snapshots and `session.ready`). Payload is only {@link SessionStateSnapshotPayload}: `version`, `langflowerConfig`, `dividerPositions`, `paletteVisible`, `selectedNode`, `settings`. Replace those slices from this event; hydrate workflows / runner / feed / viewport / tool config from their dedicated snapshot keys (see state-sync table on `editor.settings.snapshot`; live palette chrome uses `editor.paletteVisible.snapshot`.',
-		typeExpr: 'SessionStateSnapshotPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: SessionStateSnapshotPayload',
-			additionalProperties: true,
-		},
-	},
-	'session.ready': {
-		description:
-			'Terminal marker: bootstrap sequence for this connection is complete. Client enables diagram interactions after this. Follows slim `session.state.snapshot` **and** the dedicated domain snapshots on the same connection (`runner.snapshot`, `executionFeed.snapshot`, `toolConfig.snapshot`, `workflow.*.snapshot`, …). `version` bumps when bootstrap semantics change.',
-		typeExpr: 'SessionReadyPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: SessionReadyPayload',
-			additionalProperties: true,
-		},
-	},
-	'runner.snapshot': {
-		description:
-			'Runner snapshot — run gate status (idle/running, runId, activeWorkflowId).',
-		typeExpr: 'RunnerSnapshotPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: RunnerSnapshotPayload',
-			additionalProperties: true,
-		},
-	},
-	'executionFeed.snapshot': {
-		description:
-			'Execution feed snapshot — replay of `RuntimeRunnerEvent` frames. `null` when no run exists or the feed was cleared.',
-		typeExpr: 'ExecutionFeedSnapshotPayload | null',
-		inputSchema: {
-			type: 'object',
-			description:
-				'TypeScript payload: ExecutionFeedSnapshotPayload | null',
-			additionalProperties: true,
-		},
-	},
-	'toolConfig.snapshot': {
-		description:
-			'Tool config snapshot — `.langflower/config.json` settings.',
-		typeExpr: 'ToolConfigSnapshotPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: ToolConfigSnapshotPayload',
-			additionalProperties: true,
-		},
-	},
-	'langflower.config.save.requested': {
-		description:
-			'Settings Save — persist the **session draft** for one scope (or the payload when no draft is seeded), then broadcast',
-		typeExpr: 'LangflowerConfigSaveRequestedPayload',
-		inputSchema: {
-			type: 'object',
-			description:
-				'TypeScript payload: LangflowerConfigSaveRequestedPayload',
-			additionalProperties: true,
-		},
-	},
-	'langflower.config.draft.patch.requested': {
-		description:
-			'Replace the session Settings draft for a scope. Server probes connection when a provider `baseURL` / `apiKey` changes.',
-		typeExpr: 'LangflowerConfigDraftPatchRequestedPayload',
-		inputSchema: {
-			type: 'object',
-			description:
-				'TypeScript payload: LangflowerConfigDraftPatchRequestedPayload',
-			additionalProperties: true,
-		},
-	},
-	'langflower.config.draft.discard.requested': {
-		description:
-			'Reset the session draft from the saved layer for a scope.',
-		typeExpr: 'LangflowerConfigDraftDiscardRequestedPayload',
-		inputSchema: {
-			type: 'object',
-			description:
-				'TypeScript payload: LangflowerConfigDraftDiscardRequestedPayload',
-			additionalProperties: true,
-		},
-	},
-	'project.bootstrap.requested': {
-		description:
-			'Settings → Bootstrap — force-reseed skeleton templates into the open project (workflows / skills / my-nodes / instructions). Never rewrites `langflower.jsonc`. Rejected while a run is active. Replies with {@link ProjectBootstrapResultPayload}; on success also broadcasts workflow / custom-palette snapshots.',
-		typeExpr: 'Record<string, never>',
-		inputSchema: {
-			type: 'object',
-			additionalProperties: false,
-		},
-	},
-	'langflower.config.snapshot': {
-		description:
-			'Authoritative config — emitted per connection after `session.ready` and after Settings Save. Includes effective + layer slices.',
-		typeExpr: 'LangflowerConfigSnapshotPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: LangflowerConfigSnapshotPayload',
-			additionalProperties: true,
-		},
-	},
-	'langflower.config.draft.snapshot': {
-		description:
-			'Authoritative unsaved Settings draft + connection statuses for one scope. Session memory; broadcast after patch / discard / save / scope change / connect.',
-		typeExpr: 'LangflowerConfigDraftSnapshotPayload',
-		inputSchema: {
-			type: 'object',
-			description:
-				'TypeScript payload: LangflowerConfigDraftSnapshotPayload',
-			additionalProperties: true,
-		},
-	},
-	'langflower.models.catalog.snapshot': {
-		description:
-			'Authoritative live model catalogs for all configured providers. Server-pushed after {@link LangflowerConfigSnapshotPayload} on connect (async, non-blocking) and after Settings Save. Static jsonc models remain in config; UI merges both. No client refresh intent — server owns fetch.',
-		typeExpr: 'LangflowerModelsCatalogSnapshotPayload',
-		inputSchema: {
-			type: 'object',
-			description:
-				'TypeScript payload: LangflowerModelsCatalogSnapshotPayload',
-			additionalProperties: true,
-		},
-	},
-	'project.bootstrap.result': {
-		description:
-			'Outcome of `project.bootstrap.requested` (Result — expected failures are `ok: false`, not throws).',
-		typeExpr: 'ProjectBootstrapResultPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: ProjectBootstrapResultPayload',
-			additionalProperties: true,
-		},
-	},
-	'palette.reload.requested': {
-		description:
-			'Refresh the system palette catalog (no custom-node compile). Emits `palette.snapshot`. May broadcast to other connections.',
-		typeExpr: 'Record<string, never>',
-		inputSchema: {
-			type: 'object',
-			additionalProperties: false,
-		},
-	},
-	'palette.snapshot': {
-		description:
-			'Authoritative **system** catalog — outcome of `palette.reload.requested` or connect bootstrap.',
-		typeExpr: 'PaletteConfigPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: PaletteConfigPayload',
-			additionalProperties: true,
-		},
-	},
-	'customPalette.update.requested': {
-		description:
-			'Recompile project custom packs and refresh the custom registry. Server broadcasts `customPalette.snapshot` (`compiling`, then final).',
-		typeExpr: 'Record<string, never>',
-		inputSchema: {
-			type: 'object',
-			additionalProperties: false,
-		},
-	},
-	'customPalette.snapshot': {
-		description:
-			'Authoritative custom-node slice for the Custom palette section.',
-		typeExpr: 'CustomPaletteSnapshotPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: CustomPaletteSnapshotPayload',
-			additionalProperties: true,
-		},
-	},
-	'workflow.saveCurrent.requested': {
-		description:
-			"Serialize the session's in-memory active workflow to disk. Server builds the save payload from `session.activeWorkflow`.",
-		typeExpr: 'WorkflowSaveCurrentPayload',
-		inputSchema: {
-			type: 'object',
-			additionalProperties: false,
-		},
-	},
-	'workflow.renameCurrent.requested': {
-		description:
-			'Rename active workflow identity (name + id + `{id}.json`). Partial save: metadata is persisted immediately; dirty graph edits remain uncommitted until `workflow.saveCurrent.requested`.',
-		typeExpr: 'WorkflowRenameCurrentPayload',
-		inputSchema: {
-			type: 'object',
-			properties: {
-				name: {
-					type: 'string',
-				},
+	"workflow.renameCurrent.requested": {
+		"description": "Rename active workflow identity (name + id + `{id}.json`). Partial save: metadata is persisted immediately; dirty graph edits remain uncommitted until `workflow.saveCurrent.requested`.",
+		"typeExpr": "WorkflowRenameCurrentPayload",
+		"inputSchema": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string"
+				}
 			},
-			required: ['name'],
-			additionalProperties: false,
-		},
+			"required": [
+				"name"
+			],
+			"additionalProperties": false
+		}
 	},
-	'workflow.create.requested': {
-		description:
-			'Start an empty workflow in the session (dirty, not written to disk).',
-		typeExpr: 'WorkflowCreatePayload',
-		inputSchema: {
-			type: 'object',
-			properties: {
-				name: {
-					type: 'string',
+	"workflow.create.requested": {
+		"description": "Start an empty workflow in the session (dirty, not written to disk).",
+		"typeExpr": "WorkflowCreatePayload",
+		"inputSchema": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string"
 				},
-				id: {
-					type: 'string',
-				},
+				"id": {
+					"type": "string"
+				}
 			},
-			additionalProperties: false,
-		},
+			"additionalProperties": false
+		}
 	},
-	'workflow.copy.requested': {
-		description:
-			'Copy a persisted workflow to a new `{id}-copy.json` file and open it.',
-		typeExpr: 'WorkflowCopyPayload',
-		inputSchema: {
-			type: 'object',
-			properties: {
-				workflowId: {
-					type: 'string',
-				},
+	"workflow.copy.requested": {
+		"description": "Copy a persisted workflow to a new `{id}-copy.json` file and open it.",
+		"typeExpr": "WorkflowCopyPayload",
+		"inputSchema": {
+			"type": "object",
+			"properties": {
+				"workflowId": {
+					"type": "string"
+				}
 			},
-			required: ['workflowId'],
-			additionalProperties: false,
-		},
+			"required": [
+				"workflowId"
+			],
+			"additionalProperties": false
+		}
 	},
-	'workflow.load.requested': {
-		description:
-			'Load one workflow by `workflowId` from disk into the server session (bind-replay into editor).',
-		typeExpr: 'WorkflowLoadPayload',
-		inputSchema: {
-			type: 'object',
-			properties: {
-				workflowId: {
-					type: 'string',
-				},
+	"workflow.load.requested": {
+		"description": "Load one workflow by `workflowId` from disk into the server session (bind-replay into editor).",
+		"typeExpr": "WorkflowLoadPayload",
+		"inputSchema": {
+			"type": "object",
+			"properties": {
+				"workflowId": {
+					"type": "string"
+				}
 			},
-			required: ['workflowId'],
-			additionalProperties: false,
-		},
+			"required": [
+				"workflowId"
+			],
+			"additionalProperties": false
+		}
 	},
-	'workflow.list.requested': {
-		description: 'Refresh workflow catalog (metadata only, no graphs).',
-		typeExpr: 'Record<string, never>',
-		inputSchema: {
-			type: 'object',
-			additionalProperties: false,
-		},
+	"workflow.list.requested": {
+		"description": "Refresh workflow catalog (metadata only, no graphs).",
+		"typeExpr": "Record<string, never>",
+		"inputSchema": {
+			"type": "object",
+			"additionalProperties": false
+		}
 	},
-	'workflow.delete.requested': {
-		description: 'Delete one persisted workflow by id.',
-		typeExpr: 'WorkflowDeletePayload',
-		inputSchema: {
-			type: 'object',
-			properties: {
-				workflowId: {
-					type: 'string',
-				},
+	"workflow.delete.requested": {
+		"description": "Delete one persisted workflow by id.",
+		"typeExpr": "WorkflowDeletePayload",
+		"inputSchema": {
+			"type": "object",
+			"properties": {
+				"workflowId": {
+					"type": "string"
+				}
 			},
-			required: ['workflowId'],
-			additionalProperties: false,
-		},
+			"required": [
+				"workflowId"
+			],
+			"additionalProperties": false
+		}
 	},
-	'workflow.current.snapshot': {
-		description:
-			'Active workflow document and dirty/pristine state. Pushed after workflow manager intents (load/save/rename/delete).',
-		typeExpr: 'WorkflowCurrentSnapshotPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: WorkflowCurrentSnapshotPayload',
-			additionalProperties: true,
-		},
+	"workflow.current.snapshot": {
+		"description": "Active workflow document and dirty/pristine state. Pushed after workflow manager intents (load/save/rename/delete).",
+		"typeExpr": "WorkflowCurrentSnapshotPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: WorkflowCurrentSnapshotPayload",
+			"additionalProperties": true
+		}
 	},
-	'workflow.load.failed': {
-		description:
-			'Load rejected — missing file, invalid graph / edge, or locked editor. Unicast to the requester (see `runner.resume.failed`). Server still follows with `workflow.current.snapshot` for the unchanged active document.',
-		typeExpr: 'WorkflowLoadFailedPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: WorkflowLoadFailedPayload',
-			additionalProperties: true,
-		},
+	"workflow.load.failed": {
+		"description": "Load rejected — missing file, invalid graph / edge, or locked editor. Unicast to the requester (see `runner.resume.failed`). Server still follows with `workflow.current.snapshot` for the unchanged active document.",
+		"typeExpr": "WorkflowLoadFailedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: WorkflowLoadFailedPayload",
+			"additionalProperties": true
+		}
 	},
-	'workflow.load.repaired': {
-		description:
-			'Load opened after stripping unknown nodes / unbindable edges. Unicast to the requester; active document is dirty until Save. Server still follows with `workflow.current.snapshot`.',
-		typeExpr: 'WorkflowLoadRepairedPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: WorkflowLoadRepairedPayload',
-			additionalProperties: true,
-		},
+	"workflow.load.repaired": {
+		"description": "Load opened after stripping unknown nodes / unbindable edges. Unicast to the requester; active document is dirty until Save. Server still follows with `workflow.current.snapshot`.",
+		"typeExpr": "WorkflowLoadRepairedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: WorkflowLoadRepairedPayload",
+			"additionalProperties": true
+		}
 	},
-	'workflow.currentStatus.snapshot': {
-		description:
-			'Dirty/pristine flag only — broadcast after editor mutations without replacing the canvas graph (see `editor.*.delta`).',
-		typeExpr: 'WorkflowCurrentStatusPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: WorkflowCurrentStatusPayload',
-			additionalProperties: true,
-		},
+	"workflow.currentStatus.snapshot": {
+		"description": "Dirty/pristine flag only — broadcast after editor mutations without replacing the canvas graph (see `editor.*.delta`).",
+		"typeExpr": "WorkflowCurrentStatusPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: WorkflowCurrentStatusPayload",
+			"additionalProperties": true
+		}
 	},
-	'workflow.list.snapshot': {
-		description:
-			'Workflow catalog (metadata only). Pushed on list intent and after save/delete when the on-disk catalog changes.',
-		typeExpr: 'WorkflowListSnapshotPayload',
-		inputSchema: {
-			type: 'object',
-			description: 'TypeScript payload: WorkflowListSnapshotPayload',
-			additionalProperties: true,
-		},
-	},
-} as const satisfies Readonly<Record<string, BridgeToolMetaEntry>>;
+	"workflow.list.snapshot": {
+		"description": "Workflow catalog (metadata only). Pushed on list intent and after save/delete when the on-disk catalog changes.",
+		"typeExpr": "WorkflowListSnapshotPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: WorkflowListSnapshotPayload",
+			"additionalProperties": true
+		}
+	}
+} as const satisfies Readonly<
+	Record<string, BridgeToolMetaEntry>
+>;

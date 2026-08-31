@@ -39,6 +39,9 @@ const walkTsFiles = async (dir: string): Promise<readonly string[]> => {
 	return files;
 };
 
+/** All pack `.ts` / `.tsx` except tests and `.d.ts` (helpers + entries). */
+export const listPackTsFiles = walkTsFiles;
+
 const hasExportDefault = async (filePath: string): Promise<boolean> => {
 	const source = await fs.readFile(filePath, 'utf8');
 
@@ -128,4 +131,15 @@ export const discoverPacks = async (
 	return packs.sort((left, right) =>
 		left.packageName.localeCompare(right.packageName),
 	);
+};
+
+/**
+ * True when `.langflower/nodes/` has at least one pack directory.
+ * Light module — no TypeScript / esbuild (those load with compile).
+ */
+export const hasCustomNodePacks = async (
+	projectDir: string,
+): Promise<boolean> => {
+	const packs = await discoverPacks(projectDir);
+	return packs.length > 0;
 };

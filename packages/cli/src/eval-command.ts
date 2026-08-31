@@ -1,5 +1,4 @@
 import path from 'node:path';
-import type { Command } from 'commander';
 import { loadReplayMap } from '@langflower/eval/load-pack';
 import {
 	createReplayCaseRunner,
@@ -54,41 +53,28 @@ const resolveCaseRunner = async (
 	};
 };
 
-export const registerEvalCommand = (program: Command): void => {
-	program
-		.command('eval')
-		.description(
-			'Run a golden / fixture eval pack and fail closed when score < threshold',
-		)
-		.argument('<pack-dir>', 'Directory containing pack.json')
-		.option(
-			'--project <dir>',
-			'Project root for harness path fence (default: pack-dir)',
-		)
-		.option(
-			'--replay <file>',
-			'JSON map of caseId → agent output (optional offline / CI agent)',
-		)
-		.action(async (packDirArg: string, opts: EvalCommandOptions) => {
-			try {
-				const packDir = path.resolve(packDirArg);
-				const projectRoot = path.resolve(opts.project ?? packDir);
-				const { label, runCase } = await resolveCaseRunner(opts);
-				console.log(`Agent under test: ${label}`);
-				const result = await runEvalSuite({
-					packDir,
-					projectRoot,
-					runCase,
-				});
-				printSuiteSummary(result);
-				if (!result.passed) {
-					process.exitCode = 1;
-				}
-			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : String(error);
-				console.error(`langflower eval failed: ${message}`);
-				process.exitCode = 1;
-			}
+/** Loaded only when the user runs `langflower eval` (not on `start` / `--help`). */
+export const runEvalCommand = async (
+	packDirArg: string,
+	opts: EvalCommandOptions,
+): Promise<void> => {
+	try {
+		const packDir = path.resolve(packDirArg);
+		const projectRoot = path.resolve(opts.project ?? packDir);
+		const { label, runCase } = await resolveCaseRunner(opts);
+		console.log(`Agent under test: ${label}`);
+		const result = await runEvalSuite({
+			packDir,
+			projectRoot,
+			runCase,
 		});
+		printSuiteSummary(result);
+		if (!result.passed) {
+			process.exitCode = 1;
+		}
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		console.error(`langflower eval failed: ${message}`);
+		process.exitCode = 1;
+	}
 };

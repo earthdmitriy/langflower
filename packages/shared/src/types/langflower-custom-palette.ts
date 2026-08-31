@@ -26,3 +26,11 @@ export type CustomPaletteSnapshotPayload = {
 	readonly errors: readonly CustomPalettePackError[];
 	readonly status: CustomPaletteCompilationStatus;
 };
+
+/**
+ * Client intent to recompile project packs. `force` rebuilds even when pack
+ * fingerprints match (Custom → Update). Omitted / false is incremental.
+ */
+export type CustomPaletteUpdateRequestedPayload = {
+	readonly force?: boolean;
+};

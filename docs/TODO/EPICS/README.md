@@ -1,8 +1,7 @@
 # Epics — use-case readiness queue (active)
 
-**Active** under [`docs/TODO/`](../README.md). Epics **00–43** are
+**Active** under [`docs/TODO/`](../README.md). Epics **00–44** are
 archived in [`docs/DONE/EPICS/`](../../DONE/EPICS/README.md) once landed.
-This queue is empty of numbered epics.
 
 Further product work also comes from
 [`docs/code-regression/`](../../code-regression/SUMMARY.md) (orchestrator may
@@ -26,6 +25,7 @@ Do **not** re-open epic 15.
 | Uniform tool shape          | **41 landed** — MCP + Sub-Agent + optional Tool collection as `ToolHandle[]`                    |
 | Use-cases                   | None Implementable — [use-cases](../../use-cases/README.md)                                     |
 | Feed sanity                 | **43 landed** — UI hides unmarked / `'none'`; Finish `done`; Preview bubble + stable size       |
+| CLI / compiler startup      | **44 landed** — [heartbeat, cache, product bundle](../../DONE/EPICS/44-startup-optimization.md) |
 
 ## Order
 
@@ -34,6 +34,7 @@ Do **not** re-open epic 15.
 | 39  | [39-ai-package-restructure.md](../../DONE/EPICS/39-ai-package-restructure.md) | Landed — `ai/nodes/` + `ai/features/` named slices                        |
 | 42  | [42-embedding-providers.md](../../DONE/EPICS/42-embedding-providers.md)       | Landed — Settings embedding default + `EmbedHandle` wire                  |
 | 43  | [43-feed-sanity.md](../../DONE/EPICS/43-feed-sanity.md)                       | Landed — hide unmarked ports; Finish `done`; Preview bubble + stable size |
+| 44  | [44-startup-optimization.md](../../DONE/EPICS/44-startup-optimization.md)     | **Landed** — heartbeat, incremental cache, product esbuild                |
 
 Next: code-regression Critical findings and remaining use-case Missing parts.
 
@@ -54,3 +55,4 @@ catalog UI (S3–S4).
 - Switch live work-log to `feed-folding` — follow-up after epic 37
   (see [37 Out of scope](../../DONE/EPICS/37-deterministic-feed-fold.md) /
   [feed-refactor.md](../feed-refactor.md)).
+- Lazy OpenAI / undici / per-node catalog splits (out of epic 44).

@@ -1,4 +1,4 @@
-import { hasCustomNodePacks } from '@langflower/compiler/compile-project-nodes';
+import { hasCustomNodePacks } from '@langflower/compiler/discover-packs';
 import { listResumableCheckpoints } from '../checkpoint/list-resumable-checkpoints.js';
 import type { RunCheckpointSession } from '../checkpoint/run-checkpoint-session.js';
 import type { ServerContext } from '../server-context.js';

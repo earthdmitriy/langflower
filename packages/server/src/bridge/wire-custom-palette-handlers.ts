@@ -1,3 +1,4 @@
+import type { CustomPaletteUpdateRequestedPayload } from '@langflower/shared/langflower.js';
 import type { Subscription } from 'rxjs';
 import { compileAndHotSwapCustomNodes } from '../palette/compile-and-hot-swap-custom-nodes.js';
 import type { ServerContext } from '../server-context.js';
@@ -11,9 +12,11 @@ export const wireCustomPaletteHandlers = (
 	session: LangflowerSession,
 ): Subscription =>
 	bridge['customPalette.update.requested'].subscribe(async (raw) => {
-		if (!isInboundEvent<Record<string, never>>(raw)) {
+		if (!isInboundEvent<CustomPaletteUpdateRequestedPayload>(raw)) {
 			return;
 		}
 
-		await compileAndHotSwapCustomNodes(session, context, bridge);
+		await compileAndHotSwapCustomNodes(session, context, bridge, {
+			force: raw.payload.force === true,
+		});
 	});

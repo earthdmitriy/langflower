@@ -9,6 +9,7 @@ import {
 	compileProjectNodes,
 	hasCustomNodePacks,
 } from './compile-project-nodes.js';
+import { loadProjectNodes } from './load-project-nodes.js';
 import { COMPILATION_ERRORS_FILE } from './write-compilation-errors.js';
 
 const execFileAsync = promisify(execFile);
@@ -622,5 +623,198 @@ export default defineNode({
 		const bundled = await fs.readFile(outfile, 'utf8');
 		expect(bundled).toContain('Helper V2');
 		expect(bundled).not.toContain('Helper V1');
+	});
+
+	it('skips esbuild when fingerprint and host stamp match', async () => {
+		const projectDir = await makeProject();
+		await writePack(projectDir, 'hit-pack', {
+			'echo.ts': validNode('fixture-hit', 'Hit'),
+		});
+		const outfile = path.join(
+			projectDir,
+			'.langflower',
+			'.cache',
+			'nodes',
+			'hit-pack',
+			'echo.mjs',
+		);
+
+		const first = await compileProjectNodes(projectDir);
+		expect(first.errors).toEqual([]);
+		expect(first.nodes[0]?.displayName).toBe('Hit');
+
+		const epoch = new Date(0);
+		await fs.utimes(outfile, epoch, epoch);
+
+		const second = await compileProjectNodes(projectDir);
+		expect(second.errors).toEqual([]);
+		expect(second.nodes[0]?.displayName).toBe('Hit');
+		const stat = await fs.stat(outfile);
+		expect(stat.mtimeMs).toBe(0);
+	});
+
+	it('recompiles when the host stamp in the manifest does not match', async () => {
+		const projectDir = await makeProject();
+		await writePack(projectDir, 'stamp-pack', {
+			'echo.ts': validNode('fixture-stamp', 'Stamp'),
+		});
+		const outfile = path.join(
+			projectDir,
+			'.langflower',
+			'.cache',
+			'nodes',
+			'stamp-pack',
+			'echo.mjs',
+		);
+
+		const first = await compileProjectNodes(projectDir);
+		expect(first.errors).toEqual([]);
+
+		const manifestPath = path.join(
+			projectDir,
+			'.langflower',
+			'.cache',
+			'nodes',
+			'manifest.json',
+		);
+		const manifest = JSON.parse(
+			await fs.readFile(manifestPath, 'utf8'),
+		) as { hostStamp: string };
+		manifest.hostStamp = 'tampered';
+		await fs.writeFile(
+			manifestPath,
+			`${JSON.stringify(manifest, null, '\t')}\n`,
+			'utf8',
+		);
+
+		const epoch = new Date(0);
+		await fs.utimes(outfile, epoch, epoch);
+
+		const second = await compileProjectNodes(projectDir);
+		expect(second.errors).toEqual([]);
+		const stat = await fs.stat(outfile);
+		expect(stat.mtimeMs).toBeGreaterThan(0);
+	});
+
+	it('force-compiles even when hashes match', async () => {
+		const projectDir = await makeProject();
+		await writePack(projectDir, 'force-pack', {
+			'echo.ts': validNode('fixture-force', 'Force'),
+		});
+		const outfile = path.join(
+			projectDir,
+			'.langflower',
+			'.cache',
+			'nodes',
+			'force-pack',
+			'echo.mjs',
+		);
+
+		const first = await compileProjectNodes(projectDir);
+		expect(first.errors).toEqual([]);
+
+		const epoch = new Date(0);
+		await fs.utimes(outfile, epoch, epoch);
+
+		const second = await compileProjectNodes(projectDir, { force: true });
+		expect(second.errors).toEqual([]);
+		expect(second.nodes[0]?.displayName).toBe('Force');
+		const stat = await fs.stat(outfile);
+		expect(stat.mtimeMs).toBeGreaterThan(0);
+	});
+
+	it('deletes vanished entry outfiles on miss', async () => {
+		const projectDir = await makeProject();
+		const packDir = await writePack(projectDir, 'vanish-pack', {
+			'keep.ts': validNode('fixture-keep', 'Keep'),
+			'drop.ts': validNode('fixture-drop', 'Drop'),
+		});
+		const cachePackDir = path.join(
+			projectDir,
+			'.langflower',
+			'.cache',
+			'nodes',
+			'vanish-pack',
+		);
+
+		const first = await compileProjectNodes(projectDir);
+		expect(first.errors).toEqual([]);
+		expect([...first.nodes.map((node) => node.type)].sort()).toEqual([
+			'fixture-drop',
+			'fixture-keep',
+		]);
+		expect((await fs.readdir(cachePackDir)).sort()).toEqual([
+			'drop.mjs',
+			'keep.mjs',
+		]);
+
+		await fs.rm(path.join(packDir, 'drop.ts'));
+
+		const second = await compileProjectNodes(projectDir);
+		expect(second.errors).toEqual([]);
+		expect(second.nodes.map((node) => node.type)).toEqual(['fixture-keep']);
+		expect(await fs.readdir(cachePackDir)).toEqual(['keep.mjs']);
+	});
+
+	it('loadProjectNodes reports compiled false on a cache hit', async () => {
+		const projectDir = await makeProject();
+		await writePack(projectDir, 'load-hit', {
+			'echo.ts': validNode('fixture-load-hit', 'Load Hit'),
+		});
+		const outfile = path.join(
+			projectDir,
+			'.langflower',
+			'.cache',
+			'nodes',
+			'load-hit',
+			'echo.mjs',
+		);
+
+		await compileProjectNodes(projectDir);
+		const epoch = new Date(0);
+		await fs.utimes(outfile, epoch, epoch);
+
+		let compileHook = 0;
+		const loaded = await loadProjectNodes(projectDir, {
+			onCompile: () => {
+				compileHook += 1;
+			},
+		});
+
+		expect(loaded.compiled).toBe(false);
+		expect(compileHook).toBe(0);
+		expect(loaded.nodes[0]?.displayName).toBe('Load Hit');
+		expect((await fs.stat(outfile)).mtimeMs).toBe(0);
+	});
+
+	it('loadProjectNodes force compiles and reports compiled true', async () => {
+		const projectDir = await makeProject();
+		await writePack(projectDir, 'load-force', {
+			'echo.ts': validNode('fixture-load-force', 'Load Force'),
+		});
+		const outfile = path.join(
+			projectDir,
+			'.langflower',
+			'.cache',
+			'nodes',
+			'load-force',
+			'echo.mjs',
+		);
+
+		await compileProjectNodes(projectDir);
+		const epoch = new Date(0);
+		await fs.utimes(outfile, epoch, epoch);
+
+		let compileHook = 0;
+		const loaded = await loadProjectNodes(projectDir, {
+			force: true,
+			onCompile: () => {
+				compileHook += 1;
+			},
+		});
+
+		expect(loaded.compiled).toBe(true);
+		expect(compileHook).toBe(1);
+		expect((await fs.stat(outfile)).mtimeMs).toBeGreaterThan(0);
 	});
 });

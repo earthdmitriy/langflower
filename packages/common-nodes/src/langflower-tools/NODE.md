@@ -11,5 +11,6 @@ do not put that peek in the author SDK factory.
 This pack may grow more bus-backed tools later (`editor.addNode` /
 `removeNode` / `addEdge` / `removeEdge`). This release ships
 `compile_custom_nodes` only: same intent as Custom → **Update**
-(`customPalette.update.requested` → `customPalette.snapshot`). Failures also
-write pack `COMPILATION_ERRORS.md`.
+(`customPalette.update.requested` → `customPalette.snapshot`). After writing
+`.ts`, call with no args (fingerprint miss). Pass `{ force: true }` to rebuild
+when hashes match. Failures also write pack `COMPILATION_ERRORS.md`.

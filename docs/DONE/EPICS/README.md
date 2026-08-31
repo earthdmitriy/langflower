@@ -1,6 +1,6 @@
 # Epics — use-case readiness roadmap (completed)
 
-**Archived** under [`docs/DONE/`](../README.md). Epics **00–43** are
+**Archived** under [`docs/DONE/`](../README.md). Epics **00–44** are
 landed. Active queue: see [`docs/TODO/EPICS/`](../../TODO/EPICS/README.md).
 Further work also follows use-case Missing parts
 and [`docs/code-regression/`](../../code-regression/SUMMARY.md) Critical
@@ -23,6 +23,7 @@ Status only after `verify`.
 | Custom-nodes SDK (29–33, 40) | **29–33, 40 landed**                                                                      |
 | Use-cases                    | Many **Partial**; none **Implementable** yet — see [use-cases](../../use-cases/README.md) |
 | Feed sanity (43)             | **Landed** — hide unmarked / `'none'`; Finish `done`; Preview bubble + size               |
+| CLI startup (44)             | **Landed** — heartbeat, incremental custom-node cache, product bundle                     |
 
 ## Order
 
@@ -100,6 +101,7 @@ Status only after `verify`.
 | 41  | [41-uniform-tool-shape.md](41-uniform-tool-shape.md)                                   | Tools | **landed** — MCP + Sub-Agent + optional Tool collection as `ToolHandle[]`                     |
 | 42  | [42-embedding-providers.md](42-embedding-providers.md)                                 | Embed | **landed** — Settings `embedding` + `EmbedHandle` + Embeddings catalog (ADR-033 amend)        |
 | 43  | [43-feed-sanity.md](43-feed-sanity.md)                                                 | Feed  | **landed** — hide unmarked / `'none'`; Finish `done`; Preview result bubble + stable size     |
+| 44  | [44-startup-optimization.md](44-startup-optimization.md)                               | CLI   | **landed** — heartbeat, pack cache hit/miss, product CLI esbuild                              |
 
 ## Contracts
 

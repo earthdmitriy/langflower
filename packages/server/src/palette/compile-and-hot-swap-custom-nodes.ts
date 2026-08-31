@@ -15,6 +15,7 @@ export const compileAndHotSwapCustomNodes = async (
 	session: LangflowerSession,
 	context: ServerContext,
 	bridge: LangflowerBridge,
+	options?: { readonly force?: boolean },
 ): Promise<CustomPaletteSnapshotPayload> => {
 	bridgeEmit(
 		bridge,
@@ -22,8 +23,9 @@ export const compileAndHotSwapCustomNodes = async (
 		context.customPaletteService.compilingSnapshot(),
 	);
 
-	const snapshot = await context.customPaletteService.update(
+	const { snapshot } = await context.customPaletteService.update(
 		context.projectDir,
+		{ force: options?.force === true },
 	);
 	const customTypes = new Set(snapshot.nodes.map((node) => node.type));
 	const droppedEdges = swapCustomNodesInEditor(

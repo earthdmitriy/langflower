@@ -133,6 +133,14 @@ export default defineConfig({
 				ROOT,
 				'packages/compiler/src/compile-project-nodes.ts',
 			),
+			'@langflower/compiler/discover-packs': path.join(
+				ROOT,
+				'packages/compiler/src/discover-packs.ts',
+			),
+			'@langflower/compiler/load-project-nodes': path.join(
+				ROOT,
+				'packages/compiler/src/load-project-nodes.ts',
+			),
 
 			'@langflower/websocket-bridge/create-server': path.join(
 				ROOT,

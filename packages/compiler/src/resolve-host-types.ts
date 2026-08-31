@@ -16,6 +16,7 @@ const HOST_PEER_PACKAGES = [
 ] as const;
 type PackageJson = {
 	readonly name?: string;
+	readonly version?: string;
 	readonly types?: string;
 	readonly typings?: string;
 	readonly exports?: unknown;
@@ -197,6 +198,26 @@ export const resolveHostPackageTypes = (
 	const fallback = path.join(packageRoot, 'index.d.ts');
 	return fs.existsSync(fallback) ? fallback : undefined;
 };
+
+/**
+ * Install identity for cache invalidation: peer name, version, and resolved
+ * JS entry path (bundles bake absolute `file://` URLs).
+ */
+export const hostRuntimeStamp = (): string =>
+	HOST_PEER_PACKAGES.map((name) => {
+		const entry = resolvePackageEntry(name);
+		if (entry === undefined) {
+			return `${name}@unresolved`;
+		}
+
+		const packageRoot = findPackageRoot(entry);
+		const version =
+			packageRoot === undefined
+				? undefined
+				: readPackageJson(packageRoot)?.version;
+
+		return `${name}@${version ?? 'unknown'}:${toPosix(entry)}`;
+	}).join(';');
 
 /**
  * Map bare host peer names → absolute `.d.ts` paths for tsc `paths`.

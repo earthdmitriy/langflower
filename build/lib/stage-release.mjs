@@ -1,13 +1,20 @@
 /**
  * Shared staging for install-local and pack-release.
  *
- * Workspace packages (except CLI/UI/MCP) → vendor/ with file: cross-deps.
- * CLI dist/bin + UI browser build → product root (langflower).
+ * CLI is esbuild-bundled into product `dist/` (eval / compile split chunks;
+ * typescript + esbuild + host peers external). CLI bin + UI browser build
+ * → product root (`langflower`).
  *
- * Registry production deps of vendor + CLI packages are hoisted onto the
- * published root `langflower` package.json. Nested `file:./vendor/…` packages
- * alone do not reliably install their npm deps for global/registry installs
- * (e.g. missing `rxjs` from `@langflower/websocket-bridge`).
+ * Product `vendor/` is **not** a copy of every workspace `tsc` tree. Server,
+ * catalog, compiler, and the rest are concatenated into `dist/`. Only host
+ * peers (`node-sdk`, `runtime`) stay real packages so custom-pack `file://`
+ * identity matches the process (BUG-2026-07-28). Bootstrap seed files live
+ * at `vendor/server/skeleton/` (no server `dist/`).
+ *
+ * Registry production deps of the inlined workspace packages + CLI are still
+ * hoisted onto the published root `langflower` package.json (`openai`,
+ * `express`, `typescript`, …). Nested `file:./vendor/…` packages alone do
+ * not reliably install those deps for global/registry installs.
  */
 
 import fs from 'node:fs/promises';
@@ -15,6 +22,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { ROOT, PACKAGES } from './paths.mjs';
 import { log } from './logger.mjs';
+import { bundleProductCli } from './bundle-product.mjs';
 
 const TSCONFIG_BASE = path.join(ROOT, 'tsconfig.base.json');
 const RELEASE_DIR = path.join(ROOT, '.release');
@@ -73,9 +81,13 @@ const copyPublishDocs = async (productDir) => {
 	log.info(`Publish docs → ${path.relative(ROOT, docsDest)}`);
 };
 
+const isSourcemapPath = (filePath) => filePath.endsWith('.map');
+
 /**
  * Temporarily disable sourceMap / declarationMap in tsconfig.base.json for a
- * release build, then restore the backup in `finally`.
+ * release build, then restore the backup in `finally`. `tsc` does not delete
+ * leftover `*.map` from a previous `sourceMap: true` workspace build — vendor
+ * copy skips those files and `stripSourceMaps` still walks staged trees.
  *
  * @param {() => Promise<void>} fn
  */
@@ -107,7 +119,9 @@ export const withReleaseSourcemapsOff = async (fn) => {
 };
 
 /**
- * Recursively delete `*.map` under `dir` (safety net for staged product).
+ * Recursively delete leftover `*.map` under `dir`. Product CLI `dist/` is
+ * esbuild with `sourcemap: false`; this walk is for unbundled vendor / UI
+ * trees after a skip-on-copy filter.
  *
  * @param {string} dir
  */
@@ -137,13 +151,17 @@ export const stripSourceMaps = async (dir) => {
 	await walk(dir);
 	if (removed > 0) {
 		log.info(
-			`Stripped ${removed} sourcemap file(s) from ${path.relative(ROOT, dir) || '.'}`,
+			`Stripped ${removed} leftover sourcemap file(s) from ${path.relative(ROOT, dir) || '.'}`,
 		);
 	}
 };
 
-/** Workspace packages nested under product `vendor/` (not published separately). */
-export const VENDOR_STAGE_KEYS = [
+/**
+ * Workspace packages whose JS used to ship under `vendor/`. After product
+ * bundling their emit is concatenated into `dist/`; this list still feeds
+ * registry-dep hoist and the publish-snapshot npm closure walk.
+ */
+export const WORKSPACE_PRODUCT_DEP_KEYS = [
 	'runtime',
 	'tools',
 	'eval',
@@ -155,11 +173,18 @@ export const VENDOR_STAGE_KEYS = [
 	'server',
 ];
 
-/** @deprecated use VENDOR_STAGE_KEYS — kept for publish-snapshot size rows */
-export const PUBLISH_STAGE_KEYS = [...VENDOR_STAGE_KEYS, 'cli'];
+/**
+ * Host-peer packages copied into product `vendor/` as real packages.
+ * Custom packs `file://`-rewrite to these trees; the bundled CLI also
+ * imports them (they are esbuild externals).
+ */
+export const VENDOR_STAGE_KEYS = ['runtime', 'nodeSdk'];
+
+/** @deprecated snapshot / registry walk — not what `assembleProduct` copies */
+export const PUBLISH_STAGE_KEYS = [...WORKSPACE_PRODUCT_DEP_KEYS, 'cli'];
 
 /** Packages whose production registry deps must be installable with the product. */
-const REGISTRY_DEP_SOURCE_KEYS = [...VENDOR_STAGE_KEYS, 'cli'];
+const REGISTRY_DEP_SOURCE_KEYS = [...WORKSPACE_PRODUCT_DEP_KEYS, 'cli'];
 
 const packageDirName = (key) => path.basename(PACKAGES[key].dir);
 
@@ -171,8 +196,9 @@ const workspacePackageNameSet = () =>
 	new Set(Object.values(PACKAGES).map((meta) => meta.name));
 
 /**
- * Collect direct registry (non-workspace) production dependencies from vendor
- * packages and the CLI. First-seen version wins; conflicts are logged.
+ * Collect direct registry (non-workspace) production dependencies from the
+ * workspace packages that feed the product (inlined JS + host peers) and the
+ * CLI. First-seen version wins; conflicts are logged.
  *
  * @returns {Promise<Record<string, string>>}
  */
@@ -269,7 +295,10 @@ const copyListedFiles = async (sourceDir, destDir, files) => {
 			);
 			continue;
 		}
-		await fs.cp(from, to, { recursive: true });
+		await fs.cp(from, to, {
+			recursive: true,
+			filter: (source) => !isSourcemapPath(source),
+		});
 	}
 };
 
@@ -289,6 +318,30 @@ const stageVendorPackage = async (key, vendorRoot) => {
 		'utf8',
 	);
 	log.info(`Staged ${meta.name} → vendor/${dirName}`);
+};
+
+const stageServerSkeleton = async (vendorRoot) => {
+	const from = await assertServerSkeleton();
+	const to = path.join(vendorRoot, 'server', 'skeleton');
+	await fs.cp(from, to, {
+		recursive: true,
+		filter: (source) => !isSourcemapPath(source),
+	});
+	log.info('Staged server skeleton → vendor/server/skeleton');
+};
+
+/**
+ * Host peers + bootstrap skeleton only. Inlined workspace `tsc` trees
+ * (server, common-nodes, compiler, …) stay out of `vendor/`.
+ *
+ * @param {string} vendorRoot
+ */
+export const stageProductVendor = async (vendorRoot) => {
+	await fs.mkdir(vendorRoot, { recursive: true });
+	for (const key of VENDOR_STAGE_KEYS) {
+		await stageVendorPackage(key, vendorRoot);
+	}
+	await stageServerSkeleton(vendorRoot);
 };
 
 const assertUiBuild = async () => {
@@ -325,8 +378,9 @@ const assertCliDist = async () => {
 };
 
 /**
- * Read root package.json and return a publish-ready manifest with vendor file:
- * deps plus hoisted registry production deps from vendor packages and CLI.
+ * Read root package.json and return a publish-ready manifest with host-peer
+ * vendor file: deps plus hoisted registry production deps from inlined
+ * workspace packages and the CLI.
  */
 export const buildPublishPackageJson = async () => {
 	const raw = JSON.parse(
@@ -381,11 +435,7 @@ export const assembleProduct = async (productDir, options = {}) => {
 
 	const vendorRoot = path.join(productDir, 'vendor');
 	await fs.rm(vendorRoot, { recursive: true, force: true });
-	await fs.mkdir(vendorRoot, { recursive: true });
-
-	for (const key of VENDOR_STAGE_KEYS) {
-		await stageVendorPackage(key, vendorRoot);
-	}
+	await stageProductVendor(vendorRoot);
 
 	const distDest = path.join(productDir, 'dist');
 	const binDest = path.join(productDir, 'bin');
@@ -393,24 +443,28 @@ export const assembleProduct = async (productDir, options = {}) => {
 
 	await fs.rm(distDest, { recursive: true, force: true });
 	await fs.rm(uiDest, { recursive: true, force: true });
-	await fs.cp(path.join(PACKAGES.cli.dir, 'dist'), distDest, {
-		recursive: true,
+	await bundleProductCli({
+		entryIndex: path.join(PACKAGES.cli.dir, 'dist', 'index.js'),
+		outdir: distDest,
 	});
 	await fs.mkdir(binDest, { recursive: true });
 	await fs.cp(
 		path.join(PACKAGES.cli.dir, 'bin', 'langflower.js'),
 		path.join(binDest, 'langflower.js'),
 	);
-	await fs.cp(uiBrowser, uiDest, { recursive: true });
+	await fs.cp(uiBrowser, uiDest, {
+		recursive: true,
+		filter: (source) => !isSourcemapPath(source),
+	});
 
 	log.info(`Embedded UI → ${path.relative(ROOT, uiDest)}`);
-	log.info(`CLI dist/bin → ${path.relative(ROOT, productDir)}`);
+	log.info(`CLI bin + bundled dist → ${path.relative(ROOT, productDir)}`);
 
 	await copyPublishDocs(productDir);
 
-	// Only staged product trees — when productDir is repo root, do not walk
-	// packages/, node_modules/, etc.
-	for (const name of ['vendor', 'dist', 'ui-dist']) {
+	// Product `dist/` is esbuild with `sourcemap: false`. Vendor is host
+	// peers + skeleton (skip `*.map` on copy); walk as a safety net.
+	for (const name of ['vendor', 'ui-dist']) {
 		await stripSourceMaps(path.join(productDir, name));
 	}
 

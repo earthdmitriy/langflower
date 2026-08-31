@@ -41,7 +41,10 @@ import type {
 	EditorSettingsSnapshotPayload,
 	EditorUpdateNodeRequestedPayload,
 } from './types/langflower-editor.js';
-import type { CustomPaletteSnapshotPayload } from './types/langflower-custom-palette.js';
+import type {
+	CustomPaletteSnapshotPayload,
+	CustomPaletteUpdateRequestedPayload,
+} from './types/langflower-custom-palette.js';
 import type {
 	PaletteConfigPayload,
 	PaletteNodeDefinition,
@@ -593,7 +596,8 @@ const customPaletteConfig = {
 		 *
 		 * Server broadcasts `customPalette.snapshot` (`compiling`, then final).
 		 */
-		'customPalette.update.requested': message<Record<string, never>>(),
+		'customPalette.update.requested':
+			message<CustomPaletteUpdateRequestedPayload>(),
 	},
 	fromServerToClient: {
 		/**

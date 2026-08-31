@@ -268,7 +268,7 @@ export const resolveRegistryDepDirs = async () => {
 export const measurePublishSnapshot = async () => {
 	const rows = [];
 
-	for (const key of PUBLISH_STAGE_KEYS) {
+	for (const key of [...VENDOR_STAGE_KEYS, 'cli']) {
 		const pkg = await resolveStagePackagePaths(key);
 		let bytes = 0;
 		let gzipBytes = 0;
@@ -287,6 +287,20 @@ export const measurePublishSnapshot = async () => {
 			gzipBytes,
 			fileCount,
 		});
+	}
+
+	const skeletonDir = path.join(PACKAGES.server.dir, 'skeleton');
+	try {
+		await fs.access(skeletonDir);
+		const skeleton = await measureTree(skeletonDir);
+		rows.push({
+			label: 'vendor/server/skeleton',
+			bytes: skeleton.bytes,
+			gzipBytes: skeleton.gzipBytes,
+			fileCount: skeleton.fileCount,
+		});
+	} catch {
+		/* missing skeleton — assembleProduct will fail later */
 	}
 
 	const uiBrowser = path.join(PACKAGES.ui.dir, 'dist', 'browser');
