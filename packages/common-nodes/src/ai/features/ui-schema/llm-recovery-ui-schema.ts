@@ -129,4 +129,13 @@ export const llmRecoveryUiSchema = [
 		min: 1,
 		step: 1,
 	},
+	{
+		field: 'deadLoopStructuralRunCap',
+		type: 'number',
+		label: 'Dead-loop punctuation/digit run cap',
+		default: DEFAULT_LLM_RECOVERY_POLICY.deadLoop.structuralRunCap,
+		min: 16,
+		max: 2000,
+		step: 1,
+	},
 ] as const;

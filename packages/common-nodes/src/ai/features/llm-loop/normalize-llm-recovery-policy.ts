@@ -167,6 +167,18 @@ export const normalizeLlmRecoveryPolicy = (
 					100,
 				),
 			),
+			structuralRunCap: Math.min(
+				2_000,
+				Math.max(
+					16,
+					normalizePositiveInteger(
+						deadLoop['structuralRunCap'] ??
+							params['deadLoopStructuralRunCap'],
+						DEFAULT_LLM_RECOVERY_POLICY.deadLoop.structuralRunCap,
+						2_000,
+					),
+				),
+			),
 		},
 	};
 };

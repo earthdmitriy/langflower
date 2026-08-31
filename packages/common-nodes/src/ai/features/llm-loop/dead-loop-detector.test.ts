@@ -81,9 +81,9 @@ describe('createDeadLoopDetector', () => {
 	it('detects consecutive identical deltas on draft', () => {
 		const detector = createDeadLoopDetector('draft');
 		for (let index = 0; index < 4; index += 1) {
-			expect(detector.push('x').ok).toBe(true);
+			expect(detector.push('hello').ok).toBe(true);
 		}
-		const result = detector.push('x');
+		const result = detector.push('hello');
 
 		expect(result.ok).toBe(false);
 		if (result.ok) {
@@ -92,7 +92,7 @@ describe('createDeadLoopDetector', () => {
 
 		expect(result.error.channel).toBe('draft');
 		expect(result.error.reason).toBe('consecutive');
-		expect(result.error.lastTokens).toContain('x');
+		expect(result.error.lastTokens).toContain('hello');
 	});
 
 	it('detects a cyclic two-token pattern after three repetitions', () => {
@@ -134,6 +134,78 @@ describe('createDeadLoopDetector', () => {
 		const tokens = ['alpha', 'beta', 'alpha', 'beta', 'alpha', 'beta'];
 		pushUntilDetected(detector, tokens);
 		expect(detector.exactCompareTokenVisits).toBeGreaterThan(0);
+	});
+
+	it('does not trip consecutive on a digit-run username stream', () => {
+		const detector = createDeadLoopDetector('draft');
+		expect(detector.push('b').ok).toBe(true);
+		for (let index = 0; index < 23; index += 1) {
+			expect(detector.push('1').ok).toBe(true);
+		}
+	});
+
+	it('does not trip consecutive on a markdown dash rule', () => {
+		const detector = createDeadLoopDetector('draft');
+		for (let index = 0; index < 66; index += 1) {
+			expect(detector.push('-').ok).toBe(true);
+		}
+	});
+
+	it('does not trip consecutive on a repeated punctuation token', () => {
+		const detector = createDeadLoopDetector('draft');
+		for (let index = 0; index < 22; index += 1) {
+			expect(detector.push('---').ok).toBe(true);
+		}
+	});
+
+	it('does not trip cyclic on a markdown table separator row', () => {
+		const detector = createDeadLoopDetector('draft');
+		const tokens = [
+			'|',
+			' --- ',
+			'|',
+			' --- ',
+			'|',
+			' --- ',
+			'|',
+			' --- ',
+			'|',
+		];
+		for (const token of tokens) {
+			expect(detector.push(token).ok).toBe(true);
+		}
+	});
+
+	it('detects consecutive identical letter-bearing words', () => {
+		const detector = createDeadLoopDetector('draft');
+		for (let index = 0; index < 4; index += 1) {
+			expect(detector.push('the').ok).toBe(true);
+		}
+		const result = detector.push('the');
+
+		expect(result.ok).toBe(false);
+		if (result.ok) {
+			return;
+		}
+
+		expect(result.error.reason).toBe('consecutive');
+		expect(result.error.lastTokens).toContain('the');
+	});
+
+	it('trips consecutive on a structural run at the cap', () => {
+		const detector = createDeadLoopDetector('draft');
+		for (let index = 0; index < 127; index += 1) {
+			expect(detector.push('1').ok).toBe(true);
+		}
+		const result = detector.push('1');
+
+		expect(result.ok).toBe(false);
+		if (result.ok) {
+			return;
+		}
+
+		expect(result.error.reason).toBe('consecutive');
+		expect(result.error.lastTokens.length).toBe(128);
 	});
 });
 

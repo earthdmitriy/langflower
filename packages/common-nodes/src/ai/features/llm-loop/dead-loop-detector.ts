@@ -1,9 +1,6 @@
-const DEFAULT_DEAD_LOOP_OPTIONS = {
-	maxWindowTokens: 1_000,
-	consecutiveThreshold: 5,
-	minRepetitions: 3,
-	minPatternTokens: 2,
-} as const;
+import { DEFAULT_LLM_RECOVERY_POLICY } from './llm-loop-types.js';
+
+const DEFAULT_DEAD_LOOP_OPTIONS = DEFAULT_LLM_RECOVERY_POLICY.deadLoop;
 
 export type DeadLoopChannel = 'reasoning' | 'draft';
 
@@ -12,7 +9,19 @@ export type DeadLoopDetectorOptions = {
 	readonly consecutiveThreshold?: number;
 	readonly minRepetitions?: number;
 	readonly minPatternTokens?: number;
+	readonly structuralRunCap?: number;
 };
+
+const LETTER = /\p{L}/u;
+
+const hasLetter = (text: string): boolean => {
+	LETTER.lastIndex = 0;
+	return LETTER.test(text);
+};
+
+/** Punctuation, digits, whitespace, or a single character (e.g. `"1"`, `"-"`). */
+const isStructuralDelta = (text: string): boolean =>
+	text.length < 2 || !hasLetter(text);
 
 type DeadLoopError = {
 	readonly name: 'DeadLoopError';
@@ -72,6 +81,8 @@ export const createDeadLoopDetector = (
 		options.minRepetitions ?? DEFAULT_DEAD_LOOP_OPTIONS.minRepetitions;
 	const minPatternTokens =
 		options.minPatternTokens ?? DEFAULT_DEAD_LOOP_OPTIONS.minPatternTokens;
+	const structuralRunCap =
+		options.structuralRunCap ?? DEFAULT_DEAD_LOOP_OPTIONS.structuralRunCap;
 	const capacity = Math.max(1, maxWindowTokens);
 	const tokens = new Array<string>(capacity);
 	const hashes1 = new Uint32Array(capacity);
@@ -233,6 +244,18 @@ export const createDeadLoopDetector = (
 				continue;
 			}
 
+			let patternHasLetter = false;
+			for (let offset = 0; offset < patternLength; offset += 1) {
+				if (hasLetter(tokenAt(blockStart + offset))) {
+					patternHasLetter = true;
+					break;
+				}
+			}
+
+			if (!patternHasLetter) {
+				continue;
+			}
+
 			if (exactBlocksMatch(patternLength)) {
 				return fail('cyclic', sliceTokens(blockStart, size));
 			}
@@ -260,7 +283,10 @@ export const createDeadLoopDetector = (
 		size += 1;
 		appendPrefix(physical);
 
-		if (consecutiveCount >= consecutiveThreshold) {
+		const threshold = isStructuralDelta(text)
+			? structuralRunCap
+			: consecutiveThreshold;
+		if (consecutiveCount >= threshold) {
 			const start = Math.max(0, size - consecutiveCount);
 
 			return fail('consecutive', sliceTokens(start, size));

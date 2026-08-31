@@ -243,11 +243,12 @@ Inspect **`reasoning` and `draft`** `ChatCompletionStreamChunk` deltas
 (separate rolling windows per channel so a reasoning paragraph-loop trips
 before any draft exists). Empty streams have no detector state.
 
-| Check                        | Default                                     | Meaning                                                                                                          |
-| ---------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Consecutive identical deltas | `consecutiveThreshold: 5`                   | Same token/delta repeated in a row                                                                               |
-| Cyclic pattern               | `minPatternTokens: 2` × `minRepetitions: 3` | Rolling hash, then **exact** slice confirm (no hash-only match). Long _L_ catches paragraph repeats              |
-| Window                       | `maxWindowTokens: 1000`                     | Rolling buffer (Inspector-configurable; clamp 10–8000). Sized for multi-paragraph cycles, not only short phrases |
+| Check                        | Default                                     | Meaning                                                                                                            |
+| ---------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Consecutive identical deltas | `consecutiveThreshold: 5`                   | Same **letter-bearing** delta (length ≥ 2) repeated in a row. Digit/punctuation/1-char runs use `structuralRunCap` |
+| Structural consecutive cap   | `structuralRunCap: 128`                     | Identical `"1"` / `"-"` / `"---"` chunks abort only after this many — usernames and markdown rules are not loops   |
+| Cyclic pattern               | `minPatternTokens: 2` × `minRepetitions: 3` | Rolling hash, then **exact** slice confirm (no hash-only match). Pattern text must contain a Unicode letter        |
+| Window                       | `maxWindowTokens: 1000`                     | Rolling buffer (Inspector-configurable; clamp 10–8000). Sized for multi-paragraph cycles, not only short phrases   |
 
 Internal `DeadLoopError` carries `{ partialText, lastTokens, reason, channel }`
 (`channel`: `'reasoning'` \| `'draft'`). `partialText` is **not** replayed
@@ -362,7 +363,8 @@ Shipped (epic 38 Inspector):
 | `autokickUserMessage`           | default copy above                  | Inspector string                                                       |
 | `autokickPenaltyDelta`          | `{ frequency: 0.3, presence: 0.3 }` | Per-attempt bump                                                       |
 | `deadLoop.maxWindowTokens`      | **`1000`**                          | Rolling buffer; Inspector; clamp 10–8000                               |
-| `deadLoop.consecutiveThreshold` | `5`                                 | Identical consecutive deltas                                           |
+| `deadLoop.consecutiveThreshold` | `5`                                 | Identical letter-bearing deltas (length ≥ 2)                           |
+| `deadLoop.structuralRunCap`     | `128`                               | Identical punctuation/digit/1-char run cap; Inspector; clamp 16–2000   |
 | `deadLoop.minRepetitions`       | `3`                                 | Cyclic repeats required                                                |
 | `deadLoop.minPatternTokens`     | `2`                                 | Avoid 1-token false positives                                          |
 

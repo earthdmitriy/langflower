@@ -527,6 +527,7 @@ describe('common-openai-llm', () => {
 			'deadLoopConsecutiveThreshold',
 			'deadLoopMinRepetitions',
 			'deadLoopMinPatternTokens',
+			'deadLoopStructuralRunCap',
 		]);
 		expect(fields).not.toContain('tokenDelayMs');
 		const maxIterations = openAiLlmNode.uiSchema.find(

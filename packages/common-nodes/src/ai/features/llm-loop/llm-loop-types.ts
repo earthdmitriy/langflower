@@ -107,6 +107,8 @@ type LlmDeadLoopPolicy = {
 	readonly consecutiveThreshold: number;
 	readonly minRepetitions: number;
 	readonly minPatternTokens: number;
+	/** Identical punctuation/digit/1-char run before consecutive abort. */
+	readonly structuralRunCap: number;
 };
 
 export type LlmRecoveryPolicy = {
@@ -155,6 +157,7 @@ export const DEFAULT_LLM_RECOVERY_POLICY: LlmRecoveryPolicy = {
 		consecutiveThreshold: 5,
 		minRepetitions: 3,
 		minPatternTokens: 2,
+		structuralRunCap: 128,
 	},
 };
 

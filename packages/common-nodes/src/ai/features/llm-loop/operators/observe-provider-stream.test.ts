@@ -140,7 +140,7 @@ describe('observeProviderStream', () => {
 			observeProviderStream({
 				createStream: async (nextSignal) => {
 					signal = nextSignal;
-					return repeatingChunks('draft', 'x', 5);
+					return repeatingChunks('draft', 'hello', 5);
 				},
 				pause$,
 				cancel$,

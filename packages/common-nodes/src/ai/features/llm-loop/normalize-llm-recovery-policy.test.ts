@@ -13,6 +13,7 @@ describe('normalizeLlmRecoveryPolicy', () => {
 			DEFAULT_LLM_RECOVERY_POLICY.autokickBackoffMs,
 		);
 		expect(policy.deadLoop.maxWindowTokens).toBe(1_000);
+		expect(policy.deadLoop.structuralRunCap).toBe(128);
 		expect(policy.subagentTimeoutMs).toBe(0);
 	});
 
@@ -39,5 +40,16 @@ describe('normalizeLlmRecoveryPolicy', () => {
 			normalizeLlmRecoveryPolicy({ deadLoopMaxWindowTokens: 9_000 })
 				.deadLoop.maxWindowTokens,
 		).toBe(8_000);
+	});
+
+	it('clamps the structural run cap to 16–2000', () => {
+		expect(
+			normalizeLlmRecoveryPolicy({ deadLoopStructuralRunCap: 5 }).deadLoop
+				.structuralRunCap,
+		).toBe(16);
+		expect(
+			normalizeLlmRecoveryPolicy({ deadLoopStructuralRunCap: 9_000 })
+				.deadLoop.structuralRunCap,
+		).toBe(2_000);
 	});
 });
