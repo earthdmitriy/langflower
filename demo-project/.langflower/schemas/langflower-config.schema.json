@@ -167,7 +167,11 @@
 				"kind": { "const": "http" },
 				"url": { "type": "string" },
 				"command": { "type": "string" },
-				"toolNames": { "type": "string" }
+				"toolNames": { "type": "string" },
+				"headers": {
+					"type": "object",
+					"additionalProperties": { "type": "string" }
+				}
 			}
 		}
 	}

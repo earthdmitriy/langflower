@@ -84,6 +84,8 @@ export type LangflowerMcpHttpServerConfig = {
 	/** Optional shell CLI to launch a local HTTP MCP before connect. */
 	readonly command?: string;
 	readonly toolNames?: string;
+	/** Optional HTTP headers; values may include `{lf_secrets:}` / `{env:}`. */
+	readonly headers?: Readonly<Record<string, string>>;
 };
 
 export type LangflowerMcpServerConfig =
@@ -156,9 +158,12 @@ export type LangflowerConfigScope = 'project' | 'global';
  * {@link LangflowerConfigSnapshotPayload}.
  *
  * `provider` is the full map for that scope (ids, names, models, non-secret
- * options). Secrets travel only in `providerApiKeys` — empty/missing key
- * leaves the existing disk `apiKey` unchanged; non-empty writes/replaces
+ * options). Provider secrets travel only in `providerApiKeys` — empty/missing
+ * key leaves the existing disk `apiKey` unchanged; non-empty writes/replaces
  * (prefer `{env:VAR}` when the operator enters a placeholder).
+ *
+ * Named KV secrets use {@link LangflowerSecretsSaveRequestedPayload} on
+ * `langflower.secrets.save.requested` — not this payload.
  */
 export type LangflowerConfigSaveRequestedPayload = {
 	readonly scope: LangflowerConfigScope;
@@ -177,6 +182,29 @@ export type LangflowerConfigSaveRequestedPayload = {
 	readonly serverLogs?: boolean | null;
 };
 
+/**
+ * Client → server: persist the user-global `langflower.secrets.json` map
+ * (never the project tree). Independent of Settings jsonc `scope`.
+ *
+ * Both omitted → leave the file unchanged. `secretIds` is the surviving id
+ * set (omit an id to delete). Non-empty `secretValues[id]` replaces;
+ * empty/missing keeps the stored value. `secretValues` without `secretIds`
+ * upserts only.
+ */
+export type LangflowerSecretsSaveRequestedPayload = {
+	/**
+	 * Surviving named-secret ids after Save. Omitted together with
+	 * {@link LangflowerSecretsSaveRequestedPayload.secretValues} leaves the
+	 * secrets file untouched.
+	 */
+	readonly secretIds?: readonly string[];
+	/**
+	 * Write-only new/replacement values keyed by secret id. Empty/missing
+	 * entry keeps the existing stored value.
+	 */
+	readonly secretValues?: Readonly<Record<string, string>>;
+};
+
 /** Server → client authoritative config slice (effective + editable layers). */
 export type LangflowerConfigSnapshotPayload = {
 	/** Merged project > global (plus skills catalog when present). */
@@ -187,6 +215,10 @@ export type LangflowerConfigSnapshotPayload = {
 	readonly globalConfig: LangflowerConfig;
 	/** Server-resolved absolute path of the global config file (S6 hint). */
 	readonly globalPath: string;
+	/** Ids present in the user-global secrets file — never values. */
+	readonly secretIds: readonly string[];
+	/** Server-resolved absolute path of `langflower.secrets.json`. */
+	readonly secretsPath: string;
 };
 
 /**
@@ -243,8 +275,12 @@ export type ProviderConnectionStatus =
 	| { readonly state: 'error'; readonly message: string };
 
 /**
- * Redacted Settings form draft (same shape as UI/server session draft).
- * `providers[].apiKey` is always empty on the wire.
+ * Redacted Settings **form** draft (UI ↔ session). Not runtime credentials.
+ * Snapshots send empty `providers[].apiKey` / `secrets[].value` so the
+ * editor never redisplays stored secrets (`hasApiKey` / `hasValue` only).
+ * LLM/embed nodes do not read this payload: they call host stream/embed
+ * factories whose closures resolve keys on the server from jsonc
+ * (`resolveProviderCredentials`). `ExecutionContext` has no `apiKey`.
  */
 export type LangflowerConfigDraft = {
 	readonly defaultProviderId: string;
@@ -258,6 +294,11 @@ export type LangflowerConfigDraft = {
 		readonly modelsText: string;
 		readonly apiKey: string;
 		readonly hasApiKey: boolean;
+	}[];
+	readonly secrets: readonly {
+		readonly id: string;
+		readonly value: string;
+		readonly hasValue: boolean;
 	}[];
 	readonly serverLogs: 'off' | 'default' | 'on';
 };

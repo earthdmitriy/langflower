@@ -7,9 +7,13 @@ export {
 	staticModelIdsForProvider,
 	draftAfterLayerSnapshot,
 	draftToSavePayload,
+	draftToSecretsSavePayload,
 	mergeDraftPatch,
+	redactDraftSecrets,
 	sameDraft,
+	secretsDraftFromIds,
 	type ProviderDraft,
+	type SecretDraft,
 	type ServerLogsDraft,
 	type SettingsDraft,
 } from '@langflower/shared/langflower';

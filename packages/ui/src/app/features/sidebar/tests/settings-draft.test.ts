@@ -4,7 +4,11 @@ import {
 	defaultProviderStaticModelIds,
 	draftAfterLayerSnapshot,
 	draftToSavePayload,
+	draftToSecretsSavePayload,
+	mergeDraftPatch,
+	redactDraftSecrets,
 	sameDraft,
+	secretsDraftFromIds,
 	staticModelIdsForProvider,
 	type SettingsDraft,
 } from '../utils/settings-draft';
@@ -39,6 +43,7 @@ describe('configToDraft', () => {
 		expect(draft.defaultModelId).toBe('');
 		expect(draft.defaultEmbeddingProviderId).toBe('');
 		expect(draft.defaultEmbeddingModelId).toBe('');
+		expect(draft.secrets).toEqual([]);
 	});
 
 	it('splits composite model into default provider/model selects', () => {
@@ -324,5 +329,71 @@ describe('draftAfterLayerSnapshot', () => {
 		expect(aligned.providers[0]?.apiKey).toBe('');
 		expect(aligned.providers[0]?.hasApiKey).toBe(true);
 		expect(sameDraft(aligned, next)).toBe(false);
+	});
+});
+
+describe('secrets draft helpers', () => {
+	it('seeds write-only rows from ids', () => {
+		expect(secretsDraftFromIds([' API_TOKEN ', '', 'OTHER'])).toEqual([
+			{ id: 'API_TOKEN', value: '', hasValue: true },
+			{ id: 'OTHER', value: '', hasValue: true },
+		]);
+	});
+
+	it('redacts secret values without dropping ids', () => {
+		const draft: SettingsDraft = {
+			...emptyDraft(),
+			secrets: [{ id: 'API_TOKEN', value: 'sk-live', hasValue: false }],
+		};
+		expect(redactDraftSecrets(draft).secrets).toEqual([
+			{ id: 'API_TOKEN', value: '', hasValue: false },
+		]);
+	});
+
+	it('saves surviving ids and only non-empty values', () => {
+		expect(
+			draftToSecretsSavePayload({
+				...emptyDraft(),
+				secrets: [
+					{ id: 'KEEP', value: '  next  ', hasValue: true },
+					{ id: 'EMPTY', value: '   ', hasValue: true },
+					{ id: '  NEW  ', value: 'fresh', hasValue: false },
+				],
+			}),
+		).toEqual({
+			secretIds: ['KEEP', 'EMPTY', 'NEW'],
+			secretValues: { KEEP: 'next', NEW: 'fresh' },
+		});
+	});
+
+	it('keeps pending secret value when patch sends empty value', () => {
+		const previous: SettingsDraft = {
+			...emptyDraft(),
+			secrets: [{ id: 'API_TOKEN', value: 'pending', hasValue: false }],
+		};
+		const patched = mergeDraftPatch(previous, {
+			...previous,
+			secrets: [{ id: 'API_TOKEN', value: '', hasValue: false }],
+		});
+		expect(patched.secrets[0]?.value).toBe('pending');
+	});
+
+	it('clears typed secret values after a Save-shaped snapshot', () => {
+		const baseline = {
+			...emptyDraft(),
+			secrets: [{ id: 'API_TOKEN', value: '', hasValue: false }],
+		};
+		const dirty: SettingsDraft = {
+			...baseline,
+			secrets: [{ id: 'API_TOKEN', value: 'sk-live', hasValue: false }],
+		};
+		const next = {
+			...emptyDraft(),
+			secrets: [{ id: 'API_TOKEN', value: '', hasValue: true }],
+		};
+		const aligned = draftAfterLayerSnapshot(dirty, baseline, next);
+		expect(aligned.secrets[0]?.value).toBe('');
+		expect(aligned.secrets[0]?.hasValue).toBe(true);
+		expect(sameDraft(aligned, next)).toBe(true);
 	});
 });

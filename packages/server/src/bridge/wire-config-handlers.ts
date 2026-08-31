@@ -4,11 +4,14 @@ import type {
 	LangflowerConfigDraftDiscardRequestedPayload,
 	LangflowerConfigDraftPatchRequestedPayload,
 	LangflowerConfigSaveRequestedPayload,
+	LangflowerSecretsSaveRequestedPayload,
 	SettingsDraft,
 } from '@langflower/shared/langflower.js';
 import { resolveServerLogsEnabled } from '@langflower/shared/langflower.js';
 import type { ServerContext } from '../server-context.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
+import { buildLangflowerConfigSnapshot } from './build-langflower-config-snapshot.js';
+import { bridgeEmit } from './bridge-outbound.js';
 import { isInboundEvent } from './inbound-guards.js';
 import type { LangflowerBridge } from './langflower-bridge.types.js';
 import { broadcastModelsCatalog } from './push-models-catalog.js';
@@ -30,10 +33,36 @@ const isSettingsDraft = (value: unknown): value is SettingsDraft => {
 		typeof draft['defaultEmbeddingProviderId'] === 'string' &&
 		typeof draft['defaultEmbeddingModelId'] === 'string' &&
 		Array.isArray(draft['providers']) &&
+		(draft['secrets'] === undefined || Array.isArray(draft['secrets'])) &&
 		(draft['serverLogs'] === 'off' ||
 			draft['serverLogs'] === 'default' ||
 			draft['serverLogs'] === 'on')
 	);
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isSecretsSavePayload = (
+	value: unknown,
+): value is LangflowerSecretsSaveRequestedPayload => {
+	if (!isRecord(value)) {
+		return false;
+	}
+
+	if (
+		value.secretIds !== undefined &&
+		(!Array.isArray(value.secretIds) ||
+			value.secretIds.some((id) => typeof id !== 'string'))
+	) {
+		return false;
+	}
+
+	if (value.secretValues !== undefined && !isRecord(value.secretValues)) {
+		return false;
+	}
+
+	return true;
 };
 
 export type WireConfigHandlersOptions = {
@@ -67,6 +96,29 @@ export const wireConfigHandlers = (
 			options.onEffectiveConfig?.(effective);
 			await broadcastModelsCatalog(bridge, context);
 		},
+	);
+
+	subscription.add(
+		bridge['langflower.secrets.save.requested'].subscribe(async (raw) => {
+			if (
+				!isInboundEvent<LangflowerSecretsSaveRequestedPayload>(raw) ||
+				!isSecretsSavePayload(raw.payload)
+			) {
+				return;
+			}
+
+			await context.langflowerConfigService.writeSecrets({
+				...(raw.payload.secretIds !== undefined
+					? { secretIds: raw.payload.secretIds }
+					: {}),
+				...(raw.payload.secretValues !== undefined
+					? { secretValues: raw.payload.secretValues }
+					: {}),
+			});
+			await draftController.syncGlobalSecrets();
+			const snapshot = await buildLangflowerConfigSnapshot(context);
+			bridgeEmit(bridge, 'langflower.config.snapshot', snapshot);
+		}),
 	);
 
 	subscription.add(

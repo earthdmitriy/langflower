@@ -88,7 +88,7 @@ parts, Sub-Agent beyond L0 spawn, and other per-use-case Missing parts.
 ## Status summary
 
 Active implementation queue for Status gaps:
-[docs/TODO/EPICS/](../TODO/EPICS/README.md) (empty — **34–36** landed in DONE).
+[docs/TODO/EPICS/](../TODO/EPICS/README.md) (**45** queued — global KV secrets).
 Further gaps = use-case Missing parts (esp. real-LLM Implementable bars).
 
 | Status        | Scenarios                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -102,11 +102,11 @@ Further gaps = use-case Missing parts (esp. real-LLM Implementable bars).
 
 ### Product entry
 
-| Doc                                                  | Focus                                                                                                       |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| [bootstrap-new-project.md](bootstrap-new-project.md) | Empty / unconfigured folder → `.langflower` + coding seed + provider setup                                  |
-| [skeleton.md](skeleton.md)                           | Packaged `dist/skeleton/` + minimal first seed; extras via Sample workflows catalog (**Draft**)             |
-| [settings-panel.md](settings-panel.md)               | Configure providers/models/keys in UI — project + global; gear replaces right panel (**Partial** — epic 18) |
+| Doc                                                  | Focus                                                                                                                                   |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| [bootstrap-new-project.md](bootstrap-new-project.md) | Empty / unconfigured folder → `.langflower` + coding seed + provider setup                                                              |
+| [skeleton.md](skeleton.md)                           | Packaged `dist/skeleton/` + minimal first seed; extras via Sample workflows catalog (**Draft**)                                         |
+| [settings-panel.md](settings-panel.md)               | Configure providers/models/keys in UI — project + global; gear replaces right panel (**Partial** — epic 18; KV secrets landed, epic 45) |
 
 ### Core scenarios
 
@@ -141,7 +141,7 @@ Further gaps = use-case Missing parts (esp. real-LLM Implementable bars).
 | [grok-feed.md](grok-feed.md)                                     | User scenarios validating chat-mirrored graph feed (**Partial** — epic 17)                        |
 | [run-interruption.md](run-interruption.md)                       | Hard Stop vs soft Pause (`steerControl`, ADR-032) (**Partial** — DONE 34–36; real-LLM bars open)  |
 | [detachable-long-run.md](detachable-long-run.md)                 | Close browser mid-run (process stays up); reopen live/settled; CLI settle (**Partial** — epic 19) |
-| [node-local-mcp.md](node-local-mcp.md)                           | Wire + system MCP handles; S5 port / S6 ctx `error$` (**Partial** — happy path + connect fail)    |
+| [node-local-mcp.md](node-local-mcp.md)                           | Wire + system MCP handles; S5/S6 connect fail; HTTP auth headers landed (**Partial**)             |
 
 ## Candidates (backlog)
 

@@ -462,6 +462,15 @@ export const BRIDGE_TOOL_META = {
 			"additionalProperties": true
 		}
 	},
+	"langflower.secrets.save.requested": {
+		"description": "Persist named KV secrets to the user-global secrets file, then broadcast {@link LangflowerConfigSnapshotPayload} (`secretIds` + `secretsPath` only). JSONL logs this type as `\"REDACTED\"`.",
+		"typeExpr": "LangflowerSecretsSaveRequestedPayload",
+		"inputSchema": {
+			"type": "object",
+			"description": "TypeScript payload: LangflowerSecretsSaveRequestedPayload",
+			"additionalProperties": true
+		}
+	},
 	"langflower.config.draft.patch.requested": {
 		"description": "Replace the session Settings draft for a scope. Server probes connection when a provider `baseURL` / `apiKey` changes.",
 		"typeExpr": "LangflowerConfigDraftPatchRequestedPayload",

@@ -29,6 +29,8 @@ const createRaw = () => ({
 			>;
 		};
 		readonly globalPath: string;
+		readonly secretIds: readonly string[];
+		readonly secretsPath: string;
 	}>(),
 });
 
@@ -56,6 +58,8 @@ describe('LangflowerConfigProjectionService', () => {
 	it('starts with an empty config', () => {
 		expect(service.config()).toEqual({});
 		expect(service.layers().globalPath).toBe('');
+		expect(service.layers().secretIds).toEqual([]);
+		expect(service.layers().secretsPath).toBe('');
 	});
 
 	it('keeps the latest config for a late subscriber after config.snapshot', async () => {
@@ -73,6 +77,8 @@ describe('LangflowerConfigProjectionService', () => {
 				provider: { lmstudio: { name: 'LM Studio' } },
 			},
 			globalPath: '/tmp/global-langflower.jsonc',
+			secretIds: ['API_TOKEN'],
+			secretsPath: '/tmp/langflower.secrets.json',
 		});
 
 		const late = await firstValueFrom(service.config$);
@@ -83,6 +89,10 @@ describe('LangflowerConfigProjectionService', () => {
 		expect(service.config().provider?.['lmstudio']?.name).toBe('LM Studio');
 		expect(service.layers().globalPath).toBe(
 			'/tmp/global-langflower.jsonc',
+		);
+		expect(service.layers().secretIds).toEqual(['API_TOKEN']);
+		expect(service.layers().secretsPath).toBe(
+			'/tmp/langflower.secrets.json',
 		);
 		expect(service.layers().projectConfig.provider?.['openai']?.name).toBe(
 			'OpenAI',
@@ -111,6 +121,8 @@ describe('LangflowerConfigProjectionService', () => {
 			},
 			globalConfig: {},
 			globalPath: '/a',
+			secretIds: [],
+			secretsPath: '/a-secrets.json',
 		});
 
 		const next = firstValueFrom(service.config$.pipe(skip(1)));
@@ -124,6 +136,8 @@ describe('LangflowerConfigProjectionService', () => {
 			},
 			globalConfig: {},
 			globalPath: '/b',
+			secretIds: ['KEPT'],
+			secretsPath: '/b-secrets.json',
 		});
 
 		await expect(next).resolves.toEqual({
@@ -131,5 +145,7 @@ describe('LangflowerConfigProjectionService', () => {
 		});
 		expect(service.config().provider?.['openai']).toBeUndefined();
 		expect(service.layers().globalPath).toBe('/b');
+		expect(service.layers().secretIds).toEqual(['KEPT']);
+		expect(service.layers().secretsPath).toBe('/b-secrets.json');
 	});
 });

@@ -15,6 +15,8 @@ import {
 	configToDraft,
 	defaultProviderStaticModelIds,
 	draftToSavePayload,
+	draftToSecretsSavePayload,
+	isValidSecretId,
 	mergeProviderModelOptions,
 	staticModelIdsForProvider,
 	type LangflowerConfigScope,
@@ -31,6 +33,7 @@ import { LangflowerConfigProjectionService } from '../../../services/langflower-
 import { ModelsCatalogProjectionService } from '../../../services/models-catalog-projection.service';
 import type {
 	ProviderDraft,
+	SecretDraft,
 	ServerLogsDraft,
 	SettingsDraft,
 } from '../utils/settings-draft';
@@ -120,6 +123,14 @@ const withOrphanProviderOption = (
 					Global file:
 					<span class="font-mono text-zinc-700 dark:text-zinc-300">{{
 						globalPath() || '…'
+					}}</span>
+				</p>
+				<p
+					class="shrink-0 break-all text-[11px] leading-4 text-zinc-500 dark:text-zinc-400"
+				>
+					Secrets file:
+					<span class="font-mono text-zinc-700 dark:text-zinc-300">{{
+						secretsPath() || '…'
 					}}</span>
 				</p>
 			}
@@ -604,6 +615,127 @@ const withOrphanProviderOption = (
 						}
 					</div>
 
+					@if (scope() === 'global') {
+						<div class="flex flex-col gap-2">
+							<div
+								class="flex items-center justify-between gap-2"
+							>
+								<span
+									class="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+								>
+									Secrets
+								</span>
+								<button
+									type="button"
+									class="rounded-md border border-zinc-200 px-2 py-0.5 text-[11px] font-medium text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+									(click)="addSecret()"
+								>
+									Add
+								</button>
+							</div>
+							<p
+								class="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-[11px] leading-4 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+							>
+								Secrets are stored in Langflower user settings
+								on this computer, not in the project. Those
+								Langflower files can still be read — this is not
+								encryption. The goal is to keep secrets out of
+								the workspace so agents cannot retrieve them
+								with file tools.
+							</p>
+							@for (
+								row of draft().secrets;
+								track $index;
+								let index = $index
+							) {
+								<div
+									class="flex flex-col gap-2 rounded-md border border-zinc-200 p-2 dark:border-zinc-700"
+								>
+									<div
+										class="flex items-start justify-between gap-2"
+									>
+										<span
+											class="text-[11px] font-medium text-zinc-700 dark:text-zinc-300"
+										>
+											Secret {{ index + 1 }}
+										</span>
+										<button
+											type="button"
+											class="text-[11px] text-rose-600 hover:underline dark:text-rose-400"
+											(click)="removeSecret(index)"
+										>
+											Remove
+										</button>
+									</div>
+									<label class="flex flex-col gap-1">
+										<span
+											class="text-[10px] text-zinc-500 dark:text-zinc-400"
+											>Id</span
+										>
+										<input
+											type="text"
+											autocomplete="off"
+											spellcheck="false"
+											class="rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+											[value]="row.id"
+											(input)="
+												patchSecretDebounced(index, {
+													id: readInput($event),
+												})
+											"
+											(change)="
+												patchSecretFlush(index, {
+													id: readInput($event),
+												})
+											"
+										/>
+									</label>
+									<label class="flex flex-col gap-1">
+										<span
+											class="text-[10px] text-zinc-500 dark:text-zinc-400"
+											>Value</span
+										>
+										<input
+											type="password"
+											autocomplete="off"
+											class="rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+											[placeholder]="
+												row.hasValue
+													? 'Saved — enter new value to replace'
+													: ''
+											"
+											[value]="row.value"
+											(input)="
+												patchSecretDebounced(index, {
+													value: readInput($event),
+												})
+											"
+											(change)="
+												patchSecretFlush(index, {
+													value: readInput($event),
+												})
+											"
+										/>
+									</label>
+								</div>
+							}
+							@if (draft().secrets.length === 0) {
+								<p
+									class="text-[11px] leading-4 text-zinc-500 dark:text-zinc-400"
+								>
+									No named secrets yet. Add an id and value to
+									keep tokens out of the project folder.
+								</p>
+							}
+						</div>
+					} @else {
+						<p
+							class="text-[11px] leading-4 text-zinc-500 dark:text-zinc-400"
+						>
+							Secrets are stored in Global.
+						</p>
+					}
+
 					@if (scope() === 'project') {
 						<div
 							class="flex flex-col gap-2 border-t border-zinc-200 pt-3 dark:border-zinc-800"
@@ -719,6 +851,10 @@ export class LfSettingsPanelComponent implements OnDestroy {
 		() => this.configProjection.layers().globalPath,
 	);
 
+	readonly secretsPath = computed(
+		() => this.configProjection.layers().secretsPath,
+	);
+
 	/** Providers in this scope, plus an orphan id if default points elsewhere. */
 	private readonly providerSelectRows = computed(
 		(): readonly ProviderSelectRow[] =>
@@ -815,7 +951,11 @@ export class LfSettingsPanelComponent implements OnDestroy {
 
 	readonly isDirty = computed(() => {
 		const snap = this.draftProjection.snapshot();
-		return snap.scope === this.scope() ? snap.dirty : false;
+		const serverDirty = snap.scope === this.scope() ? snap.dirty : false;
+		const pendingSecretValue = this.draft().secrets.some(
+			(row) => row.value.trim().length > 0,
+		);
+		return serverDirty || pendingSecretValue;
 	});
 
 	constructor() {
@@ -1008,6 +1148,47 @@ export class LfSettingsPanelComponent implements OnDestroy {
 		this.flushPatch();
 	}
 
+	addSecret(): void {
+		this.draft.update((current) => ({
+			...current,
+			secrets: [
+				...current.secrets,
+				{ id: '', value: '', hasValue: false },
+			],
+		}));
+		this.flushPatch();
+	}
+
+	removeSecret(index: number): void {
+		this.draft.update((current) => ({
+			...current,
+			secrets: current.secrets.filter(
+				(_, rowIndex) => rowIndex !== index,
+			),
+		}));
+		this.flushPatch();
+	}
+
+	patchSecretDebounced(index: number, patch: Partial<SecretDraft>): void {
+		this.applySecretPatch(index, patch);
+		this.schedulePatch();
+	}
+
+	patchSecretFlush(index: number, patch: Partial<SecretDraft>): void {
+		this.applySecretPatch(index, patch);
+		this.flushPatch();
+	}
+
+	private applySecretPatch(index: number, patch: Partial<SecretDraft>): void {
+		this.draft.update((current) => ({
+			...current,
+			secrets: current.secrets.map((row, rowIndex) =>
+				rowIndex === index ? { ...row, ...patch } : row,
+			),
+		}));
+		this.validationError.set(null);
+	}
+
 	discard(): void {
 		this.validationError.set(null);
 		this.draftProjection.emitDiscard(this.scope());
@@ -1024,6 +1205,27 @@ export class LfSettingsPanelComponent implements OnDestroy {
 		if (new Set(ids).size !== ids.length) {
 			this.validationError.set('Provider ids must be unique.');
 			return;
+		}
+
+		if (this.scope() === 'global') {
+			const secretIds = draft.secrets.map((row) => row.id.trim());
+			if (secretIds.some((id) => id.length === 0)) {
+				this.validationError.set('Each secret needs a non-empty id.');
+				return;
+			}
+			if (new Set(secretIds).size !== secretIds.length) {
+				this.validationError.set('Secret ids must be unique.');
+				return;
+			}
+			if (secretIds.some((id) => !isValidSecretId(id))) {
+				this.validationError.set(
+					'Secret ids must start with a letter or underscore and use only letters, digits, and underscores.',
+				);
+				return;
+			}
+			this.bridge.raw['langflower.secrets.save.requested'].next(
+				draftToSecretsSavePayload(draft),
+			);
 		}
 
 		// Full payload avoids racing a trailing draft.patch against Save.

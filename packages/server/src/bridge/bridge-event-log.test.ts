@@ -83,7 +83,7 @@ describe('attachBridgeEventLog', () => {
 			clientId: 'client-1',
 			payload: { ordinary: 'retained' },
 		});
-		broadcast.next({ token: 'broadcast-payload' });
+		broadcast.next({ marker: 'broadcast-payload' });
 		connections.next(client);
 		unicast.next({ value: 'snapshot' });
 		disconnected.next();
@@ -108,7 +108,7 @@ describe('attachBridgeEventLog', () => {
 					expect.any(String),
 					'out',
 					'workflow.current.snapshot',
-					{ token: 'broadcast-payload' },
+					{ marker: 'broadcast-payload' },
 				],
 				[
 					expect.any(String),
@@ -188,5 +188,79 @@ describe('attachBridgeEventLog', () => {
 			'workflow.current.snapshot',
 			{ second: true },
 		]);
+	});
+
+	it('logs secrets save as REDACTED and keeps token on other events', async () => {
+		const projectDir = await createTemporaryProject();
+		const secretsInbound = new Subject<{
+			readonly clientId: string;
+			readonly payload: unknown;
+		}>();
+		const snapshot = new Subject<unknown>();
+		const saveInbound = new Subject<{
+			readonly clientId: string;
+			readonly payload: unknown;
+		}>();
+		const rootSubscription = new Subscription();
+		const log = attachBridgeEventLog(
+			asBridge({
+				'langflower.secrets.save.requested': secretsInbound,
+				'langflower.config.save.requested': saveInbound,
+				'workflow.current.snapshot': snapshot,
+				connections$: new Subject<LangflowerClient>(),
+			}),
+			projectDir,
+			rootSubscription,
+		);
+
+		secretsInbound.next({
+			clientId: 'client-1',
+			payload: {
+				secretIds: ['API_TOKEN'],
+				secretValues: { API_TOKEN: 'sk-live-secret' },
+			},
+		});
+		saveInbound.next({
+			clientId: 'client-1',
+			payload: {
+				scope: 'global',
+				providerApiKeys: { openai: 'sk-openai' },
+			},
+		});
+		snapshot.next({ token: 'broadcast-payload' });
+
+		log.writeServerClosing();
+		rootSubscription.unsubscribe();
+		await log.flush();
+
+		const text = await fs.readFile(log.filePath, 'utf8');
+		const frames = parseFrames(text);
+		expect(text).not.toContain('sk-live-secret');
+		expect(text).not.toContain('sk-openai');
+		expect(frames).toEqual(
+			expect.arrayContaining([
+				[
+					expect.any(String),
+					'in',
+					'langflower.secrets.save.requested',
+					'REDACTED',
+				],
+				[
+					expect.any(String),
+					'in',
+					'langflower.config.save.requested',
+					{
+						scope: 'global',
+						providerApiKeys: 'REDACTED',
+					},
+				],
+				[
+					expect.any(String),
+					'out',
+					'workflow.current.snapshot',
+					{ token: 'broadcast-payload' },
+				],
+			]),
+		);
 	});
 });

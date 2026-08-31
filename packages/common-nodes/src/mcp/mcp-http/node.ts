@@ -6,14 +6,20 @@ import {
 } from '@langflower/node-sdk';
 import { buildMcpHandle } from '@langflower/tools/build-mcp-handle';
 import { formatMcpConnectError } from '@langflower/tools/format-mcp-connect-error';
-import { connectMcpHttpWithOptionalLaunch } from '@langflower/tools/mcp-http-client';
+import {
+	connectMcpHttpWithOptionalLaunch,
+	resolveMcpHttpHeaders,
+} from '@langflower/tools/mcp-http-client';
 import { distinctUntilChanged, filter, Observable, switchMap } from 'rxjs';
+import { getRunHostServices } from '../../ai/features/run-host-services.js';
 
 type HttpParams = {
 	readonly nodeId: string;
 	readonly projectDir: string;
 	readonly url: string;
 	readonly command: string;
+	readonly headers: unknown;
+	readonly secrets: Readonly<Record<string, string>>;
 };
 
 const paramsKey = (params: HttpParams): string =>
@@ -22,6 +28,7 @@ const paramsKey = (params: HttpParams): string =>
 		projectDir: params.projectDir,
 		url: params.url,
 		command: params.command,
+		headers: params.headers,
 	});
 
 /**
@@ -38,6 +45,7 @@ export const mcpHttpNode = defineReactiveNode({
 Connect to an MCP server over HTTP and give its tools to an agent.
 
 Paste a URL for a server that is already running, or set a launch command to start one first.
+Optional headers JSON may use {lf_secrets:ID} or {env:VAR}.
 `.trim(),
 	uiSchema: [] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
@@ -54,15 +62,23 @@ Paste a URL for a server that is already running, or set a launch command to sta
 			inline: 'text',
 			defaultValue: '',
 		});
+		const headers = makeInput<unknown>('headers', {
+			name: 'headers',
+			wireType: 'json',
+			inline: 'text-multiline',
+			defaultValue: '',
+		});
 
 		const params$ = combineInputs(
-			[ctx, url, command],
-			([ec, serverUrl, cli]) =>
+			[ctx, url, command, headers],
+			([ec, serverUrl, cli, rawHeaders]) =>
 				({
 					nodeId: String(ec.nodeId ?? ''),
 					projectDir: String(ec.projectDir ?? ''),
 					url: String(serverUrl ?? '').trim(),
 					command: String(cli ?? '').trim(),
+					headers: rawHeaders,
+					secrets: getRunHostServices(ec)?.secrets ?? {},
 				}) satisfies HttpParams,
 		).pipeValue(
 			distinctUntilChanged(
@@ -100,6 +116,14 @@ Paste a URL for a server that is already running, or set a launch command to sta
 							};
 
 							const run = async (): Promise<void> => {
+								const resolved = resolveMcpHttpHeaders(
+									params.headers,
+									{ secrets: params.secrets },
+								);
+								if (!resolved.ok) {
+									throw new Error(resolved.message);
+								}
+
 								const session =
 									await connectMcpHttpWithOptionalLaunch({
 										url: params.url,
@@ -108,6 +132,10 @@ Paste a URL for a server that is already running, or set a launch command to sta
 											: {}),
 										...(params.projectDir.length > 0
 											? { cwd: params.projectDir }
+											: {}),
+										...(Object.keys(resolved.headers)
+											.length > 0
+											? { headers: resolved.headers }
 											: {}),
 									});
 								closeSession = () => session.close();
@@ -140,7 +168,7 @@ Paste a URL for a server that is already running, or set a launch command to sta
 			);
 
 		return {
-			inputs: [url, command],
+			inputs: [url, command, headers],
 			outputs: [
 				configureOutput('tools', handle$, {
 					wireType: TOOL_HANDLE_WIRE_TYPE,

@@ -23,6 +23,8 @@ export type LangflowerConfigLayersProjection = {
 	readonly projectConfig: LangflowerConfig;
 	readonly globalConfig: LangflowerConfig;
 	readonly globalPath: string;
+	readonly secretIds: readonly string[];
+	readonly secretsPath: string;
 };
 
 const EMPTY_LAYERS: LangflowerConfigLayersProjection = {
@@ -30,6 +32,8 @@ const EMPTY_LAYERS: LangflowerConfigLayersProjection = {
 	projectConfig: {},
 	globalConfig: {},
 	globalPath: '',
+	secretIds: [],
+	secretsPath: '',
 };
 
 type ConfigProjectionEvent =
@@ -73,6 +77,8 @@ export class LangflowerConfigProjectionService {
 				projectConfig: event.payload.projectConfig,
 				globalConfig: event.payload.globalConfig,
 				globalPath: event.payload.globalPath,
+				secretIds: event.payload.secretIds,
+				secretsPath: event.payload.secretsPath,
 			};
 		}, EMPTY_LAYERS),
 		startWith(EMPTY_LAYERS),

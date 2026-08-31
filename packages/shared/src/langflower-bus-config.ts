@@ -20,6 +20,7 @@ import type {
 	LangflowerConfigDraftSnapshotPayload,
 	LangflowerConfigSaveRequestedPayload,
 	LangflowerConfigSnapshotPayload,
+	LangflowerSecretsSaveRequestedPayload,
 	LangflowerModelsCatalogSnapshotPayload,
 	RunnerPermissionAskPayload,
 	RunnerPermissionReplyPayload,
@@ -487,7 +488,8 @@ const bootstrapConfig = {
  * Context: saved layers are **snapshot-only** (`langflower.config.snapshot`).
  * Unsaved Settings form state is a separate **session draft**
  * (`langflower.config.draft.*`) broadcast to all tabs. Effective merge is
- * project > global; payload also carries redacted layers + `globalPath`.
+ * project > global; payload also carries redacted layers + `globalPath`,
+ * `secretIds`, and `secretsPath` (named KV ids only — never secret values).
  * Slim {@link SessionStateSnapshotPayload} carries effective
  * `langflowerConfig` on reconnect (not the full layer payload).
  */
@@ -500,6 +502,14 @@ const langflowerProjectConfig = {
 		 */
 		'langflower.config.save.requested':
 			message<LangflowerConfigSaveRequestedPayload>(),
+
+		/**
+		 * Persist named KV secrets to the user-global secrets file, then
+		 * broadcast {@link LangflowerConfigSnapshotPayload} (`secretIds` +
+		 * `secretsPath` only). JSONL logs this type as `"REDACTED"`.
+		 */
+		'langflower.secrets.save.requested':
+			message<LangflowerSecretsSaveRequestedPayload>(),
 
 		/**
 		 * Replace the session Settings draft for a scope. Server probes

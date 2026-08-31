@@ -15,6 +15,7 @@ export {
 	isValidMcpServerId,
 	parseMcpToolId,
 } from './langflower-config/mcp-tool-id.js';
+export { isValidSecretId } from './langflower-config/secret-id.js';
 export {
 	displayEnabledToolIds,
 	HARNESS_BUILTIN_TOOL_OPTIONS,
@@ -46,6 +47,7 @@ export type {
 	LangflowerConfigSaveRequestedPayload,
 	LangflowerConfigScope,
 	LangflowerConfigSnapshotPayload,
+	LangflowerSecretsSaveRequestedPayload,
 	LangflowerHarnessConfig,
 	LangflowerMcpConfig,
 	LangflowerMcpHttpServerConfig,
@@ -77,13 +79,16 @@ export {
 	staticModelIdsForProvider,
 	draftAfterLayerSnapshot,
 	draftToSavePayload,
+	draftToSecretsSavePayload,
 	mergeDraftPatch,
 	providerConnectionKey,
 	redactDraftSecrets,
 	sameDraft,
+	secretsDraftFromIds,
 } from './langflower-config/settings-draft.js';
 export type {
 	ProviderDraft,
+	SecretDraft,
 	ServerLogsDraft,
 	SettingsDraft,
 } from './langflower-config/settings-draft.js';

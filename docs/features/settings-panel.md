@@ -34,10 +34,18 @@ orchestrator).
 **In scope (v1):** default chat model (provider + model selects), **default
 embedding model** (provider + model selects — independent from chat),
 provider list (id, base URL, models), API key fields, server logs (Off /
-Default / On).
+Default / On), **Global Secrets** (named KV ids, write-only values).
 
 **Out of scope (v1 → hand-edit):** permission rules, MCP server config, and
 other dense CONFIG blocks not needed for the provider happy path.
+
+**Secrets disclaimer (Global group, always visible above the list):** stored
+in Langflower user settings on this computer (those files can still be
+read — not encryption); kept out of the workspace so agents cannot reach
+them with file tools. OS keychain / encrypted at-rest storage is
+[TBD-010](../TBD.md#tbd-010--os-backed--encrypted-secret-storage).
+`{lf_secrets:ID}` interpolation and MCP HTTP `headers` landed in
+[epic 45](../DONE/EPICS/45-global-kv-secrets.md) (not edited in this panel).
 
 ### Enter / leave
 
@@ -67,7 +75,11 @@ coding samples.
   models), API key fields per provider, server logs radio (Off / Default / On;
   Default omits `serverLogs` in the project file).
 - **Global scope:** same v1 field groups for user-wide defaults; read-only
-  path hint showing the **server-resolved** global file path on this OS.
+  path hints for the **server-resolved** global jsonc path and
+  `langflower.secrets.json` path; **Secrets** group (id + write-only value,
+  Add/Remove) with the disclaimer above the list.
+- **Project scope:** no Secrets editor; one-line hint that secrets are
+  stored in Global.
 - **Footer actions:** **Save** (primary), **Discard** (revert unsaved form
   state).
 
@@ -184,9 +196,13 @@ coding samples.
   config on every snapshot (connect + post-Save); inspector
   `optionsSource: 'langflower.providers'` reads the live projection signal.
 - **Secret hygiene:** redact omits `apiKey`, sets `hasApiKey` for write-only
-  placeholders; empty key input on Save leaves existing disk secret.
+  placeholders; empty key input on Save leaves existing disk secret. Named
+  KV values travel only on `langflower.secrets.save.requested` (JSONL
+  payload `"REDACTED"`); draft snapshots expose ids / `hasValue` with empty
+  `value`. Project Save does not emit that event.
 - **Schema reference:** [CONFIG.md](../CONFIG.md),
   [project-configuration.md](project-configuration.md),
   `packages/shared/src/types/langflower-config.ts`.
 - **Scenario validation:** [settings-panel](../use-cases/settings-panel.md)
   S1–S6 — Status flip left to orchestrator (prefer Partial until manual smoke).
+  S7 UI is in this panel; interpolator / MCP headers landed in epic 45.

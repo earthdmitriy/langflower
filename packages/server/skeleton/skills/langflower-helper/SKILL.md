@@ -117,7 +117,13 @@ do not say coding pipelines “don’t exist” or are unavailable.
   onboarding copy (add OpenAI-compatible provider; Fake LLM / simple nodes
   still work).
 - **Cannot:** Treat Settings as the selected-node inspector (ports/params).
-- **Cannot:** Reveal a saved API key in the UI.
+- **Cannot:** Reveal a saved API key or named secret value in the UI.
+- **Can:** Settings → **Global** → **Secrets** stores named tokens in
+  user-global `langflower.secrets.json` (not the project). Disclaimer:
+  those Langflower files can still be read — not encryption; the goal is
+  to keep them out of workspace file tools. MCP http / jsonc `mcp.servers`
+  http `headers` may use `{lf_secrets:ID}` or `{env:VAR}` (interpolated at
+  connect; UI never redisplays the value).
 
 ### 4b. Embeddings
 

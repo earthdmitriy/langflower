@@ -13,6 +13,7 @@ import type {
 import {
 	configToDraft,
 	providerConnectionKey,
+	redactDraftSecrets,
 } from '@langflower/shared/langflower';
 import { map, shareReplay, startWith } from 'rxjs';
 import { LangflowerBridgeService } from './langflower-bridge.service';
@@ -70,7 +71,7 @@ export class ConfigDraftProjectionService {
 	emitPatch(scope: LangflowerConfigScope, draft: SettingsDraft): void {
 		this.bridge.raw['langflower.config.draft.patch.requested'].next({
 			scope,
-			draft,
+			draft: redactDraftSecrets(draft),
 		});
 	}
 

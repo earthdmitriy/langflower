@@ -195,6 +195,39 @@ describe('buildExecutionContext', () => {
 		expect(ctx).not.toHaveProperty('createChatCompletionStream');
 	});
 
+	it('attaches secrets on host services without putting them on ctx JSON', async () => {
+		const isolatedGlobal = path.join(projectDir, 'isolated-global.jsonc');
+		const secretsPath = path.join(projectDir, 'langflower.secrets.json');
+		await fs.writeFile(
+			secretsPath,
+			`${JSON.stringify({ API_TOKEN: 'sk-secret-value' })}\n`,
+			'utf8',
+		);
+
+		const ctx = await buildExecutionContext(
+			{
+				projectDir,
+				resolveDefinition: () => undefined,
+				langflowerConfigService: new LangflowerConfigService(
+					projectDir,
+					isolatedGlobal,
+				),
+			},
+			'run-1',
+			{
+				id: 'node-1',
+				type: 'common-mcp-http',
+				params: {},
+			},
+		);
+
+		expect(getRunHostServices(ctx)?.secrets).toEqual({
+			API_TOKEN: 'sk-secret-value',
+		});
+		expect(JSON.stringify(ctx)).not.toMatch(/sk-secret-value|API_TOKEN/);
+		expect(ctx).not.toHaveProperty('secrets');
+	});
+
 	it('injects defaultChat from effective LangflowerConfig.model', async () => {
 		const configPath = path.join(
 			projectDir,

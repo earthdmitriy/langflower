@@ -6,6 +6,7 @@ import { encodeBridgeFrame } from '@langflower/websocket-bridge/bridge-codec';
 import { Subscription } from 'rxjs';
 import type { Observable } from 'rxjs';
 import type { LangflowerBridge } from './langflower-bridge.types.js';
+import { payloadForBridgeEventLog } from './redact-secret-bearing-keys.js';
 
 export type BridgeEventLog = {
 	readonly filePath: string;
@@ -86,7 +87,7 @@ export const attachBridgeEventLog = (
 			return;
 		}
 
-		const line = `${encodeBridgeFrame(transportDir, busType, payload)}\n`;
+		const line = `${encodeBridgeFrame(transportDir, busType, payloadForBridgeEventLog(busType, payload))}\n`;
 
 		writeQueue = writeQueue.then(async () => {
 			if (!enabled || !acceptingWrites) {

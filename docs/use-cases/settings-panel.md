@@ -160,24 +160,54 @@ read-only line).
 - Hint MUST be informational; user MUST NOT be required to open the file to
   use Settings.
 
+### S7 — Store a named secret in Global (not in the project)
+
+**Who:** Developer wiring a remote HTTP MCP (or similar) that needs an API
+token, without putting that token in the repo.
+
+**Want:** Add/replace/delete a named secret from Settings → **Global**, then
+reference it by id from a workflow. The value MUST NOT appear under the
+project folder or in the UI after Save.
+
+**Do:** Open Settings → **Global** → Secrets → add id `API_TOKEN` and a
+password value → Save → close → reopen Global. Use
+`{lf_secrets:API_TOKEN}` from an MCP http `headers` field (see
+[node-local-mcp](node-local-mcp.md) auth scenario).
+
+**Expect:**
+
+- The Secrets group MUST show a disclaimer: secrets live in Langflower user
+  settings on this computer (those files can still be read); they are kept
+  out of the workspace so agents cannot retrieve them with file tools.
+- Save MUST persist the value **outside** `<project>/.langflower/` (user-global
+  secrets file next to the global config dir).
+- Reopen MUST be **write-only** — id visible, value not echoed (same bar as
+  [S4](#s4--save-api-key-write-only-in-ui)).
+- Bridge snapshots MUST NOT include secret values (ids / `hasValue` only).
+- Delete + Save MUST drop that id; later `{lf_secrets:thatId}` MUST fail loud.
+- `{env:VAR}` MUST remain a valid alternative (CI / headless).
+- This scenario does **not** require OS keychain or encryption at rest
+  ([TBD-010](../TBD.md#tbd-010--os-backed--encrypted-secret-storage)).
+
 ## UI specs
 
-| Spec                                                          | Scenarios covered                                                                                                                                                                                                                                                                                                                   |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Settings panel](../features/settings-panel.md)               | [S1](#s1--open-settings-from-the-topbar), [S2](#s2--edit-project-providers-and-models), [S2a](#s2a--save-default-embedding-model), [S3](#s3--edit-global-settings-project-overrides-win), [S4](#s4--save-api-key-write-only-in-ui), [S5](#s5--close-settings-and-restore-the-right-panel), [S6](#s6--see-where-global-config-lives) |
-| [Inspector](../features/inspector.md)                         | [S2](#s2--edit-project-providers-and-models) (LLM provider/model selects refresh after Save)                                                                                                                                                                                                                                        |
-| [Project configuration](../features/project-configuration.md) | [S2](#s2--edit-project-providers-and-models), [S3](#s3--edit-global-settings-project-overrides-win)                                                                                                                                                                                                                                 |
+| Spec                                                          | Scenarios covered                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Settings panel](../features/settings-panel.md)               | [S1](#s1--open-settings-from-the-topbar), [S2](#s2--edit-project-providers-and-models), [S2a](#s2a--save-default-embedding-model), [S3](#s3--edit-global-settings-project-overrides-win), [S4](#s4--save-api-key-write-only-in-ui), [S5](#s5--close-settings-and-restore-the-right-panel), [S6](#s6--see-where-global-config-lives), [S7](#s7--store-a-named-secret-in-global-not-in-the-project) |
+| [Inspector](../features/inspector.md)                         | [S2](#s2--edit-project-providers-and-models) (LLM provider/model selects refresh after Save)                                                                                                                                                                                                                                                                                                      |
+| [Project configuration](../features/project-configuration.md) | [S2](#s2--edit-project-providers-and-models), [S3](#s3--edit-global-settings-project-overrides-win)                                                                                                                                                                                                                                                                                               |
 
 ## Runtime requirements
 
-| Need                                            | Why (scenario)                                                                                                                      | Today                                                          | Caution                                                       |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------- |
-| Project config read/write (`langflower.jsonc`)  | Persist project scope edits ([S2](#s2--edit-project-providers-and-models))                                                          | Landed — Settings Save + hand-edit                             | Dual path OK                                                  |
-| Global config file + OS-specific path           | Global scope + path hint ([S3](#s3--edit-global-settings-project-overrides-win), [S6](#s6--see-where-global-config-lives))          | Landed — ADR-002 amend + OS paths (CONFIG)                     | Path hint from server snapshot                                |
-| Merge precedence project > global               | Effective provider/model for runs ([S3](#s3--edit-global-settings-project-overrides-win))                                           | Landed — `mergeLangflowerConfigLayers`                         | Project-only keys may still appear if pasted into global file |
-| Write-only secret fields in UI                  | Keys saved but not shown on reopen ([S4](#s4--save-api-key-write-only-in-ui))                                                       | Landed — `hasApiKey` + empty field; post-Save draft clears key | Prefer `{env:VAR}` when operator enters placeholder           |
-| Re-emit `langflower.config.snapshot` after save | Inspector LLM + embedding selects refresh ([S2](#s2--edit-project-providers-and-models), [S2a](#s2a--save-default-embedding-model)) | Landed — Save → snapshot; projection rebinds                   | —                                                             |
-| Right-panel mode: settings vs feed vs inspector | Gear swap + restore ([S1](#s1--open-settings-from-the-topbar), [S5](#s5--close-settings-and-restore-the-right-panel))               | Landed — third aside mode                                      | Dirty confirm on gear/node exit still soft gap                |
+| Need                                            | Why (scenario)                                                                                                                      | Today                                                                                                           | Caution                                                       |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Project config read/write (`langflower.jsonc`)  | Persist project scope edits ([S2](#s2--edit-project-providers-and-models))                                                          | Landed — Settings Save + hand-edit                                                                              | Dual path OK                                                  |
+| Global config file + OS-specific path           | Global scope + path hint ([S3](#s3--edit-global-settings-project-overrides-win), [S6](#s6--see-where-global-config-lives))          | Landed — ADR-002 amend + OS paths (CONFIG)                                                                      | Path hint from server snapshot                                |
+| Merge precedence project > global               | Effective provider/model for runs ([S3](#s3--edit-global-settings-project-overrides-win))                                           | Landed — `mergeLangflowerConfigLayers`                                                                          | Project-only keys may still appear if pasted into global file |
+| Write-only secret fields in UI                  | Keys saved but not shown on reopen ([S4](#s4--save-api-key-write-only-in-ui))                                                       | Landed — `hasApiKey` + empty field; post-Save draft clears key                                                  | Prefer `{env:VAR}` when operator enters placeholder           |
+| Re-emit `langflower.config.snapshot` after save | Inspector LLM + embedding selects refresh ([S2](#s2--edit-project-providers-and-models), [S2a](#s2a--save-default-embedding-model)) | Landed — Save → snapshot; projection rebinds                                                                    | —                                                             |
+| Right-panel mode: settings vs feed vs inspector | Gear swap + restore ([S1](#s1--open-settings-from-the-topbar), [S5](#s5--close-settings-and-restore-the-right-panel))               | Landed — third aside mode                                                                                       | Dirty confirm on gear/node exit still soft gap                |
+| Global KV secrets file (not project tree)       | Named secrets for `{lf_secrets:ID}` ([S7](#s7--store-a-named-secret-in-global-not-in-the-project))                                  | Landed — Settings Global + interpolator + MCP HTTP `headers` ([epic 45](../DONE/EPICS/45-global-kv-secrets.md)) | Values never in workspace; not encrypted at rest (TBD-010)    |
 
 ## Status
 
@@ -185,7 +215,8 @@ read-only line).
 write-only keys, ADR-002 global layer + merge, Save → snapshot re-emit,
 inspector options rebind. Unit/verify green. Prefer **Partial** until an
 operator smoke on S1–S6 claims Implementable (dirty gear/node exits and
-clearing model/embedding on disk remain soft gaps).
+clearing model/embedding on disk remain soft gaps). Global KV secrets (S7)
+landed with MCP HTTP `headers` ([epic 45](../DONE/EPICS/45-global-kv-secrets.md)).
 
 **Implementable when** S1–S6 pass in the editor without requiring JSON
 hand-edit for the happy path, including calm Close after Save-with-key and
@@ -211,4 +242,5 @@ secrets back, clearing embedding by deleting keys).
   projection rebind.
 - Smoke: any workflow with provider dropdowns (e.g. `basic-coder`) after
   Settings Save.
-- Epic: [18-settings-panel](../DONE/EPICS/18-settings-panel.md)
+- Epic: [18-settings-panel](../DONE/EPICS/18-settings-panel.md);
+  KV secrets [45-global-kv-secrets](../DONE/EPICS/45-global-kv-secrets.md)

@@ -1,5 +1,6 @@
 import type { ToolHandle } from '@langflower/node-sdk';
 import { connectMcpHttpWithOptionalLaunch } from './mcp-http-client.js';
+import { resolveMcpHttpHeaders } from './resolve-mcp-http-headers.js';
 import { connectMcpStdioFromCli } from './mcp-stdio-client.js';
 import { isValidMcpServerId } from './mcp-tool-id.js';
 import { buildMcpHandle } from './build-mcp-handle.js';
@@ -22,6 +23,7 @@ export type SystemMcpHttpEntry = {
 	readonly url: string;
 	readonly command?: string;
 	readonly toolNames?: string;
+	readonly headers?: Readonly<Record<string, string>>;
 };
 
 export type SystemMcpServerEntry = SystemMcpStdioEntry | SystemMcpHttpEntry;
@@ -52,6 +54,7 @@ export const createSystemMcpHandles = async (options: {
 	readonly projectRoot: string;
 	readonly serverIds: readonly string[];
 	readonly servers: Readonly<Record<string, SystemMcpServerEntry>>;
+	readonly secrets?: Readonly<Record<string, string>>;
 }): Promise<SystemMcpHandles> => {
 	const closers: Array<() => Promise<void>> = [];
 	const handles: SystemMcpServerTools[] = [];
@@ -108,12 +111,22 @@ export const createSystemMcpHandles = async (options: {
 				continue;
 			}
 
+			const resolvedHeaders = resolveMcpHttpHeaders(entry.headers, {
+				secrets: options.secrets ?? {},
+			});
+			if (!resolvedHeaders.ok) {
+				throw new Error(resolvedHeaders.message);
+			}
+
 			const session = await connectMcpHttpWithOptionalLaunch({
 				url,
 				cwd: options.projectRoot,
 				...(entry.command !== undefined &&
 				entry.command.trim().length > 0
 					? { command: entry.command.trim() }
+					: {}),
+				...(Object.keys(resolvedHeaders.headers).length > 0
+					? { headers: resolvedHeaders.headers }
 					: {}),
 			});
 			closers.push(() => session.close());

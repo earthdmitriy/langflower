@@ -74,6 +74,37 @@ the active scope. Mid-session Save updates the live gate without restart.
 | macOS   | `~/Library/Application Support/langflower/langflower.jsonc` |
 | Linux   | `${XDG_CONFIG_HOME:-~/.config}/langflower/langflower.jsonc` |
 
+### Named secrets (`langflower.secrets.json`)
+
+User-global KV tokens for `{lf_secrets:ID}` (epic 45). Sibling of the global
+config file — **not** under the project folder:
+
+| OS      | Path                                                               |
+| ------- | ------------------------------------------------------------------ |
+| Windows | `%APPDATA%\langflower\langflower.secrets.json`                     |
+| macOS   | `~/Library/Application Support/langflower/langflower.secrets.json` |
+| Linux   | `${XDG_CONFIG_HOME:-~/.config}/langflower/langflower.secrets.json` |
+
+Shape: `{ "API_TOKEN": "<value>" }` (ids `^[A-Za-z_][A-Za-z0-9_]*$`).
+`langflower.secrets.save.requested` writes this file when `secretIds` /
+`secretValues` are present. Bridge snapshots list **ids** and `secretsPath`,
+never values. JSONL under `.langflower/logs/` records that event as
+`"REDACTED"`.
+
+**Substring placeholders** (server/runtime helper, not Settings snapshots):
+`{lf_secrets:ID}` from the KV file and `{env:VAR}` from `process.env` may
+appear inside a larger string (e.g. `Bearer {lf_secrets:API_TOKEN}`). Missing
+or empty id/var fails loud (`{ ok: false, message }`); the message may name
+the id, never the resolved value. Replacements are not scanned again.
+Provider `options.apiKey` `{env:VAR}` below stays **whole-string** and does
+not use this helper. MCP HTTP `headers` (node port and jsonc `mcp.servers`
+http) interpolate at connect.
+
+This is **not** encryption or an OS keychain ([TBD-010](TBD.md#tbd-010--os-backed--encrypted-secret-storage)).
+The goal is to keep secrets out of the workspace so agents cannot retrieve
+them with file tools. Anyone who can read the Langflower user-settings
+directory can still read the file.
+
 **Merge:** for each top-level field, a project value wins when set; provider
 map merges by id with the project entry replacing the global entry for the
 same id. Effective config drives runs and Inspector dropdowns via
@@ -384,6 +415,9 @@ Same entry shape as MCP nodes (`kind` + fields). Inspector **Enabled MCP**
 			"remote": {
 				"kind": "http",
 				"url": "http://127.0.0.1:3100/mcp",
+				"headers": {
+					"Authorization": "Bearer {lf_secrets:API_TOKEN}",
+				},
 			},
 		},
 	},
@@ -392,13 +426,18 @@ Same entry shape as MCP nodes (`kind` + fields). Inspector **Enabled MCP**
 
 ### Wire (canvas)
 
-| Node      | type               | Role                                                    |
-| --------- | ------------------ | ------------------------------------------------------- |
-| MCP stdio | `common-mcp-stdio` | Shell CLI → stdio; emits `tools` (`ToolHandle[]`)       |
-| MCP http  | `common-mcp-http`  | URL (+ optional launch); emits `tools` (`ToolHandle[]`) |
+| Node      | type               | Role                                                                |
+| --------- | ------------------ | ------------------------------------------------------------------- |
+| MCP stdio | `common-mcp-stdio` | Shell CLI → stdio; emits `tools` (`ToolHandle[]`)                   |
+| MCP http  | `common-mcp-http`  | URL (+ optional launch + `headers`); emits `tools` (`ToolHandle[]`) |
 
 Wire into LLM / Sub-Agent `tools` (fan-out OK). No Inspector filter — remove the
 wire to disable. Agents never spawn MCP; harness has no MCP API.
+
+Authenticated HTTP: set `headers` on **MCP http** or jsonc http entries. Values
+may include `{lf_secrets:ID}` (Settings → Global secrets) or `{env:VAR}`.
+Missing secret or invalid JSON fails connect (S5 / S6). Protocol headers win
+over author keys. See [epic 45](DONE/EPICS/45-global-kv-secrets.md).
 
 Inventory ids: `<mcp_name>__<toolName>` where `mcp_name` is `serverInfo.name`
 from initialize (usable under `permission`).

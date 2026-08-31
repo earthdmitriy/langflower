@@ -55,7 +55,7 @@ fixed build order.
 
 ## ADR-002 — `.langflower/` project-local storage (opencode-style)
 
-**Status:** accepted · **Date:** 2026-06-16
+**Status:** accepted · **Date:** 2026-06-16 · **Updated:** 2026-08-31
 
 **Context:** Tool runs inside the user's existing repo (e.g. an app repo), not a
 dedicated Langflower project.
@@ -123,6 +123,36 @@ runs, skills, and permissions stay project-local (global does not own them).
   config for runs and `langflower.config.snapshot` is the merge.
 - Project-only fields (`currentWorkflowId`, `dividerPositions`, `paletteVisible`, `permission`,
   `harness`, `mcp`, …) remain project file only.
+
+### Amend — user-global named secrets file (2026-08-31)
+
+**Context:** Operators need named API tokens (MCP HTTP `Authorization`, etc.)
+that must not live in the project tree, so agents cannot read them with
+harness file tools. OS keychain / encrypted at-rest storage remains
+[TBD-010](TBD.md#tbd-010--os-backed--encrypted-secret-storage).
+
+**Decision:** Keep a sibling **`langflower.secrets.json`** in the same OS
+directory as global `langflower.jsonc`. Values are a plaintext `id → string`
+map (chmod `0600` where the OS honors it). Never write this file under
+`<project>/.langflower/`. Bridge snapshots expose **ids and path only**.
+JSONL logs `langflower.secrets.save.requested` as payload `"REDACTED"`
+(by event type, not a recursive key list). `langflower.config.save.requested`
+still redacts `apiKey` / `providerApiKeys` in that log.
+
+**Tradeoffs accepted:**
+
+- (+) Workspace-hidden; same discovery path as global Settings.
+- (−) Not a vault — anyone who can read the user-global Langflower files can
+  read the values.
+- (−) Second file beside `langflower.jsonc`.
+
+**Consequences:**
+
+- `LangflowerConfigService` owns read/write of the secrets file
+  (`writeSecrets`).
+- Named KV writes travel on `langflower.secrets.save.requested`
+  (`secretIds` / `secretValues`), independently of jsonc Settings `scope`;
+  omitting both leaves the secrets file unchanged.
 
 ---
 

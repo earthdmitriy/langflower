@@ -38,6 +38,21 @@ describe('settings-draft-session', () => {
 		expect(seeded.connections['0']).toEqual({ state: 'idle' });
 	});
 
+	it('seeds global secret ids without values', () => {
+		const seeded = seedScopeDraft({ model: 'mock/x' }, ['API_TOKEN']);
+		expect(seeded.draft.secrets).toEqual([
+			{ id: 'API_TOKEN', value: '', hasValue: true },
+		]);
+		expect(seeded.baseline.secrets).toEqual(seeded.draft.secrets);
+		expect(
+			buildDraftSnapshot('global', seeded).draft.secrets[0]?.value,
+		).toBe('');
+	});
+
+	it('project seed has no secret rows', () => {
+		expect(seedScopeDraft({}).draft.secrets).toEqual([]);
+	});
+
 	it('marks dirty when a pending apiKey is set', () => {
 		const baseline = configToDraft({});
 		const state = {

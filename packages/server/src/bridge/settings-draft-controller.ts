@@ -13,6 +13,7 @@ import type {
 import {
 	draftToSavePayload,
 	mergeLangflowerConfigLayers,
+	secretsDraftFromIds,
 } from '@langflower/shared/langflower.js';
 import { resolveDraftProviderCredentials } from '../config/resolve-draft-provider-credentials.js';
 import type { ServerContext } from '../server-context.js';
@@ -89,6 +90,7 @@ export type SettingsDraftController = {
 		draft: SettingsDraft,
 	) => Promise<void>;
 	readonly discard: (scope: LangflowerConfigScope) => Promise<void>;
+	readonly syncGlobalSecrets: () => Promise<void>;
 	readonly commitSave: (
 		scope: LangflowerConfigScope,
 		fallback?: LangflowerConfigSaveRequestedPayload,
@@ -101,6 +103,17 @@ export const createSettingsDraftController = (
 	session: LangflowerSession,
 ): SettingsDraftController => {
 	const probeGeneration = new Map<string, number>();
+
+	const seedForScope = async (
+		scope: LangflowerConfigScope,
+		layer: LangflowerConfig,
+	): Promise<ScopeSettingsDraft> => {
+		const secretIds =
+			scope === 'global'
+				? await context.langflowerConfigService.listSecretIds()
+				: [];
+		return seedScopeDraft(layer, secretIds);
+	};
 
 	const getState = (
 		scope: LangflowerConfigScope,
@@ -210,7 +223,7 @@ export const createSettingsDraftController = (
 			return;
 		}
 		const layers = await context.langflowerConfigService.readLayers();
-		const seeded = seedScopeDraft(layerForScope(layers, scope));
+		const seeded = await seedForScope(scope, layerForScope(layers, scope));
 		setState(scope, seeded);
 		// Seed leaves URL rows as `checking`; kick probes so launch shows
 		// Connected/error without requiring an edit first.
@@ -265,10 +278,26 @@ export const createSettingsDraftController = (
 
 	const discard = async (scope: LangflowerConfigScope): Promise<void> => {
 		const layers = await context.langflowerConfigService.readLayers();
-		const seeded = seedScopeDraft(layerForScope(layers, scope));
+		const seeded = await seedForScope(scope, layerForScope(layers, scope));
 		setState(scope, seeded);
 		emitCurrent(scope);
 		probeProvidersWithUrl(scope, seeded.draft);
+	};
+
+	const syncGlobalSecrets = async (): Promise<void> => {
+		const state = getState('global');
+		if (state === undefined) {
+			return;
+		}
+		const secrets = secretsDraftFromIds(
+			await context.langflowerConfigService.listSecretIds(),
+		);
+		setState('global', {
+			...state,
+			draft: { ...state.draft, secrets },
+			baseline: { ...state.baseline, secrets },
+		});
+		emitCurrent('global');
 	};
 
 	const commitSave = async (
@@ -316,7 +345,7 @@ export const createSettingsDraftController = (
 		});
 
 		const layer = layerForScope(layers, scope);
-		const seeded = seedScopeDraft(layer);
+		const seeded = await seedForScope(scope, layer);
 		setState(scope, seeded);
 
 		const snapshot = await buildLangflowerConfigSnapshot(context);
@@ -334,6 +363,7 @@ export const createSettingsDraftController = (
 		pushToClient,
 		patch,
 		discard,
+		syncGlobalSecrets,
 		commitSave,
 	};
 };

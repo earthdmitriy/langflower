@@ -157,4 +157,60 @@ describe('createSystemMcpHandles partial connect (S6)', () => {
 		]);
 		expect(result.failures[0]?.serverId).toBe('remote');
 	});
+
+	it('forwards interpolated http headers', async () => {
+		connectHttp.mockResolvedValue({
+			client: {
+				close: async () => undefined,
+				serverName: 'remote',
+				listTools: async () => [],
+			},
+			close: async () => undefined,
+		} as never);
+		buildHandle.mockResolvedValue([]);
+
+		await createSystemMcpHandles({
+			projectRoot: '/tmp',
+			serverIds: ['remote'],
+			secrets: { API_TOKEN: 'sk-live' },
+			servers: {
+				remote: {
+					kind: 'http',
+					url: 'http://127.0.0.1:9/mcp',
+					headers: {
+						Authorization: 'Bearer {lf_secrets:API_TOKEN}',
+					},
+				},
+			},
+		});
+
+		expect(connectHttp).toHaveBeenCalledWith(
+			expect.objectContaining({
+				headers: { Authorization: 'Bearer sk-live' },
+			}),
+		);
+	});
+
+	it('records interpolate failure without connecting', async () => {
+		const result = await createSystemMcpHandles({
+			projectRoot: '/tmp',
+			serverIds: ['remote'],
+			secrets: {},
+			servers: {
+				remote: {
+					kind: 'http',
+					url: 'http://127.0.0.1:9/mcp',
+					headers: {
+						Authorization: 'Bearer {lf_secrets:API_TOKEN}',
+					},
+				},
+			},
+		});
+
+		expect(connectHttp).not.toHaveBeenCalled();
+		expect(result.handles).toEqual([]);
+		expect(result.failures[0]?.serverId).toBe('remote');
+		expect(result.failures[0]?.message).toContain('API_TOKEN');
+		expect(result.failures[0]?.message).not.toMatch(/sk-/);
+	});
 });

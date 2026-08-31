@@ -57,11 +57,16 @@ Save updates the live enable gate without restart; when disabled, channel
 subscriptions stay attached but writes are skipped (no log file until
 enabled).
 
-The logger recursively redacts values under known secret-bearing object keys
-such as `apiKey`, `providerApiKeys`, `authorization`, `token`, and
-`credentials`. Ordinary prompt and tool text remains diagnostic data, so do not
-share a log without reviewing it. If the directory or file cannot be written,
-the server continues serving and prints one concise stderr diagnostic instead.
+The logger writes `langflower.secrets.save.requested` with payload
+`"REDACTED"` (the frame is present so the redact is visible; values and
+ids from that payload never hit disk). On `langflower.config.save.requested`
+it replaces `apiKey` / `providerApiKeys` the same way. Ordinary fields such
+as `token` are not matched. Runtime `ExecutionContext` and credential
+resolve never ride this bus — JSONL only records typed bridge frames.
+Prompt and tool text remains diagnostic data,
+so do not share a log without reviewing it. If the directory or file cannot
+be written, the server continues serving and prints one concise stderr
+diagnostic instead.
 
 ## Bootstrap emit order (connect / reconnect)
 
@@ -100,6 +105,7 @@ There is no separate `viewport.snapshot` event — pan/zoom reconnects from
 | `palette.reload.requested`             | `wire-palette-handlers`           | `paletteService.reload`                                           | `palette.snapshot` (system)                                                       |
 | `customPalette.update.requested`       | `wire-custom-palette-handlers`    | `compileAndHotSwapCustomNodes` (UI Update + Langflower Tools RPC) | `editor.deleteEdges` + status (if pruned), then `customPalette.snapshot`          |
 | `langflower.config.save.requested`     | `wire-config-handlers`            | `writeSettings` + merge                                           | `langflower.config.snapshot` + `langflower.models.catalog.snapshot`               |
+| `langflower.secrets.save.requested`    | `wire-config-handlers`            | `writeSecrets`                                                    | `langflower.config.snapshot` (`secretIds` + `secretsPath`)                        |
 | `project.bootstrap.requested`          | `wire-project-bootstrap-handlers` | `bootstrapProject` force seed                                     | `project.bootstrap.result` + workflow/customPalette snapshots                     |
 | `editor.addNode.requested`             | `wire-editor-handlers`            | `applyEditorAddNode`                                              | `editor.addNodes`, status                                                         |
 | `editor.updateNode.requested`          | `wire-editor-handlers`            | `applyEditorUpdateNode`                                           | `editor.updateNodes`, status, selection                                           |

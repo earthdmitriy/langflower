@@ -12,6 +12,37 @@ import type {
 import { envWithShellComSpec } from './env-with-shell-com-spec.js';
 import { requireMcpServerName } from './require-mcp-server-name.js';
 
+export {
+	resolveMcpHttpHeaders,
+	type ResolveMcpHttpHeadersResult,
+} from './resolve-mcp-http-headers.js';
+
+const PROTOCOL_HEADER_NAMES = new Set([
+	'content-type',
+	'accept',
+	'mcp-protocol-version',
+	'mcp-session-id',
+]);
+
+const mergeMcpHttpHeaders = (
+	userHeaders: Readonly<Record<string, string>> | undefined,
+	sessionId: string | undefined,
+): Record<string, string> => {
+	const user = Object.fromEntries(
+		Object.entries(userHeaders ?? {}).filter(
+			([key]) => !PROTOCOL_HEADER_NAMES.has(key.toLowerCase()),
+		),
+	);
+
+	return {
+		...user,
+		'content-type': 'application/json',
+		accept: 'application/json, text/event-stream',
+		'MCP-Protocol-Version': '2024-11-05',
+		...(sessionId !== undefined ? { 'Mcp-Session-Id': sessionId } : {}),
+	};
+};
+
 export type McpHttpClientOptions = {
 	readonly url: string;
 	readonly clientName?: string;
@@ -104,15 +135,7 @@ export const connectMcpHttpClient = async (
 
 		const response = await fetchImpl(options.url, {
 			method: 'POST',
-			headers: {
-				'content-type': 'application/json',
-				accept: 'application/json, text/event-stream',
-				'MCP-Protocol-Version': '2024-11-05',
-				...(sessionId !== undefined
-					? { 'Mcp-Session-Id': sessionId }
-					: {}),
-				...(options.headers ?? {}),
-			},
+			headers: mergeMcpHttpHeaders(options.headers, sessionId),
 			body: JSON.stringify(payload),
 		});
 
@@ -150,15 +173,7 @@ export const connectMcpHttpClient = async (
 	const notify = async (method: string, params?: unknown): Promise<void> => {
 		await fetchImpl(options.url, {
 			method: 'POST',
-			headers: {
-				'content-type': 'application/json',
-				accept: 'application/json, text/event-stream',
-				'MCP-Protocol-Version': '2024-11-05',
-				...(sessionId !== undefined
-					? { 'Mcp-Session-Id': sessionId }
-					: {}),
-				...(options.headers ?? {}),
-			},
+			headers: mergeMcpHttpHeaders(options.headers, sessionId),
 			body: JSON.stringify({
 				jsonrpc: '2.0',
 				method,
@@ -277,6 +292,7 @@ export const connectMcpHttpWithOptionalLaunch = async (options: {
 	readonly fetchImpl?: typeof fetch;
 	readonly retries?: number;
 	readonly retryDelayMs?: number;
+	readonly headers?: Readonly<Record<string, string>>;
 }): Promise<{
 	readonly client: McpClient;
 	readonly close: () => Promise<void>;
@@ -301,6 +317,9 @@ export const connectMcpHttpWithOptionalLaunch = async (options: {
 				url: options.url,
 				...(options.fetchImpl !== undefined
 					? { fetchImpl: options.fetchImpl }
+					: {}),
+				...(options.headers !== undefined
+					? { headers: options.headers }
 					: {}),
 			});
 

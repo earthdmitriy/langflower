@@ -21,7 +21,9 @@ hand-edit); today hand-edit is the only path and remains the escape hatch
   single human-readable file, not a hidden database or account settings.
 - **Secrets are referenced, not hardcoded** — API keys are pulled from
   environment variables via a placeholder syntax rather than being pasted
-  into the config file in plaintext.
+  into the config file in plaintext. Named `{lf_secrets:ID}` slots (user-global
+  KV, not the project tree) are [epic 45](../DONE/EPICS/45-global-kv-secrets.md);
+  OS-backed encryption is [TBD-010](../TBD.md#tbd-010--os-backed--encrypted-secret-storage).
 - **Deny by default for risky actions** — shell execution defaults to denied
   and must be explicitly allowed/asked per pattern; filesystem access is
   always confined to the project root.

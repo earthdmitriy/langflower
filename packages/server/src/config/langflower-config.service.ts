@@ -23,6 +23,14 @@ import {
 } from '@langflower/shared/langflower.js';
 import { parseJsonc } from '../utils/parse-jsonc.js';
 import { resolveGlobalLangflowerConfigPath } from './resolve-global-langflower-config-path.js';
+import {
+	LANGFLOWER_SECRETS_FILENAME,
+	mergeLangflowerSecrets,
+	parseLangflowerSecrets,
+	serializeLangflowerSecrets,
+	type LangflowerSecretsMap,
+	type LangflowerSecretsWrite,
+} from './langflower-secrets.js';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -149,6 +157,22 @@ function parseTools(raw: unknown): readonly LangflowerToolConfig[] | undefined {
 	return tools.length > 0 ? tools : undefined;
 }
 
+const parseMcpHttpHeaders = (
+	raw: unknown,
+): Readonly<Record<string, string>> | undefined => {
+	if (!isRecord(raw)) {
+		return undefined;
+	}
+
+	const headers = Object.fromEntries(
+		Object.entries(raw).flatMap(([key, value]) =>
+			typeof value === 'string' ? [[key, value] as const] : [],
+		),
+	);
+
+	return Object.keys(headers).length > 0 ? headers : undefined;
+};
+
 const parseMcpServer = (
 	raw: unknown,
 ): LangflowerMcpServerConfig | undefined => {
@@ -188,11 +212,14 @@ const parseMcpServer = (
 				? raw.command.trim()
 				: undefined;
 
+		const headers = parseMcpHttpHeaders(raw.headers);
+
 		return {
 			kind: 'http',
 			url,
 			...(command !== undefined ? { command } : {}),
 			...(toolNames !== undefined ? { toolNames } : {}),
+			...(headers !== undefined ? { headers } : {}),
 		};
 	}
 
@@ -423,6 +450,8 @@ export type LangflowerConfigSettingsWrite = {
 	readonly embedding?: string;
 	readonly provider?: Readonly<Record<string, LangflowerProviderConfig>>;
 	readonly providerApiKeys?: Readonly<Record<string, string>>;
+	readonly secretIds?: readonly string[];
+	readonly secretValues?: Readonly<Record<string, string>>;
 	/** `null` clears the scope key (Settings Default). */
 	readonly serverLogs?: boolean | null;
 };
@@ -439,6 +468,13 @@ export class LangflowerConfigService {
 
 	globalPath(): string {
 		return this.globalConfigPath;
+	}
+
+	secretsPath(): string {
+		return path.join(
+			path.dirname(this.globalConfigPath),
+			LANGFLOWER_SECRETS_FILENAME,
+		);
 	}
 
 	private projectConfigPath(): string {
@@ -508,9 +544,66 @@ export class LangflowerConfigService {
 		await this.writeRawAt(this.projectConfigPath(), merged);
 	}
 
+	private async writeSecretsFile(
+		secrets: LangflowerSecretsMap,
+	): Promise<void> {
+		const filePath = this.secretsPath();
+		await fs.mkdir(path.dirname(filePath), { recursive: true });
+		await fs.writeFile(
+			filePath,
+			serializeLangflowerSecrets(secrets),
+			'utf8',
+		);
+
+		try {
+			await fs.chmod(filePath, 0o600);
+		} catch {
+			// Best-effort (Windows may ignore mode bits).
+		}
+	}
+
+	/**
+	 * Full secret values — server-only. Never put this map on the bridge.
+	 */
+	async readSecrets(): Promise<LangflowerSecretsMap> {
+		try {
+			return parseLangflowerSecrets(
+				await this.readRawAt(this.secretsPath()),
+			);
+		} catch {
+			return {};
+		}
+	}
+
+	async listSecretIds(): Promise<readonly string[]> {
+		return Object.keys(await this.readSecrets());
+	}
+
+	private async persistSecretsPatch(
+		input: LangflowerSecretsWrite,
+	): Promise<void> {
+		const merged = mergeLangflowerSecrets(await this.readSecrets(), input);
+
+		if (merged === undefined) {
+			return;
+		}
+
+		await this.writeSecretsFile(merged);
+	}
+
+	/**
+	 * Persist named KV secrets to the user-global file. Both omitted fields
+	 * leave the file unchanged.
+	 */
+	async writeSecrets(patch: LangflowerSecretsWrite): Promise<void> {
+		await this.persistSecretsPatch(patch);
+	}
+
 	/**
 	 * Persist Settings Save for one scope. Preserves existing apiKey when the
-	 * corresponding `providerApiKeys` entry is empty/missing.
+	 * corresponding `providerApiKeys` entry is empty/missing. Named KV secrets
+	 * write the user-global secrets file when `secretIds` / `secretValues` are
+	 * present (independent of scope).
 	 */
 	async writeSettings(
 		input: LangflowerConfigSettingsWrite,
@@ -558,6 +651,7 @@ export class LangflowerConfigService {
 
 		const merged = mergeLangflowerConfig(existingRaw, patch);
 		await this.writeRawAt(filePath, merged);
+		await this.persistSecretsPatch(input);
 		return this.readLayers();
 	}
 

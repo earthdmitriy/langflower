@@ -22,5 +22,7 @@ export const buildLangflowerConfigSnapshot = async (
 		projectConfig: redactLangflowerConfigForBridge(layers.project),
 		globalConfig: redactLangflowerConfigForBridge(layers.global),
 		globalPath: context.langflowerConfigService.globalPath(),
+		secretIds: await context.langflowerConfigService.listSecretIds(),
+		secretsPath: context.langflowerConfigService.secretsPath(),
 	};
 };

@@ -8,7 +8,7 @@ Legend: **done** · **partial** · **stub** (NODE.md / placeholder only) · **pl
 Partial → Implementable; north star coding-agent) ·
 [TODO/EPICS/README.md](TODO/EPICS/README.md) (active queue: see file) ·
 [features/README.md](features/README.md) (UI / capability contracts) ·
-[DONE/EPICS/README.md](DONE/EPICS/README.md) (completed epics archive **00–44**) ·
+[DONE/EPICS/README.md](DONE/EPICS/README.md) (completed epics archive **00–45**) ·
 [DONE/LLM-NODES/llm-nodes-README.md](DONE/LLM-NODES/llm-nodes-README.md) (LLM foundation 1–6).
 
 Do **not** use historical Stage 1 / 2 / 3 labels for planning — see PRODUCT.md.

@@ -38,6 +38,8 @@ export type RunHostServices = {
 		readonly providerId: string;
 		readonly model: string;
 	};
+	/** User-global KV secrets for `{lf_secrets:ID}` (MCP HTTP headers). */
+	readonly secrets?: Readonly<Record<string, string>>;
 	readonly authorize?: (call: ToolInvokeCall) => Promise<'allow' | 'deny'>;
 	/**
 	 * Direct HITL ask (tool gates + agent limit continue). Bypasses permission

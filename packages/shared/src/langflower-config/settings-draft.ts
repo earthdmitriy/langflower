@@ -1,6 +1,8 @@
 /**
  * Settings form draft helpers — layer config ↔ draft, save payload, equality.
- * Used by UI and server session draft (protocol snapshots redact apiKey).
+ * Used by UI and server session draft (Settings snapshots redact apiKey /
+ * secret values). Runtime provider keys stay on the server via
+ * `resolveProviderCredentials` — not this form type.
  */
 import {
 	formatDefaultChatModel,
@@ -11,6 +13,7 @@ import type {
 	LangflowerConfigSaveRequestedPayload,
 	LangflowerConfigScope,
 	LangflowerProviderConfig,
+	LangflowerSecretsSaveRequestedPayload,
 } from '../types/langflower-config.js';
 
 export type ProviderDraft = {
@@ -18,9 +21,17 @@ export type ProviderDraft = {
 	readonly name: string;
 	readonly baseURL: string;
 	readonly modelsText: string;
-	/** Write-only; snapshots always send empty string. */
+	/** Write-only Settings field; snapshots send ''. Persist via Save. */
 	readonly apiKey: string;
 	readonly hasApiKey: boolean;
+};
+
+/** Named KV row in Settings Global. Snapshots send empty `value`. */
+export type SecretDraft = {
+	readonly id: string;
+	/** Write-only Settings field; snapshots send ''. Persist via secrets.save. */
+	readonly value: string;
+	readonly hasValue: boolean;
 };
 
 /** Tri-state for scoped `serverLogs` (Default = key omitted). */
@@ -34,6 +45,7 @@ export type SettingsDraft = {
 	readonly defaultEmbeddingProviderId: string;
 	readonly defaultEmbeddingModelId: string;
 	readonly providers: readonly ProviderDraft[];
+	readonly secrets: readonly SecretDraft[];
 	readonly serverLogs: ServerLogsDraft;
 };
 
@@ -79,16 +91,32 @@ export const configToDraft = (config: LangflowerConfig): SettingsDraft => {
 		defaultEmbeddingProviderId: embeddingParts?.providerId ?? '',
 		defaultEmbeddingModelId: embeddingParts?.model ?? '',
 		providers,
+		secrets: [],
 		serverLogs,
 	};
 };
 
-/** Snapshot-safe draft — never echo secrets. */
+/**
+ * Seed write-only secret rows from stored ids (never values).
+ */
+export const secretsDraftFromIds = (
+	ids: readonly string[],
+): readonly SecretDraft[] =>
+	ids
+		.map((id) => id.trim())
+		.filter((id) => id.length > 0)
+		.map((id) => ({ id, value: '', hasValue: true }));
+
+/** Snapshot-safe draft — never echo provider keys or KV secret values. */
 export const redactDraftSecrets = (draft: SettingsDraft): SettingsDraft => ({
 	...draft,
 	providers: draft.providers.map((row) => ({
 		...row,
 		apiKey: '',
+	})),
+	secrets: (draft.secrets ?? []).map((row) => ({
+		...row,
+		value: '',
 	})),
 });
 
@@ -161,6 +189,27 @@ export const draftToSavePayload = (
 	};
 };
 
+/**
+ * Global Save payload for `langflower.secrets.save.requested`.
+ * `secretIds` is the surviving set; only non-empty `value`s become
+ * `secretValues`.
+ */
+export const draftToSecretsSavePayload = (
+	draft: SettingsDraft,
+): LangflowerSecretsSaveRequestedPayload => {
+	const secretIds = draft.secrets
+		.map((row) => row.id.trim())
+		.filter((id) => id.length > 0);
+	const secretValues = Object.fromEntries(
+		draft.secrets.flatMap((row) => {
+			const id = row.id.trim();
+			const value = row.value.trim();
+			return id.length > 0 && value.length > 0 ? [[id, value]] : [];
+		}),
+	);
+	return { secretIds, secretValues };
+};
+
 export const sameDraft = (a: SettingsDraft, b: SettingsDraft): boolean =>
 	JSON.stringify(a) === JSON.stringify(b);
 
@@ -173,6 +222,17 @@ export const mergeDraftPatch = (
 	patch: SettingsDraft,
 ): SettingsDraft => ({
 	...patch,
+	secrets: (patch.secrets ?? previous.secrets ?? []).map((row, index) => {
+		const prior = previous.secrets?.[index];
+		const incoming = row.value.trim();
+		if (incoming.length > 0) {
+			return row;
+		}
+		return {
+			...row,
+			value: prior?.value ?? '',
+		};
+	}),
 	providers: patch.providers.map((row, index) => {
 		const prior = previous.providers[index];
 		const incomingKey = row.apiKey.trim();
@@ -211,6 +271,16 @@ export const draftAfterLayerSnapshot = (
 				...row,
 				apiKey: '',
 				hasApiKey: fromLayer?.hasApiKey ?? false,
+			};
+		}),
+		secrets: (previousDraft.secrets ?? []).map((row) => {
+			const fromLayer = nextBaseline.secrets?.find(
+				(secret) => secret.id === row.id,
+			);
+			return {
+				...row,
+				value: '',
+				hasValue: fromLayer?.hasValue ?? false,
 			};
 		}),
 	};

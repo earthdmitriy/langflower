@@ -203,6 +203,51 @@ describe('LangflowerConfigService', () => {
 		});
 	});
 
+	it('keeps http headers placeholders without resolving secrets', async () => {
+		const configPath = path.join(
+			projectDir,
+			'.langflower',
+			'langflower.jsonc',
+		);
+		await fs.mkdir(path.dirname(configPath), { recursive: true });
+		await fs.writeFile(
+			configPath,
+			`${JSON.stringify(
+				{
+					mcp: {
+						servers: {
+							remote: {
+								kind: 'http',
+								url: 'https://example.com/mcp',
+								headers: {
+									Authorization:
+										'Bearer {lf_secrets:API_TOKEN}',
+								},
+							},
+						},
+					},
+				},
+				null,
+				'\t',
+			)}\n`,
+			'utf8',
+		);
+
+		await expect(service.read()).resolves.toEqual({
+			mcp: {
+				servers: {
+					remote: {
+						kind: 'http',
+						url: 'https://example.com/mcp',
+						headers: {
+							Authorization: 'Bearer {lf_secrets:API_TOKEN}',
+						},
+					},
+				},
+			},
+		});
+	});
+
 	it('keeps string-array models form', async () => {
 		const configPath = path.join(
 			projectDir,
@@ -528,6 +573,82 @@ describe('LangflowerConfigService', () => {
 		await service.setPaletteVisible(true);
 		await expect(service.read()).resolves.toEqual({
 			paletteVisible: true,
+		});
+	});
+
+	it('does not create a secrets file when save omits secret fields', async () => {
+		await service.writeSettings({
+			scope: 'project',
+			model: 'mock/test-model',
+		});
+
+		await expect(fs.access(service.secretsPath())).rejects.toMatchObject({
+			code: 'ENOENT',
+		});
+		expect(await service.listSecretIds()).toEqual([]);
+	});
+
+	it('writeSecrets writes named secrets beside the global config, not under .langflower', async () => {
+		await service.writeSecrets({
+			secretValues: {
+				API_TOKEN: 'sk-live-secret',
+				'bad-id': 'nope',
+			},
+		});
+
+		expect(service.secretsPath()).toBe(
+			path.join(projectDir, 'langflower.secrets.json'),
+		);
+		expect(await service.readSecrets()).toEqual({
+			API_TOKEN: 'sk-live-secret',
+		});
+		expect(await service.listSecretIds()).toEqual(['API_TOKEN']);
+
+		const projectLangflower = path.join(projectDir, '.langflower');
+		const projectFiles = await fs
+			.readdir(projectLangflower)
+			.catch(() => [] as string[]);
+		const projectText = (
+			await Promise.all(
+				projectFiles.map((name) =>
+					fs.readFile(path.join(projectLangflower, name), 'utf8'),
+				),
+			)
+		).join('\n');
+		expect(projectText).not.toContain('sk-live-secret');
+
+		const raw = await fs.readFile(service.secretsPath(), 'utf8');
+		expect(JSON.parse(raw)).toEqual({ API_TOKEN: 'sk-live-secret' });
+
+		if (process.platform !== 'win32') {
+			const mode = (await fs.stat(service.secretsPath())).mode & 0o777;
+			expect(mode).toBe(0o600);
+		}
+	});
+
+	it('replaces and deletes secrets from secretIds without wiping omitted saves', async () => {
+		await service.writeSettings({
+			scope: 'global',
+			secretValues: { KEEP: 'one', DROP: 'two' },
+		});
+
+		await service.writeSettings({
+			scope: 'global',
+			secretIds: ['KEEP', 'NEW'],
+			secretValues: { NEW: 'three' },
+		});
+		expect(await service.readSecrets()).toEqual({
+			KEEP: 'one',
+			NEW: 'three',
+		});
+
+		await service.writeSettings({
+			scope: 'global',
+			model: 'mock/x',
+		});
+		expect(await service.readSecrets()).toEqual({
+			KEEP: 'one',
+			NEW: 'three',
 		});
 	});
 });

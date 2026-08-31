@@ -2,7 +2,8 @@
 
 **Status:** Partial — happy-path wire + system MCP tools landed; wire connect
 fail → port error (S5) landed; system MCP fail → per-node ctx `error$` (S6)
-landed.
+landed. Authenticated HTTP `headers` / `{lf_secrets:}` landed
+([epic 45](../DONE/EPICS/45-global-kv-secrets.md) S7).
 
 ## Value
 
@@ -110,15 +111,39 @@ turning the bad id off in Inspector and re-running.
 - MUST NOT silently omit the failed server from inventory while looking like a
   healthy start for those nodes.
 
+### S7 — Authenticated HTTP MCP (headers + secrets)
+
+**Who:** Author calling a remote MCP that requires `Authorization` without
+putting the token in the project folder.
+
+**Want:** Cursor-style `headers` on **MCP http** / jsonc `mcp.servers` http,
+with `{lf_secrets:ID}` (Settings Global) or `{env:VAR}`.
+
+**Do:** Set `headers` to
+`{"Authorization":"Bearer {lf_secrets:API_TOKEN}"}` (node or jsonc).
+Store `API_TOKEN` in Settings → Global secrets
+([settings-panel S7](settings-panel.md#s7--store-a-named-secret-in-global-not-in-the-project)).
+Wire `tools` → agent.
+
+**Expect:**
+
+- Connect MUST send the interpolated header; workflow / project jsonc MUST
+  contain only the placeholder, not the token.
+- Missing secret or invalid headers JSON MUST fail loud (same as S5 / S6).
+- `{env:VAR}` MUST work without a KV row (CI).
+- OS keychain is **not** required
+  ([TBD-010](../TBD.md#tbd-010--os-backed--encrypted-secret-storage)).
+
 ## UI specs
 
-| Spec                                                             | Scenarios covered                      |
-| ---------------------------------------------------------------- | -------------------------------------- |
-| [node-library.md](../features/node-library.md)                   | S1–S3, S5 (palette MCP nodes)          |
-| [inspector.md](../features/inspector.md)                         | S4, S6 (Enabled MCP)                   |
-| [project-configuration.md](../features/project-configuration.md) | S4 (`mcp.servers`)                     |
-| [workflow-execution.md](../features/workflow-execution.md)       | S5, S6 (port / node error visibility)  |
-| [feed-panel.md](../features/feed-panel.md)                       | S5, S6 (when errors project into feed) |
+| Spec                                                             | Scenarios covered                           |
+| ---------------------------------------------------------------- | ------------------------------------------- |
+| [node-library.md](../features/node-library.md)                   | S1–S3, S5, S7 (palette MCP nodes + headers) |
+| [inspector.md](../features/inspector.md)                         | S4, S6 (Enabled MCP)                        |
+| [project-configuration.md](../features/project-configuration.md) | S4 (`mcp.servers`); S7 http `headers`       |
+| [settings-panel.md](../features/settings-panel.md)               | S7 (`{lf_secrets:}` from Global KV)         |
+| [workflow-execution.md](../features/workflow-execution.md)       | S5, S6 (port / node error visibility)       |
+| [feed-panel.md](../features/feed-panel.md)                       | S5, S6 (when errors project into feed)      |
 
 ## Runtime requirements
 
@@ -129,20 +154,24 @@ turning the bad id off in Inspector and re-running.
 | System connect fail → ctx `error$` on enabling nodes only | S6    | Landed — partial pool + `throwError(CtxError)` on hidden ctx              | Prefer ctx error-lane over seed abort |
 | Agent merges ready handles only                           | S1–S4 | Landed                                                                    | Agent MUST NOT expand jsonc           |
 | Disable id + re-run skips broken server                   | S6    | Landed                                                                    | —                                     |
+| HTTP `headers` + `{lf_secrets:}` / `{env:}` interpolation | S7    | Landed — [epic 45](../DONE/EPICS/45-global-kv-secrets.md)                 | Do not put tokens in workflow JSON    |
 
 ## Status
 
 ### Missing parts
 
-| Layer | Gap                              | Sn  | Done when |
-| ----- | -------------------------------- | --- | --------- |
-| —     | None for S1–S6 connect-fail bars | —   | —         |
+| Layer | Gap                                            | Sn  | Done when |
+| ----- | ---------------------------------------------- | --- | --------- |
+| —     | None for S1–S7 connect-fail / auth-header bars | —   | —         |
 
 ### Workarounds
 
 - Wire: fix `command` / `url`; remove the wire to disable.
 - System: remove the bad id from **Enabled MCP** on affected nodes and re-run
   (spawn already skips unused ids).
+- Authenticated HTTP MCP: `headers` on **MCP http** / jsonc http with
+  `{lf_secrets:ID}` or `{env:VAR}`. Literal tokens in `url` query are not
+  the product path.
 
 ### Demo / CI
 
@@ -151,3 +180,4 @@ turning the bad id off in Inspector and re-running.
 - Unit S5: `mcp-stdio` / `mcp-http` connect fail → `output-emitted` `state:'error'`;
   empty command/url → no port error.
 - Unit S6: partial `createSystemMcpHandles` (`@langflower/tools`); ctx `CtxError` → output port error.
+- Epic: [45-global-kv-secrets](../DONE/EPICS/45-global-kv-secrets.md) (S7 landed).

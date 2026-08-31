@@ -1,6 +1,6 @@
 # Epics — use-case readiness roadmap (completed)
 
-**Archived** under [`docs/DONE/`](../README.md). Epics **00–44** are
+**Archived** under [`docs/DONE/`](../README.md). Epics **00–45** are
 landed. Active queue: see [`docs/TODO/EPICS/`](../../TODO/EPICS/README.md).
 Further work also follows use-case Missing parts
 and [`docs/code-regression/`](../../code-regression/SUMMARY.md) Critical
@@ -24,6 +24,7 @@ Status only after `verify`.
 | Use-cases                    | Many **Partial**; none **Implementable** yet — see [use-cases](../../use-cases/README.md) |
 | Feed sanity (43)             | **Landed** — hide unmarked / `'none'`; Finish `done`; Preview bubble + size               |
 | CLI startup (44)             | **Landed** — heartbeat, incremental custom-node cache, product bundle                     |
+| Global KV secrets (45)       | **Landed** — workspace-hidden secrets + MCP HTTP `headers` proof                          |
 
 ## Order
 
@@ -56,52 +57,53 @@ Status only after `verify`.
 
 ## Index
 
-| #   | File                                                                                   | Wave  | Goal                                                                                          |
-| --- | -------------------------------------------------------------------------------------- | ----- | --------------------------------------------------------------------------------------------- |
-| 00  | [00-doc-truth.md](00-doc-truth.md)                                                     | 0     | **done** — Align STATUS / node-library / AGENTS with catalog + use-cases                      |
-| 01  | [01-tool-loop-builtins.md](01-tool-loop-builtins.md)                                   | 1     | **landed** — Tool-call loop + `@langflower/tools` builtins `read`…`bash`                      |
-| 02  | [02-runtime-permissions.md](02-runtime-permissions.md)                                 | 1     | **landed** — ask / deny / escalate (≠ allowlist UI)                                           |
-| 03  | [03-review-node.md](03-review-node.md)                                                 | 1     | **landed** — Review node (`accept` / `feedback` → ports)                                      |
-| 04  | [04-role-tool-profiles.md](04-role-tool-profiles.md)                                   | 1     | **landed** — Plan/Coder/Explorer tool+permission profiles                                     |
-| 05  | [05-partial-pilots.md](05-partial-pilots.md)                                           | 1     | **landed** — First Partial use-cases + demo workflows                                         |
-| 06  | [06-hard-harness-logic.md](06-hard-harness-logic.md)                                   | 2     | **landed** — Assert / IF / Switch / Compare / Gate                                            |
-| 07  | [07-swarm-primitives.md](07-swarm-primitives.md)                                       | 2     | **landed** — Loop / Sub-Agent (external map-collect; Memory deferred)                         |
-| 08  | [08-adversarial-multi-llm.md](08-adversarial-multi-llm.md)                             | 2     | **landed** — Two real agents + durable feedback + Review/HITL accept                          |
-| 09  | [09-eval-regression-gate.md](09-eval-regression-gate.md)                               | 2     | **landed** — Fixtures, scoring, stop-on-regression                                            |
-| 10  | [10-kb-pipeline.md](10-kb-pipeline.md)                                                 | 3     | **landed** — Ingest / Embed / Search / List / Delete                                          |
-| 11  | [11-obsidian-kb.md](11-obsidian-kb.md)                                                 | 3     | **landed** — Vault outside root, wikilinks / MOC                                              |
-| 12  | [12-crawl-research.md](12-crawl-research.md)                                           | 3     | **landed** — Crawl nodes in catalog + research merge path                                     |
-| 13  | [13-chat-input.md](13-chat-input.md)                                                   | 4     | **landed** — `common-chat-input` + multi-turn UX                                              |
-| 14  | [14-checkpoints-resume.md](14-checkpoints-resume.md)                                   | 4     | **infra** — store/resume; product = [20](20-explicit-checkpoints.md)                          |
-| 15  | [15-multi-role-hitl.md](15-multi-role-hitl.md)                                         | 4     | **removed** — persona identity layer dropped; multi-gate HITL remains                         |
-| 16  | [16-mcp-optional.md](16-mcp-optional.md)                                               | 4     | **landed** — MCP client/invoke as extension only                                              |
-| 17  | [17-grok-feed-chat-density.md](17-grok-feed-chat-density.md)                           | 5     | **landed** — chat-dense feed projection; grok-feed Partial                                    |
-| 18  | [18-settings-panel.md](18-settings-panel.md)                                           | 5     | **landed** — gear Settings aside + global merge; settings-panel Partial                       |
-| 19  | [19-detachable-long-run.md](19-detachable-long-run.md)                                 | 5     | **landed** — reconnect chrome + CLI settle; detachable Partial                                |
-| 20  | [20-explicit-checkpoints.md](20-explicit-checkpoints.md)                               | 5     | **landed** — explicit checkpoint + picker; resumable-checkpoint Partial                       |
-| 21  | [21-coding-agent-full-demo.md](21-coding-agent-full-demo.md)                           | 5     | **landed** — coding-agent.json + Fake CI; Partial (real-LLM open)                             |
-| 22  | [22-research-fanout-synth-hitl.md](22-research-fanout-synth-hitl.md)                   | 5     | **landed** — synth + conflict Review; S4 deferred; Partial                                    |
-| 23  | [23-eval-live-runcase.md](23-eval-live-runcase.md)                                     | 5     | **landed** — Fake primary runCase; replay optional; Partial                                   |
-| 24  | [24-permission-escalation-demo.md](24-permission-escalation-demo.md)                   | 5     | **landed** — staged explore→write→bash demo; Partial                                          |
-| 25  | [25-kb-contradiction-curation.md](25-kb-contradiction-curation.md)                     | 5     | **landed** — dedupe/contradict/apply demo; Partial                                            |
-| 26  | [26-code-regression-crawl-html-barrel.md](26-code-regression-crawl-html-barrel.md)     | CR    | **landed** — remove forbidden `crawl/html` barrel                                             |
-| 27  | [27-code-regression-delay-console-log.md](27-code-regression-delay-console-log.md)     | CR    | **landed** — remove Delay debug `console.log` tap                                             |
-| 28  | [28-code-regression-server-index-barrel.md](28-code-regression-server-index-barrel.md) | CR    | **landed** — remove server package-root `index.ts` barrel                                     |
-| 29  | [29-define-node-slim-sdk.md](29-define-node-slim-sdk.md)                               | CN    | **landed** — `defineNode` + slim SDK; base EC + `LlmExecutionCaps`                            |
-| 30  | [30-rename-node-sdk.md](30-rename-node-sdk.md)                                         | CN    | **landed** — `@langflower/node-definitions` → `@langflower/node-sdk`                          |
-| 31  | [31-custom-nodes-my-nodes-contract.md](31-custom-nodes-my-nodes-contract.md)           | CN    | **landed** — `my-nodes` pack layout + ADR-030 + skeleton draft                                |
-| 32  | [32-langflower-compiler.md](32-langflower-compiler.md)                                 | CN    | **landed** — `@langflower/compiler` + `customPalette` bus + fail-loud `COMPILATION_ERRORS.md` |
-| 33  | [33-bootstrap-skeleton-my-nodes.md](33-bootstrap-skeleton-my-nodes.md)                 | CN    | **landed** — bootstrap copies skeleton minimum (`starter` + skills + `my-nodes`)              |
-| 34  | [34-feed-timeline-visual-contract.md](34-feed-timeline-visual-contract.md)             | UI    | **landed** — feed draft/tool segments + streaming chrome                                      |
-| 35  | [35-composer-shell-layout-contract.md](35-composer-shell-layout-contract.md)           | UI    | **landed** — composer shell (no labels / pills / tabs-only-2+)                                |
-| 36  | [36-stop-pause-steer-controls.md](36-stop-pause-steer-controls.md)                     | UI+RT | **landed** — rose Stop + amber Pause/`steerControl` (ADR-031/032)                             |
-| 37  | [37-deterministic-feed-fold.md](37-deterministic-feed-fold.md)                         | UI    | **landed** — TDD `feed-folding` nested fold; live work-log switch is a follow-up              |
-| 38  | [38-llm-autokick.md](38-llm-autokick.md)                                               | LLM   | **landed** — default autokick, dead-loop, HTTP join, pinned feed retry banner                 |
-| 40  | [40-custom-node-recompile-reload.md](40-custom-node-recompile-reload.md)               | CN    | **landed** — stable cache, hot-swap, `compile_custom_nodes`, same-turn `getTools`             |
-| 41  | [41-uniform-tool-shape.md](41-uniform-tool-shape.md)                                   | Tools | **landed** — MCP + Sub-Agent + optional Tool collection as `ToolHandle[]`                     |
-| 42  | [42-embedding-providers.md](42-embedding-providers.md)                                 | Embed | **landed** — Settings `embedding` + `EmbedHandle` + Embeddings catalog (ADR-033 amend)        |
-| 43  | [43-feed-sanity.md](43-feed-sanity.md)                                                 | Feed  | **landed** — hide unmarked / `'none'`; Finish `done`; Preview result bubble + stable size     |
-| 44  | [44-startup-optimization.md](44-startup-optimization.md)                               | CLI   | **landed** — heartbeat, pack cache hit/miss, product CLI esbuild                              |
+| #   | File                                                                                   | Wave   | Goal                                                                                          |
+| --- | -------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------- |
+| 00  | [00-doc-truth.md](00-doc-truth.md)                                                     | 0      | **done** — Align STATUS / node-library / AGENTS with catalog + use-cases                      |
+| 01  | [01-tool-loop-builtins.md](01-tool-loop-builtins.md)                                   | 1      | **landed** — Tool-call loop + `@langflower/tools` builtins `read`…`bash`                      |
+| 02  | [02-runtime-permissions.md](02-runtime-permissions.md)                                 | 1      | **landed** — ask / deny / escalate (≠ allowlist UI)                                           |
+| 03  | [03-review-node.md](03-review-node.md)                                                 | 1      | **landed** — Review node (`accept` / `feedback` → ports)                                      |
+| 04  | [04-role-tool-profiles.md](04-role-tool-profiles.md)                                   | 1      | **landed** — Plan/Coder/Explorer tool+permission profiles                                     |
+| 05  | [05-partial-pilots.md](05-partial-pilots.md)                                           | 1      | **landed** — First Partial use-cases + demo workflows                                         |
+| 06  | [06-hard-harness-logic.md](06-hard-harness-logic.md)                                   | 2      | **landed** — Assert / IF / Switch / Compare / Gate                                            |
+| 07  | [07-swarm-primitives.md](07-swarm-primitives.md)                                       | 2      | **landed** — Loop / Sub-Agent (external map-collect; Memory deferred)                         |
+| 08  | [08-adversarial-multi-llm.md](08-adversarial-multi-llm.md)                             | 2      | **landed** — Two real agents + durable feedback + Review/HITL accept                          |
+| 09  | [09-eval-regression-gate.md](09-eval-regression-gate.md)                               | 2      | **landed** — Fixtures, scoring, stop-on-regression                                            |
+| 10  | [10-kb-pipeline.md](10-kb-pipeline.md)                                                 | 3      | **landed** — Ingest / Embed / Search / List / Delete                                          |
+| 11  | [11-obsidian-kb.md](11-obsidian-kb.md)                                                 | 3      | **landed** — Vault outside root, wikilinks / MOC                                              |
+| 12  | [12-crawl-research.md](12-crawl-research.md)                                           | 3      | **landed** — Crawl nodes in catalog + research merge path                                     |
+| 13  | [13-chat-input.md](13-chat-input.md)                                                   | 4      | **landed** — `common-chat-input` + multi-turn UX                                              |
+| 14  | [14-checkpoints-resume.md](14-checkpoints-resume.md)                                   | 4      | **infra** — store/resume; product = [20](20-explicit-checkpoints.md)                          |
+| 15  | [15-multi-role-hitl.md](15-multi-role-hitl.md)                                         | 4      | **removed** — persona identity layer dropped; multi-gate HITL remains                         |
+| 16  | [16-mcp-optional.md](16-mcp-optional.md)                                               | 4      | **landed** — MCP client/invoke as extension only                                              |
+| 17  | [17-grok-feed-chat-density.md](17-grok-feed-chat-density.md)                           | 5      | **landed** — chat-dense feed projection; grok-feed Partial                                    |
+| 18  | [18-settings-panel.md](18-settings-panel.md)                                           | 5      | **landed** — gear Settings aside + global merge; settings-panel Partial                       |
+| 19  | [19-detachable-long-run.md](19-detachable-long-run.md)                                 | 5      | **landed** — reconnect chrome + CLI settle; detachable Partial                                |
+| 20  | [20-explicit-checkpoints.md](20-explicit-checkpoints.md)                               | 5      | **landed** — explicit checkpoint + picker; resumable-checkpoint Partial                       |
+| 21  | [21-coding-agent-full-demo.md](21-coding-agent-full-demo.md)                           | 5      | **landed** — coding-agent.json + Fake CI; Partial (real-LLM open)                             |
+| 22  | [22-research-fanout-synth-hitl.md](22-research-fanout-synth-hitl.md)                   | 5      | **landed** — synth + conflict Review; S4 deferred; Partial                                    |
+| 23  | [23-eval-live-runcase.md](23-eval-live-runcase.md)                                     | 5      | **landed** — Fake primary runCase; replay optional; Partial                                   |
+| 24  | [24-permission-escalation-demo.md](24-permission-escalation-demo.md)                   | 5      | **landed** — staged explore→write→bash demo; Partial                                          |
+| 25  | [25-kb-contradiction-curation.md](25-kb-contradiction-curation.md)                     | 5      | **landed** — dedupe/contradict/apply demo; Partial                                            |
+| 26  | [26-code-regression-crawl-html-barrel.md](26-code-regression-crawl-html-barrel.md)     | CR     | **landed** — remove forbidden `crawl/html` barrel                                             |
+| 27  | [27-code-regression-delay-console-log.md](27-code-regression-delay-console-log.md)     | CR     | **landed** — remove Delay debug `console.log` tap                                             |
+| 28  | [28-code-regression-server-index-barrel.md](28-code-regression-server-index-barrel.md) | CR     | **landed** — remove server package-root `index.ts` barrel                                     |
+| 29  | [29-define-node-slim-sdk.md](29-define-node-slim-sdk.md)                               | CN     | **landed** — `defineNode` + slim SDK; base EC + `LlmExecutionCaps`                            |
+| 30  | [30-rename-node-sdk.md](30-rename-node-sdk.md)                                         | CN     | **landed** — `@langflower/node-definitions` → `@langflower/node-sdk`                          |
+| 31  | [31-custom-nodes-my-nodes-contract.md](31-custom-nodes-my-nodes-contract.md)           | CN     | **landed** — `my-nodes` pack layout + ADR-030 + skeleton draft                                |
+| 32  | [32-langflower-compiler.md](32-langflower-compiler.md)                                 | CN     | **landed** — `@langflower/compiler` + `customPalette` bus + fail-loud `COMPILATION_ERRORS.md` |
+| 33  | [33-bootstrap-skeleton-my-nodes.md](33-bootstrap-skeleton-my-nodes.md)                 | CN     | **landed** — bootstrap copies skeleton minimum (`starter` + skills + `my-nodes`)              |
+| 34  | [34-feed-timeline-visual-contract.md](34-feed-timeline-visual-contract.md)             | UI     | **landed** — feed draft/tool segments + streaming chrome                                      |
+| 35  | [35-composer-shell-layout-contract.md](35-composer-shell-layout-contract.md)           | UI     | **landed** — composer shell (no labels / pills / tabs-only-2+)                                |
+| 36  | [36-stop-pause-steer-controls.md](36-stop-pause-steer-controls.md)                     | UI+RT  | **landed** — rose Stop + amber Pause/`steerControl` (ADR-031/032)                             |
+| 37  | [37-deterministic-feed-fold.md](37-deterministic-feed-fold.md)                         | UI     | **landed** — TDD `feed-folding` nested fold; live work-log switch is a follow-up              |
+| 38  | [38-llm-autokick.md](38-llm-autokick.md)                                               | LLM    | **landed** — default autokick, dead-loop, HTTP join, pinned feed retry banner                 |
+| 40  | [40-custom-node-recompile-reload.md](40-custom-node-recompile-reload.md)               | CN     | **landed** — stable cache, hot-swap, `compile_custom_nodes`, same-turn `getTools`             |
+| 41  | [41-uniform-tool-shape.md](41-uniform-tool-shape.md)                                   | Tools  | **landed** — MCP + Sub-Agent + optional Tool collection as `ToolHandle[]`                     |
+| 42  | [42-embedding-providers.md](42-embedding-providers.md)                                 | Embed  | **landed** — Settings `embedding` + `EmbedHandle` + Embeddings catalog (ADR-033 amend)        |
+| 43  | [43-feed-sanity.md](43-feed-sanity.md)                                                 | Feed   | **landed** — hide unmarked / `'none'`; Finish `done`; Preview result bubble + stable size     |
+| 44  | [44-startup-optimization.md](44-startup-optimization.md)                               | CLI    | **landed** — heartbeat, pack cache hit/miss, product CLI esbuild                              |
+| 45  | [45-global-kv-secrets.md](45-global-kv-secrets.md)                                     | Config | **landed** — user-global KV secrets + MCP HTTP `headers` / `{lf_secrets:}`                    |
 
 ## Contracts
 

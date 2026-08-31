@@ -14,6 +14,7 @@ import {
 	providerConnectionKey,
 	redactDraftSecrets,
 	sameDraft,
+	secretsDraftFromIds,
 } from '@langflower/shared/langflower.js';
 
 export type ScopeSettingsDraft = {
@@ -60,8 +61,12 @@ const initialConnectionsForDraft = (
 
 export const seedScopeDraft = (
 	layerConfig: LangflowerConfig,
+	secretIds: readonly string[] = [],
 ): ScopeSettingsDraft => {
-	const baseline = configToDraft(layerConfig);
+	const baseline: SettingsDraft = {
+		...configToDraft(layerConfig),
+		secrets: secretsDraftFromIds(secretIds),
+	};
 	return {
 		draft: baseline,
 		baseline,

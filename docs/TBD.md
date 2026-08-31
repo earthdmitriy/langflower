@@ -234,6 +234,27 @@ once hybrid retrieve and full-chunk packing ship.
 **Related:** [EMBEDDING.md](EMBEDDING.md) · skeleton
 `nodes/hello-embed/lib/search.ts`
 
+### TBD-010 — OS-backed / encrypted secret storage
+
+**Horizon:** far · **Area:** platform / security
+
+**Goal:** Persist Langflower secrets so the same OS user cannot read them from
+a plaintext file (Windows Credential Manager, macOS Keychain, libsecret /
+DPAPI, or an encrypted vault with a wrapping key).
+
+**Why hard:** Per-OS APIs, headless/CI (no keychain prompt), backup/migrate
+across machines, and a changed threat model vs “hide from the git repo.”
+Workspace-hidden plaintext in the user-global dir is enough for the near-term
+product bar ([epic 45](DONE/EPICS/45-global-kv-secrets.md)).
+
+**Not yet:** Threat model beyond “not in the project folder”; whether CI must
+keep `{env:VAR}` as the only headless path; accepted OS API set.
+
+**Related:** [epic 45](DONE/EPICS/45-global-kv-secrets.md) ·
+[ADR-002 amend](ADR.md#adr-002--langflower-project-local-storage-opencode-style)
+(global file outside the project tree) · [CONFIG.md](CONFIG.md) § Environment
+placeholders
+
 ---
 
 ## Promoted (left for trace)

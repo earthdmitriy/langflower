@@ -113,7 +113,9 @@ Project product data for Langflower lives under **`.langflower/`**.
 ## What stays local
 
 - No required cloud account for Langflower itself.
-- Secrets via config / `{env:VAR}`; Settings does not reveal a saved API key.
+- Secrets via config / `{env:VAR}` or Settings → Global → Secrets
+  (`langflower.secrets.json`); Settings does not reveal a saved API key or
+  named secret value.
 - Provider calls leave the machine when the user configures a remote provider —
   that is expected LLM traffic, not a Langflower cloud login wall.
 

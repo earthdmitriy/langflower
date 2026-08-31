@@ -39,7 +39,10 @@ import {
 	MEMORY_TOOL_CONFIGS,
 } from '@langflower/tools/domain-tool-configs';
 import { connectMcpStdioFromCli } from '@langflower/tools/mcp-stdio-client';
-import { connectMcpHttpWithOptionalLaunch } from '@langflower/tools/mcp-http-client';
+import {
+	connectMcpHttpWithOptionalLaunch,
+	resolveMcpHttpHeaders,
+} from '@langflower/tools/mcp-http-client';
 import { encodeMcpToolId, parseMcpToolId } from '@langflower/tools/mcp-tool-id';
 import { buildMcpHandle } from '@langflower/tools/build-mcp-handle';
 import { createSystemMcpHandles } from '@langflower/tools/create-system-mcp-handles';
@@ -81,7 +84,8 @@ src/builtins/
 ```
 
 Also: `domain/domain-tool-configs.ts`, `memory/` (`create-memory-store`),
-`mcp/`, `create-web-fetch.ts`, `ssrf-guard.ts`, `create-crawl-context.ts`,
+`mcp/`, `secrets/` (`interpolatePlaceholders`, internal until MCP headers),
+`create-web-fetch.ts`, `ssrf-guard.ts`, `create-crawl-context.ts`,
 `permission.ts`.
 
 Builtins: `read`, `glob`, `grep`, `edit`, `write`, `create`, `delete`, `bash`.

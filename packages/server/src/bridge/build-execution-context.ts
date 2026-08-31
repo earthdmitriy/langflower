@@ -107,6 +107,7 @@ export const buildExecutionContext = async (
 	hooks?: BuildHarnessHooks,
 	preloadedConfig?: LangflowerConfig,
 	runMcpHandles?: readonly SystemMcpServerTools[],
+	preloadedSecrets?: Readonly<Record<string, string>>,
 ): Promise<ExecutionContext<never, LlmExecutionCaps>> => {
 	const rolePreset = parseLlmRolePreset(node.params.rolePreset);
 	const skillId = resolveEffectiveSkillId(rolePreset, node.params.skillId);
@@ -120,6 +121,9 @@ export const buildExecutionContext = async (
 			: '';
 	const config =
 		preloadedConfig ?? (await context.langflowerConfigService.read());
+	const secrets =
+		preloadedSecrets ??
+		(await context.langflowerConfigService.readSecrets());
 	const toolPermissions = resolveEffectiveToolPermissions(
 		rolePreset,
 		node.params.toolPermissions,
@@ -236,6 +240,7 @@ export const buildExecutionContext = async (
 		LIVE_WIRED_TOOLS_NODE_TYPES.has(node.type)
 			? { getLiveWiredTools: hooks.getLiveWiredTools }
 			: {}),
+		...(Object.keys(secrets).length > 0 ? { secrets } : {}),
 	});
 };
 
@@ -323,6 +328,7 @@ export const buildContextSeeds = async (
 	}
 
 	const config = await context.langflowerConfigService.read();
+	const secrets = await context.langflowerConfigService.readSecrets();
 	const enabledMcpIds = collectEnabledMcpIdsFromNodes(workflow.graph.nodes);
 	const servers = config.mcp?.servers ?? {};
 	const runMcp =
@@ -331,6 +337,7 @@ export const buildContextSeeds = async (
 					projectRoot: context.projectDir,
 					serverIds: enabledMcpIds,
 					servers,
+					secrets,
 				})
 			: undefined;
 
@@ -375,6 +382,7 @@ export const buildContextSeeds = async (
 			},
 			config,
 			runMcp?.handles,
+			secrets,
 		);
 
 		seeds[node.id] = [

@@ -92,6 +92,7 @@ describe('settings config draft (WS bridge)', () => {
 				defaultEmbeddingProviderId: '',
 				defaultEmbeddingModelId: '',
 				serverLogs: 'default',
+				secrets: [],
 				providers: [
 					{
 						id: 'draft-a',
@@ -136,6 +137,7 @@ describe('settings config draft (WS bridge)', () => {
 				defaultEmbeddingProviderId: '',
 				defaultEmbeddingModelId: '',
 				serverLogs: 'default',
+				secrets: [],
 				providers: [
 					{
 						id: 'draft-a',
@@ -199,6 +201,7 @@ describe('settings config draft (WS bridge)', () => {
 				defaultEmbeddingProviderId: '',
 				defaultEmbeddingModelId: '',
 				serverLogs: 'default',
+				secrets: [],
 				providers: [
 					{
 						id: providerId,
@@ -220,6 +223,7 @@ describe('settings config draft (WS bridge)', () => {
 			defaultEmbeddingProviderId: '',
 			defaultEmbeddingModelId: '',
 			serverLogs: 'default',
+			secrets: [],
 			providers: [
 				{
 					id: providerId,
@@ -287,6 +291,7 @@ describe('settings config draft (WS bridge)', () => {
 				defaultEmbeddingProviderId: '',
 				defaultEmbeddingModelId: '',
 				serverLogs: 'default',
+				secrets: [],
 				providers: [
 					{
 						id: providerId,
@@ -368,6 +373,7 @@ describe('settings config draft (WS bridge)', () => {
 				defaultEmbeddingProviderId: 'openai',
 				defaultEmbeddingModelId: 'text-embedding-3-small',
 				serverLogs: 'default',
+				secrets: [],
 				providers: [
 					{
 						id: providerId,
@@ -389,6 +395,7 @@ describe('settings config draft (WS bridge)', () => {
 			defaultEmbeddingProviderId: 'openai',
 			defaultEmbeddingModelId: 'text-embedding-3-small',
 			serverLogs: 'default',
+			secrets: [],
 			providers: [
 				{
 					id: providerId,
