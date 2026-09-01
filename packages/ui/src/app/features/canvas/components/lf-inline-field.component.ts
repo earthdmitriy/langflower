@@ -27,13 +27,26 @@ function formatPreviewValue(value: unknown): string {
 	return String(value);
 }
 
-function asDisplayString(value: unknown): string {
-	if (value === null || value === undefined) {
+/** Text / textarea display. Objects JSON.stringify — `String({})` is `[object Object]`. */
+export const asDisplayString = (value: unknown): string => {
+	if (value === null || value === undefined || value === '[object Object]') {
 		return '';
 	}
 
-	return typeof value === 'string' ? value : String(value);
-}
+	if (typeof value === 'string') {
+		return value;
+	}
+
+	if (typeof value === 'object') {
+		try {
+			return JSON.stringify(value, null, 2);
+		} catch {
+			return '';
+		}
+	}
+
+	return String(value);
+};
 
 type InlineKind =
 	| 'text'

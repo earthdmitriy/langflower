@@ -70,7 +70,7 @@ that does **not** make coding-agent Implementable.
   Template, one-shot Split (`parts[]`), Replace, … planned/stub.
 - **Primitives** — String, String (multiline), Number, Boolean **shipped**;
   JSON helpers planned.
-- **Output** — Preview + Finish **shipped**.
+- **Output** — Preview + Tool inspect + Finish **shipped**.
 - **Harness (target)** — Read/List/Glob/Grep/Web Fetch/Write/Edit/Bash as
   palette nodes and/or agent tools — **not shipped** (epic 01).
 - **Embeddings** — Embed text, Embed similarity, Embed provider (`EmbedHandle`
@@ -169,6 +169,7 @@ subset is **production**; draft/test types stay out of the palette (see
 | MCP stdio                 | `common-mcp-stdio`                                 | reactive | **done** |
 | MCP http                  | `common-mcp-http`                                  | reactive | **done** |
 | Tool collection           | `common-tool-collection`                           | reactive | **done** |
+| Tool invoke               | `common-tool-invoke`                               | reactive | **done** |
 | HITL Review Gate          | `common-hitl-review-gate`                          | reactive | **done** |
 | Chat Input                | `common-chat-input`                                | reactive | **done** |
 | Router                    | `common-router`                                    | reactive | **done** |
@@ -184,6 +185,7 @@ subset is **production**; draft/test types stay out of the palette (see
 | String / Number / Boolean | `common-string`, `common-number`, `common-boolean` | reactive | **done** |
 | String (multiline)        | `common-string-multiline`                          | reactive | **done** |
 | Preview                   | `common-preview`                                   | reactive | **done** |
+| Tool inspect              | `common-tool-inspect`                              | reactive | **done** |
 | Finish                    | `common-finish`                                    | reactive | **done** |
 
 **Not shipped (do not list as done):** `common-agent-*`, remaining harness
@@ -594,6 +596,7 @@ Statuses below match [STATUS.md](../STATUS.md) / `catalog.ts` (2026-07-19).
 | Sub-Agent             | `common-sub-agent`        | P2  | **partial** | OUT `subagent-registration` + in-node loop shipped; L1+ open — [ADR-021](../ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter) |
 | Memory Tools          | `common-memory-tools`     | P2  | **done**    | Pack → `tools` (`memory_get`…`delete`); harness invoke                                                                                               |
 | Tool collection       | `common-tool-collection`  | P2  | **done**    | Optional hub: combine many `tools` → one `ToolHandle[]` (last-wins) — [ADR-035](../ADR.md#adr-035--uniform-inventory-wire--optional-tool-collection) |
+| Tool invoke           | `common-tool-invoke`      | P2  | **done**    | Graph-side `handle.invoke` by `toolId` + JSON `args` (no LLM)                                                                                        |
 | Memory                | `common-memory`           | P2  | **done**    | Secondary graph I/O via `ctx.memory`                                                                                                                 |
 
 ### 7.4 Harness (filesystem, shell, web)
@@ -631,10 +634,11 @@ Server module: `packages/server/src/harness/` — **not present** (epic 01).
 
 ### 7.6 Output
 
-| Node    | Type             | P   | Status   | Description                              |
-| ------- | ---------------- | --- | -------- | ---------------------------------------- |
-| Preview | `common-preview` | —   | **done** | Display wired value on canvas + work log |
-| Finish  | `common-finish`  | —   | **done** | `stopsRun` sink                          |
+| Node         | Type                  | P   | Status   | Description                                                   |
+| ------------ | --------------------- | --- | -------- | ------------------------------------------------------------- |
+| Preview      | `common-preview`      | —   | **done** | Display wired value on canvas + work log                      |
+| Tool inspect | `common-tool-inspect` | —   | **done** | Dump `tool-handle` as `toolId` + example args + `inputSchema`; optional `toolId` filter |
+| Finish       | `common-finish`       | —   | **done** | `stopsRun` sink                                               |
 
 ### 7.7 Embeddings
 
@@ -982,17 +986,18 @@ sections of this file — treat `catalog.ts` + this table as the palette SoT.
 | -------------- | ----------------------------------------------------------------------------- |
 | **AI**         | OpenAI LLM, Fake LLM, Sub-Agent, Review, Critique                             |
 | **Embeddings** | Embed text, Embed similarity, Embed provider                                  |
-| **Tools**      | MCP stdio, MCP http, Memory Tools, Crawl Tools, Tool collection               |
+| **Tools**      | MCP stdio, MCP http, Memory Tools, Crawl Tools, Tool collection, Tool invoke  |
 | **Primitives** | String, String (multiline), Number, Boolean, Set Fields, JSON Parse/Stringify |
 | **Flow**       | Router only (primary)                                                         |
 | **Text**       | Concat, Split (paced), Read/Write/Append File; Template, Split, Replace…      |
-| **Output**     | Preview, Run Output                                                           |
+| **Output**     | Preview, Tool inspect, Run Output                                             |
 | **HITL**       | Review Gate, Chat Input                                                       |
 | **Advanced**   | `paletteSecondary: true` — Logic (all), Flow except Router, Crawl graph I/O   |
 
 **Dual-surface / secondary (normative):** [ADR-023](../ADR.md#adr-023--palette-palettesecondary--collapsed-advanced).
 Primary **Tools** holds MCP wire nodes, tool registration packs
-(`memory-tools`, `crawl-tools`), and optional **Tool collection**. Entire
+(`memory-tools`, `crawl-tools`), optional **Tool collection**, and
+**Tool invoke**. Entire
 **Logic** and all **Flow** nodes except Router set `paletteSecondary: true`
 and appear under **Advanced**, subdivided by original `category`. Crawl graph
 I/O stays Advanced under **Crawl**. Prefer packs → agent `tools`

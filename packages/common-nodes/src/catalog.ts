@@ -21,6 +21,7 @@ import { ifNode } from './logic/if/node.js';
 import { switchNode } from './logic/switch/node.js';
 import { finishNode } from './output/finish/node.js';
 import { previewNode } from './output/preview/node.js';
+import { toolInspectNode } from './output/tool-inspect/node.js';
 import { booleanNode } from './primitives/boolean/node.js';
 import { numberNode } from './primitives/number/node.js';
 import { stringNode } from './primitives/string/node.js';
@@ -38,6 +39,7 @@ import { savePageNode } from './crawl/save-page/node.js';
 import { memoryToolsNode } from './memory/memory-tools/node.js';
 import { langflowerToolsNode } from './langflower-tools/node.js';
 import { toolCollectionNode } from './tools/tool-collection/node.js';
+import { toolInvokeNode } from './tools/tool-invoke/node.js';
 import { embedTextNode } from './embeddings/embed-text/node.js';
 import { embedSimilarityNode } from './embeddings/embed-similarity/node.js';
 import { embedProviderNode } from './embeddings/embed-provider/node.js';
@@ -54,6 +56,7 @@ const COMMON_REACTIVE_NODES = [
 	repeatNode,
 	routerNode,
 	previewNode,
+	toolInspectNode,
 	finishNode,
 	concatNode,
 	splitPacedNode,
@@ -77,6 +80,7 @@ const COMMON_REACTIVE_NODES = [
 	memoryToolsNode,
 	langflowerToolsNode,
 	toolCollectionNode,
+	toolInvokeNode,
 	fetchUrlNode,
 	extractLinksNode,
 	savePageNode,

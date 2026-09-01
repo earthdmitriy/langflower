@@ -1,8 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import {
+	asDisplayString,
 	selectedSelectDescription,
 	withOrphanSelectOptions,
 } from '../components/lf-inline-field.component.js';
+
+describe('asDisplayString', () => {
+	it('JSON-stringifies objects instead of [object Object]', () => {
+		expect(asDisplayString({})).toBe('{}');
+		expect(asDisplayString({ n: 1 })).toBe('{\n  "n": 1\n}');
+	});
+
+	it('treats the String(object) accident as empty', () => {
+		expect(asDisplayString('[object Object]')).toBe('');
+	});
+
+	it('passes strings and blanks through', () => {
+		expect(asDisplayString('')).toBe('');
+		expect(asDisplayString('{"a":1}')).toBe('{"a":1}');
+		expect(asDisplayString(undefined)).toBe('');
+	});
+});
 
 describe('lf-inline-field select description', () => {
 	it('returns the selected option description caption', () => {

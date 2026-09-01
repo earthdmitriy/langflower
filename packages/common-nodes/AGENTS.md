@@ -39,10 +39,10 @@ this package — import `@langflower/tools/build-mcp-handle` (etc.) inside nodes
 | `src/resolve-workflow-node-definition.ts` | Type → reactive definition lookup (`getCommonReactiveNode`)                                                                    |
 | `src/ai/`                                 | LLM catalog under `ai/nodes/<node>/`; shared core under `ai/features/` (`llm-loop`, `llm-session`, `path-choice`, `openai`, …) |
 | `src/embeddings/`                         | Unbound embeddings HTTP (`create-embedding`) + Embeddings catalog nodes (`embed-text`, `embed-similarity`, `embed-provider`)   |
-| `src/tools/`                              | Runtime inventory helpers (`collect-agent-tool-handles`) + Tool collection catalog node                                        |
+| `src/tools/`                              | Runtime inventory helpers (`collect-agent-tool-handles`) + Tool collection / Tool invoke catalog nodes                         |
 | `src/mcp/`                                | Wire MCP nodes only (`mcp-stdio`, `mcp-http`) — helpers live in `@langflower/tools`                                            |
 | `src/hitl/`                               | Review Gate + Chat Input                                                                                                       |
-| `src/output/`                             | Run output surfaced in the work log                                                                                            |
+| `src/output/`                             | Run output surfaced in the work log (Preview, Tool inspect, Finish)                                                            |
 | `src/primitives/`                         | Scalar literals and JSON field helpers                                                                                         |
 | `src/logic/`                              | Branching, comparison, routing                                                                                                 |
 | `src/text/`                               | String templating and manipulation                                                                                             |

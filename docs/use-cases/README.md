@@ -130,18 +130,18 @@ Further gaps = use-case Missing parts (esp. real-LLM Implementable bars).
 
 ### Gaps vs common chat harnesses
 
-| Doc                                                              | Focus                                                                                             |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [eval-regression-gate.md](eval-regression-gate.md)               | Golden / fixture suite with scoring and stop-on-regression                                        |
-| [research-fanout-merge.md](research-fanout-merge.md)             | Loop map-collect → synth + conflict Review (**Partial** — epic 22; S4 deferred)                   |
-| [permission-escalation-ops.md](permission-escalation-ops.md)     | Staged explore → write → bash (**Partial** — epic 24; real-LLM open)                              |
-| [adversarial-red-team.md](adversarial-red-team.md)               | Two conflict models: agree-then-Review vs Review-each-round (**Partial**)                         |
-| ~~[kb-contradiction-curation.md](kb-contradiction-curation.md)~~ | **Removed** with vector KB (ADR-033)                                                              |
-| [resumable-checkpoint-jobs.md](resumable-checkpoint-jobs.md)     | Explicit checkpoint boundaries + picker resume (**Partial** — epic 20)                            |
-| [grok-feed.md](grok-feed.md)                                     | User scenarios validating chat-mirrored graph feed (**Partial** — epic 17)                        |
-| [run-interruption.md](run-interruption.md)                       | Hard Stop vs soft Pause (`steerControl`, ADR-032) (**Partial** — DONE 34–36; real-LLM bars open)  |
-| [detachable-long-run.md](detachable-long-run.md)                 | Close browser mid-run (process stays up); reopen live/settled; CLI settle (**Partial** — epic 19) |
-| [node-local-mcp.md](node-local-mcp.md)                           | Wire + system MCP handles; S5/S6 connect fail; HTTP auth headers landed (**Partial**)             |
+| Doc                                                              | Focus                                                                                                |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [eval-regression-gate.md](eval-regression-gate.md)               | Golden / fixture suite with scoring and stop-on-regression                                           |
+| [research-fanout-merge.md](research-fanout-merge.md)             | Loop map-collect → synth + conflict Review (**Partial** — epic 22; S4 deferred)                      |
+| [permission-escalation-ops.md](permission-escalation-ops.md)     | Staged explore → write → bash (**Partial** — epic 24; real-LLM open)                                 |
+| [adversarial-red-team.md](adversarial-red-team.md)               | Two conflict models: agree-then-Review vs Review-each-round (**Partial**)                            |
+| ~~[kb-contradiction-curation.md](kb-contradiction-curation.md)~~ | **Removed** with vector KB (ADR-033)                                                                 |
+| [resumable-checkpoint-jobs.md](resumable-checkpoint-jobs.md)     | Explicit checkpoint boundaries + picker resume (**Partial** — epic 20)                               |
+| [grok-feed.md](grok-feed.md)                                     | User scenarios validating chat-mirrored graph feed (**Partial** — epic 17)                           |
+| [run-interruption.md](run-interruption.md)                       | Hard Stop vs soft Pause (`steerControl`, ADR-032) (**Partial** — DONE 34–36; real-LLM bars open)     |
+| [detachable-long-run.md](detachable-long-run.md)                 | Close browser mid-run (process stays up); reopen live/settled; CLI settle (**Partial** — epic 19)    |
+| [node-local-mcp.md](node-local-mcp.md)                           | Wire + system MCP handles; S5/S6 connect fail; HTTP auth headers; graph inspect/invoke (**Partial**) |
 
 ## Candidates (backlog)
 

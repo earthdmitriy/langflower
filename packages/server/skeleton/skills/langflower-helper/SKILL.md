@@ -241,6 +241,11 @@ These four are **not** the same thing.
   still works. System MCP from `langflower.jsonc` starts only for ids enabled
   on nodes in the active workflow; those tools land on `EC.toolHandles`,
   never as raw config.
+- **Can:** Call a wired MCP / pack tool from the graph with **Tool invoke**
+  (`common-tool-invoke`: `tools` + `toolId` + JSON `args` → `result`). **Tool
+  inspect** (`common-tool-inspect`) prints copy-paste `toolId`, example
+  args, and `inputSchema` from the same `tools` wire (optional inspect
+  `toolId` filters the dump). No LLM required on that path.
 - **Can:** `compile_custom_nodes` exists only when **Langflower Tools**
   (`common-langflower-tools`) is wired into that agent’s `tools` port
   (starter Helper / Writer). Same intent as Custom → **Update**. Recompile
@@ -254,6 +259,8 @@ These four are **not** the same thing.
   unlock” as the product model (use graph stages / tool profiles). All
   `mcp.servers` always start. Agent sees raw MCP config instead of handles.
   Equating a checkbox allowlist with runtime allow — use the permission table.
+  Preview (`common-preview`) showing a `tool-handle` wire — use **Tool
+  inspect**.
 
 ### 9. Sub-Agent and swarm
 

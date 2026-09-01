@@ -83,7 +83,12 @@ Project product data for Langflower lives under **`.langflower/`**.
   the parent work-log visit; the specialist streams as its own card, and
   the parent continues in a new visit below. Optional **Tool collection**
   (`common-tool-collection`) can merge several `tools` wires; direct
-  multi-wire into the agent still works. Extra empty canvas slots on
+  multi-wire into the agent still works. **Tool invoke**
+  (`common-tool-invoke`) calls one wired handle by `toolId` + JSON `args`
+  with no LLM. **Tool inspect** (`common-tool-inspect`) dumps copy-paste
+  `toolId` / example args / `inputSchema` from the same wire (optional
+  inspect `toolId` filters the dump; Preview cannot take
+  `tool-handle`). Extra empty canvas slots on
   `multi` ports (`feedback` merge, `tools` combine) and Router channels
   (`ch` / `ch@1`) are intentional fan-in — not cloned ports.
 - **Graph order** stages the pipeline; the model does not invent the stage

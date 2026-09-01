@@ -3,7 +3,8 @@
 **Status:** Partial — happy-path wire + system MCP tools landed; wire connect
 fail → port error (S5) landed; system MCP fail → per-node ctx `error$` (S6)
 landed. Authenticated HTTP `headers` / `{lf_secrets:}` landed
-([epic 45](../DONE/EPICS/45-global-kv-secrets.md) S7).
+([epic 45](../DONE/EPICS/45-global-kv-secrets.md) S7). Graph-side Tool inspect
+and Tool invoke (no LLM) landed (S8).
 
 ## Value
 
@@ -134,35 +135,59 @@ Wire `tools` → agent.
 - OS keychain is **not** required
   ([TBD-010](../TBD.md#tbd-010--os-backed--encrypted-secret-storage)).
 
+### S8 — Manual MCP tool call (no LLM)
+
+**Who:** Author who wants to fire a wired MCP tool from the graph, not from
+chat.
+
+**Want:** See the live `toolId`, example args, and input schema, paste them
+into a caller, get the result on a port.
+
+**Do:** Wire **MCP http** / **MCP stdio** `tools` → **Tool inspect** (read
+the dump) and → **Tool invoke** (`toolId` + JSON `args`). Run.
+
+**Expect:**
+
+- Tool inspect MUST print copy-paste `toolId`, example `args` JSON, and
+  the handle `inputSchema` (field descriptions, `enum`, `required`). Not
+  `invoke`. Optional inspect `toolId` MUST filter the dump (empty = all).
+- Tool invoke MUST call that handle and emit `result` text. Blank `args`
+  is allowed (parses as `{}`).
+- MUST NOT require an LLM node on the path.
+- Unknown `toolId` after inventory is ready MUST fail the invoke output
+  port (loud). Empty inventory MUST stay inactive, not error, until MCP
+  connects.
+
 ## UI specs
 
-| Spec                                                             | Scenarios covered                           |
-| ---------------------------------------------------------------- | ------------------------------------------- |
-| [node-library.md](../features/node-library.md)                   | S1–S3, S5, S7 (palette MCP nodes + headers) |
-| [inspector.md](../features/inspector.md)                         | S4, S6 (Enabled MCP)                        |
-| [project-configuration.md](../features/project-configuration.md) | S4 (`mcp.servers`); S7 http `headers`       |
-| [settings-panel.md](../features/settings-panel.md)               | S7 (`{lf_secrets:}` from Global KV)         |
-| [workflow-execution.md](../features/workflow-execution.md)       | S5, S6 (port / node error visibility)       |
-| [feed-panel.md](../features/feed-panel.md)                       | S5, S6 (when errors project into feed)      |
+| Spec                                                             | Scenarios covered                                |
+| ---------------------------------------------------------------- | ------------------------------------------------ |
+| [node-library.md](../features/node-library.md)                   | S1–S3, S5, S7, S8 (palette MCP + inspect/invoke) |
+| [inspector.md](../features/inspector.md)                         | S4, S6 (Enabled MCP)                             |
+| [project-configuration.md](../features/project-configuration.md) | S4 (`mcp.servers`); S7 http `headers`            |
+| [settings-panel.md](../features/settings-panel.md)               | S7 (`{lf_secrets:}` from Global KV)              |
+| [workflow-execution.md](../features/workflow-execution.md)       | S5, S6 (port / node error visibility)            |
+| [feed-panel.md](../features/feed-panel.md)                       | S5, S6 (when errors project into feed)           |
 
 ## Runtime requirements
 
-| Need                                                      | Why   | Today                                                                     | Caution                               |
-| --------------------------------------------------------- | ----- | ------------------------------------------------------------------------- | ------------------------------------- |
-| Wire connect fail → port `error`                          | S5    | Landed — `subscriber.error` + unit tests; empty command/url stay inactive | Do not map fail to silent `EMPTY`     |
-| Spawn = union of workflow `enabledMcpIds`                 | S4    | Landed (`collectEnabledMcpIdsFromNodes`)                                  | Do not start all `mcp.servers`        |
-| System connect fail → ctx `error$` on enabling nodes only | S6    | Landed — partial pool + `throwError(CtxError)` on hidden ctx              | Prefer ctx error-lane over seed abort |
-| Agent merges ready handles only                           | S1–S4 | Landed                                                                    | Agent MUST NOT expand jsonc           |
-| Disable id + re-run skips broken server                   | S6    | Landed                                                                    | —                                     |
-| HTTP `headers` + `{lf_secrets:}` / `{env:}` interpolation | S7    | Landed — [epic 45](../DONE/EPICS/45-global-kv-secrets.md)                 | Do not put tokens in workflow JSON    |
+| Need                                                      | Why   | Today                                                                     | Caution                                |
+| --------------------------------------------------------- | ----- | ------------------------------------------------------------------------- | -------------------------------------- |
+| Wire connect fail → port `error`                          | S5    | Landed — `subscriber.error` + unit tests; empty command/url stay inactive | Do not map fail to silent `EMPTY`      |
+| Spawn = union of workflow `enabledMcpIds`                 | S4    | Landed (`collectEnabledMcpIdsFromNodes`)                                  | Do not start all `mcp.servers`         |
+| System connect fail → ctx `error$` on enabling nodes only | S6    | Landed — partial pool + `throwError(CtxError)` on hidden ctx              | Prefer ctx error-lane over seed abort  |
+| Agent merges ready handles only                           | S1–S4 | Landed                                                                    | Agent MUST NOT expand jsonc            |
+| Disable id + re-run skips broken server                   | S6    | Landed                                                                    | —                                      |
+| HTTP `headers` + `{lf_secrets:}` / `{env:}` interpolation | S7    | Landed — [epic 45](../DONE/EPICS/45-global-kv-secrets.md)                 | Do not put tokens in workflow JSON     |
+| Graph-side invoke of wired MCP `ToolHandle`s              | S8    | Landed — `common-tool-inspect` + `common-tool-invoke`                     | Do not send `tool-handle` into Preview |
 
 ## Status
 
 ### Missing parts
 
-| Layer | Gap                                            | Sn  | Done when |
-| ----- | ---------------------------------------------- | --- | --------- |
-| —     | None for S1–S7 connect-fail / auth-header bars | —   | —         |
+| Layer | Gap                                                           | Sn  | Done when |
+| ----- | ------------------------------------------------------------- | --- | --------- |
+| —     | None for S1–S8 connect-fail / auth-header / graph-invoke bars | —   | —         |
 
 ### Workarounds
 

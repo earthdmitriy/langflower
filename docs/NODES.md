@@ -339,7 +339,7 @@ defineReactiveNode({
 | `Primitives` | Type conversions, constants    |
 | `AI`         | Agent, Review, LLM-related     |
 | `Harness`    | File system, bash, web tools   |
-| `Output`     | Preview, logging               |
+| `Output`     | Preview, Tool inspect, logging |
 | `KB`         | Knowledge base operations      |
 | `Crawl`      | Web crawling and scraping      |
 

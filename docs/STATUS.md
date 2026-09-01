@@ -190,6 +190,7 @@ shipped**.
 | Repeat                    | `common-repeat`           | **done**    | Flow — emit `value` N times (first ASAP, then on `trigger`), `index` (0-based), then `done` |
 | Router                    | `common-router`           | **done**    | Reactive channels                                                                           |
 | Preview                   | `common-preview`          | **done**    | Output                                                                                      |
+| Tool inspect              | `common-tool-inspect`     | **done**    | Output — `toolId` + example args + `inputSchema`; optional `toolId` filter                  |
 | Finish                    | `common-finish`           | **done**    | `stopsRun`                                                                                  |
 | Checkpoint                | `common-checkpoint`       | **done**    | Explicit durable boundary + picker resume (epic 20)                                         |
 | Concat                    | `common-concat`           | **done**    | Text                                                                                        |
@@ -216,6 +217,7 @@ shipped**.
 | Embed similarity          | `common-embed-similarity` | **done**    | Epic 42 — cosine; no provider panel                                                         |
 | Embed provider            | `common-embed-provider`   | **done**    | Epic 42 — `embed-handle` / `EmbedHandle` for pack consumers                                 |
 | Tool collection           | `common-tool-collection`  | **done**    | Optional hub: combine `tools` → one `ToolHandle[]` (last-wins; ADR-035)                     |
+| Tool invoke               | `common-tool-invoke`      | **done**    | Graph-side `handle.invoke` by `toolId` + JSON `args` (no LLM)                               |
 | Fetch URL                 | `common-fetch-url`        | **done**    | Epic 12 — SSRF-guarded GET + HTML→text                                                      |
 | Extract Links             | `common-extract-links`    | **done**    | Epic 12 — HTML → absolute links                                                             |
 | Save Page                 | `common-save-page`        | **done**    | Epic 12 — persist under `.langflower/crawl/{runId}/`                                        |

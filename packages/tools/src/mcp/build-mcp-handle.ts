@@ -62,6 +62,8 @@ export const buildMcpHandle = async (options: {
 				toolId,
 				name: toolId,
 				description,
+				// Pass-through from MCP `tools/list` — do not strip enum /
+				// property descriptions here. Tool inspect prints this object.
 				inputSchema:
 					tool.inputSchema !== undefined &&
 					typeof tool.inputSchema === 'object'
