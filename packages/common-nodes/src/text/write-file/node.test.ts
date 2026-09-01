@@ -1,4 +1,7 @@
-import type { ExecutionContext } from '@langflower/node-sdk';
+import {
+	emptyResolveSecret,
+	type ExecutionContext,
+} from '@langflower/node-sdk';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -25,6 +28,7 @@ describe('common-write-file', () => {
 			nodeId: 'write-1',
 			params: {},
 			uiSchema: writeFileNode.uiSchema,
+			resolveSecret: emptyResolveSecret,
 		};
 
 		instance.ctxConnection.connect(of(ctx));

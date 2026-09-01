@@ -8,6 +8,7 @@ import { attachRunHostServices } from '@langflower/common-nodes/ai/run-host-serv
 import type { LangflowerBusRequest } from '@langflower/common-nodes/ai/run-host-services';
 import {
 	contextSymbol,
+	createResolveSecret,
 	type CtxError,
 	type ExecutionContext,
 	type ToolHandle,
@@ -193,6 +194,7 @@ export const buildExecutionContext = async (
 			never,
 			LlmExecutionCaps
 		>['uiSchema'],
+		resolveSecret: createResolveSecret({ secrets }),
 		...(toolHandles.length > 0 ? { toolHandles } : {}),
 	};
 

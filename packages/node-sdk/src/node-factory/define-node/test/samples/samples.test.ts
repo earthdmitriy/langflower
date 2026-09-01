@@ -1,4 +1,5 @@
 import { RuntimeFacade } from '@langflower/runtime';
+import { emptyResolveSecret } from '@langflower/node-sdk';
 import { createNodeHarness } from '@langflower/node-sdk/testing';
 import { filter, firstValueFrom, of } from 'rxjs';
 import { describe, expect, it } from 'vitest';
@@ -98,6 +99,7 @@ describe('defineNode samples', () => {
 				nodeId: 'fail-1',
 				params: {},
 				uiSchema: failingSampleNode.uiSchema,
+				resolveSecret: emptyResolveSecret,
 			}),
 		);
 		instance.inputs.trigger.connect(of(true));

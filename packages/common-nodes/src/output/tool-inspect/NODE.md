@@ -23,11 +23,11 @@ work-log result bubble, or wire `text` into Preview.
 
 ## Ports
 
-| Direction | Port     | Wire type   | Notes                                              |
-| --------- | -------- | ----------- | -------------------------------------------------- |
-| In        | `tools`  | tool-handle | Single wire (`ToolHandle` or pack array)           |
-| In        | `toolId` | string      | Inline filter; empty = all tools                   |
-| Out       | `text`   | string      | Dump for Preview / feed (`role: result`)           |
+| Direction | Port     | Wire type   | Notes                                    |
+| --------- | -------- | ----------- | ---------------------------------------- |
+| In        | `tools`  | tool-handle | Single wire (`ToolHandle` or pack array) |
+| In        | `toolId` | string      | Inline filter; empty = all tools         |
+| Out       | `text`   | string      | Dump for Preview / feed (`role: result`) |
 
 ## Graph shape
 

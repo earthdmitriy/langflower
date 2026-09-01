@@ -53,6 +53,48 @@ const paramsNode = defineReactiveNode({
 	},
 });
 
+const secretNode = defineReactiveNode({
+	type: 'harness-secret',
+	displayName: 'Secret',
+	uiSchema: [] as const,
+	bind(ctx, { configureOutput }) {
+		const token$ = ctx.pipeValue(
+			map((ec) => {
+				const result = ec.resolveSecret('lf_secret:API_TOKEN');
+				if (!result.ok) {
+					throw new Error(result.message);
+				}
+				return result.value;
+			}),
+		);
+		return {
+			inputs: [],
+			outputs: [configureOutput('token', token$, { wireType: 'string' })],
+		};
+	},
+});
+
+const envSecretNode = defineReactiveNode({
+	type: 'harness-env-secret',
+	displayName: 'Env secret',
+	uiSchema: [] as const,
+	bind(ctx, { configureOutput }) {
+		const token$ = ctx.pipeValue(
+			map((ec) => {
+				const result = ec.resolveSecret('env:API_TOKEN');
+				if (!result.ok) {
+					throw new Error(result.message);
+				}
+				return result.value;
+			}),
+		);
+		return {
+			inputs: [],
+			outputs: [configureOutput('token', token$, { wireType: 'string' })],
+		};
+	},
+});
+
 describe('createNodeHarness', () => {
 	it('throws on unknown input and output ports', async () => {
 		const harness = createNodeHarness(echoNode);
@@ -97,5 +139,21 @@ describe('createNodeHarness', () => {
 		});
 		await expect(overridden.next<string>('mode')).resolves.toBe('slow');
 		overridden.dispose();
+	});
+
+	it('seeds ctx secrets for resolveSecret', async () => {
+		const harness = createNodeHarness(secretNode, {
+			secrets: { API_TOKEN: 'sk-live' },
+		});
+		await expect(harness.next<string>('token')).resolves.toBe('sk-live');
+		harness.dispose();
+	});
+
+	it('resolves env: refs from harness env', async () => {
+		const harness = createNodeHarness(envSecretNode, {
+			env: { API_TOKEN: 'from-env' },
+		});
+		await expect(harness.next<string>('token')).resolves.toBe('from-env');
+		harness.dispose();
 	});
 });

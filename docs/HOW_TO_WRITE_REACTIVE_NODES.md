@@ -34,9 +34,11 @@ another factory’s directory.
 
 ### ExecutionContext (authors)
 
-Base `ExecutionContext` is **identity + panel only** (`projectDir`, `runId`,
-`nodeId`, `params`, `uiSchema`). Custom authors do **not** get `files` / `kb` /
-`crawl` / `memory` / chat streams / skills on ctx.
+Base `ExecutionContext` is **identity + panel + keyed secret lookup**
+(`projectDir`, `runId`, `nodeId`, `params`, `uiSchema`, `resolveSecret`).
+Custom authors do **not** get `files` / `kb` / `crawl` / `memory` / chat
+streams / skills on ctx. `resolveSecret('lf_secret:ID')` / `resolveSecret('env:ID')`
+returns one value; authors cannot list the bag.
 
 LLM nodes (`defineLlmNode`) may receive `toolHandles` via
 `LlmExecutionCaps`. Outside world for agents = **ToolHandle**

@@ -3,6 +3,7 @@ import type {
 	StatefulConnection,
 	StatefulObservable,
 } from '@rx-evo/stateful-observable';
+import type { ResolveSecret } from './resolve-secret.js';
 import type { ToolHandle } from '../define-tool-registrations/tool-handle.js';
 import type { CtxError } from './ctx-error.js';
 import {
@@ -20,9 +21,11 @@ import type {
 } from './ui-schema-inference.js';
 
 /**
- * Identity + panel only. Host I/O (files/kb/crawl/…) is owned by specialized
- * common-nodes internally — not part of the author ExecutionContext API.
- * LLM inventory arrives via {@link LlmExecutionCaps} (`toolHandles`).
+ * Identity + panel + keyed secret lookup. Host I/O (files/kb/crawl/…) is
+ * owned by specialized common-nodes internally — not part of the author
+ * ExecutionContext API. LLM inventory arrives via {@link LlmExecutionCaps}
+ * (`toolHandles`). {@link resolveSecret} looks up one id (`lf_secret:ID` /
+ * `env:ID`); authors cannot list the bag.
  */
 export type ExecutionContext<
 	UI extends readonly UISchemaConstItem[] = readonly UISchemaConstItem[],
@@ -33,6 +36,7 @@ export type ExecutionContext<
 	readonly nodeId: string;
 	readonly params: ParamsFromUISchema<UI>;
 	readonly uiSchema: TypedUISchema<UI>;
+	readonly resolveSecret: ResolveSecret;
 	readonly amendInput?: (patch: Readonly<Record<string, unknown>>) => void;
 } & Caps;
 

@@ -190,6 +190,13 @@ export const defineReactiveNode = <
 
 export type ReactiveNodeDefinition = ReturnType<typeof defineReactiveNode>;
 
+export {
+	createResolveSecret,
+	emptyResolveSecret,
+	type CreateResolveSecretDeps,
+	type ResolveSecret,
+	type ResolveSecretResult,
+} from './resolve-secret.js';
 export { defineToolRegistrations } from '../define-tool-registrations/define-tool-registrations.js';
 export { defineNode } from '../define-node/define-node.js';
 export type {

@@ -634,11 +634,11 @@ Server module: `packages/server/src/harness/` — **not present** (epic 01).
 
 ### 7.6 Output
 
-| Node         | Type                  | P   | Status   | Description                                                   |
-| ------------ | --------------------- | --- | -------- | ------------------------------------------------------------- |
-| Preview      | `common-preview`      | —   | **done** | Display wired value on canvas + work log                      |
+| Node         | Type                  | P   | Status   | Description                                                                             |
+| ------------ | --------------------- | --- | -------- | --------------------------------------------------------------------------------------- |
+| Preview      | `common-preview`      | —   | **done** | Display wired value on canvas + work log                                                |
 | Tool inspect | `common-tool-inspect` | —   | **done** | Dump `tool-handle` as `toolId` + example args + `inputSchema`; optional `toolId` filter |
-| Finish       | `common-finish`       | —   | **done** | `stopsRun` sink                                               |
+| Finish       | `common-finish`       | —   | **done** | `stopsRun` sink                                                                         |
 
 ### 7.7 Embeddings
 

@@ -6,10 +6,7 @@ export const EMPTY_TOOL_INSPECT_TEXT = 'No tools on this wire.';
 export const unmatchedToolInspectText = (toolId: string): string =>
 	`No tools matching «${toolId}».`;
 
-const matchesToolIdFilter = (
-	handle: ToolHandle,
-	needle: string,
-): boolean => {
+const matchesToolIdFilter = (handle: ToolHandle, needle: string): boolean => {
 	const id = handle.toolId.toLowerCase();
 	const name = handle.name.toLowerCase();
 	const filter = needle.toLowerCase();

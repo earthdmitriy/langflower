@@ -21,12 +21,12 @@ edge — fan-in several packs with Tool collection first.
 
 ## Ports
 
-| Direction | Port     | Wire type   | Notes                                              |
-| --------- | -------- | ----------- | -------------------------------------------------- |
-| In        | `tools`  | tool-handle | Single wire; no default — wait for inventory       |
-| In        | `toolId` | string      | Paste from Tool inspect (`<mcp_name>__<tool>`)     |
+| Direction | Port     | Wire type   | Notes                                                 |
+| --------- | -------- | ----------- | ----------------------------------------------------- |
+| In        | `tools`  | tool-handle | Single wire; no default — wait for inventory          |
+| In        | `toolId` | string      | Paste from Tool inspect (`<mcp_name>__<tool>`)        |
 | In        | `args`   | json        | Optional; blank default. Empty string parses as `{}`. |
-| Out       | `result` | string      | `handle.invoke` text                               |
+| Out       | `result` | string      | `handle.invoke` text                                  |
 
 ## Graph shape
 

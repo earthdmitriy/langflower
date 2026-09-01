@@ -1,4 +1,7 @@
-import type { ExecutionContext } from '@langflower/node-sdk';
+import {
+	emptyResolveSecret,
+	type ExecutionContext,
+} from '@langflower/node-sdk';
 import type {
 	WebFetchRequest,
 	WebFetchResult,
@@ -65,6 +68,7 @@ describe('common-crawl', () => {
 				maxBytes: 1_000_000,
 			},
 			uiSchema: crawlNode.uiSchema,
+			resolveSecret: emptyResolveSecret,
 		};
 
 		instance.ctxConnection.connect(of(ctx));

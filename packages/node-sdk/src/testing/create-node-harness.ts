@@ -8,6 +8,7 @@ import {
 	defaultParamsFromUiSchema,
 	type UISchemaConstItem,
 } from '../node-factory/define-reactive-node/ui-schema-inference.js';
+import { createResolveSecret } from '../node-factory/define-reactive-node/resolve-secret.js';
 
 type HarnessUi = readonly UISchemaConstItem[];
 type HarnessInstance = ReactiveNodeInstance<HarnessUi, object>;
@@ -18,6 +19,10 @@ export type NodeHarnessOptions = {
 	readonly runId?: string;
 	readonly nodeId?: string;
 	readonly params?: Readonly<Record<string, unknown>>;
+	/** KV map for `lf_secret:ID` on ctx.resolveSecret. */
+	readonly secrets?: Readonly<Record<string, string>>;
+	/** Env map for `env:ID`. Omitted → `process.env`. */
+	readonly env?: Readonly<Record<string, string | undefined>>;
 };
 
 export type CollectedPort<T> = {
@@ -62,6 +67,10 @@ export const createNodeHarness = (
 			nodeId: options?.nodeId ?? 'node-1',
 			params,
 			uiSchema,
+			resolveSecret: createResolveSecret({
+				secrets: options?.secrets ?? {},
+				...(options?.env !== undefined ? { env: options.env } : {}),
+			}),
 		} as HarnessContext),
 	);
 

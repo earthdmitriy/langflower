@@ -1,4 +1,7 @@
-import type { ExecutionContext } from '@langflower/node-sdk';
+import {
+	emptyResolveSecret,
+	type ExecutionContext,
+} from '@langflower/node-sdk';
 import { RuntimeFacade } from '@langflower/runtime';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -28,6 +31,7 @@ describe('common-read-file', () => {
 			nodeId: 'read-1',
 			params: {},
 			uiSchema: readFileNode.uiSchema,
+			resolveSecret: emptyResolveSecret,
 		};
 
 		const update$ = new BehaviorSubject<unknown>(null);
@@ -68,6 +72,7 @@ describe('common-read-file', () => {
 				nodeId: 'read-1',
 				params: {},
 				uiSchema: readFileNode.uiSchema,
+				resolveSecret: emptyResolveSecret,
 			}),
 		);
 		instance.inputs.update.connect(of(null));
@@ -90,6 +95,7 @@ describe('common-read-file', () => {
 				nodeId: 'read-1',
 				params: {},
 				uiSchema: readFileNode.uiSchema,
+				resolveSecret: emptyResolveSecret,
 			}),
 		);
 		read.inputs.path.connect(of(''));

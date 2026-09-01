@@ -1,4 +1,7 @@
-import type { ExecutionContext } from '@langflower/node-sdk';
+import {
+	emptyResolveSecret,
+	type ExecutionContext,
+} from '@langflower/node-sdk';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -33,6 +36,7 @@ describe('common-append-file', () => {
 			nodeId: 'append-1',
 			params: {},
 			uiSchema: appendFileNode.uiSchema,
+			resolveSecret: emptyResolveSecret,
 		};
 
 		instance.ctxConnection.connect(of(ctx));

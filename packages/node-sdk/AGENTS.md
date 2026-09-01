@@ -43,7 +43,7 @@ the public `@langflower/node-sdk` import path.
 | `defineReactiveNode`                          | Author factory — probe `bind` for metas + `getInstance()` per live graph |
 | `defineToolRegistrations`                     | Purpose utility — emit `ToolHandle` packs for LLM `tools` ports          |
 | `makeInput`, `configureOutput`, `withLoading` | Exported pure IO helpers (`io-helpers.ts`)                               |
-| `ExecutionContext<UI, Caps>`                  | Identity + panel; Caps default `{}`                                      |
+| `ExecutionContext<UI, Caps>`                  | Identity + panel + `resolveSecret('lf_secret:ID' \| 'env:ID')`           |
 | `ToolHandle`                                  | Wire payload for agent tools                                             |
 | `EmbedHandle`                                 | Canvas wire payload for batch embeddings (not agent inventory)           |
 | `ToolHandlerContext`                          | Identity only (`projectDir` / `runId`) — see boundary below              |
@@ -73,16 +73,19 @@ This package is the **author contract**. Keep it identity + ports + caps —
 not a host service bag. Prefer extending `@langflower/tools` or private
 common-nodes/server bags over growing these facades.
 
-| Type                 | Allowed                                                        | Forbidden (put elsewhere)                                             |
-| -------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `ExecutionContext`   | `projectDir`, `runId`, `params` / panel, optional typed `Caps` | `files`, `crawl`, chat stream, skills, harness, authorize, `webFetch` |
-| `LlmExecutionCaps`   | `toolHandles` only                                             | Any host hook or I/O facade                                           |
-| `ToolHandlerContext` | `projectDir`, `runId` only                                     | `authorize`, `webFetch`, `denyPaths`, `allowedHosts`, harness         |
+| Type                 | Allowed                                                                                             | Forbidden (put elsewhere)                                                              |
+| -------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `ExecutionContext`   | `projectDir`, `runId`, `params` / panel, `resolveSecret` (keyed lookup only), optional typed `Caps` | `files`, `crawl`, chat stream, skills, harness, authorize, `webFetch`, listing secrets |
+| `LlmExecutionCaps`   | `toolHandles` only                                                                                  | Any host hook or I/O facade                                                            |
+| `ToolHandlerContext` | `projectDir`, `runId` only                                                                          | `authorize`, `webFetch`, `denyPaths`, `allowedHosts`, harness                          |
 
 **Rules for agents / PRs**
 
 1. **Do not add fields** to SDK `ToolHandlerContext`, base `ExecutionContext`, or
    `LlmExecutionCaps` “for convenience” so shell/common-nodes can pass one object.
+   Exception: `ExecutionContext.resolveSecret` is the keyed Global KV / env
+   lookup (`lf_secret:ID` / `env:ID`) — not a secrets bag and not a host I/O
+   facade.
 2. Host hooks for domain tools live on **tools**
    `@langflower/tools/domain-tool-configs` `ToolHandlerContext` (wider bag).
    Shells that need them import **tools**, not the SDK type.
@@ -121,6 +124,8 @@ import {
 	type ExecutionContext,
 	type ToolHandle,
 	TOOL_HANDLE_WIRE_TYPE,
+	createResolveSecret,
+	emptyResolveSecret,
 	type EmbedHandle,
 	EMBED_HANDLE_WIRE_TYPE,
 	isEmbedHandle,

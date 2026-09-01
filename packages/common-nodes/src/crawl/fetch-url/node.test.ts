@@ -1,4 +1,7 @@
-import type { ExecutionContext } from '@langflower/node-sdk';
+import {
+	emptyResolveSecret,
+	type ExecutionContext,
+} from '@langflower/node-sdk';
 import { RuntimeFacade } from '@langflower/runtime';
 import { filter, firstValueFrom, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -32,6 +35,7 @@ describe('common-fetch-url', () => {
 			nodeId: 'fetch-1',
 			params: { timeoutMs: 5_000, maxBytes: 1_000_000 },
 			uiSchema: fetchUrlNode.uiSchema,
+			resolveSecret: emptyResolveSecret,
 		};
 
 		instance.ctxConnection.connect(of(ctx));
@@ -83,6 +87,7 @@ describe('common-fetch-url', () => {
 				nodeId: 'fetch-1',
 				params: {},
 				uiSchema: fetchUrlNode.uiSchema,
+				resolveSecret: emptyResolveSecret,
 			}),
 		);
 		url.inputs.value.connect(of('https://example.com'));

@@ -1,4 +1,7 @@
-import type { ExecutionContext } from '@langflower/node-sdk';
+import {
+	emptyResolveSecret,
+	type ExecutionContext,
+} from '@langflower/node-sdk';
 import { firstValueFrom, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { savePageNode } from './node.js';
@@ -29,6 +32,7 @@ describe('common-save-page', () => {
 			nodeId: 'save-1',
 			params: {},
 			uiSchema: savePageNode.uiSchema,
+			resolveSecret: emptyResolveSecret,
 		};
 
 		instance.ctxConnection.connect(of(ctx));
