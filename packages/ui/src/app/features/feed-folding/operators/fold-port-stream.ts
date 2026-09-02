@@ -1,4 +1,4 @@
-import { formatPortValue } from '../../sidebar/format-port-value';
+import { formatPortValue } from '../../../utils/format-port-value';
 import type { PortStreamItem, SequencedFrame } from '../types';
 
 type PortStreamFrame = Pick<

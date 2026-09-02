@@ -45,7 +45,7 @@ order). **Interrupt execution** instead of trying random fixes.
 | Edge chrome (select / hover / execution colours)     | `src/app/features/canvas/components/lf-edge-chrome.component.ts` + global `lf-edge.*` rules in `src/styles.scss`                             |
 | Back-edge route (two-node return wires)              | `back-edge-aware-orthogonal-routing.ts` + `is-back-edge.ts` / `build-below-route-points.ts`                                                  |
 | Editor shell (side panels + composer resize)         | `src/app/features/editor/components/editor-shell.component.ts`, `.../editor/utils/clamp-divider-positions.ts`                                |
-| Right sidebar (work log / node params)               | `src/app/features/sidebar/`                                                                                                                  |
+| Right sidebar (work log / node params)               | work log: `src/app/features/feed/`; inspector/settings: `src/app/features/sidebar/`                                                          |
 | Node definitions (shared)                            | `packages/common-nodes/src/**/node.ts` (`@langflower/common-nodes`)                                                                          |
 | Port type rules                                      | `packages/shared/src/validators/connection-validator.ts`                                                                                     |
 
@@ -62,9 +62,9 @@ order). **Interrupt execution** instead of trying random fixes.
   `editor.nodeSelected` (mirrors what `lf-inspector-panel.component.ts` already does)
   and swaps the two components in its right `<aside>` — see
   `packages/ui/src/app/features/editor/components/editor-shell.component.ts`.
-- Work log source: `WorkflowExecutionService.feedSections` (`packages/ui/src/app/services/workflow-execution.service.ts`),
-  a pure fold of `runner.output-emitted` + `executionFeed.snapshot` replay —
-  see `packages/ui/src/app/features/sidebar/feed-section.ts` and
+- Work log source: `ExecutionFeedService` (`packages/ui/src/app/features/feed-folding/`),
+  an append-only fold of `runner.output-emitted` + `executionFeed.snapshot` replay —
+  see `packages/ui/src/app/features/feed-folding/README.md` and
   [docs/features/feed-panel.md](../../../docs/features/feed-panel.md).
   Node params surface: [docs/features/inspector.md](../../../docs/features/inspector.md).
 - Partial run: a node's own feed sections from a prior `runId` are dropped

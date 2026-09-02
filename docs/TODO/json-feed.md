@@ -7,22 +7,22 @@
 
 - **Problem Statement:** Collapsed feed rows for technical (`data`) and tool/shell presentations show port labels only today; when users expand or when reasoning-style last-line preview applies to JSON values, `formatPortValue` pretty-prints multiline JSON — so a collapsed "last line" preview would show `}` instead of meaningful content. JSON object/array outputs need a sensible collapsed summary.
 - **User Prompt Source:** `for now feed log show last line of output while details are not expanded — for json it become '}' — should strip line breaks for json or show 'JSON' placeholder`
-- **External Context:** Feed presentation taxonomy in [Epic 37](../DONE/EPICS/37-deterministic-feed-fold.md) (reasoning last-line contract); formatter at [`format-port-value.ts`](../../packages/ui/src/app/features/sidebar/format-port-value.ts).
+- **External Context:** Feed presentation taxonomy in [Epic 37](../DONE/EPICS/37-deterministic-feed-fold.md) (reasoning last-line contract); formatter at [`format-port-value.ts`](../../packages/ui/src/app/utils/format-port-value.ts). Collapsed preview now lives in [`format-feed-collapsed-preview.ts`](../../packages/ui/src/app/features/feed/format-feed-collapsed-preview.ts).
 
 ## 2. Codebase Guardrails & Local Alignment
 
 - **Designated Base Folder:** `packages/ui/src/app/features/sidebar/`
 - **Target Directories:**
-    - `packages/ui/src/app/features/sidebar/format-port-value.ts` — new preview helper
-    - `packages/ui/src/app/features/sidebar/components/lf-work-log-panel.component.ts` — summary binding
-    - `packages/ui/src/app/features/sidebar/tests/format-port-value.test.ts` — unit tests
+    - `packages/ui/src/app/features/feed/format-feed-collapsed-preview.ts` — collapsed summary helper
+    - `packages/ui/src/app/features/feed/components/lf-work-log-panel.component.ts` — summary binding
+    - `packages/ui/src/app/features/feed/tests/format-feed-collapsed-preview.test.ts` — unit tests
 - **Architectural Patterns & Boilerplates Enforced:**
     - Keep `formatPortValue` for **expanded** body text (pretty JSON unchanged).
     - Add separate `formatFeedCollapsedPreview(value)` for `<summary>` lines only.
     - Pure functions — no bridge or fold changes for v1.
 - **Pattern & Boilerplate Reference Baseline:**
-    - [`format-port-value.ts`](../../packages/ui/src/app/features/sidebar/format-port-value.ts): `JSON.stringify(value, null, 2)` for objects — do not change for expanded view.
-    - [`lf-work-log-panel.component.ts`](../../packages/ui/src/app/features/sidebar/components/lf-work-log-panel.component.ts): `@default` template uses `port.portId` in summary for `data` — switch to preview helper; reasoning branch already uses truncated `itemText`.
+    - [`format-port-value.ts`](../../packages/ui/src/app/utils/format-port-value.ts): `JSON.stringify(value, null, 2)` for objects — do not change for expanded view.
+    - [`lf-work-log-panel.component.ts`](../../packages/ui/src/app/features/feed/components/lf-work-log-panel.component.ts): `@default` template uses `port.portId` in summary for `data` — switch to preview helper; reasoning branch already uses truncated `itemText`.
     - [`fold-port-stream.ts`](../../packages/ui/src/app/features/feed-folding/operators/fold-port-stream.ts): streaming merge uses full `formatPortValue` — leave unchanged.
 - **Third-Party Dependencies & Packages:** None.
 - **Frontend Presentation Strategy (If UI Affected):**

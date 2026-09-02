@@ -54,12 +54,15 @@ unmarked intermediate ports to conversation cards (or muted `data` rows).
 
 ### Collapsed technical block
 
-- Default: **`<details>` closed** — no Inputs dump (can be large).
+- Default: **`<details>` closed** — no Inputs dump (can be large). Closed
+  details keep only a capped summary in the DOM; the full `<pre>` body mounts
+  **after** the operator opens the row.
 - Layout: **node label** on its own line, then peek, then `details` summary.
 - Peek: while the last port is **active**, a fixed **4-line** pane (`h-[4lh]`)
   pinned to the bottom via CSS; when **settled**, collapse to **one** ellipsis
   line (`truncate` — no leftover 4-line empty height).
-- Disclose `details` → Inputs + full port history; collapse hides Inputs again.
+- Disclose `details` → Inputs + full port history; collapse unmounts that HTML
+  again.
 
 ### Growing port streams (event-sourced fold)
 
@@ -295,8 +298,28 @@ the active document’s node-id set changes with the workflow id.
   [`features/feed-folding/README.md`](../../packages/ui/src/app/features/feed-folding/README.md)
   — live frames fold into `FeedProjection` (never full-history remap per token);
   `execution-feed.service.ts` owns the production source;
-  `lf-work-log-panel.component.ts` renders with nested `async` pipes. Port
-  `state: 'error'` values remain feed data, not thrown stream errors.
+  `features/feed/` renders the work log (`lf-work-log-panel` + `lf-feed-row`).
+  The panel mounts a **sliding window** of header + item rows around
+  what is on screen (~10 viewports of pad above and below; a tall
+  visible row does not consume that pad) in a native scroll container —
+  not CDK autosize. Closed `<details>` mount the full dump only while open.
+  Stick-to-bottom is an explicit pin (default on): unpin only on user
+  scroll-up (wheel, touch, PageUp/Home/ArrowUp, scrollbar drag); layout
+  `scroll` must not unpin. The feed viewport is focusable so those keys
+  reach `(keydown)`. Home jumps to the oldest window; End / **↓ New events**
+  pin the tail. Native thumb scrolls the current window only; a row taller
+  than the panel scrolls inside the window. The window recenters when pad
+  on one side drops below ~2 viewports (wheel/keys/touch/scroll,
+  `auditTime` ~48 ms); thumb drag at the top or bottom of the slice
+  shifts one row that way every ~48 ms, then `pointerup` recenters once.
+  Edges of the slice show **rendering N of M items** while
+  older or newer rows exist outside the window.
+  ([ADR-037](../ADR.md#adr-037--work-log-sliding-measured-window);
+  narrative: [VIRTUAL_SCROLL.md](../VIRTUAL_SCROLL.md)).
+  While unpinned, new events do not move the window. A **visible and expanded** (or live peek / result bubble) huge
+  snapshot can still hitch the tab — very unlikely unless a node
+  **intentionally** emits a huge payload. Port `state: 'error'` values remain
+  feed data, not thrown stream errors.
 - Feed ↔ canvas highlight: `packages/ui/src/app/services/node-hover.service.ts`.
 - Shared control tooltips: `packages/ui/src/app/components/lf-hover-tip.component.ts`
   ([THEMES.md](../../packages/ui/docs/THEMES.md) § Buttons and tooltips).

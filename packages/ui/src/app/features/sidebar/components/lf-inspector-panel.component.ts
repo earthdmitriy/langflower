@@ -43,7 +43,7 @@ import { SelectedNodeProjectionService } from '../../../services/selected-node-p
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import { LfInlineFieldComponent } from '../../canvas/components/lf-inline-field.component';
 import { renderNodeDescriptionMarkdown } from '../../../utils/render-markdown.js';
-import { formatPortValue } from '../format-port-value';
+import { formatPortValue } from '../../../utils/format-port-value';
 import {
 	resolveModelsFieldPresentation,
 	type ModelsRefreshState,

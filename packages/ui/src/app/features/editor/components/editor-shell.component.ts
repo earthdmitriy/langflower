@@ -15,22 +15,22 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import type { DividerPositions } from '@langflower/shared/langflower';
 import { tap } from 'rxjs';
+import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
 import { EditorSettingsProjectionService } from '../../../services/editor-settings-projection.service';
-import { EditorPaletteVisibleProjectionService } from '../../palette/services/editor-palette-visible-projection.service';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { LangflowerConfigProjectionService } from '../../../services/langflower-config-projection.service';
 import { ModelsCatalogProjectionService } from '../../../services/models-catalog-projection.service';
 import { SelectedNodeProjectionService } from '../../../services/selected-node-projection.service';
 import { ThemeService } from '../../../services/theme.service';
 import { LfCanvasContainerComponent } from '../../canvas/components/lf-canvas-container.component';
+import { LfComposerShellComponent } from '../../composer/components/lf-composer-shell.component';
+import { LfWorkLogPanelComponent } from '../../feed/components/lf-work-log-panel.component';
 import { PaletteSidebarComponent } from '../../palette/components/palette-sidebar.component';
+import { EditorPaletteVisibleProjectionService } from '../../palette/services/editor-palette-visible-projection.service';
 import { LfInspectorPanelComponent } from '../../sidebar/components/lf-inspector-panel.component';
 import { LfSettingsPanelComponent } from '../../sidebar/components/lf-settings-panel.component';
-import { LfWorkLogPanelComponent } from '../../sidebar/components/lf-work-log-panel.component';
 import { ProjectDirComponent } from '../../topbar/components/project-dir.component';
 import { WorkflowTopbarComponent } from '../../topbar/components/workflow-topbar.component';
-import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
-import { LfComposerShellComponent } from '../../composer/components/lf-composer-shell.component';
 import {
 	clampDividerDrag,
 	clampDividerPositionsToViewport,
@@ -263,7 +263,7 @@ type MeasuredLayout = {
 							</section>
 						} @else {
 							<section
-								class="min-h-0 flex-1 overflow-hidden px-2 py-4"
+								class="min-h-0 flex-1 overflow-hidden px-2"
 							>
 								<lf-work-log-panel />
 							</section>

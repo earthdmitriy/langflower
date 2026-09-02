@@ -77,19 +77,80 @@ textarea {
 }
 
 /**
- * Hover linkage (work log ↔ canvas) — applied from `NodeHoverService` on the
- * consecutive same-`nodeId` row group wrapper (one strip per cluster).
+ * Hover linkage (work log ↔ canvas) — tint the `lf-feed-row` host. Consecutive
+ * hovered hosts join into one strip per node cluster.
  * Global because the feed lives in the sidebar, outside canvas encapsulation.
  * Chrome-only tint — background only, no border/outline
  * (`docs/use-cases/grok-feed.md` S4; `docs/features/feed-panel.md`).
  */
-.lf-feed-row--hovered {
+.lf-feed-viewport lf-feed-row.lf-feed-row--hovered {
 	border-radius: 0.5rem;
 	background-color: rgba(139, 92, 246, 0.1);
 }
 
-html[data-theme='dark'] .lf-feed-row--hovered {
+.lf-feed-viewport
+	lf-feed-row.lf-feed-row--hovered
+	+ lf-feed-row.lf-feed-row--hovered {
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+}
+
+.lf-feed-viewport
+	lf-feed-row.lf-feed-row--hovered:has(+ lf-feed-row.lf-feed-row--hovered) {
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+html[data-theme='dark'] .lf-feed-viewport lf-feed-row.lf-feed-row--hovered {
 	background-color: rgba(167, 139, 250, 0.12);
+}
+
+/**
+ * Feed list is a measured sliding window. Keep rows
+ * inside the sidebar; wide markdown wraps via `.lf-feed-md`.
+ */
+.lf-feed-viewport {
+	min-height: 0;
+	overflow-x: hidden;
+	overflow-y: auto;
+	overflow-anchor: none;
+	scroll-behavior: auto;
+}
+
+@layer components {
+	.lf-feed-viewport .lf-feed-window {
+		box-sizing: border-box;
+		width: 100%;
+		max-width: 100%;
+		min-height: min-content;
+	}
+
+	.lf-feed-md {
+		min-width: 0;
+		max-width: 100%;
+		overflow-wrap: anywhere;
+		word-break: break-word;
+	}
+
+	.lf-feed-md img,
+	.lf-feed-md svg,
+	.lf-feed-md video {
+		height: auto;
+		max-width: 100%;
+	}
+
+	.lf-feed-md pre,
+	.lf-feed-md code {
+		overflow-wrap: anywhere;
+		white-space: pre-wrap;
+		word-break: break-word;
+	}
+
+	.lf-feed-md table {
+		display: block;
+		max-width: 100%;
+		overflow-x: auto;
+	}
 }
 
 /**

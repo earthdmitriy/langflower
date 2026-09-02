@@ -24,7 +24,10 @@ import {
 	type FeedCatalog,
 } from '../../services/execution-catalog';
 import { hitlReplyReceived } from '../../services/hitl-projection';
-import { projectNodeFeed } from './operators/feed-folding-operators';
+import {
+	projectFeedRows,
+	projectNodeFeed,
+} from './operators/feed-folding-operators';
 import {
 	appendFeedFrame,
 	emptyFeedProjection,
@@ -34,6 +37,7 @@ import {
 import type {
 	FeedEventFromSource,
 	FeedBridgeSources,
+	FeedRow,
 	NodeFeedItem,
 	PermissionFeedEvent,
 	PortEventFromServer,
@@ -470,9 +474,9 @@ const foldComposer = (
 	return appendEntry(state, decision, asksById);
 };
 
-export const foldPortEventsToNodeFeed = (
+const composeFeedProjection = (
 	sources: FeedBridgeSources,
-): Observable<readonly NodeFeedItem[]> => {
+): Observable<FeedProjection> => {
 	const catalog$ = combineLatest([
 		sources.workflowSnapshot$,
 		combineLatest([
@@ -486,7 +490,7 @@ export const foldPortEventsToNodeFeed = (
 		shareReplay({ bufferSize: 1, refCount: true }),
 	);
 
-	const projection$ = merge(
+	return merge(
 		sources.executionFeedSnapshot$.pipe(
 			map((snapshot): FeedComposerAction =>
 				snapshot === null
@@ -528,6 +532,17 @@ export const foldPortEventsToNodeFeed = (
 		map((state) => state.projection),
 		shareReplay({ bufferSize: 1, refCount: true }),
 	);
+};
 
-	return projectNodeFeed(projection$);
+export const foldExecutionFeed = (
+	sources: FeedBridgeSources,
+): {
+	readonly nodeFeed$: Observable<readonly NodeFeedItem[]>;
+	readonly feedRows$: Observable<readonly FeedRow[]>;
+} => {
+	const projection$ = composeFeedProjection(sources);
+	return {
+		nodeFeed$: projectNodeFeed(projection$),
+		feedRows$: projectFeedRows(projection$),
+	};
 };

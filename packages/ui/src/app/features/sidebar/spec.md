@@ -65,7 +65,7 @@
     - Tailwind utility classes; native controls + `@angular/aria` for accessibility.
     - No `index.ts` barrels; import concrete paths.
 - **Pattern & Boilerplate Reference Baseline:**
-    - `packages/ui/src/app/features/sidebar/components/lf-work-log-panel.component.ts`:
+    - `packages/ui/src/app/features/feed/components/lf-work-log-panel.component.ts`:
       the work-log **timeline** renderer — shows folded `output-emitted` sections
       only. HITL controls do **not** render inside the timeline; the timeline is
       the chat history above the composer.
@@ -182,7 +182,7 @@
           (true once a **non-hitl** input on the node emitted `input-received`), and
           `isAwaitableHitlPort(...)`.
     - **Changed Files:**
-        - `packages/ui/src/app/features/sidebar/components/lf-work-log-panel.component.ts`:
+        - `packages/ui/src/app/features/feed/components/lf-work-log-panel.component.ts`:
           the work-log **timeline only** — HITL controls render in the composer
           (editor-shell), not inside the timeline. The timeline is the chat history
           above the composer.

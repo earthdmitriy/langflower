@@ -6,13 +6,15 @@
 ```text
 raw/cached bridge streams
   → composer scan (append-only FeedProjection)
-  → NodeFeedItem[]
-    10|      → node.foldedEventsFromPorts: PortEvent[]  (chronological segments)
-          → port.stream: PortStreamItem[]
+      → NodeFeedItem[]   (nested visits; tests / composer)
+      → FeedRow[]        (header + item; work-log window grain)
 ```
 
-There is no flat `FeedSection` or timeline projection. The work log unwraps with
-nested `async` pipes only.
+Visit grouping stays on `nodeFeed$`. The work log renders a sliding window
+over `feedRows$` (header + one row per visible port item) selected from the
+same projection — not a second fold of raw history. Measured window, pin,
+and recenter around the visible range: [ADR-037](../../../../../../docs/ADR.md#adr-037--work-log-sliding-measured-window),
+[VIRTUAL_SCROLL.md](../../../../../../docs/VIRTUAL_SCROLL.md).
 
 ## Hard rule — never re-fold history on a new event
 
@@ -226,11 +228,12 @@ bottom-aligned `overflow: hidden` pane.
 
 ## Input and output
 
-`foldPortEventsToNodeFeed` accepts `FeedBridgeSources` (cached snapshots + live
-runner/permission streams) and returns `Observable<readonly NodeFeedItem[]>`.
+`foldExecutionFeed` accepts `FeedBridgeSources` (cached snapshots + live
+runner/permission streams) and returns `{ nodeFeed$, feedRows$ }` from one
+shared projection.
 
 ```ts
-const nodeFeed$ = foldPortEventsToNodeFeed({
+const { nodeFeed$, feedRows$ } = foldExecutionFeed({
 	executionFeedSnapshot$,
 	outputEmitted$,
 	inputReceived$,
@@ -242,6 +245,10 @@ const nodeFeed$ = foldPortEventsToNodeFeed({
 });
 ```
 
+`nodeFeed$` is the nested visit tree (tests / composer). `feedRows$` flattens
+each visit into a header row plus one row per visible port item so the work
+log can window bubbles, not whole cards.
+
 Rules:
 
 - `executionFeed.snapshot` replaces history and rebuilds once;
@@ -252,7 +259,7 @@ Rules:
 - frames are never sorted, deduplicated, or timestamped locally.
 
 `ExecutionFeedService` injects the bridge, calls the composer, and exposes
-`nodeFeed$` only.
+`nodeFeed$` (nested visits) and `feedRows$` (window grain).
 
 ## Visits, nodes, and ports
 
@@ -295,18 +302,22 @@ synthetic `permission:<askId>` ports (`authority: 'server'`).
 
 ## Files
 
-| File                                     | Role                                           |
-| ---------------------------------------- | ---------------------------------------------- |
-| `types.ts`                               | Source / nested-output contracts               |
-| `operators/feed-projection.ts`           | Append-only visit/segment/item projection      |
-| `operators/fold-port-stream.ts`          | Per-frame port item fold                       |
-| `operators/feed-folding-operators.ts`    | Selectors over `projection$`                   |
-| `fold-port-events.ts`                    | Composer scan (history + catalog + projection) |
-| `execution-feed.service.ts`              | Angular entry                                  |
-| `tests/feed-projection.test.ts`          | Incremental append vs snapshot parity          |
-| `tests/fold-port-stream.test.ts`         | Port-item collapse                             |
-| `tests/execution-feed.service-*.test.ts` | Mock-bridge scenarios                          |
+| File                                     | Role                                                                |
+| ---------------------------------------- | ------------------------------------------------------------------- |
+| `types.ts`                               | Source / nested-output contracts                                    |
+| `operators/feed-projection.ts`           | Append-only visit/segment/item projection                           |
+| `operators/fold-port-stream.ts`          | Per-frame port item fold                                            |
+| `operators/feed-folding-operators.ts`    | Selectors over `projection$` (`projectNodeFeed`, `flattenFeedRows`) |
+| `fold-port-events.ts`                    | Composer scan (history + catalog + projection)                      |
+| `execution-feed.service.ts`              | Angular entry (`nodeFeed$` + `feedRows$`)                           |
+| `tests/feed-projection.test.ts`          | Incremental append vs snapshot parity                               |
+| `tests/flatten-feed-rows.test.ts`        | Header + item window grain                                          |
+| `tests/fold-port-stream.test.ts`         | Port-item collapse                                                  |
+| `tests/execution-feed.service-*.test.ts` | Mock-bridge scenarios                                               |
 
-Product UI behavior: [`docs/features/feed-panel.md`](../../../../../../docs/features/feed-panel.md).
-Execution wiring: [`docs/EXECUTION_ARCHITECTURE.md`](../../../../../../docs/EXECUTION_ARCHITECTURE.md)
-§ UI execution projections.
+Product UI: [`features/feed/components/lf-work-log-panel.component.ts`](../feed/components/lf-work-log-panel.component.ts)
+
+- [`lf-feed-row.component.ts`](../feed/components/lf-feed-row.component.ts);
+  behavior: [`docs/features/feed-panel.md`](../../../../../../docs/features/feed-panel.md).
+  Execution wiring: [`docs/EXECUTION_ARCHITECTURE.md`](../../../../../../docs/EXECUTION_ARCHITECTURE.md)
+  § UI execution projections.

@@ -201,10 +201,12 @@ Current features:
 - `canvas/` — diagram canvas, node rendering, viewport sync
 - `canvas-node-status-folding/` — per-node execution chrome (`status$` / `pulse$`)
 - `composer/` — HITL composer, drafts, permission asks, Pause
-- `editor/` — editor shell (composes canvas, palette, sidebar, composer)
+- `editor/` — editor shell (composes canvas, palette, feed, sidebar, composer)
+- `feed/` — work-log panel (visit timeline in the right sidebar);
+  sliding window: [VIRTUAL_SCROLL.md](../../docs/VIRTUAL_SCROLL.md)
 - `feed-folding/` — work-log nested feed projection
 - `palette/` — node palette sidebar, drag preview, node previews
-- `sidebar/` — work log, inspector, settings
+- `sidebar/` — inspector and settings
 - `topbar/` — workflow topbar, catalog management
 
 ## Entry Points
@@ -216,7 +218,8 @@ Current features:
 - `src/app/features/composer/composer.service.ts` — composer HITL, drafts,
   permission asks, Pause. Injects WES / feed / bridge. WES must not inject
   `ComposerService`.
-- `src/app/features/sidebar/` — work log, inspector, and settings slice.
+- `src/app/features/feed/` — work-log panel (right sidebar default).
+- `src/app/features/sidebar/` — inspector and settings slice.
 - `src/app/features/topbar/components/workflow-topbar.component.ts` — workflow catalog UI.
 - `src/app/services/langflower-bridge.service.ts` — typed bridge client owner.
 - `src/app/services/bridge-diagram.service.ts` — pure one-way persisted graph →

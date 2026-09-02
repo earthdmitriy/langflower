@@ -82,21 +82,21 @@ Last aligned with `catalog.ts`, use-cases README, and features README
 
 ### `@langflower/ui` — **partial**
 
-| Area                            | Status      | Path                                                                                                                                                        |
-| ------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Editor layout                   | **done**    | `features/editor/`                                                                                                                                          |
-| ngDiagram canvas                | **done**    | `features/canvas/`, `diagram/`                                                                                                                              |
-| Connection middleware           | **done**    | `diagram/connection-validation.middleware.ts`                                                                                                               |
-| Workflow ↔ diagram map          | **done**    | `diagram/workflow-diagram.mapper.ts`                                                                                                                        |
-| Inline node inputs              | **done**    | `features/canvas/node-inline-inputs.component.ts`                                                                                                           |
-| Typography / theme              | **done**    | `docs/TYPOGRAPHY.md`, `src/theme/`                                                                                                                          |
-| Palette                         | **done**    | `features/palette/`                                                                                                                                         |
-| Topbar / workflow chrome        | **partial** | `features/topbar/` + Settings gear (epic 18)                                                                                                                |
-| Right sidebar — feed (work log) | **partial** | `features/sidebar/` — chat-dense (epic 17) + hide unmarked (epic 43); [feed-panel](features/feed-panel.md), [grok-feed](use-cases/grok-feed.md) **Partial** |
-| Right sidebar — inspector       | **done**    | `lf-inspector-panel` — selection swap + post-Save LLM option rebind (epic 18; [inspector](features/inspector.md))                                           |
-| Right sidebar — Settings aside  | **partial** | Server-driven Settings; empty-provider Global open; [settings-panel](features/settings-panel.md)                                                            |
-| WebSocket + execution           | **done**    | `langflower-bridge.service.ts`, `workflow-execution.service.ts`                                                                                             |
-| WorkflowStore                   | **done**    | `services/workflow-store.service.ts`                                                                                                                        |
+| Area                            | Status      | Path                                                                                                                                                                                |
+| ------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Editor layout                   | **done**    | `features/editor/`                                                                                                                                                                  |
+| ngDiagram canvas                | **done**    | `features/canvas/`, `diagram/`                                                                                                                                                      |
+| Connection middleware           | **done**    | `diagram/connection-validation.middleware.ts`                                                                                                                                       |
+| Workflow ↔ diagram map          | **done**    | `diagram/workflow-diagram.mapper.ts`                                                                                                                                                |
+| Inline node inputs              | **done**    | `features/canvas/node-inline-inputs.component.ts`                                                                                                                                   |
+| Typography / theme              | **done**    | `docs/TYPOGRAPHY.md`, `src/theme/`                                                                                                                                                  |
+| Palette                         | **done**    | `features/palette/`                                                                                                                                                                 |
+| Topbar / workflow chrome        | **partial** | `features/topbar/` + Settings gear (epic 18)                                                                                                                                        |
+| Right sidebar — feed (work log) | **partial** | `features/feed/` + `features/feed-folding/` — chat-dense (epic 17) + hide unmarked (epic 43); [feed-panel](features/feed-panel.md), [grok-feed](use-cases/grok-feed.md) **Partial** |
+| Right sidebar — inspector       | **done**    | `lf-inspector-panel` — selection swap + post-Save LLM option rebind (epic 18; [inspector](features/inspector.md))                                                                   |
+| Right sidebar — Settings aside  | **partial** | Server-driven Settings; empty-provider Global open; [settings-panel](features/settings-panel.md)                                                                                    |
+| WebSocket + execution           | **done**    | `langflower-bridge.service.ts`, `workflow-execution.service.ts`                                                                                                                     |
+| WorkflowStore                   | **done**    | `services/workflow-store.service.ts`                                                                                                                                                |
 
 ### `langflower` CLI — **done** (compose layer)
 

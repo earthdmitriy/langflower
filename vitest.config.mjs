@@ -195,6 +195,7 @@ export default defineConfig({
 					include: [
 						'packages/**/src/**/*.test.ts',
 						'packages/server/skeleton/nodes/hello-embed/**/*.test.ts',
+						'demo-project/.langflower/nodes/civitai/**/*.test.ts',
 						'tests/unit/**/*.test.ts',
 					],
 					exclude: ['packages/runtime/src/v2/**'],

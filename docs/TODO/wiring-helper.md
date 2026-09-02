@@ -24,7 +24,7 @@
 - **Pattern & Boilerplate Reference Baseline:**
     - [`execution-run-gate-fold.ts`](../../packages/ui/src/app/services/execution-run-gate-fold.ts): `createIsRunning$` fold.
     - [`workflow-execution.service.ts`](../../packages/ui/src/app/services/workflow-execution.service.ts): `isRunning` signal exposed to components.
-    - [`lf-work-log-panel.component.ts`](../../packages/ui/src/app/features/sidebar/components/lf-work-log-panel.component.ts): precedent — Clear disabled when `isRunning`.
+    - [`lf-work-log-panel.component.ts`](../../packages/ui/src/app/features/feed/components/lf-work-log-panel.component.ts): precedent — Clear disabled when `isRunning`.
     - [`apply-editor-mutation.ts`](../../packages/server/src/workflow/apply-editor-mutation.ts) lines 604–610: `isGraphLocked()` rejects addEdge.
     - [`flow-canvas.component.ts`](../../packages/ui/src/app/features/canvas/components/flow-canvas.component.ts): ngDiagram config + edge draw handlers.
 - **Third-Party Dependencies & Packages:** None.

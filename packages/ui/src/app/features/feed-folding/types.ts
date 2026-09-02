@@ -155,6 +155,39 @@ export type NodeFeedItem = {
 	readonly foldedEventsFromPorts: Observable<readonly PortEvent[]>;
 };
 
+/** Visit title row for the work-log sliding window. */
+type FeedHeaderRow = {
+	readonly kind: 'header';
+	readonly rowId: string;
+	readonly visitId: string;
+	readonly nodeId: string;
+	readonly runId: RunId;
+	readonly isClosed: boolean;
+	/** False for the first visit — later headers get cluster gap above. */
+	readonly isFirstVisit: boolean;
+	/** True when the visit tail is a recovery row (hide `working…`). */
+	readonly hasLiveRecovery: boolean;
+};
+
+/** One port-stream item (bubble / details / peek) as a window row. */
+export type FeedItemRow = {
+	readonly kind: 'item';
+	readonly rowId: string;
+	readonly visitId: string;
+	readonly nodeId: string;
+	readonly runId: RunId;
+	readonly isClosed: boolean;
+	/** Last visible segment in the visit (live peek / streaming… chrome). */
+	readonly isLastSegment: boolean;
+	readonly isLastInVisit: boolean;
+	readonly isLiveRecovery: boolean;
+	readonly segmentId: string;
+	readonly portId: string;
+	readonly item: PortStreamItem;
+};
+
+export type FeedRow = FeedHeaderRow | FeedItemRow;
+
 export type FeedBridgeSources = {
 	readonly executionFeedSnapshot$: Observable<ExecutionFeedSnapshotPayload | null>;
 	readonly runnerPort$: Observable<PortTelemetry>;

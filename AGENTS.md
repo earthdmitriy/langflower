@@ -25,6 +25,7 @@ Start with [PRODUCT](docs/PRODUCT.md), then the relevant feature/use-case doc.
 | [LLM_RECOVERY](docs/LLM_RECOVERY.md)                               | Stuck stream / dead-loop recovery (idle, autokick)         |
 | [EMBEDDING](docs/EMBEDDING.md)                                     | OpenAI embeddings vs chat (`encoding_format`, EmbedHandle) |
 | [TESTING](docs/TESTING.md)                                         | Unit/API/integration tests                                 |
+| [VIRTUAL_SCROLL](docs/VIRTUAL_SCROLL.md)                           | Work-log window: why CDK autosize failed, current slice    |
 | [STATUS](docs/STATUS.md)                                           | Implemented versus stubbed                                 |
 | [FOUND_BUGS](docs/FOUND_BUGS.md)                                   | Reproduced bugs and design lessons                         |
 | [TODO](docs/TODO/README.md) / [DONE](docs/DONE/README.md)          | Queued / completed plans                                   |

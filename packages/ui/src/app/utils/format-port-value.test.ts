@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatPortValue } from '../format-port-value';
+import { formatPortValue } from './format-port-value';
 
 describe('formatPortValue', () => {
 	it('passes strings through unchanged', () => {
