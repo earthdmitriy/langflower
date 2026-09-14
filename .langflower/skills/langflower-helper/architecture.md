@@ -5,7 +5,8 @@ this file over inventing infrastructure.
 
 ## What it is
 
-- Local, **project-scoped** coding agent.
+- Local, **folder-scoped reactive node graph**. The LLM is a node, not the
+  product.
 - The **workflow graph** is the pipeline law (hard harness): stages and edges
   are authored; the model does not freely skip QA/review/gates outside the
   graph.
@@ -77,9 +78,19 @@ Project product data for Langflower lives under **`.langflower/`**.
 - LLM / agent nodes use **skills** and harness tools as wired in the graph.
 - **Sub-Agent** is an **explicit canvas node** for control and observability
   (own toolLog/response). Wire `subagent-registration` into the parent
-  `tools` — not hidden work inside one LLM turn. Optional **Tool collection**
+  `tools` — not hidden work inside one LLM turn. The announced tool is
+  `{name}(subagent)` (`toolId` slug `Name_subagent`). Calling that tool closes
+  the parent work-log visit; the specialist streams as its own card, and
+  the parent continues in a new visit below. Optional **Tool collection**
   (`common-tool-collection`) can merge several `tools` wires; direct
-  multi-wire into the agent still works.
+  multi-wire into the agent still works. **Tool invoke**
+  (`common-tool-invoke`) calls one wired handle by `toolId` + JSON `args`
+  with no LLM. **Tool inspect** (`common-tool-inspect`) dumps copy-paste
+  `toolId` / example args / `inputSchema` from the same wire (optional
+  inspect `toolId` filters the dump; Preview cannot take
+  `tool-handle`). Extra empty canvas slots on
+  `multi` ports (`feedback` merge, `tools` combine) and Router channels
+  (`ch` / `ch@1`) are intentional fan-in — not cloned ports.
 - **Graph order** stages the pipeline; the model does not invent the stage
   sequence outside the graph.
 - Project memory / wiki create is **queue-driven**: index with harness `glob`,
@@ -91,13 +102,19 @@ Project product data for Langflower lives under **`.langflower/`**.
 
 - Custom nodes use the same **`@langflower/node-sdk`** path as built-ins.
 - **TypeScript** is first-class; `tsc` / IDE types act as compile-time gates.
-  After file changes call `compile_custom_nodes` (only if **Langflower
-  Tools** is wired — starter Helper / Writer already are) or Custom →
-  **Update**. Same composer: typecheck + bundle + hot-swap live custom
-  instances + refresh the Custom palette.
+  `langflower start` compiles packs. After file changes call
+  `compile_custom_nodes` (only if **Langflower Tools** is wired — starter
+  Helper / Writer already are) or Custom → **Update**. Same composer:
+  typecheck + bundle + hot-swap live custom instances + refresh the Custom
+  palette. Pack `from './x.ts'` needs `allowImportingTsExtensions` +
+  `noEmit` in pack `tsconfig.json` or `tsc --noEmit` fails (hello-embed seed).
   Stop is not required for already-placed custom types.
   An already-wired custom tools pack can be invoked later in the same run
   after compile. Do not auto-place or auto-wire a new type mid-run.
+  Tool handlers return short pass/fail text (not raw logs). Exclusive
+  `ok`/`fail` gates: seed pulse is boolean `true` on `ok`; continue-the-graph
+  gates passthrough `trigger` (`inferTypeFrom`). No shell Cap on public
+  `ExecutionContext` yet.
 - Plain JS / Go / Python are not the authoring path. Sandboxed arbitrary
   user-node execution is **not** shipped. Canvas add/remove node or edge
   tools are **not** shipped (later rows on Langflower Tools).
@@ -105,7 +122,9 @@ Project product data for Langflower lives under **`.langflower/`**.
 ## What stays local
 
 - No required cloud account for Langflower itself.
-- Secrets via config / `{env:VAR}`; Settings does not reveal a saved API key.
+- Secrets via config / `{env:VAR}` or Settings → Global → Secrets
+  (`langflower.secrets.json`); Settings does not reveal a saved API key or
+  named secret value.
 - Provider calls leave the machine when the user configures a remote provider —
   that is expected LLM traffic, not a Langflower cloud login wall.
 

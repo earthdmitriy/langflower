@@ -1,29 +1,30 @@
 {
-	"$schema": "../schemas/workflow.schema.json",
 	"metadata": {
-		"name": "Simple coder",
+		"name": "Langflower dev",
 		"description": "Plan (+ Researcher) → coder (+ Worker) with HITL loops and shared Memory Tools. Product coding smoke spine (successor intent to basic-coder). Configure a provider before running.",
 		"createdAt": "2026-07-24T00:00:00.000Z",
-		"updatedAt": "2026-08-05T16:14:41.418Z"
+		"updatedAt": "2026-09-14T20:45:05.385Z"
 	},
 	"graph": {
 		"viewport": {
-			"x": -87.54590555669785,
-			"y": -12.974709392232825,
-			"scale": 0.7169036842821539,
-			"width": 719.0625,
-			"height": 1005.328125
+			"x": -67.66329497671421,
+			"y": 23.962930199398475,
+			"scale": 0.5733598031724505,
+			"width": 800.96875,
+			"height": 789.328125
 		},
 		"nodes": [
 			{
 				"id": "goal",
 				"type": "common-chat-input",
 				"params": {},
-				"inputs": {},
+				"inputs": {
+					"message": "tools observability\n\nactual:\nin feed multiple tool calls hidden behind 'Tool' label\n\nexpected:\neach tool call have tool name visible + shortened args\ntool response expanded on click"
+				},
 				"ui": {
 					"position": {
-						"x": 40,
-						"y": 220
+						"x": -180,
+						"y": 320
 					},
 					"label": "Goal"
 				}
@@ -35,8 +36,8 @@
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 40,
-						"y": 40
+						"x": -180,
+						"y": 0
 					},
 					"label": "Memory Tools"
 				}
@@ -56,7 +57,9 @@
 				"ui": {
 					"position": {
 						"x": 320,
-						"y": 220
+						"y": 220,
+						"width": 197.59632240943,
+						"height": 540
 					},
 					"label": "Plan"
 				}
@@ -97,7 +100,7 @@
 				"ui": {
 					"position": {
 						"x": 320,
-						"y": 960
+						"y": 800
 					},
 					"label": "Researcher"
 				}
@@ -132,8 +135,10 @@
 				},
 				"ui": {
 					"position": {
-						"x": 1080,
-						"y": 200
+						"x": 820,
+						"y": 220,
+						"width": 232.2597629308783,
+						"height": 540
 					},
 					"label": "Coder"
 				}
@@ -173,8 +178,8 @@
 				},
 				"ui": {
 					"position": {
-						"x": 1080,
-						"y": 960
+						"x": 820,
+						"y": 820
 					},
 					"label": "Worker"
 				}
@@ -186,8 +191,8 @@
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 640,
-						"y": 760
+						"x": 560,
+						"y": 620
 					}
 				}
 			},
@@ -198,8 +203,8 @@
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 1380,
-						"y": 760
+						"x": 1120,
+						"y": 800
 					}
 				}
 			},
@@ -210,8 +215,8 @@
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 1940,
-						"y": 800
+						"x": 1400,
+						"y": 920
 					}
 				}
 			},
@@ -222,8 +227,8 @@
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 740,
-						"y": 40
+						"x": 620,
+						"y": 120
 					}
 				}
 			},
@@ -234,36 +239,89 @@
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 1640,
-						"y": 800,
+						"x": 1100,
+						"y": 1020,
 						"width": 188.875,
 						"height": 141.0625
+					}
+				}
+			},
+			{
+				"id": "95166fc7-2d83-4f83-9329-c8299a37acd6",
+				"type": "common-tool-collection",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 40,
+						"y": 20
+					}
+				}
+			},
+			{
+				"id": "487f50cd-4f74-4e54-bfc3-ec1041ae7ab3",
+				"type": "common-mcp-stdio",
+				"params": {},
+				"inputs": {
+					"command": "npx ts-scan --mcp"
+				},
+				"ui": {
+					"position": {
+						"x": -220,
+						"y": 80
+					}
+				}
+			},
+			{
+				"id": "f4618159-a44b-475b-8d1d-ed46e9fa1ea5",
+				"type": "lf-dev-tools",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": -140,
+						"y": 220
+					}
+				}
+			},
+			{
+				"id": "e758e0dc-34af-4980-9bd6-20190d1d0fdf",
+				"type": "lf-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 40,
+						"y": 360
+					}
+				}
+			},
+			{
+				"id": "bf94ed79-aadf-41f5-9ae2-6c781bbe6cba",
+				"type": "lf-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 1120,
+						"y": 620
+					}
+				}
+			},
+			{
+				"id": "400d1d7f-f81c-487f-8704-2d3cd21d3a1b",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 60,
+						"y": 520
 					}
 				}
 			}
 		],
 		"edges": [
-			{
-				"edgeId": "e-goal-plan",
-				"fromNodeId": "goal",
-				"fromPort": ["message", 0],
-				"toNodeId": "plan",
-				"toPort": ["userPrompt", 0]
-			},
-			{
-				"edgeId": "e-mem-plan",
-				"fromNodeId": "memory-tools",
-				"fromPort": ["tools", 0],
-				"toNodeId": "plan",
-				"toPort": ["tools", 0]
-			},
-			{
-				"edgeId": "e-mem-researcher",
-				"fromNodeId": "memory-tools",
-				"fromPort": ["tools", 0],
-				"toNodeId": "researcher",
-				"toPort": ["tools", 0]
-			},
 			{
 				"edgeId": "0001374a-48f7-4251-8760-535f0ee8060b",
 				"fromNodeId": "plan",
@@ -284,41 +342,6 @@
 				"fromPort": ["response", 0],
 				"toNodeId": "coder",
 				"toPort": ["userPrompt", 0]
-			},
-			{
-				"edgeId": "5647d587-512e-4c04-968c-c0f2c866163a",
-				"fromNodeId": "coder",
-				"fromPort": ["response", 0],
-				"toNodeId": "dcf00a52-7d55-4242-8dac-3896414e5d88",
-				"toPort": ["result", 0]
-			},
-			{
-				"edgeId": "cdb627b9-60ba-4c59-9f7c-6e8828ae907c",
-				"fromNodeId": "dcf00a52-7d55-4242-8dac-3896414e5d88",
-				"fromPort": ["feedback", 0],
-				"toNodeId": "coder",
-				"toPort": ["feedback", 0]
-			},
-			{
-				"edgeId": "9078315a-1b02-4ce9-a976-2326a317bf2a",
-				"fromNodeId": "memory-tools",
-				"fromPort": ["tools", 0],
-				"toNodeId": "d80650bf-8250-488c-9773-b2f0622517b8",
-				"toPort": ["ch", 0]
-			},
-			{
-				"edgeId": "a1619a9f-c0b4-4eab-a9db-ff36e5a45961",
-				"fromNodeId": "d80650bf-8250-488c-9773-b2f0622517b8",
-				"fromPort": ["ch", 0],
-				"toNodeId": "coder",
-				"toPort": ["tools", 0]
-			},
-			{
-				"edgeId": "59638f55-bf1f-4345-b711-87c9bef04639",
-				"fromNodeId": "d80650bf-8250-488c-9773-b2f0622517b8",
-				"fromPort": ["ch", 0],
-				"toNodeId": "worker",
-				"toPort": ["tools", 0]
 			},
 			{
 				"edgeId": "6561ab66-3218-4870-a5af-bffc1b0f1f67",
@@ -354,6 +377,111 @@
 				"fromPort": ["subagent-registration", 0],
 				"toNodeId": "coder",
 				"toPort": ["tools", 1]
+			},
+			{
+				"edgeId": "f84721d5-4783-48ab-ade6-67ba3356be51",
+				"fromNodeId": "memory-tools",
+				"fromPort": ["tools", 0],
+				"toNodeId": "95166fc7-2d83-4f83-9329-c8299a37acd6",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "4787183b-bd88-437c-bbf8-88f5a06cdfb9",
+				"fromNodeId": "95166fc7-2d83-4f83-9329-c8299a37acd6",
+				"fromPort": ["tools", 0],
+				"toNodeId": "d80650bf-8250-488c-9773-b2f0622517b8",
+				"toPort": ["ch", 0]
+			},
+			{
+				"edgeId": "787db41d-347d-4e87-922f-ac08d2bdb6c2",
+				"fromNodeId": "95166fc7-2d83-4f83-9329-c8299a37acd6",
+				"fromPort": ["tools", 0],
+				"toNodeId": "researcher",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "b0921520-0ec7-45a1-9c91-92af185c28f4",
+				"fromNodeId": "95166fc7-2d83-4f83-9329-c8299a37acd6",
+				"fromPort": ["tools", 0],
+				"toNodeId": "plan",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "e5fee411-eae2-4689-92ad-793d53ecd487",
+				"fromNodeId": "487f50cd-4f74-4e54-bfc3-ec1041ae7ab3",
+				"fromPort": ["tools", 0],
+				"toNodeId": "95166fc7-2d83-4f83-9329-c8299a37acd6",
+				"toPort": ["tools", 1]
+			},
+			{
+				"edgeId": "4acae34c-6ee3-45c5-b919-d6c4375b9e76",
+				"fromNodeId": "f4618159-a44b-475b-8d1d-ed46e9fa1ea5",
+				"fromPort": ["tools", 0],
+				"toNodeId": "95166fc7-2d83-4f83-9329-c8299a37acd6",
+				"toPort": ["tools", 2]
+			},
+			{
+				"edgeId": "dd0c24b6-6a1d-41a7-9ec1-2d9021ed891f",
+				"fromNodeId": "d80650bf-8250-488c-9773-b2f0622517b8",
+				"fromPort": ["ch", 0],
+				"toNodeId": "coder",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "8b3bfbaf-9b56-42ce-a019-0844be31cfda",
+				"fromNodeId": "d80650bf-8250-488c-9773-b2f0622517b8",
+				"fromPort": ["ch", 0],
+				"toNodeId": "worker",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "d43c290c-2b9b-42b6-9839-da811d67294a",
+				"fromNodeId": "goal",
+				"fromPort": ["message", 0],
+				"toNodeId": "e758e0dc-34af-4980-9bd6-20190d1d0fdf",
+				"toPort": ["trigger", 0]
+			},
+			{
+				"edgeId": "12a7c7aa-bb3c-4abf-94e6-3ce080d25070",
+				"fromNodeId": "e758e0dc-34af-4980-9bd6-20190d1d0fdf",
+				"fromPort": ["ok", 0],
+				"toNodeId": "plan",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "dc14e2d0-c67e-4a45-a883-d49eee113ec9",
+				"fromNodeId": "coder",
+				"fromPort": ["response", 0],
+				"toNodeId": "bf94ed79-aadf-41f5-9ae2-6c781bbe6cba",
+				"toPort": ["trigger", 0]
+			},
+			{
+				"edgeId": "587d2e8e-c13c-4029-9850-fd04ff0b8474",
+				"fromNodeId": "bf94ed79-aadf-41f5-9ae2-6c781bbe6cba",
+				"fromPort": ["ok", 0],
+				"toNodeId": "dcf00a52-7d55-4242-8dac-3896414e5d88",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "2520c371-9b9b-426c-98de-01f96d031a30",
+				"fromNodeId": "bf94ed79-aadf-41f5-9ae2-6c781bbe6cba",
+				"fromPort": ["fail", 0],
+				"toNodeId": "coder",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "07f4efca-ab05-4ecb-a112-1b904892d08e",
+				"fromNodeId": "dcf00a52-7d55-4242-8dac-3896414e5d88",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "coder",
+				"toPort": ["feedback", 1]
+			},
+			{
+				"edgeId": "afdae614-a5c9-4f22-84dd-3d6392a28cf4",
+				"fromNodeId": "e758e0dc-34af-4980-9bd6-20190d1d0fdf",
+				"fromPort": ["fail", 0],
+				"toNodeId": "400d1d7f-f81c-487f-8704-2d3cd21d3a1b",
+				"toPort": ["value", 0]
 			}
 		]
 	}

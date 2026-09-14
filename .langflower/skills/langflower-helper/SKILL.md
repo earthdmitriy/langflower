@@ -54,11 +54,15 @@ On-demand only (not auto-injected). Use harness `read`:
 
 ### 1. Product
 
-- **Can:** Local, project-scoped coding agent. The **workflow graph** is the
-  pipeline law (hard harness) — stages and edges are authored, not chosen
-  ad hoc by the model each turn.
+- **Can:** Local, folder-scoped **reactive node graph**. The LLM is a node,
+  not the product. The **workflow graph** is the pipeline law (hard harness)
+  — stages and edges are authored, not chosen ad hoc by the model each turn.
+  Extend with **MCP** and **skills**, plus **custom nodes** for graph
+  processing or custom tools via the same **ToolHandle** contract as built-ins.
 - **Cannot:** Require a cloud account. Let the model skip graph stages
-  (QA/review/gates) by “deciding what’s next” outside the graph.
+  (QA/review/gates) by “deciding what’s next” outside the graph. Claim
+  serializable **chat sessions**, **image/video** asset management for
+  multimodal models, or a built-in **IDE / git UI**.
 
 ### 2. Project layout and bootstrap
 
@@ -67,11 +71,13 @@ templates in the skeleton are **already usable** once copied into the project �
 do not say coding pipelines “don’t exist” or are unavailable.
 
 - **Can:** `langflower start [project-dir]` (default port **4010**) creates
-  `.langflower/`, config, `instructions.md`, pack `nodes/my-nodes/`, skills
+  `.langflower/`, config, `instructions.md`, packs `nodes/my-nodes/` and
+  `nodes/hello-embed/`, skills
   `langflower-helper`, `langflower-node-writer`, and
   `langflower-workflow-writer`, and opens workflow **`starter`** first.
 - **Can:** Skeleton already ships coding and KB sample workflows
-  (`simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`, …). With a
+  (`simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`,
+  `kb-ingest`, `kb-manual-search`, `kb-tool`, `kb-rag`, …). With a
   provider configured, they are seeded on first-run → load → composer **Start**.
 - **Can:** Second `langflower start` on an existing `.langflower/` **reuses**
   it as-is (no wipe).
@@ -88,10 +94,12 @@ do not say coding pipelines “don’t exist” or are unavailable.
 ### 3. Skeleton and samples
 
 - **Can:** First-run seed = config + **all** skeleton workflows (including
-  `starter`, coding samples, `kb-create`, `kb-navigate`) + three skills +
-  `my-nodes` + instructions.
+  `starter`, coding samples, `kb-create`, `kb-navigate`, `kb-ingest`,
+  `kb-manual-search`, `kb-tool`, `kb-rag`) + three skills + `my-nodes` +
+  `hello-embed` + instructions.
 - **Can:** Skeleton inventory includes `node-writer`, `agents-dialog`,
-  `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate` (and other
+  `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`,
+  `kb-ingest`, `kb-manual-search`, `kb-tool`, `kb-rag` (and other
   samples under `packages/server/skeleton/` / demo-project).
 - **Cannot:** Claim a Sample workflows **catalog UI** (browse / help /
   one-click copy) is shipped.
@@ -109,16 +117,57 @@ do not say coding pipelines “don’t exist” or are unavailable.
   onboarding copy (add OpenAI-compatible provider; Fake LLM / simple nodes
   still work).
 - **Cannot:** Treat Settings as the selected-node inspector (ports/params).
-- **Cannot:** Reveal a saved API key in the UI.
+- **Cannot:** Reveal a saved API key or named secret value in the UI.
+- **Can:** Settings → **Global** → **Secrets** stores named tokens in
+  user-global `langflower.secrets.json` (not the project). Disclaimer:
+  those Langflower files can still be read — not encryption; the goal is
+  to keep them out of workspace file tools. MCP http / jsonc `mcp.servers`
+  http `headers` may use `{lf_secrets:ID}` or `{env:VAR}` (interpolated at
+  connect; UI never redisplays the value).
+
+### 4b. Embeddings
+
+- **Can:** Settings **Default embedding model** (`embedding: "providerId/modelId"`);
+  palette **Embeddings** — `common-embed-text`, `common-embed-similarity`,
+  `common-embed-provider`; custom packs wire **`embed`** (`EmbedHandle` from
+  `@langflower/node-sdk`); server binds embedding HTTP — packs never see
+  `apiKey`. Manual check: String → Embed text → Preview on **`preview`**.
+  Sample pack **`hello-embed`**: ingest project `.md` → sqlite (vectors + FTS5);
+  hybrid retrieve (cosine + keyword, RRF) packs **Question + full-chunk Context**
+  for `hello-embed-search` / `project_search`.
+  Workflows `kb-ingest` / `kb-manual-search` / `kb-tool` / `kb-rag`. Needs
+  the default embedding model (`langflower start` compiles the pack). Copy
+  the pack for a different corpus — see `nodes/hello-embed/README.md`.
+- **Cannot:** Treat embeddings as a host catalog feature. Use **`EmbedHandle`**
+  (not `ToolHandle`) for batch float vectors. hello-embed sqlite lives under
+  `.langflower/.cache/hello-embed/`.
+
+### 4c. Primitives and paced split
+
+- **Can:** Palette **Primitives** include String, **String (multiline)**
+  (`common-string-multiline`, textarea), Number, Boolean. **Text** includes
+  Concat, Read/Write/Append File, and **Split (paced)** (`common-split-paced`)
+  — one non-empty chunk per `trigger` (first ASAP; `finish` after the last;
+  CSV / logs line-by-line). Not the planned one-shot Split (`parts[]`).
 
 ### 5. Editor chrome
 
 - **Can:** Chat Input graphs start from the composer **Start** control. Plain
-  **Run** stays disabled for those graphs.
+  **Run** stays disabled for those graphs. Prefill or last typed text lives on
+  the Chat Input node (`inputs.message`) and reappears after Stop.
 - **Can:** While running — Hard **Stop**, soft **Pause**, HITL and
-  `permission.ask` in the composer.
+  `permission.ask` in the composer. Work log **clears** on successful
+  workflow load / create / copy (not rename).
+- **Cannot:** Switch, rename, delete, copy, or create a workflow while a run
+  is active — Stop first. Same lock: inspector / canvas inline / palette
+  drag (`cursor-not-allowed`).
 - **Cannot:** Tell users to press plain **Run** to start a Chat Input graph.
 - **Cannot:** Claim the feed after reload must be **richer** than live.
+- **Can:** Work log shows opted-in roles (`reasoning` / `draft` / `result` /
+  tools / `progress`) plus Finish **`done`** and Preview content as result
+  bubbles. Unmarked ports and `feed.role: 'none'` are omitted.
+- **Cannot:** Claim unmarked plumbing (`prompt` / `value` wires) appears as
+  muted technical rows — use the inspector for those values.
 - **Cannot:** Claim `basic-coder` proves chat-dense mood for the full
   `coding-agent` pipeline.
 
@@ -130,18 +179,43 @@ do not say coding pipelines “don’t exist” or are unavailable.
   cleaned graph. Catalog list still shows the file (metadata-only).
 - **Cannot:** Silently rewrite disk on load. Invent port renames — only drop.
 
+### 5c. Multi input ports
+
+Extra empty handles on a node are **one logical port** authored with `multi`
+(`merge` / `combine` / `zip`). Wiring a slot **grows a trailing empty slot**
+on that same port so you can connect another source. Leave the empty row
+unwired — it is not a duplicate Helper, not a second node, and not a bug.
+
+- **Can (starter Helper `feedback`):** `multi: 'merge'` — several sources can
+  kick a new agent turn. Example: Review Gate HITL **and** `common-review`
+  auto-review.
+- **Can (starter Helper `tools`):** `multi: 'combine'` — several packs land on
+  one agent. Example: Langflower Tools **and** Writer Sub-Agent. Optional
+  **Tool collection** (`common-tool-collection`) can still merge wires first;
+  direct multi-wire still works.
+- **Can (Router):** `common-router` uses the same extra-slot growth for
+  channels (`ch` / `ch@1` / …) so many edges stay readable.
+- **Cannot:** Claim every port grows this way — `userPrompt` / `systemPrompt`
+  stay single. Claim the empty slot must be wired. Equate `merge` (each emit
+  is a turn) with `combine` (inventory array) with `zip` (lockstep, e.g.
+  Concat).
+
 ### 6. Coding workflows
 
-| Name           | Fact                                                                                                                                                                                                                                                                                              |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `starter`      | Onboarding chat + this skill + Writer Sub-Agent (`langflower-workflow-writer` + `langflower-node-writer`) — default open after seed                                                                                                                                                               |
-| Skeleton stubs | `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`, … seeded on first-run; with provider → Start                                                                                                                                                                                        |
-| `simple-coder` | Plan⇄HITL→Coder⇄HITL→Finish smoke spine + `common-memory-tools` on Plan/Coder/Researcher/Worker; Researcher Sub-Agent under Plan, Worker under Coder — **not** full multi-loop `coding-agent`                                                                                                     |
-| `kb-create`    | Memory / project wiki create: Orchestrator **indexes** the repo with `glob`/`read`, persists `history/work-queue.md`, then **serially** calls Explorer → Composer **one unit at a time**; `common-memory-tools` writes `core/*` + `modules/*`; Review rejects non-empty Pending or thin overviews |
-| `kb-navigate`  | Memory navigate: Navigator + Searcher + memory tree/grep/section tools; HITL Review Gate for follow-ups                                                                                                                                                                                           |
-| `basic-coder`  | Basic coding harness (Plan⇄HITL→Coder⇄HITL→Finish) — not a toy, **not** full multi-loop `coding-agent`                                                                                                                                                                                            |
-| `coding-agent` | Clarify HITL → red team → plan gate → coder → QA → `common-review` → result HITL; **graph** orders stages                                                                                                                                                                                         |
-| Status         | Use-case **Partial**; real-LLM Implementable bar open; Fake CI ≠ end-user proof — **not** “no templates”                                                                                                                                                                                          |
+| Name               | Fact                                                                                                                                                                                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `starter`          | Onboarding chat + this skill + Writer Sub-Agent (`langflower-workflow-writer` + `langflower-node-writer`) — default open after seed                                                                                                                                                               |
+| Skeleton stubs     | `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`, `kb-ingest`, `kb-manual-search`, `kb-tool`, `kb-rag`, … seeded on first-run; with provider → Start                                                                                                                                  |
+| `simple-coder`     | Plan⇄HITL→Coder⇄HITL→Finish smoke spine + `common-memory-tools` on Plan/Coder/Researcher/Worker; Researcher Sub-Agent under Plan, Worker under Coder — **not** full multi-loop `coding-agent`                                                                                                     |
+| `kb-create`        | Memory / project wiki create: Orchestrator **indexes** the repo with `glob`/`read`, persists `history/work-queue.md`, then **serially** calls Explorer → Composer **one unit at a time**; `common-memory-tools` writes `core/*` + `modules/*`; Review rejects non-empty Pending or thin overviews |
+| `kb-navigate`      | Memory navigate: Navigator + Searcher + memory tree/grep/section tools; HITL Review Gate for follow-ups                                                                                                                                                                                           |
+| `kb-ingest`        | Sample **hello-embed** ingest (Settings embedding model; pack compiles on `langflower start`)                                                                                                                                                                                                     |
+| `kb-manual-search` | Sample hello-embed query → Preview / Finish                                                                                                                                                                                                                                                       |
+| `kb-tool`          | Sample hello-embed `project_search` ToolHandle → agent                                                                                                                                                                                                                                            |
+| `kb-rag`           | Simplified RAG: hybrid retrieve packs Question + full chunks into the LLM; `project_search` + grep/read; Review feedback / Approve → Finish                                                                                                                                                       |
+| `basic-coder`      | Basic coding harness (Plan⇄HITL→Coder⇄HITL→Finish) — not a toy, **not** full multi-loop `coding-agent`                                                                                                                                                                                            |
+| `coding-agent`     | Clarify HITL → red team → plan gate → coder → QA → `common-review` → result HITL; **graph** orders stages                                                                                                                                                                                         |
+| Status             | Use-case **Partial**; real-LLM Implementable bar open; Fake CI ≠ end-user proof — **not** “no templates”                                                                                                                                                                                          |
 
 ### 7. Run lifecycle
 
@@ -167,6 +241,11 @@ These four are **not** the same thing.
   still works. System MCP from `langflower.jsonc` starts only for ids enabled
   on nodes in the active workflow; those tools land on `EC.toolHandles`,
   never as raw config.
+- **Can:** Call a wired MCP / pack tool from the graph with **Tool invoke**
+  (`common-tool-invoke`: `tools` + `toolId` + JSON `args` → `result`). **Tool
+  inspect** (`common-tool-inspect`) prints copy-paste `toolId`, example
+  args, and `inputSchema` from the same `tools` wire (optional inspect
+  `toolId` filters the dump). No LLM required on that path.
 - **Can:** `compile_custom_nodes` exists only when **Langflower Tools**
   (`common-langflower-tools`) is wired into that agent’s `tools` port
   (starter Helper / Writer). Same intent as Custom → **Update**. Recompile
@@ -180,6 +259,8 @@ These four are **not** the same thing.
   unlock” as the product model (use graph stages / tool profiles). All
   `mcp.servers` always start. Agent sees raw MCP config instead of handles.
   Equating a checkbox allowlist with runtime allow — use the permission table.
+  Preview (`common-preview`) showing a `tool-handle` wire — use **Tool
+  inspect**.
 
 ### 9. Sub-Agent and swarm
 
@@ -188,10 +269,12 @@ Sub-Agent is an **explicit canvas node** for **control and observability**
 
 - **Can:** First-class Sub-Agent node. Wire Sub-Agent
   `subagent-registration` → parent `tools` (one edge). The parent calls the
-  specialist tool with a `task`
-  (optional `skillId` from the Inspector Skills enum). Default swarm invokes
-  are **serial**. Wiki/memory create (`kb-create`) uses **serial** scoped
-  specialist calls driven by a persisted work queue — not parallel
+  specialist tool (`Writer(subagent)` / `toolId` `Writer_subagent`) with a
+  `task`
+  (optional `skillId` from the Inspector Skills enum). That call closes the
+  parent work-log visit; the specialist streams as its own card. Default swarm
+  invokes are **serial**. Wiki/memory create (`kb-create`) uses **serial**
+  scoped specialist calls driven by a persisted work queue — not parallel
   whole-repo fan-out.
 - **Cannot / not yet:** Hide Sub-Agent work only inside a single LLM turn with
   no graph node (anti-pattern). Parallel fan-out as the **default**. Nested
@@ -208,8 +291,9 @@ Sub-Agent is an **explicit canvas node** for **control and observability**
   `kb-create` (index with `glob` → `history/work-queue.md` → serial
   Explorer/Composer units into `core/*` + `modules/*`) and `kb-navigate`.
   Managed markdown under `.langflower/memory/` (also reachable with harness
-  file tools). No vector KB / embedding as base
-  ([ADR-033](../../../../../docs/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
+  file tools). **Embeddings** catalog nodes + Settings default embedding model
+  are shipped for API checks and pack **`EmbedHandle`** wiring — separate from
+  vector KB ([ADR-033](../../../../../docs/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
   Obsidian vault helpers are **not** shipped (TBD-007).
 - **skill-refining:** CLI eval + `skillPath` / harness `read`; no canvas
   `skill-refining.json` demo.
@@ -228,13 +312,15 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
   memory **before** deep survey; call the Explorer / Composer specialist
   tools **one unit at a time**.
 - **Cannot:** Recommend one LLM that “reads the whole repo once and dumps a
-  wiki”. Claim vector/embedding KB as base. Claim Obsidian vault helpers as
-  shipped.
+  wiki”. Claim Obsidian vault helpers as shipped. For semantic search over
+  markdown, point at **hello-embed** (`kb-ingest` / `kb-rag`) rather than
+  inventing catalog embedding-KB nodes.
 
 ### 11. Custom nodes
 
 - **Can:** **TypeScript** via `@langflower/node-sdk` — first-class language;
-  `tsc` / IDE types act as compile-time validators. After file changes call
+  `tsc` / IDE types act as compile-time validators. **`langflower start`**
+  compiles packs under `.langflower/nodes/`. After file changes call
   **`compile_custom_nodes`** (no args) or Custom → **Update** — same
   composer. On starter you already have the tool (Langflower Tools wired).
   Stop is not required for already-placed custom types (hot-swap).
@@ -243,6 +329,21 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
   auto-place or auto-wire them mid-run.
   Packs under `.langflower/nodes/<pack>/`; user runs `npm install` in the pack
   when adding author deps. See `instructions.md` and `nodes/my-nodes/README.md`.
+  Pack `tsconfig.json` gates compile (`tsc --noEmit`). `from './file.ts'`
+  requires `"allowImportingTsExtensions": true` next to `"noEmit": true`
+  (hello-embed); otherwise the pack does not compile. Extensionless imports
+  (`my-nodes`) do not need the flag. Relative `from './lib/x'` without a
+  suffix fails NodeNext `tsc` (`TS2835`) — use `.ts` + the flag for
+  multi-file packs, or keep one-file nodes with no local imports.
+  Sibling folders under `.langflower/nodes/` with their own `package.json`
+  are extra packs (no jsonc registration).
+  LLM tool `handler`s return short **strings** (expected failures as text,
+  not throws). Do not dump raw subprocess logs at the model.
+  Exclusive `ok` / `fail` gates are **`defineReactiveNode`**. Seed
+  `review-gate` uses a boolean **pulse** on `ok`. If the next stage needs
+  the original payload, `ok` **passthroughs `trigger`** (`inferTypeFrom`)
+  — not `boolean` `true`. A formatter rewrite may be a side effect that
+  does **not** fail the gate.
   Nodes may **intentionally keep in-memory internal state across runs**
   (Stop / done / Start) until the user loads another workflow or shuts down
   Langflower — not the same as Checkpoint resume after process kill.
@@ -251,6 +352,9 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
   Ambient compile without Langflower Tools wired. Canvas add/remove node or
   edge tools (not shipped). Claim that every node always resets on Stop, or
   that in-memory node state survives process restart without Checkpoints.
+  `defineNode` for exclusive `ok` / `fail`. Boolean `true` on a gate `ok`
+  that should continue the graph. Shell Cap on public `ExecutionContext`
+  (seed demos use `child_process`). Hanging `start` / `dev` / watch tools.
 
 ### 11a. Recipe — write / reload a custom node
 
@@ -259,7 +363,9 @@ When the user asks to add or change a custom node from this starter chat:
 1. Call Writer (or edit `.langflower/nodes/<pack>/*.ts` yourself).
 2. Call **`compile_custom_nodes`** (no args). Report `status` / `nodeTypes` /
    `errors` from the tool text. Pack failures also write
-   `COMPILATION_ERRORS.md`.
+   `COMPILATION_ERRORS.md`. If tsc rejects `.ts` import paths, add
+   `allowImportingTsExtensions` next to `noEmit` in the pack `tsconfig.json`
+   (copy hello-embed), then compile again.
 3. **Already on the canvas** → live now, no Stop. **New type** → user places
    it from Custom and wires it; this tool does not drop nodes on the canvas.
 4. If a custom tools pack is already wired into this agent, you may call those

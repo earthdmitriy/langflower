@@ -111,6 +111,10 @@ Project product data for Langflower lives under **`.langflower/`**.
   Stop is not required for already-placed custom types.
   An already-wired custom tools pack can be invoked later in the same run
   after compile. Do not auto-place or auto-wire a new type mid-run.
+  Tool handlers return short pass/fail text (not raw logs). Exclusive
+  `ok`/`fail` gates: seed pulse is boolean `true` on `ok`; continue-the-graph
+  gates passthrough `trigger` (`inferTypeFrom`). No shell Cap on public
+  `ExecutionContext` yet.
 - Plain JS / Go / Python are not the authoring path. Sandboxed arbitrary
   user-node execution is **not** shipped. Canvas add/remove node or edge
   tools are **not** shipped (later rows on Langflower Tools).

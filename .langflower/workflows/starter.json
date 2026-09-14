@@ -4,14 +4,14 @@
 		"name": "Starter",
 		"description": "Chat loop with an onboarding agent (skill langflower-helper) plus a Writer Sub-Agent (workflow-writer + node-writer). After bootstrap — product capabilities, workflows, editor chrome, and custom nodes.",
 		"createdAt": "2026-07-24T00:00:00.000Z",
-		"updatedAt": "2026-08-17T19:48:40.018Z"
+		"updatedAt": "2026-09-14T20:01:15.371Z"
 	},
 	"graph": {
 		"viewport": {
-			"x": 240.31491198748387,
-			"y": -373.23462597021984,
-			"scale": 1.0397603508596425,
-			"width": 702.1875,
+			"x": 73.13289388020833,
+			"y": 176.2667236328125,
+			"scale": 0.85,
+			"width": 749.921875,
 			"height": 1005.328125
 		},
 		"nodes": [
@@ -22,8 +22,8 @@
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 40,
-						"y": 40
+						"x": -20,
+						"y": 620
 					},
 					"label": "Langflower Tools"
 				}
@@ -32,7 +32,9 @@
 				"id": "chat",
 				"type": "common-chat-input",
 				"params": {},
-				"inputs": {},
+				"inputs": {
+					"message": "give me overview of this project"
+				},
 				"ui": {
 					"position": {
 						"x": 40,
@@ -106,8 +108,8 @@
 				},
 				"ui": {
 					"position": {
-						"x": -100,
-						"y": 720
+						"x": 280,
+						"y": 1020
 					},
 					"label": "Writer"
 				}

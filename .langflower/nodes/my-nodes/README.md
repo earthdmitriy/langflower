@@ -17,7 +17,10 @@ its own `package.json`.
     git-diff-tool.ts        ← export default defineToolRegistrations({…})
     review-gate.ts          ← export default defineReactiveNode({…})
     # add more *.ts files as needed
-  other-pack/               ← optional second shareable pack
+  hello-embed/              ← seeded sibling sample (markdown vectors)
+    package.json
+    ingest.ts / search.ts / search-handle.ts
+  other-pack/               ← optional extra shareable pack
     package.json
     …
 ```
@@ -53,6 +56,7 @@ and RxJS stay external.
 ## Author API
 
 Prefer **`defineNode`** for sync/Promise nodes (no RxJS in the author file).
+Async `execute` already stamps pending on outputs — do not call `withLoading`.
 
 Use **`defineToolRegistrations`** when the node should emit LLM-callable
 `ToolHandle`s on a `tools` port (wire into an agent / LLM `tools` input).
@@ -190,8 +194,14 @@ TypeScript is your friend: it catches many mistakes in the **IDE** and at
 - Prefer fixing those errors in the editor over “happy path” runtime debugging
   (start workflow → wait → guess which node broke).
 
-`tsconfig.json` here is for IDE highlight and `tsc --noEmit`. Keep using it
-even though Langflower bundles with esbuild for load.
+`tsconfig.json` here is for IDE highlight and `tsc --noEmit` (Langflower’s
+pack compile gate). Keep using it even though Langflower bundles with esbuild
+for load.
+
+If this pack (or a sibling) uses **explicit `.ts` import paths**
+(`from './lib/x.ts'`), add `"allowImportingTsExtensions": true` next to
+`"noEmit": true`. Copy `hello-embed/tsconfig.json`. Without the flag the
+pack does not compile. Extensionless imports (this seed) do not need it.
 
 ## Add a node
 

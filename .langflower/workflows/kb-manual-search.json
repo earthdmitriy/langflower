@@ -1,0 +1,105 @@
+{
+	"$schema": "../schemas/workflow.schema.json",
+	"metadata": {
+		"name": "KB manual search",
+		"description": "Sample embedding search: run KB ingest first, set Settings default embedding model. Edit the Query string and Run. Hits preview as text; JSON hits stop the run.",
+		"createdAt": "2026-08-26T00:00:00.000Z",
+		"updatedAt": "2026-08-26T00:00:00.000Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 0,
+			"y": 0,
+			"scale": 1,
+			"width": 1200,
+			"height": 700
+		},
+		"nodes": [
+			{
+				"id": "query",
+				"type": "common-string",
+				"params": {},
+				"inputs": {
+					"value": "project layout"
+				},
+				"ui": {
+					"position": { "x": 40, "y": 160 },
+					"label": "Query"
+				}
+			},
+			{
+				"id": "embed-provider",
+				"type": "common-embed-provider",
+				"params": {
+					"providerId": "",
+					"model": ""
+				},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 40, "y": 320 },
+					"label": "Embed provider"
+				}
+			},
+			{
+				"id": "search",
+				"type": "hello-embed-search",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 320, "y": 200 },
+					"label": "Search"
+				}
+			},
+			{
+				"id": "preview",
+				"type": "common-preview",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 620, "y": 80 },
+					"label": "Preview"
+				}
+			},
+			{
+				"id": "done",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 620, "y": 320 },
+					"label": "Finish"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-query-search",
+				"fromNodeId": "query",
+				"fromPort": ["value", 0],
+				"toNodeId": "search",
+				"toPort": ["query", 0]
+			},
+			{
+				"edgeId": "e-embed-search",
+				"fromNodeId": "embed-provider",
+				"fromPort": ["embed", 0],
+				"toNodeId": "search",
+				"toPort": ["embed", 0]
+			},
+			{
+				"edgeId": "e-search-preview",
+				"fromNodeId": "search",
+				"fromPort": ["text", 0],
+				"toNodeId": "preview",
+				"toPort": ["text", 0]
+			},
+			{
+				"edgeId": "e-search-done",
+				"fromNodeId": "search",
+				"fromPort": ["hits", 0],
+				"toNodeId": "done",
+				"toPort": ["value", 0]
+			}
+		]
+	}
+}

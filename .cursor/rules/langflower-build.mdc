@@ -20,15 +20,18 @@ bash build/run.sh <command>
 |---------|------|
 | `build-all` | Full monorepo build |
 | `build-package <key>` | Single package (`shared`, `server`, `ui`, `cli`) |
-| `typecheck` | Verify types without emit |
+| `typecheck` | Verify types without emit (full monorepo; **required on finish**) |
 | `clean` | Remove `dist/`, `.angular/` |
 | `install` | `npm install` with formatted errors |
 | `format` | Prettier write; `--check` to verify |
 | `lint` | ESLint; `--fix` to auto-fix |
 | `test` | Vitest — pass `--unit`, `--integration`, or `--watch` |
-| `verify` | `build-all` + unit + integration (`--quick` = unit only; **not** DoD) |
+| `verify` | `build-all` + unit + integration (`--quick` = unit only; **not** DoD). Does **not** typecheck. |
 
-Or: `npm run format`, `npm run lint`, `npm run test`, `npm run verify`
+Finishing work requires **both** full `typecheck` and `test` / `verify`.
+Package-only typecheck and `verify --quick` are intermediate only.
+
+Or: `npm run typecheck`, `npm run format`, `npm run lint`, `npm run test`, `npm run verify`
 
 Agent shortcuts: `bash build/tools/<task>.sh` (e.g. `verify.sh`, `test.sh --integration`)
 

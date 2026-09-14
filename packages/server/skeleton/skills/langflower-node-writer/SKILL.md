@@ -49,6 +49,75 @@ You help the user write **custom nodes** for Langflower.
   custom types. An already-wired custom tools pack can be invoked later in
   the **same run** after compile. Failures land in `COMPILATION_ERRORS.md`
   in that pack.
+- Sibling packs: any folder under `.langflower/nodes/` with its own
+  `package.json` is discovered (no `langflower.jsonc` registration). Seed
+  `my-nodes` is the default; extra packs sit next to it (`hello-embed`).
+
+## Author patterns (do not invent forks)
+
+### Factory
+
+| Need                                                                        | Factory                   | Not                                                  |
+| --------------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------- |
+| One `execute` result on **all** outputs together                            | `defineNode`              | Exclusive `ok` / `fail`                              |
+| LLM-callable `ToolHandle[]` on a `tools` port                               | `defineToolRegistrations` | `defineNode` that returns inventory as a string wire |
+| Emit on one port and **stay silent** on the other; streams; `inferTypeFrom` | `defineReactiveNode`      | `defineNode`                                         |
+
+**Wrong:** a review / QA gate with `defineNode` that returns `{ ok: true }`
+or throws on failure. `execute` maps onto every declared output at once.
+Throwing is a node error stream — it does **not** drive a separate `fail`
+branch. **Right:** `defineReactiveNode` + `of` / `EMPTY` (seed
+`review-gate.ts`).
+
+### Multi-file imports
+
+Pack `tsconfig` is NodeNext. Relative `from './lib/x'` **without** a suffix
+fails `tsc` (`TS2835`). Either keep one-file nodes with no local imports
+(seed `git-diff.ts`) **or** `from './lib/x.ts'` plus
+`"allowImportingTsExtensions": true` next to `"noEmit": true` (copy
+`hello-embed/tsconfig.json`).
+
+### LLM tools (`defineToolRegistrations`)
+
+- `handler` returns `Promise<string>`. Expected command / test failure is
+  **text to the model**, not `throw`. Throw only for contract (empty
+  `ctx.projectDir`).
+- Agent-facing text is a **short signal**: success → one line `ok  <toolId>`.
+  Failure → failed tests / `TS####` / ESLint errors only. Strip ANSI. Drop
+  `✓`, coverage tables, npm lifecycle banners, raw stdout dumps. When
+  slicing an `Issues:` block, do **not** use `$` with the `/m` flag (that
+  is end-of-line, so the match stops after the first line).
+- No shell Cap on public `ExecutionContext` yet — `child_process` like seed
+  `git-diff-tool.ts`. `shell: true` only with an **allowlisted literal**
+  (`npm run format`); never splice user paths into a shell string. Resolve
+  user paths under `ctx.projectDir` and reject `..` escapes.
+- Do not register hanging processes (`start`, `dev`, `test:watch`) as tools.
+
+### QA / review gates (`defineReactiveNode`)
+
+- Exclusive ports: pass → emit on `ok`, silent `fail`; fail → emit on
+  `fail`, silent `ok`.
+- Two honest `ok` shapes — pick from the graph, do not mix them:
+    - **Pulse** — seed `review-gate.ts` emits `boolean` `true`
+      (`wireType: 'boolean'`). Downstream only needs “passed”.
+    - **Passthrough** — when the next stage must keep the original payload:
+      `configureOutput('ok', ok$, { inferTypeFrom: trigger })`. Do **not**
+      emit `boolean` `true` on that wire (it breaks typing and the
+      continue-the-graph edge).
+- `fail` is a **string** (prefer stripped tool-handler text, not raw
+  stderr dumps).
+- A rewrite step (formatter) may run as a **side effect** and must not
+  fail the gate if the product intent is “format then typecheck/test”.
+  Typecheck / tests may fail the gate and skip later steps.
+
+### Tests
+
+Pack compile **skips** `*.test.ts`. Drive nodes with
+`createNodeHarness` from `@langflower/node-sdk/testing`. Subscribe to
+exclusive `ok` / `fail` **before** `send('trigger')` or you miss the
+emission. Mock `child_process` — do not spawn a real monorepo `build`
+from a unit test. Host `npm test` only sees pack tests if the project
+Vitest config **includes** that glob; do not assume it.
 
 ## When drafting a node
 

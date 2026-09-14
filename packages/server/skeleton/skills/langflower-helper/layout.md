@@ -43,15 +43,15 @@ Facts for UI chrome and on-disk paths. Prefer this file over guessing.
 
 ## On-disk `.langflower/` map
 
-| Path               | Role                                                                                          |
-| ------------------ | --------------------------------------------------------------------------------------------- |
-| `langflower.jsonc` | Providers, secrets refs, project config                                                       |
-| `workflows/`       | Saved workflow graphs                                                                         |
-| `skills/`          | Agent skills (`langflower-helper/`, `langflower-node-writer/`, `langflower-workflow-writer/`) |
-| `nodes/`           | Custom node packs (`my-nodes/`, sample `hello-embed/`)                                        |
-| `instructions.md`  | Project-level agent instructions                                                              |
-| `runs/`            | Run artifacts / checkpoints when created                                                      |
-| `logs/`            | Server bridge diagnostic JSONL logs when the server runs                                      |
+| Path               | Role                                                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `langflower.jsonc` | Providers, secrets refs, project config                                                                                               |
+| `workflows/`       | Saved workflow graphs                                                                                                                 |
+| `skills/`          | Agent skills (`langflower-helper/`, `langflower-node-writer/`, `langflower-workflow-writer/`)                                         |
+| `nodes/`           | Custom node packs — one folder / `package.json` each (`my-nodes/`, sample `hello-embed/`, extra sibling packs; no jsonc registration) |
+| `instructions.md`  | Project-level agent instructions                                                                                                      |
+| `runs/`            | Run artifacts / checkpoints when created                                                                                              |
+| `logs/`            | Server bridge diagnostic JSONL logs when the server runs                                                                              |
 
 ## Out of chrome
 

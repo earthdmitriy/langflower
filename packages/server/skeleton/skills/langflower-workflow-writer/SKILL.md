@@ -14,8 +14,8 @@ You help the user **author valid Langflower workflow JSON** under
 ## Honesty (do not invent)
 
 - Use only **catalog** node `type` strings that exist in the project palette /
-  common-nodes. Do **not** invent types (e.g. there is no `common-hitl` —
-  use `common-hitl-review-gate`).
+  common-nodes **or compiled custom packs**. Do **not** invent types (e.g.
+  there is no `common-hitl` — use `common-hitl-review-gate`).
 - Use only **real port ids** from each node’s definition / `NODE.md`. Wrong
   ports are stripped on load (graceful repair) — inventing ports breaks the
   graph.
@@ -79,6 +79,19 @@ Typical HITL revise loop:
 
 Do **not** feed Merge output into both gates and LLM feedback on every tick
 without a clear phase split.
+
+## Custom QA / review gates
+
+Custom exclusive-branch nodes (`defineReactiveNode`, seed `review-gate.ts`):
+
+- in **`trigger`** (dynamic)
+- out **`ok`** — **pulse** (`boolean` `true`, seed) **or** **passthrough of
+  `trigger`** (`inferTypeFrom`) when the next stage must keep the payload
+- out **`fail`** — string (stripped errors) → Preview / LLM `feedback`
+
+Do **not** emit boolean `true` on `ok` if the downstream graph needs the
+trigger payload. Do not use `defineNode` that returns `{ ok: true }` for
+this shape (`execute` cannot stay silent on `fail`).
 
 ## Sub-Agent (one registration wire)
 

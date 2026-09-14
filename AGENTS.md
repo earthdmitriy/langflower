@@ -132,27 +132,36 @@ Canvas-only incidents may also belong in
 Use `.cursor/skills/langflower-build/SKILL.md`.
 
 ```bash
+npm run typecheck
 npm run test
+node build/tools/agent-run.mjs typecheck
 node build/tools/agent-run.mjs verify
 node build/tools/agent-run.mjs verify --quick
 node build/tools/agent-run.mjs dead-code
 node build/tools/agent-run.mjs check-exports
 ```
 
-**Hard gate — do not skip.** Work is **not finished** until `npm run test`
-passes in full (unit **and** integration). Agents must not:
+**Hard gate — do not skip.** Work is **not finished** until **both** pass:
+
+- `npm run typecheck` or `node build/tools/agent-run.mjs typecheck` (all
+  packages)
+- `npm run test` or full `verify` (unit **and** integration)
+
+`verify` / `npm run test` do **not** run `tsc`. Agents must not:
 
 - Treat `verify --quick` / unit-only as enough to close a feature
-- Put `verify --quick` (or focused vitest alone) as the sole **Verify / DoD**
-  step in a plan — intermediate only; close-out must be full `npm run test` or
-  full `verify` (see `.cursor/rules/plan-verify-dod.mdc`)
+- Treat green `verify` / `npm run test` as a typecheck
+- Put `verify --quick`, focused vitest, or tests without typecheck as the sole
+  **Verify / DoD** step in a plan — intermediate only; close-out must be full
+  typecheck **and** `npm run test` or full `verify` (see
+  `.cursor/rules/plan-verify-dod.mdc`)
 - Skip, disable, `.skip`, or narrow the suite to hide failures
-- Declare done while any test file or case still fails
+- Declare done while typecheck or any test file or case still fails
 - Blame flakes and stop without reproducing and fixing (or asking the user)
 
 Execution, WebSocket, bootstrap, agent, or HITL changes require integration
-coverage; see [TESTING](docs/TESTING.md). Prefer `npm run test` or full
-`verify` before finishing.
+coverage; see [TESTING](docs/TESTING.md). Prefer `npm run typecheck` and
+`npm run test` or full `verify` before finishing.
 
 `langflower start` and `npm run dev` are long-running on port 4010. Prefer
 one-shot verification. If a manual server was needed, stop it before finishing
@@ -169,7 +178,7 @@ unless the user explicitly asked to leave it running.
   [`.cursor/rules/ts-scan-code-intelligence.mdc`](.cursor/rules/ts-scan-code-intelligence.mdc).
   If ts-scan is disabled or unavailable, ask the user to re-enable it; do not
   silently fall back to Grep for symbol lookup. Use full build gates
-  (`npm run test` / `verify`) for project-wide proof.
+  (`npm run typecheck` and `npm run test` / `verify`) for project-wide proof.
 
 ## When stuck — ask
 

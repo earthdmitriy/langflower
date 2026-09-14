@@ -160,7 +160,10 @@ describe('bridge-types compile-time contracts', () => {
 		}>();
 
 		expectTypeOf<WsBridgeServerIncoming<DiagramWsConfig>>().toMatchTypeOf<{
-			readonly 'edge.create.requested': Observable<EdgeConnectionPayload>;
+			readonly 'edge.create.requested': Observable<{
+				readonly clientId: string;
+				readonly payload: EdgeConnectionPayload;
+			}>;
 		}>();
 
 		expectTypeOf<WsBridgeServerOutgoing<DiagramWsConfig>>().toMatchTypeOf<{

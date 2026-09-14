@@ -41,10 +41,6 @@ client['edge.create.requested'].next(
 // server -> client broadcast
 server['edge.create.command'].next({
 	edgeId: 'edge-1',
-	fromNodeId: 'source',
-	fromPortId: 'result',
-	toNodeId: 'target',
-	toPortId: 'input',
 });
 
 server['session.ready'].next({ version: 1 });

@@ -1,0 +1,88 @@
+{
+	"$schema": "../schemas/workflow.schema.json",
+	"metadata": {
+		"name": "KB ingest",
+		"description": "Sample embedding ingest: set Settings default embedding model, then Run. common-embed-provider fans out embed into hello-embed-ingest. Progress streams in the feed; finish stops the run.",
+		"createdAt": "2026-08-26T00:00:00.000Z",
+		"updatedAt": "2026-08-26T00:00:00.000Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 0,
+			"y": 0,
+			"scale": 1,
+			"width": 1100,
+			"height": 700
+		},
+		"nodes": [
+			{
+				"id": "trigger",
+				"type": "common-boolean",
+				"params": {},
+				"inputs": {
+					"value": true
+				},
+				"ui": {
+					"position": { "x": 40, "y": 160 },
+					"label": "Start"
+				}
+			},
+			{
+				"id": "embed-provider",
+				"type": "common-embed-provider",
+				"params": {
+					"providerId": "",
+					"model": ""
+				},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 40, "y": 320 },
+					"label": "Embed provider"
+				}
+			},
+			{
+				"id": "ingest",
+				"type": "hello-embed-ingest",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 320, "y": 200 },
+					"label": "Ingest"
+				}
+			},
+			{
+				"id": "done",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 620, "y": 200 },
+					"label": "Finish"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-trigger-ingest",
+				"fromNodeId": "trigger",
+				"fromPort": ["value", 0],
+				"toNodeId": "ingest",
+				"toPort": ["trigger", 0]
+			},
+			{
+				"edgeId": "e-embed-ingest",
+				"fromNodeId": "embed-provider",
+				"fromPort": ["embed", 0],
+				"toNodeId": "ingest",
+				"toPort": ["embed", 0]
+			},
+			{
+				"edgeId": "e-ingest-done",
+				"fromNodeId": "ingest",
+				"fromPort": ["finish", 0],
+				"toNodeId": "done",
+				"toPort": ["value", 0]
+			}
+		]
+	}
+}

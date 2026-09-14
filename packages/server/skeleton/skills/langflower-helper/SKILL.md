@@ -332,7 +332,18 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
   Pack `tsconfig.json` gates compile (`tsc --noEmit`). `from './file.ts'`
   requires `"allowImportingTsExtensions": true` next to `"noEmit": true`
   (hello-embed); otherwise the pack does not compile. Extensionless imports
-  (`my-nodes`) do not need the flag.
+  (`my-nodes`) do not need the flag. Relative `from './lib/x'` without a
+  suffix fails NodeNext `tsc` (`TS2835`) — use `.ts` + the flag for
+  multi-file packs, or keep one-file nodes with no local imports.
+  Sibling folders under `.langflower/nodes/` with their own `package.json`
+  are extra packs (no jsonc registration).
+  LLM tool `handler`s return short **strings** (expected failures as text,
+  not throws). Do not dump raw subprocess logs at the model.
+  Exclusive `ok` / `fail` gates are **`defineReactiveNode`**. Seed
+  `review-gate` uses a boolean **pulse** on `ok`. If the next stage needs
+  the original payload, `ok` **passthroughs `trigger`** (`inferTypeFrom`)
+  — not `boolean` `true`. A formatter rewrite may be a side effect that
+  does **not** fail the gate.
   Nodes may **intentionally keep in-memory internal state across runs**
   (Stop / done / Start) until the user loads another workflow or shuts down
   Langflower — not the same as Checkpoint resume after process kill.
@@ -341,6 +352,9 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
   Ambient compile without Langflower Tools wired. Canvas add/remove node or
   edge tools (not shipped). Claim that every node always resets on Stop, or
   that in-memory node state survives process restart without Checkpoints.
+  `defineNode` for exclusive `ok` / `fail`. Boolean `true` on a gate `ok`
+  that should continue the graph. Shell Cap on public `ExecutionContext`
+  (seed demos use `child_process`). Hanging `start` / `dev` / watch tools.
 
 ### 11a. Recipe — write / reload a custom node
 

@@ -14,8 +14,8 @@ You help the user **author valid Langflower workflow JSON** under
 ## Honesty (do not invent)
 
 - Use only **catalog** node `type` strings that exist in the project palette /
-  common-nodes. Do **not** invent types (e.g. there is no `common-hitl` —
-  use `common-hitl-review-gate`).
+  common-nodes **or compiled custom packs**. Do **not** invent types (e.g.
+  there is no `common-hitl` — use `common-hitl-review-gate`).
 - Use only **real port ids** from each node’s definition / `NODE.md`. Wrong
   ports are stripped on load (graceful repair) — inventing ports breaks the
   graph.
@@ -57,8 +57,10 @@ Schema: `.langflower/schemas/workflow.schema.json`. Samples:
 | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `common-chat-input`                     | out `message` (no wireable in)                                                                                                                                                                                         |
 | `common-openai-llm` / `common-fake-llm` | in `userPrompt`, `systemPrompt`, `feedback`, `tools`; out `response`, `toolLog`, …                                                                                                                                     |
-| `common-mcp-stdio` / `common-mcp-http`  | out **`tools`** — wire into an agent `tools` port (not a separate `mcp` port)                                                                                                                                          |
+| `common-mcp-stdio` / `common-mcp-http`  | out **`tools`** — wire into an agent `tools` port (not a separate `mcp` port). MCP http in **`headers`**: JSON object/string; `{lf_secrets:ID}` / `{env:VAR}` OK                                                       |
 | `common-tool-collection`                | in **`tools`** (multi combine) → out **`tools`** — optional hub; duplicate `toolId` last-wins. Direct pack → agent still OK                                                                                            |
+| `common-tool-invoke`                    | in **`tools`** (single) + **`toolId`** (string) + **`args`** (json, blank default) → out **`result`**. Graph-side `invoke`; unknown id / bad JSON → port error. Empty inventory stays inactive.                        |
+| `common-tool-inspect`                   | in **`tools`** (single) + **`toolId`** (string, empty = all) → out **`text`** — copy-paste dump + `inputSchema`. Not Preview (`common-preview` is string-only).                                                        |
 | `common-hitl-review-gate`               | in `result`; out `response`, `feedback`                                                                                                                                                                                |
 | `common-merge`                          | in/out **`value`** only (not `step` / `output`)                                                                                                                                                                        |
 | `common-review`                         | in `task`, `result`, `systemPrompt`, `tools`; out `response`, `feedback`                                                                                                                                               |
@@ -77,6 +79,19 @@ Typical HITL revise loop:
 
 Do **not** feed Merge output into both gates and LLM feedback on every tick
 without a clear phase split.
+
+## Custom QA / review gates
+
+Custom exclusive-branch nodes (`defineReactiveNode`, seed `review-gate.ts`):
+
+- in **`trigger`** (dynamic)
+- out **`ok`** — **pulse** (`boolean` `true`, seed) **or** **passthrough of
+  `trigger`** (`inferTypeFrom`) when the next stage must keep the payload
+- out **`fail`** — string (stripped errors) → Preview / LLM `feedback`
+
+Do **not** emit boolean `true` on `ok` if the downstream graph needs the
+trigger payload. Do not use `defineNode` that returns `{ ok: true }` for
+this shape (`execute` cannot stay silent on `fail`).
 
 ## Sub-Agent (one registration wire)
 
