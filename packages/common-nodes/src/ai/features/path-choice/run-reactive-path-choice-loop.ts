@@ -9,7 +9,6 @@ import type {
 } from '../chat-completion-stream.js';
 import {
 	parseToolArgs,
-	previewToolLogText,
 	toChatToolDefinitions,
 } from '../../../tools/inventory-tool-round.js';
 import type { LlmCompactionConfig } from '../openai/normalize-compaction-params.js';
@@ -65,7 +64,7 @@ const PATH_CHOICE_POLICY: LlmLoopPolicy<ReviewLoopChunk> = {
 					{ kind: 'historySync', messages },
 					{
 						kind: 'toolLog',
-						text: `→ ${control.call.name}(${previewToolLogText(control.call.arguments)})`,
+						text: `→ ${control.call.name}(${control.call.arguments})`,
 					},
 					control.kind === 'accept'
 						? { kind: 'accept', notes }

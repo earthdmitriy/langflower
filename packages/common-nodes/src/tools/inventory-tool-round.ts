@@ -10,18 +10,6 @@ import type {
 	ChatCompletionToolDefinition,
 } from '../ai/features/chat-completion-stream.js';
 
-const TOOL_LOG_PREVIEW = 400;
-
-export const previewToolLogText = (text: string): string => {
-	const trimmed = text.trim();
-
-	if (trimmed.length <= TOOL_LOG_PREVIEW) {
-		return trimmed;
-	}
-
-	return `${trimmed.slice(0, TOOL_LOG_PREVIEW - 1)}…`;
-};
-
 export const toChatToolDefinitions = (
 	tools: readonly ToolHandle[],
 ): readonly ChatCompletionToolDefinition[] =>

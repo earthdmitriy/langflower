@@ -17,7 +17,16 @@ import {
 	presentationLabel,
 	recoveryBanner,
 } from '../feed-item-presentation.js';
+import {
+	formatToolCallBody,
+	formatToolCallSummary,
+} from '../format-tool-call-summary.js';
 import { LfFeedCollapsibleComponent } from './lf-feed-collapsible.component.js';
+import {
+	isToolCallFoldValue,
+	isUnmatchedToolCall,
+	type ToolCallFoldValue,
+} from '../../feed-folding/operators/tool-log-line.js';
 
 @Component({
 	selector: 'lf-feed-row',
@@ -111,16 +120,47 @@ import { LfFeedCollapsibleComponent } from './lf-feed-collapsible.component.js';
 						}}</pre>
 				}
 				@case ('tool') {
-					<ng-container
-						[ngTemplateOutlet]="collapsibleTpl"
-						[ngTemplateOutletContext]="{
-							$implicit: current,
-							label: presentationLabel(itemOf(current)),
-							detailsClass: 'border-0 bg-transparent',
-							summaryClass: 'text-zinc-400 dark:text-zinc-500',
-							bodyClass: 'mt-0.5',
-						}"
-					/>
+					@if (toolCallOf(itemOf(current)); as call) {
+						<details
+							class="min-w-0 w-full max-w-full border-0 bg-transparent text-[11px] text-zinc-500 dark:text-zinc-400"
+							[open]="isDetailsOpen(current)"
+							(toggle)="onDetailsToggle(current, $event)"
+						>
+							<summary
+								class="flex min-w-0 cursor-pointer select-none list-none items-baseline gap-1 text-zinc-400 [&::-webkit-details-marker]:hidden dark:text-zinc-500"
+							>
+								<span class="min-w-0 truncate">{{
+									formatToolCallSummary(call)
+								}}</span>
+								@if (
+									isUnmatchedToolCall(call) &&
+									!current.isClosed
+								) {
+									<span
+										class="shrink-0 text-[9px] font-medium normal-case tracking-normal text-amber-600 dark:text-amber-400"
+										>running…</span
+									>
+								}
+							</summary>
+							@if (isDetailsOpen(current)) {
+								<pre
+									class="mt-0.5 max-w-full min-w-0 whitespace-pre-wrap break-words font-sans [overflow-wrap:anywhere]"
+									>{{ formatToolCallBody(call) }}</pre>
+							}
+						</details>
+					} @else {
+						<ng-container
+							[ngTemplateOutlet]="collapsibleTpl"
+							[ngTemplateOutletContext]="{
+								$implicit: current,
+								label: presentationLabel(itemOf(current)),
+								detailsClass: 'border-0 bg-transparent',
+								summaryClass:
+									'text-zinc-400 dark:text-zinc-500',
+								bodyClass: 'mt-0.5',
+							}"
+						/>
+					}
 				}
 				@case ('tool-request') {
 					<ng-container
@@ -281,6 +321,9 @@ export class LfFeedRowComponent {
 	readonly collapsedSummary = collapsedSummary;
 	readonly presentationLabel = presentationLabel;
 	readonly recoveryBanner = recoveryBanner;
+	readonly formatToolCallSummary = formatToolCallSummary;
+	readonly formatToolCallBody = formatToolCallBody;
+	readonly isUnmatchedToolCall = isUnmatchedToolCall;
 
 	isLaterVisitHeader(): boolean {
 		const current = this.row();
@@ -306,6 +349,19 @@ export class LfFeedRowComponent {
 
 	itemOf(row: FeedItemRow): FeedItemRow['item'] {
 		return row.item;
+	}
+
+	toolCallOf(item: FeedItemRow['item']): ToolCallFoldValue | undefined {
+		return isToolCallFoldValue(item.value) ? item.value : undefined;
+	}
+
+	onDetailsToggle(row: FeedItemRow, event: Event): void {
+		const target = event.target;
+		if (!(target instanceof HTMLDetailsElement)) {
+			return;
+		}
+
+		this.onDetailsOpen(row, target.open);
 	}
 
 	markdownHtml(text: string): string {

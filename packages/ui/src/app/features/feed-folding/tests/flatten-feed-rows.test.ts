@@ -106,6 +106,26 @@ describe('flattenFeedRows', () => {
 		expect(values).toEqual(['d1', 't1', 'ok']);
 	});
 
+	it('emits one row per sequential tool call', () => {
+		let state = emptyFeedProjection();
+		for (const frame of [
+			event('→ echo({})', { presentation: 'tool' }, 'tool', 'agent'),
+			event('← echo: v1', { presentation: 'tool' }, 'tool', 'agent'),
+			event('→ write({})', { presentation: 'tool' }, 'tool', 'agent'),
+			event('← write: ok', { presentation: 'tool' }, 'tool', 'agent'),
+		]) {
+			state = appendFeedFrame(state, frame);
+		}
+
+		const values = flattenFeedRows(state)
+			.filter((row): row is FeedItemRow => row.kind === 'item')
+			.map((row) => row.item.value);
+		expect(values).toEqual([
+			{ name: 'echo', args: '{}', result: 'v1' },
+			{ name: 'write', args: '{}', result: 'ok' },
+		]);
+	});
+
 	it('marks only the last visible segment as last', () => {
 		let state = emptyFeedProjection();
 		state = appendFeedFrame(

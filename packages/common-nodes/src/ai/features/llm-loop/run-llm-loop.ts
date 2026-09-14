@@ -44,7 +44,6 @@ import type {
 } from '../chat-completion-stream.js';
 import {
 	invokeInventoryTool,
-	previewToolLogText,
 	toChatToolDefinitions,
 } from '../../../tools/inventory-tool-round.js';
 import { prepareChatCompletion } from '../openai/prepare-chat-completion.js';
@@ -1006,7 +1005,7 @@ const invokeTool = <Chunk>(
 ): Observable<LlmLoopPacket<Chunk>> => {
 	const callLog = emit<Chunk>({
 		kind: 'toolLog',
-		text: `→ ${call.name}(${previewToolLogText(call.arguments)})`,
+		text: `→ ${call.name}(${call.arguments})`,
 	});
 
 	const toolAbort = new AbortController();
@@ -1102,7 +1101,7 @@ const toolResultPackets = <Chunk>(
 		...prefix,
 		emit<Chunk>({
 			kind: 'toolLog',
-			text: `← ${call.name}: ${previewToolLogText(normalized)}`,
+			text: `← ${call.name}: ${normalized}`,
 		}),
 		transition<Chunk>(next),
 	]);

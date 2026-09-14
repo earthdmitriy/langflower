@@ -79,8 +79,15 @@ See [`packages/ui/src/app/features/feed-folding/README.md`](../../packages/ui/sr
   content bottom-aligned so only the last two lines show).
 - **Live `draft`** — one markdown bubble with `streaming…` chrome.
 - **Settled stream** — one-line CSS ellipsis summary; full text under `<details>`.
-- **Tool request/response** — one item per supplied `interactionId`;
-  without that identity, ordinary technical `tool` data (no adjacency pairing).
+- **Tool request/response** — one muted row per sequential `→ name(args)` /
+  `← name: result` pair on `feed.role: 'tool'` (invoke is serial; last
+  unmatched `→` is the in-flight call). Collapsed summary is **name +
+  shortened args**, not the label `Tool`. Expand shows **full args and
+  full tool output** (not the 80-char summary). Unmatched `→` shows muted
+  `running…` while the visit is open. Notes without those prefixes (Pause,
+  compaction, `⚠ …`) stay a generic muted collapsible. `interactionId`
+  pairing remains for explicit `tool-request` / `tool-response` frames
+  when supplied.
 - **`result` / user / permission / recovery / error** — keep individual
   semantic rows. **Do not** use `result` for multi-emit progress logs
   (ingest, crawl, …): each emit becomes a conversation bubble. Those ports
@@ -138,7 +145,8 @@ projection — epic 34):
    `streaming…` chrome while open.
 2. When a **pack / MCP / builtin tool** starts: close the current draft
    segment (stop streaming on that bubble), insert a **borderless** collapsed
-   tool log (`<details>` closed by default), then open a **new** draft bubble
+   tool log (`<details>` closed by default; **one row per sequential call**,
+   summary = name + shortened args), then open a **new** draft bubble
    for continued markdown — **same node visit**.
 3. When a **canvas Sub-Agent** tool starts (`→ specialist`): close the
    **caller visit** (not only the draft segment). The specialist streams as

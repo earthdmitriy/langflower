@@ -218,8 +218,13 @@ They must not hold a private scan of the full event list. Recovery live tail:
 Within a **segment** bucket, [`foldPortStream`](operators/fold-port-stream.ts)
 updates items one frame at a time:
 
-- Growing roles (`reasoning` / `draft` / `tool` / `shell`) merge consecutive
+- Growing roles (`reasoning` / `draft` / `shell`) merge consecutive
   string chunks into one `PortStreamItem` (stable first `seq`).
+- Ordinary `tool` strings matching `→ name(args)` / `← name: result` pair
+  by adjacency into one item `{ name, args, result? }` — invoke is serial
+  (one in-flight call), so the last unmatched `→` is that call. Notes
+  (Pause, compaction, `⚠ …`) stay their own items. `'tool'` is **not** a
+  growing merge.
 - `tool-request` / `tool-response` merge only when they share `interactionId`.
 - `result`, user, permission, recovery, steering, error → new item each.
 
@@ -307,6 +312,7 @@ synthetic `permission:<askId>` ports (`authority: 'server'`).
 | `types.ts`                               | Source / nested-output contracts                                    |
 | `operators/feed-projection.ts`           | Append-only visit/segment/item projection                           |
 | `operators/fold-port-stream.ts`          | Per-frame port item fold                                            |
+| `operators/tool-log-line.ts`             | Parse serial `→` / `←` toolLog lines into `{ name, args, result? }` |
 | `operators/feed-folding-operators.ts`    | Selectors over `projection$` (`projectNodeFeed`, `flattenFeedRows`) |
 | `fold-port-events.ts`                    | Composer scan (history + catalog + projection)                      |
 | `execution-feed.service.ts`              | Angular entry (`nodeFeed$` + `feedRows$`)                           |

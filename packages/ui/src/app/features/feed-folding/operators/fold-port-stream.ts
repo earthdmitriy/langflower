@@ -1,5 +1,10 @@
 import { formatPortValue } from '../../../utils/format-port-value';
 import type { PortStreamItem, SequencedFrame } from '../types';
+import {
+	isUnmatchedToolCall,
+	parseToolRequestLine,
+	parseToolResponseLine,
+} from './tool-log-line';
 
 type PortStreamFrame = Pick<
 	SequencedFrame,
@@ -25,7 +30,6 @@ const isGrowingPresentation = (
 	presentation === 'reasoning' ||
 	presentation === 'progress' ||
 	presentation === 'draft' ||
-	presentation === 'tool' ||
 	presentation === 'shell';
 
 const toItem = (frame: PortStreamFrame): PortStreamItem => ({
@@ -106,6 +110,40 @@ export const foldPortStream = (
 	}
 
 	const presentation = frame.meta.presentation;
+	if (presentation === 'tool') {
+		const request = parseToolRequestLine(frame.value);
+		if (request !== undefined) {
+			return [
+				...items,
+				{
+					...toItem(frame),
+					value: { name: request.name, args: request.args },
+				},
+			];
+		}
+
+		const response = parseToolResponseLine(frame.value);
+		if (response !== undefined) {
+			const last = items[items.length - 1];
+			if (last !== undefined && isUnmatchedToolCall(last.value)) {
+				return [
+					...items.slice(0, -1),
+					{
+						...last,
+						state: frame.state,
+						value: {
+							name: last.value.name,
+							args: last.value.args,
+							result: response.result,
+						},
+					},
+				];
+			}
+		}
+
+		return [...items, toItem(frame)];
+	}
+
 	if (isGrowingPresentation(presentation)) {
 		const last = items[items.length - 1];
 		if (

@@ -238,7 +238,7 @@ describe('ExecutionFeedService visit reuse', () => {
 		expect(visits[0]!.visitId).not.toBe(visits[2]!.visitId);
 		expect(
 			(await readItems(visits[0]!, 'tool')).map((item) => item.value),
-		).toEqual(['→ Researcher_subagent({"task":"hi"})']);
+		).toEqual([{ name: 'Researcher_subagent', args: '{"task":"hi"}' }]);
 		expect(
 			(await readItems(visits[2]!, 'draft')).map((item) => item.value),
 		).toEqual(['thanks']);
@@ -263,5 +263,8 @@ describe('ExecutionFeedService visit reuse', () => {
 		expect(
 			(await readPorts(visits[0]!)).map((port) => port.portId),
 		).toEqual(['draft', 'tool', 'draft']);
+		expect(
+			(await readItems(visits[0]!, 'tool')).map((item) => item.value),
+		).toEqual([{ name: 'echo', args: '{}', result: 'ok' }]);
 	});
 });

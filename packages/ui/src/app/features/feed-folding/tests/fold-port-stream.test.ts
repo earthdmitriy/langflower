@@ -224,12 +224,88 @@ describe('ExecutionFeedService port-stream collapse', () => {
 		);
 
 		const items = await readItems(harness.latestNodes()[0]!, 'tool');
-		expect(items).toHaveLength(1);
+		expect(items).toHaveLength(2);
+		expect(items.map((item) => item.value)).toEqual([
+			'request-ish',
+			'response-ish',
+		]);
+		expect(items[0]?.meta).not.toHaveProperty('interactionId');
+	});
+
+	it('pairs serial → / ← toolLog lines into one item per call', () => {
+		const items = replayPortStream([
+			frame(0, '→ echo({})', { presentation: 'tool' }, 'tool'),
+			frame(1, '← echo: v1', { presentation: 'tool' }, 'tool'),
+			frame(2, '→ write({"path":"a"})', { presentation: 'tool' }, 'tool'),
+			frame(3, '← write: ok', { presentation: 'tool' }, 'tool'),
+		]);
+		expect(items).toHaveLength(2);
 		expect(items[0]).toMatchObject({
-			value: 'request-ishresponse-ish',
+			seq: 0,
+			value: { name: 'echo', args: '{}', result: 'v1' },
 			meta: { presentation: 'tool' },
 		});
-		expect(items[0]?.meta).not.toHaveProperty('interactionId');
+		expect(items[1]).toMatchObject({
+			seq: 2,
+			value: { name: 'write', args: '{"path":"a"}', result: 'ok' },
+		});
+	});
+
+	it('attaches ← to the last unmatched →', () => {
+		const items = replayPortStream([
+			frame(0, '→ echo({})', { presentation: 'tool' }, 'tool'),
+			frame(1, '← echo: ok', { presentation: 'tool' }, 'tool'),
+		]);
+		expect(items).toHaveLength(1);
+		expect(items[0]?.value).toEqual({
+			name: 'echo',
+			args: '{}',
+			result: 'ok',
+		});
+	});
+
+	it('keeps the full ← result without truncating', () => {
+		const result = 'x'.repeat(800);
+		const items = replayPortStream([
+			frame(0, '→ echo({})', { presentation: 'tool' }, 'tool'),
+			frame(1, `← echo: ${result}`, { presentation: 'tool' }, 'tool'),
+		]);
+		expect(items[0]?.value).toEqual({
+			name: 'echo',
+			args: '{}',
+			result,
+		});
+	});
+
+	it('does not join a note into a tool call', () => {
+		const items = replayPortStream([
+			frame(0, '→ echo({})', { presentation: 'tool' }, 'tool'),
+			frame(
+				1,
+				'Paused. Send Steer feedback.',
+				{ presentation: 'tool' },
+				'tool',
+			),
+			frame(2, '← echo: ok', { presentation: 'tool' }, 'tool'),
+		]);
+		expect(items.map((item) => item.value)).toEqual([
+			{ name: 'echo', args: '{}' },
+			'Paused. Send Steer feedback.',
+			'← echo: ok',
+		]);
+	});
+
+	it('keeps an unmatched → as request-only', () => {
+		expect(
+			replayPortStream([
+				frame(
+					0,
+					'→ accept({"notes":"ok"})',
+					{ presentation: 'tool' },
+					'tool',
+				),
+			])[0]?.value,
+		).toEqual({ name: 'accept', args: '{"notes":"ok"}' });
 	});
 
 	it('keeps concurrent node streams as separate growing items', async () => {
