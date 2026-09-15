@@ -7,6 +7,8 @@ import {
 } from '@langflower/runtime';
 import {
 	buildWorkflowFingerprint,
+	type RunnerAskUserAskPayload,
+	type RunnerAskUserReplyPayload,
 	type RunnerCheckpointDiscardRequestedPayload,
 	type RunnerPermissionAskPayload,
 	type RunnerPermissionReplyPayload,
@@ -82,6 +84,10 @@ export const wireRunnerHandlers = (
 
 	const emitPermissionAsk = (payload: RunnerPermissionAskPayload): void => {
 		bridgeEmit(bridge, 'runner.permission.ask', payload);
+	};
+
+	const emitAskUserAsk = (payload: RunnerAskUserAskPayload): void => {
+		bridgeEmit(bridge, 'runner.askUser.ask', payload);
 	};
 
 	const requestLangflowerBus = createLangflowerToolsRpc(bridge);
@@ -173,6 +179,7 @@ export const wireRunnerHandlers = (
 						context,
 						resolvedRunId,
 						emitPermissionAsk,
+						emitAskUserAsk,
 						requestLangflowerBus,
 						liveWiredTools,
 					),
@@ -233,6 +240,7 @@ export const wireRunnerHandlers = (
 						context,
 						resolvedRunId,
 						emitPermissionAsk,
+						emitAskUserAsk,
 						requestLangflowerBus,
 						liveWiredTools,
 					),
@@ -393,6 +401,7 @@ export const wireRunnerHandlers = (
 						context,
 						checkpoint.runId as RunId,
 						emitPermissionAsk,
+						emitAskUserAsk,
 						requestLangflowerBus,
 						liveWiredTools,
 					),
@@ -484,6 +493,7 @@ export const wireRunnerHandlers = (
 							context,
 							resolvedRunId,
 							emitPermissionAsk,
+							emitAskUserAsk,
 							requestLangflowerBus,
 							liveWiredTools,
 						),
@@ -531,6 +541,24 @@ export const wireRunnerHandlers = (
 
 			if (session.permissionAsks.reply(raw.payload)) {
 				bridgeEmit(bridge, 'runner.permission.accepted', raw.payload);
+			}
+		}),
+	);
+
+	subscription.add(
+		bridge['runner.askUser.reply'].subscribe((raw) => {
+			if (!isInboundEvent<RunnerAskUserReplyPayload>(raw)) {
+				return;
+			}
+
+			const connected = findClientById(bridge, raw.clientId);
+
+			if (connected === undefined) {
+				return;
+			}
+
+			if (session.askUserAsks.reply(raw.payload)) {
+				bridgeEmit(bridge, 'runner.askUser.accepted', raw.payload);
 			}
 		}),
 	);

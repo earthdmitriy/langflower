@@ -997,6 +997,10 @@ const prepareAndStream = <Chunk>(
 const isSubAgentToolCall = (name: string): boolean =>
 	name.endsWith('_subagent') || name.endsWith('(subagent)');
 
+/** Human waits and canvas specialists are not bounded by `toolTimeoutMs`. */
+const isUnboundedWaitToolCall = (name: string): boolean =>
+	name === 'ask_user' || isSubAgentToolCall(name);
+
 const invokeTool = <Chunk>(
 	state: LlmLoopState,
 	call: ChatCompletionToolCall,
@@ -1047,7 +1051,7 @@ const invokeTool = <Chunk>(
 		}),
 	);
 
-	const toolTimeoutMs = isSubAgentToolCall(call.name)
+	const toolTimeoutMs = isUnboundedWaitToolCall(call.name)
 		? 0
 		: options.recovery.toolTimeoutMs;
 	const boundedInvocation$ =

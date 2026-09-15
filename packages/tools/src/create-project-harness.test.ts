@@ -207,7 +207,7 @@ describe('createProjectHarness', () => {
 		expect(asks).toHaveLength(2);
 	});
 
-	it('lists all eight builtin registrations', () => {
+	it('lists all nine builtin registrations', () => {
 		const harness = createProjectHarness({ projectRoot });
 		const ids = harness.listBuiltinRegistrations().map((r) => r.toolId);
 		expect(ids).toEqual([
@@ -219,6 +219,27 @@ describe('createProjectHarness', () => {
 			'create',
 			'delete',
 			'bash',
+			'ask_user',
 		]);
+	});
+
+	it('ask_user returns host text and fails without a hook', async () => {
+		const missing = createProjectHarness({ projectRoot });
+		const denied = await missing.invoke({
+			toolId: 'ask_user',
+			args: { question: 'Name?' },
+		});
+		expect(denied.ok).toBe(false);
+		expect(denied.text).toMatch(/live HITL host/i);
+
+		const harness = createProjectHarness({
+			projectRoot,
+			askUser: async (request) => `answer:${request.question}`,
+		});
+		const result = await harness.invoke({
+			toolId: 'ask_user',
+			args: { question: 'Name?' },
+		});
+		expect(result).toEqual({ ok: true, text: 'answer:Name?' });
 	});
 });

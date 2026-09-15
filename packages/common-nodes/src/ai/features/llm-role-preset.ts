@@ -37,6 +37,7 @@ export const HARNESS_BUILTIN_TOOL_IDS = [
 	'create',
 	'delete',
 	'bash',
+	'ask_user',
 ] as const;
 
 export const PLAN_AGENT_SYSTEM_PROMPT = [
@@ -61,6 +62,8 @@ export const CODER_AGENT_SYSTEM_PROMPT = [
 	'',
 	'When tests are available, run them to verify your work. Summarize what you changed',
 	'in your final response.',
+	'',
+	'If you are not sure, call ask_user instead of guessing.',
 ].join('\n');
 
 const EXPLORER_AGENT_SYSTEM_PROMPT = [
@@ -70,6 +73,8 @@ const EXPLORER_AGENT_SYSTEM_PROMPT = [
 	'Do not modify application source code—only *.md research notes.',
 	'',
 	'Cite URLs. Separate facts from inference.',
+	'',
+	'If you are not sure, call ask_user instead of guessing.',
 ].join('\n');
 
 const allAllow = (): ToolPermissionsMap =>
@@ -224,13 +229,35 @@ export const resolveEffectiveToolPermissions = (
 	return LLM_ROLE_PRESET_DEFAULTS[rolePreset].toolPermissions;
 };
 
-/** Inventory ids whose decision is not deny. */
+/**
+ * Inventory ids whose decision is not deny.
+ * Missing harness builtin ids default to allow so newly shipped builtins
+ * (e.g. `ask_user`) appear without re-applying a role preset.
+ */
 export const toolPermissionsToEnabledIds = (
 	toolPermissions: ToolPermissionsMap,
-): readonly string[] =>
-	Object.entries(toolPermissions)
-		.filter(([, decision]) => decision !== 'deny')
-		.map(([toolId]) => toolId);
+): readonly string[] => {
+	const enabled: string[] = [];
+	const seen = new Set<string>();
+
+	for (const id of HARNESS_BUILTIN_TOOL_IDS) {
+		if (toolPermissions[id] !== 'deny') {
+			enabled.push(id);
+			seen.add(id);
+		}
+	}
+
+	for (const [toolId, decision] of Object.entries(toolPermissions)) {
+		if (decision === 'deny' || seen.has(toolId)) {
+			continue;
+		}
+
+		enabled.push(toolId);
+		seen.add(toolId);
+	}
+
+	return enabled;
+};
 
 /**
  * Params patch when the author selects a role preset in the Inspector.
@@ -279,6 +306,7 @@ const DEFAULT_HARNESS_PERMISSION: ProjectPermissionConfig = {
 	create: { '*': 'allow' },
 	delete: { '*': 'allow' },
 	bash: { '*': 'allow' },
+	ask_user: { '*': 'allow' },
 };
 
 const DECISION_RANK: Readonly<Record<ToolPermissionDecision, number>> = {

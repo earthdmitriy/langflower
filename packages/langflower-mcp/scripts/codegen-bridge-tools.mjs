@@ -65,6 +65,16 @@ const NAMED_SCHEMAS = {
 		required: ['runId', 'askId', 'decision'],
 		additionalProperties: false,
 	},
+	RunnerAskUserReplyPayload: {
+		type: 'object',
+		properties: {
+			runId: { type: 'string' },
+			askId: { type: 'string' },
+			text: { type: 'string' },
+		},
+		required: ['runId', 'askId', 'text'],
+		additionalProperties: false,
+	},
 	RunnerResumeRequestedPayload: {
 		type: 'object',
 		properties: { runId: { type: 'string' } },

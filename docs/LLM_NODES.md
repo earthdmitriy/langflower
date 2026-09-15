@@ -11,7 +11,7 @@ list.
 **[Epic 01](DONE/EPICS/01-tool-loop-builtins.md)** adds an **internal** tool-call
 loop: LLM nodes invoke allowlisted builtins through `ExecutionContext.harness`
 backed by `@langflower/tools` (path fence, read/glob/grep/edit/write/create/delete/
-bash, read-class `postProcess`). Observability is feed + `toolLog` — not per-call
+bash/`ask_user`, read-class `postProcess`). Observability is feed + `toolLog` — not per-call
 canvas edges.
 
 **[Epic 02](DONE/EPICS/02-runtime-permissions.md)** adds the **runtime** permission
@@ -250,12 +250,12 @@ There is **one** LLM node type pair (`common-fake-llm` / `common-openai-llm`).
 `rolePreset` values on an instance that seed default `systemPrompt`, default
 `skillId`, and (later) default tool allowlists.
 
-| Preset     | Meaning                                                       |
-| ---------- | ------------------------------------------------------------- |
-| `custom`   | Empty defaults; author fills system prompt and skill manually |
+| Preset     | Meaning                                                                   |
+| ---------- | ------------------------------------------------------------------------- |
+| `custom`   | Empty defaults; author fills system prompt and skill manually             |
 | `plan`     | Read-only exploration + Markdown planning; default skill `spec-architect` |
-| `coder`    | Implementation-focused system prompt                          |
-| `explorer` | Research / web notes system prompt                            |
+| `coder`    | Implementation-focused system prompt                                      |
+| `explorer` | Research / web notes system prompt                                        |
 
 Multiple LLM nodes on the canvas = multiple roles side by side, each with its
 own `params` (`rolePreset`, `providerId`, `model`, `skillId`, …).

@@ -50,6 +50,9 @@ describe('resolvePermission', () => {
 			'allow',
 		);
 		expect(resolvePermission(undefined, 'bash', 'echo hi')).toBe('allow');
+		expect(resolvePermission(undefined, 'ask_user', 'Scope?')).toBe(
+			'allow',
+		);
 	});
 
 	it('uses longest matching pattern; ties prefer deny', () => {
@@ -101,7 +104,11 @@ describe('permissionDetailForCall', () => {
 		expect(permissionDetailForCall('write', { path: 'docs\\a.md' })).toBe(
 			'docs/a.md',
 		);
+		expect(
+			permissionDetailForCall('ask_user', { question: 'Scope?' }),
+		).toBe('Scope?');
 		expect(DEFAULT_PERMISSION_CONFIG.bash).toEqual({ '*': 'allow' });
+		expect(DEFAULT_PERMISSION_CONFIG.ask_user).toEqual({ '*': 'allow' });
 	});
 });
 

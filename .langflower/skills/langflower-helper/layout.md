@@ -16,7 +16,8 @@ Facts for UI chrome and on-disk paths. Prefer this file over guessing.
   **Settings**. Opening Settings (gear or empty-provider onboarding) swaps out
   feed/inspector; canvas stays. Settings open/close is server-driven.
 - **Composer (bottom)** — **Start** / Hard **Stop** / soft **Pause**; HITL
-  input and actions; `permission.ask` Allow/Deny while a run needs them.
+  input and actions; `ask_user` textarea + Send (question is in the work log);
+  `permission.ask` Allow/Deny while a run needs them.
 
 ## Where can I…?
 
@@ -27,6 +28,7 @@ Facts for UI chrome and on-disk paths. Prefer this file over guessing.
 | Start a Chat Input graph                         | Composer **Start** — not plain **Run**. Prefill lives on the node; Stop then Start reuses it.                                                                                                                                                                                                                                                                                                                                      |
 | See run output / stream                          | Right aside **feed**                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Answer HITL / send into a waiting node           | Composer + feed context                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Answer an agent's `ask_user` question            | Work log shows the question; composer textarea + **Send** (not Allow/Deny)                                                                                                                                                                                                                                                                                                                                                         |
 | Allow or Deny `permission.ask`                   | Composer permission controls                                                                                                                                                                                                                                                                                                                                                                                                       |
 | Soft-pause last feed agent / continue            | Composer **Pause** (per-node) / Send or Resume (soft pause ≠ Hard Stop)                                                                                                                                                                                                                                                                                                                                                            |
 | Hard-stop a run                                  | Composer **Stop**                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -47,7 +49,7 @@ Facts for UI chrome and on-disk paths. Prefer this file over guessing.
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `langflower.jsonc` | Providers, secrets refs, project config                                                                                               |
 | `workflows/`       | Saved workflow graphs                                                                                                                 |
-| `skills/`          | Agent skills (`langflower-helper/`, `langflower-node-writer/`, `langflower-workflow-writer/`, `spec-architect/`) |
+| `skills/`          | Agent skills (`langflower-helper/`, `langflower-node-writer/`, `langflower-workflow-writer/`, `spec-architect/`)                      |
 | `nodes/`           | Custom node packs — one folder / `package.json` each (`my-nodes/`, sample `hello-embed/`, extra sibling packs; no jsonc registration) |
 | `instructions.md`  | Project-level agent instructions                                                                                                      |
 | `runs/`            | Run artifacts / checkpoints when created                                                                                              |

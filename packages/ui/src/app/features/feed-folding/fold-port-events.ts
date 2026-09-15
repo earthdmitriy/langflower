@@ -10,6 +10,8 @@ import type {
 } from '@langflower/runtime';
 import { isPortTelemetry } from '@langflower/runtime';
 import type {
+	RunnerAskUserAskPayload,
+	RunnerAskUserReplyPayload,
 	RunnerPermissionAskPayload,
 	RunnerPermissionReplyPayload,
 } from '@langflower/shared/langflower';
@@ -35,6 +37,7 @@ import {
 	type FeedProjection,
 } from './operators/feed-projection';
 import type {
+	AskUserFeedEvent,
 	FeedEventFromSource,
 	FeedBridgeSources,
 	FeedRow,
@@ -44,11 +47,13 @@ import type {
 	PortFrameMeta,
 } from './types';
 
-type FeedSourceEntry = RuntimeRunnerEvent | PermissionFeedEvent;
+type FeedSourceEntry =
+	RuntimeRunnerEvent | PermissionFeedEvent | AskUserFeedEvent;
 
 type FeedComposerState = {
 	readonly entries: readonly FeedSourceEntry[];
 	readonly asksById: ReadonlyMap<string, RunnerPermissionAskPayload>;
+	readonly askUserById: ReadonlyMap<string, RunnerAskUserAskPayload>;
 	readonly catalog: FeedCatalog | null;
 	readonly projection: FeedProjection;
 	readonly runId: RunId | null;
@@ -70,12 +75,21 @@ type FeedComposerAction =
 			readonly type: 'permission-accepted';
 			readonly accepted: RunnerPermissionReplyPayload;
 	  }
+	| {
+			readonly type: 'ask-user-ask';
+			readonly ask: RunnerAskUserAskPayload;
+	  }
+	| {
+			readonly type: 'ask-user-accepted';
+			readonly accepted: RunnerAskUserReplyPayload;
+	  }
 	| { readonly type: 'catalog'; readonly catalog: FeedCatalog }
 	| { readonly type: 'run-started'; readonly runId: RunId };
 
 const emptyComposer: FeedComposerState = {
 	entries: [],
 	asksById: new Map(),
+	askUserById: new Map(),
 	catalog: null,
 	projection: emptyFeedProjection(),
 	runId: null,
@@ -121,6 +135,47 @@ const permissionDecisionEvent = (
 				accepted.decision === 'allow'
 					? 'permission-grant'
 					: 'permission-deny',
+			askId: accepted.askId,
+			authority: 'server',
+		},
+	};
+};
+
+const askUserPortId = (askId: string): `askUser:${string}` =>
+	`askUser:${askId}`;
+
+const askUserAskEvent = (ask: RunnerAskUserAskPayload): AskUserFeedEvent => ({
+	source: 'ask-user',
+	kind: 'ask-user',
+	runId: ask.runId as RunId,
+	nodeId: ask.nodeId,
+	portId: askUserPortId(ask.askId),
+	state: 'pending',
+	value: ask.question,
+	meta: {
+		presentation: 'ask-user-ask',
+		askId: ask.askId,
+		authority: 'server',
+	},
+});
+
+const askUserReplyEvent = (
+	accepted: RunnerAskUserReplyPayload,
+	ask: RunnerAskUserAskPayload,
+): AskUserFeedEvent | null => {
+	if (accepted.runId !== ask.runId) {
+		return null;
+	}
+	return {
+		source: 'ask-user',
+		kind: 'ask-user',
+		runId: accepted.runId as RunId,
+		nodeId: ask.nodeId,
+		portId: askUserPortId(accepted.askId),
+		state: 'value',
+		value: accepted.text,
+		meta: {
+			presentation: 'ask-user-reply',
 			askId: accepted.askId,
 			authority: 'server',
 		},
@@ -369,20 +424,26 @@ const rebuildProjection = (
 const appendEntry = (
 	state: FeedComposerState,
 	entry: FeedSourceEntry,
-	asksById: ReadonlyMap<string, RunnerPermissionAskPayload> = state.asksById,
+	maps: {
+		readonly asksById?: ReadonlyMap<string, RunnerPermissionAskPayload>;
+		readonly askUserById?: ReadonlyMap<string, RunnerAskUserAskPayload>;
+	} = {},
 ): FeedComposerState => {
+	const asksById = maps.asksById ?? state.asksById;
+	const askUserById = maps.askUserById ?? state.askUserById;
 	const entries = [...state.entries, entry];
 	if (state.catalog === null || state.runId === null) {
-		return { ...state, entries, asksById };
+		return { ...state, entries, asksById, askUserById };
 	}
 	const normalized = normalizeEntry(entry, state.runId, state.catalog);
 	if (normalized === null) {
-		return { ...state, entries, asksById };
+		return { ...state, entries, asksById, askUserById };
 	}
 	return {
 		...state,
 		entries,
 		asksById,
+		askUserById,
 		projection: appendFeedFrame(state.projection, normalized),
 	};
 };
@@ -441,9 +502,11 @@ const foldComposer = (
 	if (action.type === 'snapshot') {
 		const entries = action.events;
 		const asksById = new Map<string, RunnerPermissionAskPayload>();
+		const askUserById = new Map<string, RunnerAskUserAskPayload>();
 		return {
 			entries,
 			asksById,
+			askUserById,
 			catalog: state.catalog,
 			runId: action.runId,
 			projection:
@@ -458,20 +521,37 @@ const foldComposer = (
 	if (action.type === 'permission-ask') {
 		const asksById = new Map(state.asksById);
 		asksById.set(action.ask.askId, action.ask);
-		return appendEntry(state, permissionAskEvent(action.ask), asksById);
+		return appendEntry(state, permissionAskEvent(action.ask), { asksById });
 	}
-
-	const ask = state.asksById.get(action.accepted.askId);
-	const decision =
-		ask === undefined
-			? null
-			: permissionDecisionEvent(action.accepted, ask);
-	if (decision === null) {
+	if (action.type === 'permission-accepted') {
+		const ask = state.asksById.get(action.accepted.askId);
+		const decision =
+			ask === undefined
+				? null
+				: permissionDecisionEvent(action.accepted, ask);
+		if (decision === null) {
+			return state;
+		}
+		const asksById = new Map(state.asksById);
+		asksById.delete(action.accepted.askId);
+		return appendEntry(state, decision, { asksById });
+	}
+	if (action.type === 'ask-user-ask') {
+		const askUserById = new Map(state.askUserById);
+		askUserById.set(action.ask.askId, action.ask);
+		return appendEntry(state, askUserAskEvent(action.ask), {
+			askUserById,
+		});
+	}
+	const ask = state.askUserById.get(action.accepted.askId);
+	const reply =
+		ask === undefined ? null : askUserReplyEvent(action.accepted, ask);
+	if (reply === null) {
 		return state;
 	}
-	const asksById = new Map(state.asksById);
-	asksById.delete(action.accepted.askId);
-	return appendEntry(state, decision, asksById);
+	const askUserById = new Map(state.askUserById);
+	askUserById.delete(action.accepted.askId);
+	return appendEntry(state, reply, { askUserById });
 };
 
 const composeFeedProjection = (
@@ -517,6 +597,15 @@ const composeFeedProjection = (
 		sources.permissionAccepted$.pipe(
 			map((accepted): FeedComposerAction => ({
 				type: 'permission-accepted',
+				accepted,
+			})),
+		),
+		sources.askUserAsk$.pipe(
+			map((ask): FeedComposerAction => ({ type: 'ask-user-ask', ask })),
+		),
+		sources.askUserAccepted$.pipe(
+			map((accepted): FeedComposerAction => ({
+				type: 'ask-user-accepted',
 				accepted,
 			})),
 		),

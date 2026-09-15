@@ -366,6 +366,9 @@ describe('buildExecutionContext', () => {
 		expect(ctx.toolHandles?.map((handle) => handle.toolId)).toContain(
 			'read',
 		);
+		expect(ctx.toolHandles?.map((handle) => handle.toolId)).toContain(
+			'ask_user',
+		);
 
 		await fs.writeFile(path.join(projectDir, 'hello.txt'), 'hi', 'utf8');
 		const readHandle = ctx.toolHandles?.find(
@@ -395,6 +398,9 @@ describe('buildExecutionContext', () => {
 
 		expect(ctx.toolHandles?.map((handle) => handle.toolId)).not.toContain(
 			'bash',
+		);
+		expect(ctx.toolHandles?.map((handle) => handle.toolId)).toContain(
+			'ask_user',
 		);
 
 		const writeHandle = ctx.toolHandles?.find(
@@ -430,6 +436,8 @@ describe('buildExecutionContext', () => {
 					return 'deny';
 				},
 				emitPermissionAsk: () => undefined,
+				requestAskUser: async () => '',
+				emitAskUserAsk: () => undefined,
 			},
 		);
 
@@ -467,6 +475,8 @@ describe('buildExecutionContext', () => {
 				nodeId: 'node-1',
 				requestPermission: async () => 'allow' as const,
 				emitPermissionAsk: () => undefined,
+				requestAskUser: async () => '',
+				emitAskUserAsk: () => undefined,
 				requestLangflowerBus,
 			},
 		);
@@ -489,6 +499,8 @@ describe('buildExecutionContext', () => {
 				nodeId: 'lf-tools-1',
 				requestPermission: async () => 'allow' as const,
 				emitPermissionAsk: () => undefined,
+				requestAskUser: async () => '',
+				emitAskUserAsk: () => undefined,
 				requestLangflowerBus,
 			},
 		);
@@ -523,6 +535,8 @@ describe('buildExecutionContext', () => {
 				nodeId: 'node-1',
 				requestPermission: async () => 'allow' as const,
 				emitPermissionAsk: () => undefined,
+				requestAskUser: async () => '',
+				emitAskUserAsk: () => undefined,
 				getLiveWiredTools,
 			},
 		);
@@ -554,6 +568,8 @@ describe('buildExecutionContext', () => {
 				nodeId: 'text-1',
 				requestPermission: async () => 'allow' as const,
 				emitPermissionAsk: () => undefined,
+				requestAskUser: async () => '',
+				emitAskUserAsk: () => undefined,
 				getLiveWiredTools,
 			},
 		);

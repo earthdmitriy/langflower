@@ -9,6 +9,7 @@ import type {
 } from '@langflower/shared/langflower.js';
 import { deriveExecutionProgressStatus } from '@langflower/shared/langflower.js';
 import { Subscription } from 'rxjs';
+import { PendingAskUserAsks } from '../harness/pending-ask-user-asks.js';
 import { PendingPermissionAsks } from '../harness/pending-permission-asks.js';
 import {
 	emptySettingsDraftStore,
@@ -22,6 +23,8 @@ export class LangflowerSession {
 	readonly runtime = new RuntimeFacade({ log: true });
 	/** Feed permission.ask pause/resume for the internal tool loop. */
 	readonly permissionAsks = new PendingPermissionAsks();
+	/** Feed ask_user pause/resume for the internal tool loop. */
+	readonly askUserAsks = new PendingAskUserAsks();
 
 	activeWorkflow: WorkflowLoadedPayload | null = null;
 	activeWorkflowId: string | undefined;
@@ -58,6 +61,11 @@ export class LangflowerSession {
 							? String(this.runId)
 							: undefined,
 					);
+					this.askUserAsks.failAll(
+						this.runId !== undefined
+							? String(this.runId)
+							: undefined,
+					);
 					void this.releaseMcpRuntime();
 				}
 
@@ -83,6 +91,7 @@ export class LangflowerSession {
 
 	dispose(): void {
 		this.permissionAsks.denyAll();
+		this.askUserAsks.failAll();
 		void this.releaseMcpRuntime();
 		// Dispose runner before dropping status$ so late emissions settle
 		// cleanly; then unsubscribe (subjects are already completed).

@@ -1340,4 +1340,79 @@ describe('runAgentLoop recovery', () => {
 			),
 		).toBe(true);
 	});
+
+	it('does not apply toolTimeoutMs to ask_user', async () => {
+		let round = 0;
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async () => {
+					round += 1;
+					if (round === 1) {
+						return (async function* () {
+							yield {
+								kind: 'done' as const,
+								text: '',
+								tool_calls: [
+									{
+										id: 'c1',
+										name: 'ask_user',
+										arguments: '{"question":"Name?"}',
+									},
+								],
+							};
+						})();
+					}
+
+					return (async function* () {
+						yield {
+							kind: 'done' as const,
+							text: 'ok',
+						};
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [
+					{
+						toolId: 'ask_user',
+						name: 'ask_user',
+						description: 'ask',
+						inputSchema: { type: 'object', properties: {} },
+						invoke: async () => {
+							await new Promise((resolve) =>
+								setTimeout(resolve, 80),
+							);
+							return 'Ada';
+						},
+					},
+				],
+				toolCtx: {
+					projectDir: '/tmp',
+					runId: 'test',
+					authorize: async () => 'allow',
+				},
+				maxIterations: 2,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					toolTimeoutMs: 20,
+				},
+			}).pipe(toArray()),
+		);
+
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'toolLog' &&
+					chunk.text.includes('timed out'),
+			),
+		).toBe(false);
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'toolLog' &&
+					chunk.text.includes('← ask_user: Ada'),
+			),
+		).toBe(true);
+	});
 });

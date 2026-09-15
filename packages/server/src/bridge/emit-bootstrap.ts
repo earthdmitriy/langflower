@@ -18,7 +18,7 @@ import type { SettingsDraftController } from './settings-draft-controller.js';
  * workflow.list/current.snapshot → session.ready →
  * langflower.config.snapshot → langflower.config.draft.snapshot →
  * (async) langflower.models.catalog.snapshot →
- * permission.ask replay → palette.snapshot → customPalette.snapshot
+ * permission.ask / askUser.ask replay → palette.snapshot → customPalette.snapshot
  * (custom snapshot is warm from createServer — emit only, no compile).
  */
 export const emitBootstrap = async (
@@ -112,6 +112,10 @@ export const emitBootstrap = async (
 	// Re-surface in-flight permission asks after reconnect (tool loop still waiting).
 	for (const ask of session.permissionAsks.list()) {
 		clientEmit(client, 'runner.permission.ask', ask);
+	}
+
+	for (const ask of session.askUserAsks.list()) {
+		clientEmit(client, 'runner.askUser.ask', ask);
 	}
 
 	const paletteResult = await context.paletteService.reload(

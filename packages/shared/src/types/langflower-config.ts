@@ -241,6 +241,24 @@ export type RunnerPermissionReplyPayload = {
 	readonly decision: 'allow' | 'deny';
 };
 
+/**
+ * Server → client: agent `ask_user` builtin waiting for operator text
+ * (composer textarea — not Allow/Deny, not a canvas HITL port).
+ */
+export type RunnerAskUserAskPayload = {
+	readonly runId: string;
+	readonly askId: string;
+	readonly nodeId: string;
+	readonly question: string;
+};
+
+/** Client → server: operator text for a pending {@link RunnerAskUserAskPayload}. */
+export type RunnerAskUserReplyPayload = {
+	readonly runId: string;
+	readonly askId: string;
+	readonly text: string;
+};
+
 /** One model id from a live provider catalog fetch (phase 6). */
 export type ProviderModelEntry = {
 	readonly id: string;

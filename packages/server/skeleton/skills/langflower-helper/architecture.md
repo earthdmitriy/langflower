@@ -71,7 +71,7 @@ Project product data for Langflower lives under **`.langflower/`**.
   Authentication/configuration failures are terminal. Generic reload of any
   failed non-LLM node is not yet shipped.
 - Also on the bus: runner start / resume / interrupt intents, `permission.ask`,
-  and related facts.
+  `askUser.ask`, and related facts.
 
 ## Agents on the canvas
 

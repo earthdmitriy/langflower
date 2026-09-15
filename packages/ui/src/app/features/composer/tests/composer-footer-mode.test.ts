@@ -6,6 +6,7 @@ describe('composer-footer-mode (epic 35)', () => {
 		expect(
 			resolveComposerFooterMode({
 				hasPermissionAsk: false,
+				hasAskUser: false,
 				isRunning: true,
 				hitlTabCount: 0,
 			}),
@@ -16,26 +17,40 @@ describe('composer-footer-mode (epic 35)', () => {
 		expect(
 			resolveComposerFooterMode({
 				hasPermissionAsk: false,
+				hasAskUser: false,
 				isRunning: true,
 				hitlTabCount: 1,
 			}),
 		).toBe('hitl');
 	});
 
-	it('permission ask wins over hitl/working', () => {
+	it('permission ask wins over askUser/hitl/working', () => {
 		expect(
 			resolveComposerFooterMode({
 				hasPermissionAsk: true,
+				hasAskUser: true,
 				isRunning: true,
 				hitlTabCount: 2,
 			}),
 		).toBe('permission');
 	});
 
+	it('askUser wins over hitl/working', () => {
+		expect(
+			resolveComposerFooterMode({
+				hasPermissionAsk: false,
+				hasAskUser: true,
+				isRunning: true,
+				hitlTabCount: 1,
+			}),
+		).toBe('askUser');
+	});
+
 	it('idleRun when not running and no HITL', () => {
 		expect(
 			resolveComposerFooterMode({
 				hasPermissionAsk: false,
+				hasAskUser: false,
 				isRunning: false,
 				hitlTabCount: 0,
 			}),

@@ -234,8 +234,8 @@ bottom-aligned `overflow: hidden` pane.
 ## Input and output
 
 `foldExecutionFeed` accepts `FeedBridgeSources` (cached snapshots + live
-runner/permission streams) and returns `{ nodeFeed$, feedRows$ }` from one
-shared projection.
+runner / permission / askUser streams) and returns `{ nodeFeed$, feedRows$ }`
+from one shared projection.
 
 ```ts
 const { nodeFeed$, feedRows$ } = foldExecutionFeed({
@@ -244,6 +244,8 @@ const { nodeFeed$, feedRows$ } = foldExecutionFeed({
 	inputReceived$,
 	permissionAsk$,
 	permissionAccepted$,
+	askUserAsk$,
+	askUserAccepted$,
 	workflowSnapshot$,
 	paletteSnapshot$,
 	customPaletteSnapshot$,

@@ -57,6 +57,10 @@ export const presentationLabel = (item: PortStreamItem): string => {
 			return 'Permission allowed';
 		case 'permission-deny':
 			return 'Permission denied';
+		case 'ask-user-ask':
+			return 'Ask';
+		case 'ask-user-reply':
+			return 'User';
 		case 'hitl-user':
 			return 'User';
 		case 'steering-pause':

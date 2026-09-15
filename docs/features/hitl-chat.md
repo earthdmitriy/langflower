@@ -28,7 +28,8 @@ only seeing a final result after everything finishes.
 
 ## Feature Details
 
-Three building blocks give a user control over an in-progress run:
+Three building blocks give a user control over an in-progress run, plus one
+agent-initiated tool that uses the same composer:
 
 - **Review Gate** — mid-run pause for approve or request-changes; user text
   on `requestChanges` feeds back into the workflow (e.g. into an agent's
@@ -44,6 +45,12 @@ Three building blocks give a user control over an in-progress run:
   input (a text box, a button, a file picker, …) in the run's live feed;
   approve and request-changes are separate controls rather than options
   inside one dialog.
+- **`ask_user` builtin** — default harness tool on agent nodes. The model
+  calls it when unsure (do not guess). The tool loop pauses; the **work log**
+  shows the question as a conversation bubble; the composer is textarea +
+  **Send** only (static placeholder). Send returns the operator text as the
+  tool result and the same turn continues. This is **not** Pause/Steer
+  (`steerControl`) and **not** `permission.ask` Allow/Deny.
 
 **Chat-style workflows:** when a workflow contains a Review Gate–driven
 feedback loop back into an agent, the run behaves like a conversation. Once
@@ -150,6 +157,11 @@ reviewer hats. With 2+ open gates the tab strip lists every gate; each
   scenarios: [run-interruption](../use-cases/run-interruption.md).
 - HITL push: `packages/server/src/bridge/wire-runner-handlers.ts`
   (`runner.hitl.event` → `pushIntoInput`).
+- Agent `ask_user` builtin: `packages/tools/src/builtins/ask_user/tool.ts`;
+  WS `runner.askUser.ask` / `runner.askUser.reply` / `runner.askUser.accepted`
+  (sibling of `permission.ask`, free-text reply). Question is a feed bubble;
+  composer footer mode `askUser` is textarea + Send only — permission
+  Allow/Deny still wins if both are pending.
 - Interactive-loop termination design decision:
   [docs/ADR.md](../ADR.md#adr-015--interactive-hitl-feedback-loops-end-on-stop-not-idle-settle)
   (ADR-015).

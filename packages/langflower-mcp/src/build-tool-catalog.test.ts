@@ -27,5 +27,6 @@ describe('buildToolCatalog', () => {
 		);
 		expect(actions).toContain('workflow.load.requested');
 		expect(actions).toContain('runner.permission.reply');
+		expect(actions).toContain('runner.askUser.reply');
 	});
 });

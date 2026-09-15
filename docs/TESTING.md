@@ -301,6 +301,7 @@ roadmap is use-case Status — [PRODUCT.md](PRODUCT.md).
 | `tests/integration/ws/execute-streaming.ws.test.ts`         | Mock `reasoning` + `content` → `execution.output.stream` on both ports   |
 | `tests/integration/ws/execute-structured-output.ws.test.ts` | LLM `structuredOutput` param → node failed on invalid JSON               |
 | `tests/integration/ws/execute-agent-mock.ws.test.ts`        | Plan/Coder agent mock `toolCalls` loop, HITL `ask_user`, permission deny |
+| `tests/integration/ws/execute-ask-user.ws.test.ts`          | Fake LLM `ask_user` → composer reply text → tool loop continues          |
 | `tests/integration/ws/execute-cancel-hitl.ws.test.ts`       | `execute.stop` during HITL → cancelled; late `user_input` rejected       |
 
 **Feedback scope regression (unit):** `packages/server/src/services/workflow-executor.service.test.ts` — “does not feedback-rerun LLM outside partial run scope” ([FOUND_BUGS.md](FOUND_BUGS.md) BUG-2026-06-16).

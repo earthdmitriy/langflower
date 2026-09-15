@@ -128,13 +128,13 @@ client), [docs/STATUS.md](../STATUS.md) (implementation status).
 Langflower provides UX similar to [OpenCode](https://opencode.ai/docs/tools/), but
 with **explicit visual chaining** instead of a hidden tool loop.
 
-| OpenCode (CLI)                       | Langflower (visual)                                         |
-| ------------------------------------ | ----------------------------------------------------------- |
-| Agent modes (plan, build, review)    | Workflow phases wired as nodes + gates                      |
-| Built-in tools (read, grep, glob, …) | **Harness** common nodes                                    |
-| Permission config                    | `langflower.jsonc` `permission` + agent presets             |
-| Human questions                      | **Review Gate** (`requestChanges`) + editor composer (HITL) |
-| Feedback in chat                     | **Feedback edges** → LLM rerun                              |
+| OpenCode (CLI)                       | Langflower (visual)                                                                  |
+| ------------------------------------ | ------------------------------------------------------------------------------------ |
+| Agent modes (plan, build, review)    | Workflow phases wired as nodes + gates                                               |
+| Built-in tools (read, grep, glob, …) | **Harness** common nodes                                                             |
+| Permission config                    | `langflower.jsonc` `permission` + agent presets                                      |
+| Human questions                      | **Review Gate** + default agent builtin `ask_user` (question in feed; composer Send) |
+| Feedback in chat                     | **Feedback edges** → LLM rerun                                                       |
 
 ### Hard harness
 
@@ -1096,7 +1096,7 @@ Each harness node publishes a stable tool id:
 | Write File   | `write_file` | `write_file`          |
 | Edit File    | `edit_file`  | `edit_file`           |
 | Bash         | `bash`       | `bash`                |
-| Review Gate  | `ask_user`   | `ask_user`            |
+| ask_user     | `ask_user`   | `ask_user` (default)  |
 
 Wiring: edge from harness output `toolRegistration` (`wireType: **tool-registration**`,
 **multi** on agent `tools`) → agent input `tools`.

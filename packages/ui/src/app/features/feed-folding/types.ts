@@ -8,6 +8,8 @@ import type {
 	CustomPaletteSnapshotPayload,
 	ExecutionFeedSnapshotPayload,
 	PaletteConfigPayload,
+	RunnerAskUserAskPayload,
+	RunnerAskUserReplyPayload,
 	RunnerPermissionAskPayload,
 	RunnerPermissionReplyPayload,
 	WorkflowCurrentSnapshotPayload,
@@ -28,6 +30,8 @@ type FeedPresentation =
 	| 'permission-ask'
 	| 'permission-grant'
 	| 'permission-deny'
+	| 'ask-user-ask'
+	| 'ask-user-reply'
 	| 'result'
 	| 'recovery'
 	| 'shell'
@@ -54,6 +58,8 @@ type OrdinaryPortFrameMeta = {
 		| 'permission-ask'
 		| 'permission-grant'
 		| 'permission-deny'
+		| 'ask-user-ask'
+		| 'ask-user-reply'
 	>;
 	/** Derived from author `feed.streaming !== true` at normalize time. */
 	readonly visitBoundary?: FeedVisitBoundary;
@@ -115,7 +121,25 @@ export type PermissionFeedEvent = {
 	readonly meta: PermissionDecisionMeta;
 };
 
-export type FeedEventFromSource = PortEventFromServer | PermissionFeedEvent;
+type AskUserTurnMeta = {
+	readonly presentation: 'ask-user-ask' | 'ask-user-reply';
+	readonly askId: string;
+	readonly authority: 'server';
+};
+
+export type AskUserFeedEvent = {
+	readonly source: 'ask-user';
+	readonly kind: 'ask-user';
+	readonly runId: RunId;
+	readonly nodeId: string;
+	readonly portId: `askUser:${string}`;
+	readonly state: 'value' | 'error' | 'pending';
+	readonly value: unknown;
+	readonly meta: AskUserTurnMeta;
+};
+
+export type FeedEventFromSource =
+	PortEventFromServer | PermissionFeedEvent | AskUserFeedEvent;
 
 export type SequencedFrame = FeedEventFromSource & {
 	readonly seq: number;
@@ -194,6 +218,8 @@ export type FeedBridgeSources = {
 	readonly runnerStarted$: Observable<RunId>;
 	readonly permissionAsk$: Observable<RunnerPermissionAskPayload>;
 	readonly permissionAccepted$: Observable<RunnerPermissionReplyPayload>;
+	readonly askUserAsk$: Observable<RunnerAskUserAskPayload>;
+	readonly askUserAccepted$: Observable<RunnerAskUserReplyPayload>;
 	readonly workflowSnapshot$: Observable<WorkflowCurrentSnapshotPayload>;
 	readonly paletteSnapshot$: Observable<PaletteConfigPayload>;
 	readonly customPaletteSnapshot$: Observable<CustomPaletteSnapshotPayload>;

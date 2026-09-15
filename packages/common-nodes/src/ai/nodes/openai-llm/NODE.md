@@ -27,11 +27,14 @@ the node calls `ExecutionContext.createChatCompletionStream` and never sees
 `apiKey` values.
 
 **Internal tool loop (epics 01 / 16):** allowlisted builtins from
-`ExecutionContext.harness` (`@langflower/tools`), wired registrations, and
+`ExecutionContext.harness` (`@langflower/tools`, including default `ask_user`),
+wired registrations, and
 MCP tools (ready `ToolHandle[]` from `EC.toolHandles` ∪ port `tools`) are
 passed to the chat API as `tools`. The node never expands MCP server config.
 When the model returns `tool_calls`, the node invokes handlers / `ctx.harness`,
 appends tool results, and re-completes until final text or `maxIterations`.
+`ask_user` pauses the loop for operator text (question in the work log;
+composer Send — not Allow/Deny).
 Observability is the `toolLog` feed port — not per-call
 canvas edges. MCP is optional and never a substitute for builtins.
 

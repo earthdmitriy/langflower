@@ -88,7 +88,9 @@ Also: `domain/domain-tool-configs.ts`, `memory/` (`create-memory-store`),
 `create-web-fetch.ts`, `ssrf-guard.ts`, `create-crawl-context.ts`,
 `permission.ts`.
 
-Builtins: `read`, `glob`, `grep`, `edit`, `write`, `create`, `delete`, `bash`.
+Builtins: `read`, `glob`, `grep`, `edit`, `write`, `create`, `delete`, `bash`,
+`ask_user`.
 
-`bash` is default-deny (`bashEnabled: false`). Read-class tools accept optional
+`bash` is default-deny (`bashEnabled: false`). `ask_user` waits on a live HITL
+host (`CreateHarnessOptions.askUser`). Read-class tools accept optional
 `postProcess` source `(res: string) => string`.

@@ -49,7 +49,7 @@ Wave-1 agent runtime (epics **01–05**) landed:
    `langflower.jsonc`).
 2. **Tool registration mechanics** — internal tool loop + `@langflower/tools`
    builtins (`read` / `glob` / `grep` / `edit` / `write` / `create` / `delete` /
-   `bash`) via `ExecutionContext.harness` (epic 01).
+   `bash` / `ask_user`) via `ExecutionContext.harness` (epic 01).
 3. **Runtime `permission.ask`** — Allow/Deny in feed/composer (epic 02).
 4. **LLM Review** — `common-review` port-routed `accept`/`feedback` (epic 03).
 5. **Role tool profiles** — Plan/Coder/Explorer presets (epic 04).

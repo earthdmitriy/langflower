@@ -87,7 +87,10 @@ Find how this repo crosses layers (HTTP, WS, files, stores). Lock:
 ### Phase 5 — Mechanics and risk
 
 Lock dataflow, validation and empty/extreme states, auth/privacy/tenancy,
-concurrency, expected failures and degradation, and schema/migration needs.
+concurrency, **complexity (Big-O of hot paths)**, expected failures and
+degradation, and schema/migration needs. Do not skip Big-O: name `n` (and
+other variables), give time and space for each hot path, and call out
+worse-than-linear risks.
 
 ### Phase 6 — Patterns and frontend (if UI)
 
@@ -186,7 +189,17 @@ step-by-step scripts with expected results.
 
 - **Race Condition Mitigation:**
 
-### G. Error Handling & Resiliency
+### G. Complexity Estimate (Big-O)
+
+- **Scaling Variables:** (`n`, `m`, … — what each counts: items, nodes, edges, tokens, bytes, concurrent clients)
+- **Hot Paths:**
+    - `[Path / operation 1]`: **Time** `O(…)` · **Space** `O(…)` · (why; dominant term)
+    - `[Path / operation 2]`: **Time** `O(…)` · **Space** `O(…)` · (why; dominant term)
+- **Amortized / Average vs Worst Case:** (if they differ, state both)
+- **I/O & Fan-out:** (network/disk calls per request; N+1; fan-out `O(n)` fan-in)
+- **Unacceptable Bounds:** (paths that must stay `O(1)` / `O(log n)` / linear; anything worse is a spec defect)
+
+### H. Error Handling & Resiliency
 
 - **Expected Failure Modes:**
 - **Graceful Degradation:**
@@ -208,8 +221,7 @@ _(Mandatory if Manual Verification is checked.)_
 #### Test Case 1: [Short Title]
 
 - **Prerequisites:**
-- **Step-by-Step Actions:**
-    1.
+- **Step-by-Step Actions:** 1.
 - **Expected Inputs / Payloads:**
 - **Expected Output / Observable Result:**
 

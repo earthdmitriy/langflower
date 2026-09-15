@@ -80,7 +80,24 @@ import {
 							>{{ itemText(itemOf(current)) }}</pre>
 					</div>
 				}
+				@case ('ask-user-reply') {
+					<div class="flex min-w-0 justify-end">
+						<pre
+							class="max-w-[92%] min-w-0 whitespace-pre-wrap break-words rounded-2xl rounded-tr-md border border-zinc-300 bg-zinc-200 px-3 py-1.5 font-sans text-[12px] leading-5 text-zinc-900 wrap-anywhere dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+							>{{ itemText(itemOf(current)) }}</pre>
+					</div>
+				}
 				@case ('result') {
+					<div class="flex min-w-0 justify-start">
+						<div
+							class="lf-feed-md max-w-[92%] min-w-0 rounded-2xl rounded-tl-md border border-zinc-200 bg-white px-3 py-2 text-[12px] leading-5 text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+							[innerHTML]="
+								markdownHtml(itemText(itemOf(current)))
+							"
+						></div>
+					</div>
+				}
+				@case ('ask-user-ask') {
 					<div class="flex min-w-0 justify-start">
 						<div
 							class="lf-feed-md max-w-[92%] min-w-0 rounded-2xl rounded-tl-md border border-zinc-200 bg-white px-3 py-2 text-[12px] leading-5 text-zinc-800 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"

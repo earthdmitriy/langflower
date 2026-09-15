@@ -5,15 +5,20 @@
  * pausable (per-node Pause — button owns its own visibility).
  */
 
-export type ComposerFooterMode = 'permission' | 'working' | 'hitl' | 'idleRun';
+export type ComposerFooterMode =
+	'permission' | 'askUser' | 'working' | 'hitl' | 'idleRun';
 
 export const resolveComposerFooterMode = (args: {
 	readonly hasPermissionAsk: boolean;
+	readonly hasAskUser: boolean;
 	readonly isRunning: boolean;
 	readonly hitlTabCount: number;
 }): ComposerFooterMode => {
 	if (args.hasPermissionAsk) {
 		return 'permission';
+	}
+	if (args.hasAskUser) {
+		return 'askUser';
 	}
 	if (args.isRunning && args.hitlTabCount === 0) {
 		return 'working';

@@ -25,6 +25,7 @@ describe('resolveWaitEvent', () => {
 			'runner.started',
 		);
 		expect(resolveWaitEvent('runner.permission.reply')).toBeNull();
+		expect(resolveWaitEvent('runner.askUser.reply')).toBeNull();
 	});
 
 	it('throws when an intent has no override', () => {

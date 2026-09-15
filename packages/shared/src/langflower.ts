@@ -65,6 +65,8 @@ export type {
 	ProviderModelEntry,
 	RunnerPermissionAskPayload,
 	RunnerPermissionReplyPayload,
+	RunnerAskUserAskPayload,
+	RunnerAskUserReplyPayload,
 } from './types/langflower-config.js';
 export { mergeLangflowerConfigLayers } from './langflower-config/merge-langflower-config-layers.js';
 export {

@@ -31,6 +31,7 @@ export const DEFAULT_PERMISSION_CONFIG: PermissionConfig = {
 	create: { '*': 'allow' },
 	delete: { '*': 'allow' },
 	bash: { '*': 'allow' },
+	ask_user: { '*': 'allow' },
 };
 
 const DECISION_RANK: Readonly<Record<PermissionDecision, number>> = {
@@ -180,6 +181,10 @@ export const permissionDetailForCall = (
 ): string => {
 	if (toolId === 'bash') {
 		return typeof args.command === 'string' ? args.command : '';
+	}
+
+	if (toolId === 'ask_user') {
+		return typeof args.question === 'string' ? args.question : '';
 	}
 
 	if (typeof args.path === 'string' && args.path.length > 0) {

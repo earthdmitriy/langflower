@@ -12,6 +12,8 @@ import type {
 	ExecutionFeedSnapshotPayload,
 	PaletteConfigPayload,
 	PaletteNodeDefinition,
+	RunnerAskUserAskPayload,
+	RunnerAskUserReplyPayload,
 	RunnerPermissionAskPayload,
 	RunnerPermissionReplyPayload,
 	WorkflowCurrentSnapshotPayload,
@@ -208,6 +210,8 @@ type ExecutionFeedRaw = {
 	readonly runnerStarted$: Subject<RunId>;
 	readonly permissionAsk$: Subject<RunnerPermissionAskPayload>;
 	readonly permissionAccepted$: Subject<RunnerPermissionReplyPayload>;
+	readonly askUserAsk$: Subject<RunnerAskUserAskPayload>;
+	readonly askUserAccepted$: Subject<RunnerAskUserReplyPayload>;
 };
 
 export type ExecutionFeedHarness = {
@@ -243,6 +247,8 @@ export const createExecutionFeedHarness = (): ExecutionFeedHarness => {
 		runnerStarted$,
 		permissionAsk$: new Subject(),
 		permissionAccepted$: new Subject(),
+		askUserAsk$: new Subject(),
+		askUserAccepted$: new Subject(),
 	};
 	const bridge = {
 		raw: {
@@ -250,6 +256,8 @@ export const createExecutionFeedHarness = (): ExecutionFeedHarness => {
 			'runner.started': runnerStarted$,
 			'runner.permission.ask': raw.permissionAsk$,
 			'runner.permission.accepted': raw.permissionAccepted$,
+			'runner.askUser.ask': raw.askUserAsk$,
+			'runner.askUser.accepted': raw.askUserAccepted$,
 		},
 		cached: {
 			'executionFeed.snapshot': raw.executionFeedSnapshot$,

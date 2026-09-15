@@ -220,3 +220,49 @@ export const fakeLlmMaxIterationsContinueWorkflow = (): WorkflowSavePayload => {
 		],
 	);
 };
+
+/**
+ * Agent `ask_user` builtin — scripted question then final text after reply.
+ * @see execute-ask-user.ws.test.ts
+ */
+export const fakeLlmAskUserWorkflow = (): WorkflowSavePayload => {
+	return savePayload(
+		'fake-llm-ask-user',
+		scenarioMetadata('Fake LLM ask_user'),
+		[
+			stringNode(
+				'prompt-1',
+				'Ask for the project name',
+				{ x: 0, y: 0 },
+				'Prompt',
+			),
+			fakeLlmNode(
+				'llm-1',
+				{ x: 280, y: 0 },
+				{
+					tokenDelayMs: 0,
+					rolePreset: 'custom',
+					maxIterations: 4,
+					scriptedToolTurns: [
+						{
+							toolCalls: [
+								{
+									name: 'ask_user',
+									arguments: {
+										question: 'What is the project name?',
+									},
+								},
+							],
+						},
+						{ text: 'The project is Langflower.' },
+					],
+				},
+			),
+			previewNode('preview-1', { x: 560, y: 0 }),
+		],
+		[
+			edge('e-prompt', 'prompt-1', 'value', 'llm-1', 'userPrompt'),
+			edge('e-response', 'llm-1', 'response', 'preview-1', 'text'),
+		],
+	);
+};

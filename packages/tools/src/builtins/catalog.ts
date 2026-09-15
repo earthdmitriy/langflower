@@ -1,3 +1,4 @@
+import { askUserTool } from './ask_user/tool.js';
 import { bashTool } from './bash/tool.js';
 import { createTool } from './create/tool.js';
 import { deleteTool } from './delete/tool.js';
@@ -18,6 +19,7 @@ export const BUILTIN_TOOLS = [
 	createTool,
 	deleteTool,
 	bashTool,
+	askUserTool,
 ] as const;
 
 export type BuiltinToolId = (typeof BUILTIN_TOOLS)[number]['id'];

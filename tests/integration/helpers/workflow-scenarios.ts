@@ -20,6 +20,7 @@ import {
 import { evalRegressionGateWorkflow } from './scenarios/eval.js';
 import {
 	adversarialRedTeamWorkflow,
+	fakeLlmAskUserWorkflow,
 	fakeLlmDebateLoopWorkflow,
 	fakeLlmMaxIterationsContinueWorkflow,
 	fakeLlmStreamWorkflow,
@@ -99,6 +100,7 @@ export const WORKFLOW_SCENARIO_COMPOSER: readonly WorkflowScenarioComposerEntry[
 			id: 'fake-llm-max-iterations-continue',
 			factory: fakeLlmMaxIterationsContinueWorkflow,
 		},
+		{ id: 'fake-llm-ask-user', factory: fakeLlmAskUserWorkflow },
 		{ id: 'adversarial-red-team', factory: adversarialRedTeamWorkflow },
 		{ id: 'prompt-refining', factory: promptRefiningWorkflow },
 		{ id: 'article-writing', factory: articleWritingWorkflow },

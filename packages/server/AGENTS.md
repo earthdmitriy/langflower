@@ -58,6 +58,7 @@ src/
 │   ├── wire-*-handlers.ts
 │   └── …
 ├── harness/pending-permission-asks.ts  # WS permission HITL only
+│   harness/pending-ask-user-asks.ts    # WS ask_user HITL only
 ├── checkpoint/
 ├── bootstrap/
 ├── config/

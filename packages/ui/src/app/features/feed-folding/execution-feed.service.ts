@@ -21,6 +21,8 @@ export class ExecutionFeedService {
 		permissionAsk$: this.bridge.raw['runner.permission.ask'] ?? EMPTY,
 		permissionAccepted$:
 			this.bridge.raw['runner.permission.accepted'] ?? EMPTY,
+		askUserAsk$: this.bridge.raw['runner.askUser.ask'] ?? EMPTY,
+		askUserAccepted$: this.bridge.raw['runner.askUser.accepted'] ?? EMPTY,
 		workflowSnapshot$: this.bridge.cached['workflow.current.snapshot'],
 		paletteSnapshot$: this.bridge.cached['palette.snapshot'],
 		customPaletteSnapshot$: this.bridge.cached['customPalette.snapshot'],

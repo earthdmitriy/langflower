@@ -18,6 +18,7 @@ import type { NodeId, RuntimeSeedPortValue } from '@langflower/runtime';
 import {
 	parseDefaultChatModel,
 	type LangflowerConfig,
+	type RunnerAskUserAskPayload,
 	type RunnerPermissionAskPayload,
 } from '@langflower/shared/langflower.js';
 import {
@@ -30,6 +31,7 @@ import {
 } from '@langflower/tools/create-system-mcp-handles';
 import {
 	createProjectHarness,
+	type AskUserRequest,
 	type Harness,
 } from '@langflower/tools/create-project-harness';
 import { createWebFetch } from '@langflower/tools/create-web-fetch';
@@ -63,6 +65,8 @@ type BuildHarnessHooks = {
 	readonly nodeId: string;
 	readonly requestPermission: LangflowerSession['permissionAsks']['requestPermission'];
 	readonly emitPermissionAsk: (payload: RunnerPermissionAskPayload) => void;
+	readonly requestAskUser: LangflowerSession['askUserAsks']['requestAskUser'];
+	readonly emitAskUserAsk: (payload: RunnerAskUserAskPayload) => void;
 	readonly requestLangflowerBus?: LangflowerBusRequest;
 	readonly getLiveWiredTools?: (agentNodeId: string) => readonly ToolHandle[];
 };
@@ -74,6 +78,7 @@ const createToolHarness = (options: {
 	readonly requestPermission?: (
 		request: PermissionAskRequest,
 	) => Promise<PermissionDecision>;
+	readonly askUser?: (request: AskUserRequest) => Promise<string>;
 }) => {
 	const hasPermissionRules = Object.keys(options.permission).length > 0;
 
@@ -90,6 +95,7 @@ const createToolHarness = (options: {
 		...(options.requestPermission !== undefined
 			? { requestPermission: options.requestPermission }
 			: {}),
+		...(options.askUser !== undefined ? { askUser: options.askUser } : {}),
 	});
 };
 
@@ -152,6 +158,13 @@ export const buildExecutionContext = async (
 							hooks.nodeId,
 							request,
 							hooks.emitPermissionAsk,
+						),
+					askUser: (request) =>
+						hooks.requestAskUser(
+							hooks.runId,
+							hooks.nodeId,
+							request,
+							hooks.emitAskUserAsk,
 						),
 				});
 
@@ -320,6 +333,7 @@ export const buildContextSeeds = async (
 	context: ExecutionContextDeps,
 	runId: string,
 	emitPermissionAsk: (payload: RunnerPermissionAskPayload) => void,
+	emitAskUserAsk: (payload: RunnerAskUserAskPayload) => void,
 	requestLangflowerBus?: LangflowerBusRequest,
 	getLiveWiredTools?: (agentNodeId: string) => readonly ToolHandle[],
 ): Promise<Record<string, ReadonlyArray<RuntimeSeedPortValue>>> => {
@@ -375,6 +389,8 @@ export const buildContextSeeds = async (
 				nodeId: node.id,
 				requestPermission: session.permissionAsks.requestPermission,
 				emitPermissionAsk,
+				requestAskUser: session.askUserAsks.requestAskUser,
+				emitAskUserAsk,
 				...(requestLangflowerBus !== undefined
 					? { requestLangflowerBus }
 					: {}),

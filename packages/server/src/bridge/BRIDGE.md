@@ -82,7 +82,7 @@ Authoritative implementation: [`emit-bootstrap.ts`](emit-bootstrap.ts).
 8. `session.ready`
 9. `langflower.config.snapshot`
 10. `langflower.models.catalog.snapshot` (async after config — does not block palette)
-11. Replay in-flight `runner.permission.ask` (if any)
+11. Replay in-flight `runner.permission.ask` / `runner.askUser.ask` (if any)
 12. `palette.snapshot` (system catalog)
 13. `customPalette.snapshot` (warm emit from createServer compile —
     no compile-on-connect; `compiling` only on explicit

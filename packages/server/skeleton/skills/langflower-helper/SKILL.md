@@ -155,8 +155,10 @@ do not say coding pipelines “don’t exist” or are unavailable.
 - **Can:** Chat Input graphs start from the composer **Start** control. Plain
   **Run** stays disabled for those graphs. Prefill or last typed text lives on
   the Chat Input node (`inputs.message`) and reappears after Stop.
-- **Can:** While running — Hard **Stop**, soft **Pause**, HITL and
-  `permission.ask` in the composer. Work log **clears** on successful
+- **Can:** While running — Hard **Stop**, soft **Pause**, HITL,
+  `ask_user` (composer Send; question in the work log), and `permission.ask`
+  in the composer. Work log **clears** on
+  successful
   workflow load / create / copy (not rename).
 - **Cannot:** Switch, rename, delete, copy, or create a workflow while a run
   is active — Stop first. Same lock: inspector / canvas inline / palette
@@ -206,7 +208,7 @@ unwired — it is not a duplicate Helper, not a second node, and not a bug.
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `starter`          | Onboarding chat + this skill + Writer Sub-Agent (`langflower-workflow-writer` + `langflower-node-writer`) — default open after seed                                                                                                                                                               |
 | Skeleton stubs     | `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`, `kb-ingest`, `kb-manual-search`, `kb-tool`, `kb-rag`, … seeded on first-run; with provider → Start                                                                                                                                  |
-| `simple-coder`     | Plan (`spec-architect`) ⇄ HITL → Coder ⇄ HITL → Finish smoke spine + `common-memory-tools` on Plan/Coder/Researcher/Worker; Researcher Sub-Agent under Plan, Worker under Coder — **not** full multi-loop `coding-agent`                                                                         |
+| `simple-coder`     | Plan (`spec-architect`) ⇄ HITL → Coder ⇄ HITL → Finish smoke spine + `common-memory-tools` on Plan/Coder/Researcher/Worker; Researcher Sub-Agent under Plan, Worker under Coder — **not** full multi-loop `coding-agent`                                                                          |
 | `kb-create`        | Memory / project wiki create: Orchestrator **indexes** the repo with `glob`/`read`, persists `history/work-queue.md`, then **serially** calls Explorer → Composer **one unit at a time**; `common-memory-tools` writes `core/*` + `modules/*`; Review rejects non-empty Pending or thin overviews |
 | `kb-navigate`      | Memory navigate: Navigator + Searcher + memory tree/grep/section tools; HITL Review Gate for follow-ups                                                                                                                                                                                           |
 | `kb-ingest`        | Sample **hello-embed** ingest (Settings embedding model; pack compiles on `langflower start`)                                                                                                                                                                                                     |
@@ -232,8 +234,11 @@ These four are **not** the same thing.
 
 ### 8. Tools, permissions, MCP
 
-- **Can:** Harness builtins + `permission.ask` Allow/Deny for those builtins.
-  Wired pack / MCP tools (including memory writes and **Langflower Tools**)
+- **Can:** Harness builtins (including default `ask_user`) + `permission.ask`
+  Allow/Deny for those builtins. `ask_user` shows the question in the work
+  log and opens the composer textarea (Send), not Allow/Deny. Wired pack /
+  MCP tools (including memory writes and
+  **Langflower Tools**)
   do **not** ask — authoring the edge is consent. Write Allow does **not**
   grant bash. MCP **nodes** wire `tools` → agent `tools` (`ToolHandle[]`).
   Optional **Tool collection** (`common-tool-collection`) can merge several

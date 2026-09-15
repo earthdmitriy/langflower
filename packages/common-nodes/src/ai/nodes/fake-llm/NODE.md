@@ -14,6 +14,8 @@ assistant + feedback user messages like openai-llm (ADR-016).
 
 Streams tokenized **reasoning** and **draftResponse**, then a final **response**.
 Harness builtins + wired `tools` (including MCP nodes) are listed in the reasoning text.
+Default inventory includes `ask_user` (question in the work log; composer
+Send; not Pause/Steer).
 
 **Scripted tool loop (tests):** set param `scriptedToolTurns` to an array of
 `{ toolCalls: [...] }` / `{ text: "..." }` turns, or inject

@@ -24,6 +24,8 @@ import type {
 	LangflowerModelsCatalogSnapshotPayload,
 	RunnerPermissionAskPayload,
 	RunnerPermissionReplyPayload,
+	RunnerAskUserAskPayload,
+	RunnerAskUserReplyPayload,
 } from './types/langflower-config.js';
 import type {
 	RunnerCheckpointDiscardRequestedPayload,
@@ -329,6 +331,12 @@ const runnerConfig = {
 		'runner.permission.reply': message<RunnerPermissionReplyPayload>(),
 
 		/**
+		 * Operator text for a runtime `ask_user` builtin wait inside the tool
+		 * loop (not a canvas HITL port — see `runner.askUser.ask`).
+		 */
+		'runner.askUser.reply': message<RunnerAskUserReplyPayload>(),
+
+		/**
 		 * Clear the execution feed (work log). Server drops the runner event
 		 * log and re-broadcasts an empty `executionFeed.snapshot`. No payload.
 		 */
@@ -399,6 +407,18 @@ const runnerConfig = {
 		 * ask. Every client removes that ask from its UI only on this fact.
 		 */
 		'runner.permission.accepted': message<RunnerPermissionReplyPayload>(),
+
+		/**
+		 * Runtime `ask_user` wait for operator text (feed + composer textarea).
+		 * Stays inside the internal tool loop — not a graph HITL edge.
+		 */
+		'runner.askUser.ask': message<RunnerAskUserAskPayload>(),
+
+		/**
+		 * Server accepted one text reply for a still-pending `ask_user`.
+		 * Every client removes that ask from its UI only on this fact.
+		 */
+		'runner.askUser.accepted': message<RunnerAskUserReplyPayload>(),
 
 		/**
 		 * Resumable checkpoints for the active workflow (bootstrap + after

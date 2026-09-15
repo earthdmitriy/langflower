@@ -140,7 +140,7 @@ client must show the same state without asking which tab caused a change.
    `toolConfig.snapshot` → `workflow.list.snapshot` →
    `workflow.current.snapshot` → `session.ready` →
    `langflower.config.snapshot` → `langflower.config.draft.snapshot` →
-   replayed `runner.permission.ask` events →
+   replayed `runner.permission.ask` / `runner.askUser.ask` events →
    `palette.snapshot` then warm `customPalette.snapshot` (compiled at
    `createServer` before listen — not on connect).
 3. Feed / HITL folds must therefore wait for real workflow and palette Subjects
@@ -216,7 +216,7 @@ Current features:
 - `src/app/features/editor/components/editor-shell.component.ts` — editor chrome.
 - `src/app/features/canvas/components/flow-canvas.component.ts` — ngDiagram host.
 - `src/app/features/composer/composer.service.ts` — composer HITL, drafts,
-  permission asks, Pause. Injects WES / feed / bridge. WES must not inject
+  permission asks, `ask_user`, Pause. Injects WES / feed / bridge. WES must not inject
   `ComposerService`.
 - `src/app/features/feed/` — work-log panel (right sidebar default).
 - `src/app/features/sidebar/` — inspector and settings slice.

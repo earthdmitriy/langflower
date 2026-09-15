@@ -1,10 +1,12 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import type { HitlInputConfig } from '@langflower/node-sdk';
 import { STEER_CONTROL_PORT_ID } from '@langflower/node-sdk/llm';
 import type { NodeId, PortTelemetry, RunId } from '@langflower/runtime';
 import { isPortTelemetry, isPortValueTelemetry } from '@langflower/runtime';
 import type {
 	PaletteNodeDefinition,
+	RunnerAskUserAskPayload,
 	RunnerPermissionAskPayload,
 } from '@langflower/shared/langflower';
 import { combineLatest, EMPTY, merge, Subject, type Observable } from 'rxjs';
@@ -29,8 +31,19 @@ import {
 } from '../palette/types/palette-projection';
 import { ExecutionFeedService } from '../feed-folding/execution-feed.service';
 import { createHitlTriggeredNodes$ } from './execution-hitl-fold';
+import { createPendingAskUserAsks$ } from './execution-ask-user-fold';
 import { createPendingPermissionAsks$ } from './execution-permission-fold';
 import { nodeInputString } from './node-input-string';
+
+/** Synthetic HITL port id for composer drafts while `ask_user` is pending. */
+export const ASK_USER_COMPOSER_PORT_ID = 'ask_user';
+
+export const ASK_USER_TEXTAREA_CONFIG: HitlInputConfig = {
+	title: 'Ask user',
+	kind: 'textarea',
+	submitLabel: 'Send',
+	placeholder: 'Reply to the agent…',
+};
 
 type InputPortTelemetry = PortTelemetry & {
 	readonly 0: 'in';
@@ -87,6 +100,10 @@ export class ComposerService {
 		this.bridge.raw['runner.permission.ask'] ?? EMPTY;
 	private readonly permissionAccepted$ =
 		this.bridge.raw['runner.permission.accepted'] ?? EMPTY;
+	private readonly askUserAsk$ =
+		this.bridge.raw['runner.askUser.ask'] ?? EMPTY;
+	private readonly askUserAccepted$ =
+		this.bridge.raw['runner.askUser.accepted'] ?? EMPTY;
 
 	private readonly paletteByType$ = this.paletteSnapshot$.pipe(
 		map((snap) => paletteNodesByType(snap.nodes)),
@@ -158,6 +175,19 @@ export class ComposerService {
 
 	readonly pendingPermissionAsks = toSignal(this.pendingPermissionAsks$, {
 		initialValue: [] as readonly RunnerPermissionAskPayload[],
+	});
+
+	private readonly pendingAskUserAsks$ = createPendingAskUserAsks$({
+		askUserAsk$: this.askUserAsk$,
+		askUserAccepted$: this.askUserAccepted$,
+		runnerDone$: this.runnerDone$,
+		runnerInterrupted$: this.runnerInterrupted$,
+		runnerStarted$: this.runnerStarted$,
+		runnerStartNodeStarted$: this.runnerStartNodeStarted$,
+	});
+
+	readonly pendingAskUserAsks = toSignal(this.pendingAskUserAsks$, {
+		initialValue: [] as readonly RunnerAskUserAskPayload[],
 	});
 
 	constructor() {
@@ -381,6 +411,23 @@ export class ComposerService {
 			runId: ask.runId,
 			askId: ask.askId,
 			decision,
+		});
+	}
+
+	submitAskUserReply(ask: RunnerAskUserAskPayload, text: string): void {
+		const trimmed = text.trim();
+		if (trimmed.length === 0) {
+			return;
+		}
+		this.bridge.raw['runner.askUser.reply']?.next({
+			runId: ask.runId,
+			askId: ask.askId,
+			text: trimmed,
+		});
+		this.hitlDrafts.update((current) => {
+			const next = new Map(current);
+			next.delete(`${ask.nodeId}:${ASK_USER_COMPOSER_PORT_ID}`);
+			return next;
 		});
 	}
 }

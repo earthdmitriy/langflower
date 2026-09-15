@@ -23,6 +23,7 @@ import {
 export type { Harness, ToolInvokeCall, ToolInvokeResult };
 export type { BuiltinToolRegistration } from './harness-types.js';
 export type { PermissionAskRequest, PermissionConfig };
+export type { AskUserRequest } from './builtins/types.js';
 
 export type CreateHarnessOptions = {
 	readonly projectRoot: string;
@@ -46,6 +47,10 @@ export type CreateHarnessOptions = {
 	readonly requestPermission?: (
 		request: PermissionAskRequest,
 	) => Promise<PermissionDecision>;
+	/**
+	 * Called by the `ask_user` builtin. Missing hook → invoke fails closed.
+	 */
+	readonly askUser?: HandlerContext['askUser'];
 };
 
 /**
@@ -61,6 +66,7 @@ export const createProjectHarness = (
 		denyPaths: options.denyPaths ?? [],
 		allowedRoots: options.allowedRoots ?? [],
 		bashEnabled: options.bashEnabled === true,
+		...(options.askUser !== undefined ? { askUser: options.askUser } : {}),
 	};
 	const permission: PermissionConfig = {
 		...DEFAULT_PERMISSION_CONFIG,

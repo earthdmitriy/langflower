@@ -132,6 +132,7 @@ tab may also start runs — otherwise the wait cannot filter. Bus-wide
 | `runner_interrupt_requested` | `{ "payload": "cancel" }`                                                |
 | `runner_hitl_event`          | `{ "payload": { "nodeId": "…", "portId": "approve", "payload": true } }` |
 | `runner_permission_reply`    | `{ "payload": { "runId", "askId", "decision": "allow" \| "deny" } }`     |
+| `runner_askUser_reply`       | `{ "payload": { "runId", "askId", "text" } }`                            |
 
 HITL port ids depend on the node (e.g. review gate: `approve`,
 `requestChanges`). Discover node ids from `workflow.current.snapshot` or the

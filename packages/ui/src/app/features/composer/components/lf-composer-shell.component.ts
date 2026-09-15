@@ -6,11 +6,18 @@ import {
 	inject,
 	signal,
 } from '@angular/core';
-import type { RunnerPermissionAskPayload } from '@langflower/shared/langflower';
+import type {
+	RunnerAskUserAskPayload,
+	RunnerPermissionAskPayload,
+} from '@langflower/shared/langflower';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
 import { NodeHoverService } from '../../../services/node-hover.service';
 import type { HitlControlProjection } from '../../../services/hitl-projection';
-import { ComposerService } from '../composer.service';
+import {
+	ASK_USER_COMPOSER_PORT_ID,
+	ASK_USER_TEXTAREA_CONFIG,
+	ComposerService,
+} from '../composer.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import { resolveComposerActionPayload } from '../hitl-action-payload';
 import { resolveComposerFooterMode } from '../composer-footer-mode';
@@ -66,6 +73,14 @@ import { RunButtonComponent } from './run-button.component';
 						{{ permissionAskMeta(ask) }}
 					</p>
 				</div>
+			} @else if (activeAskUser(); as ask) {
+				<lf-hitl-textarea
+					class="absolute inset-0 z-0"
+					[nodeId]="ask.nodeId"
+					[portId]="askUserPortId"
+					[config]="askUserTextareaConfig"
+					(enterActivate)="onEnterActivate()"
+				/>
 			} @else if (hitlTabs().length === 0) {
 				@if (footerMode() !== 'working') {
 					<p
@@ -173,6 +188,36 @@ import { RunButtonComponent } from './run-button.component';
 							</div>
 						}
 					}
+					@case ('askUser') {
+						@if (activeAskUser(); as ask) {
+							<div
+								class="flex w-full items-center justify-between gap-3"
+							>
+								@if (execution.isRunning()) {
+									<lf-run-button [compact]="true" />
+								}
+								<lf-hover-tip
+									[tip]="
+										askUserDraft(ask).trim().length > 0
+											? 'Send this answer to the agent'
+											: 'Type a message first'
+									"
+								>
+									<button
+										type="button"
+										class="lf-composer-pill ml-auto border border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+										[disabled]="
+											askUserDraft(ask).trim().length ===
+											0
+										"
+										(click)="onAskUserSubmit(ask)"
+									>
+										Send
+									</button>
+								</lf-hover-tip>
+							</div>
+						}
+					}
 					@case ('working') {
 						<div
 							class="flex w-full items-center justify-between gap-3"
@@ -245,6 +290,13 @@ export class LfComposerShellComponent {
 		() => this.composer.pendingPermissionAsks()[0] ?? null,
 	);
 
+	readonly activeAskUser = computed(
+		() => this.composer.pendingAskUserAsks()[0] ?? null,
+	);
+
+	readonly askUserPortId = ASK_USER_COMPOSER_PORT_ID;
+	readonly askUserTextareaConfig = ASK_USER_TEXTAREA_CONFIG;
+
 	readonly hitlTabs = computed<
 		ReadonlyArray<{
 			readonly nodeId: string;
@@ -316,6 +368,7 @@ export class LfComposerShellComponent {
 	readonly footerMode = computed(() =>
 		resolveComposerFooterMode({
 			hasPermissionAsk: this.activePermissionAsk() !== null,
+			hasAskUser: this.activeAskUser() !== null,
 			isRunning: this.execution.isRunning(),
 			hitlTabCount: this.hitlTabs().length,
 		}),
@@ -333,6 +386,11 @@ export class LfComposerShellComponent {
 
 	/** Enter in the focused textarea → same as clicking the rightmost CTA. */
 	onEnterActivate(): void {
+		const ask = this.activeAskUser();
+		if (this.footerMode() === 'askUser' && ask !== null) {
+			this.onAskUserSubmit(ask);
+			return;
+		}
 		const entries = [
 			...this.hitlReplyActionsForActiveTab(),
 			...(this.execution.isRunning()
@@ -363,6 +421,17 @@ export class LfComposerShellComponent {
 		decision: 'allow' | 'deny',
 	): void {
 		this.composer.submitPermissionReply(ask, decision);
+	}
+
+	askUserDraft(ask: RunnerAskUserAskPayload): string {
+		return this.composer.composerText(
+			ask.nodeId,
+			ASK_USER_COMPOSER_PORT_ID,
+		);
+	}
+
+	onAskUserSubmit(ask: RunnerAskUserAskPayload): void {
+		this.composer.submitAskUserReply(ask, this.askUserDraft(ask));
 	}
 
 	permissionAskMeta(ask: RunnerPermissionAskPayload): string {

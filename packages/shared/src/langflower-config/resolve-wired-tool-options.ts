@@ -22,6 +22,7 @@ export const HARNESS_BUILTIN_TOOL_OPTIONS: readonly InlineSelectOption[] = [
 	{ value: 'create', title: 'create' },
 	{ value: 'delete', title: 'delete' },
 	{ value: 'bash', title: 'bash' },
+	{ value: 'ask_user', title: 'ask_user' },
 ];
 
 /**
