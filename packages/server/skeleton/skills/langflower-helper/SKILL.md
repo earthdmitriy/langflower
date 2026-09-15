@@ -73,8 +73,8 @@ do not say coding pipelines “don’t exist” or are unavailable.
 - **Can:** `langflower start [project-dir]` (default port **4010**) creates
   `.langflower/`, config, `instructions.md`, packs `nodes/my-nodes/` and
   `nodes/hello-embed/`, skills
-  `langflower-helper`, `langflower-node-writer`, and
-  `langflower-workflow-writer`, and opens workflow **`starter`** first.
+  `langflower-helper`, `langflower-node-writer`,
+  `langflower-workflow-writer`, and `spec-architect`, and opens workflow **`starter`** first.
 - **Can:** Skeleton already ships coding and KB sample workflows
   (`simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`,
   `kb-ingest`, `kb-manual-search`, `kb-tool`, `kb-rag`, …). With a
@@ -95,7 +95,7 @@ do not say coding pipelines “don’t exist” or are unavailable.
 
 - **Can:** First-run seed = config + **all** skeleton workflows (including
   `starter`, coding samples, `kb-create`, `kb-navigate`, `kb-ingest`,
-  `kb-manual-search`, `kb-tool`, `kb-rag`) + three skills + `my-nodes` +
+  `kb-manual-search`, `kb-tool`, `kb-rag`) + four skills + `my-nodes` +
   `hello-embed` + instructions.
 - **Can:** Skeleton inventory includes `node-writer`, `agents-dialog`,
   `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`,
@@ -206,7 +206,7 @@ unwired — it is not a duplicate Helper, not a second node, and not a bug.
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `starter`          | Onboarding chat + this skill + Writer Sub-Agent (`langflower-workflow-writer` + `langflower-node-writer`) — default open after seed                                                                                                                                                               |
 | Skeleton stubs     | `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`, `kb-ingest`, `kb-manual-search`, `kb-tool`, `kb-rag`, … seeded on first-run; with provider → Start                                                                                                                                  |
-| `simple-coder`     | Plan⇄HITL→Coder⇄HITL→Finish smoke spine + `common-memory-tools` on Plan/Coder/Researcher/Worker; Researcher Sub-Agent under Plan, Worker under Coder — **not** full multi-loop `coding-agent`                                                                                                     |
+| `simple-coder`     | Plan (`spec-architect`) ⇄ HITL → Coder ⇄ HITL → Finish smoke spine + `common-memory-tools` on Plan/Coder/Researcher/Worker; Researcher Sub-Agent under Plan, Worker under Coder — **not** full multi-loop `coding-agent`                                                                         |
 | `kb-create`        | Memory / project wiki create: Orchestrator **indexes** the repo with `glob`/`read`, persists `history/work-queue.md`, then **serially** calls Explorer → Composer **one unit at a time**; `common-memory-tools` writes `core/*` + `modules/*`; Review rejects non-empty Pending or thin overviews |
 | `kb-navigate`      | Memory navigate: Navigator + Searcher + memory tree/grep/section tools; HITL Review Gate for follow-ups                                                                                                                                                                                           |
 | `kb-ingest`        | Sample **hello-embed** ingest (Settings embedding model; pack compiles on `langflower start`)                                                                                                                                                                                                     |
@@ -291,7 +291,10 @@ Sub-Agent is an **explicit canvas node** for **control and observability**
   `kb-create` (index with `glob` → `history/work-queue.md` → serial
   Explorer/Composer units into `core/*` + `modules/*`) and `kb-navigate`.
   Managed markdown under `.langflower/memory/` (also reachable with harness
-  file tools). **Embeddings** catalog nodes + Settings default embedding model
+  file tools). **Can:** with Memory Tools wired, call `update_plan` to write
+  `history/plan.md` and print the current plan in the work log (`plan`
+  output, `feed.role: result`). There is no separate Plan mode. **Embeddings**
+  catalog nodes + Settings default embedding model
   are shipped for API checks and pack **`EmbedHandle`** wiring — separate from
   vector KB ([ADR-033](../../../../../docs/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
   Obsidian vault helpers are **not** shipped (TBD-007).

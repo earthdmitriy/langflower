@@ -143,13 +143,13 @@ Do **not** deep-import internal files.
 Domain tool packs (no `bind` boilerplate) — each tool needs a raw `handler`:
 
 ```typescript
-import { MEMORY_TOOL_CONFIGS } from '@langflower/tools/domain-tool-configs';
+import { CRAWL_TOOL_CONFIGS } from '@langflower/tools/domain-tool-configs';
 
-export const memoryToolsNode = defineToolRegistrations({
-	type: 'common-memory-tools',
-	displayName: 'Memory Tools',
+export const crawlToolsNode = defineToolRegistrations({
+	type: 'common-crawl-tools',
+	displayName: 'Crawl Tools',
 	category: 'Tools',
-	tools: MEMORY_TOOL_CONFIGS,
+	tools: CRAWL_TOOL_CONFIGS,
 });
 ```
 

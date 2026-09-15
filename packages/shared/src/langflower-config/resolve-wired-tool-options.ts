@@ -45,6 +45,8 @@ export const DOMAIN_PACK_TOOL_OPTIONS: Readonly<
 		{ value: 'append_memory_log', title: 'append_memory_log' },
 		{ value: 'update_memory_section', title: 'update_memory_section' },
 		{ value: 'create_memory_file', title: 'create_memory_file' },
+		{ value: 'update_plan', title: 'update_plan' },
+		{ value: 'read_plan', title: 'read_plan' },
 	],
 	'common-langflower-tools': [
 		{

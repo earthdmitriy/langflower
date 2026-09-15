@@ -3,6 +3,12 @@ import { resolveProjectPath } from '../path-sandbox.js';
 
 export const MEMORY_ROOT_RELATIVE = '.langflower/memory';
 
+/** Reserved current-plan file inside the memory folder. */
+export const MEMORY_PLAN_FILE = 'history/plan.md';
+
+/** Reserved heading for the operator-visible current plan. */
+export const MEMORY_PLAN_HEADING = '## Plan';
+
 export const memoryRootAbsolute = (projectDir: string): string =>
 	path.join(path.resolve(projectDir), MEMORY_ROOT_RELATIVE);
 

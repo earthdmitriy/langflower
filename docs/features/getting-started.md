@@ -28,7 +28,8 @@ folder. Langflower:
 - On first run (no `.langflower/` yet), creates a hidden `.langflower/` folder
   containing default config, **all** packaged skeleton workflows (default open:
   **`starter`**), authoring **`instructions.md`**, skills
-  **`langflower-helper`** + **`langflower-node-writer`**, and the
+  **`langflower-helper`**, **`langflower-node-writer`**,
+  **`langflower-workflow-writer`**, **`spec-architect`**, and the
   **`nodes/my-nodes`** seed pack. Seed _content_ contract:
   [skeleton](skeleton.md) / [ADR-030](../ADR.md#adr-030--custom-node-pack-layout--npm-model).
   Source tree:

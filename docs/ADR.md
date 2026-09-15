@@ -2020,8 +2020,11 @@ re-index pipelines into the base product.
 1. Agent memory is a **managed Markdown folder** (`.langflower/memory/`) exposed
    as wired tools (`get_memory_tree`, `read_memory_section`,
    `search_memory_grep`, `append_memory_log`, `update_memory_section`,
-   `create_memory_file`) via a **single** pack node `common-memory-tools` —
-   not per-tool alias canvas nodes.
+   `create_memory_file`, `update_plan`, `read_plan`) via a **single** pack
+   node `common-memory-tools` — not per-tool alias canvas nodes. `update_plan`
+   writes reserved `history/plan.md` (`## Plan`) and the pack emits that
+   markdown on a `plan` output (`feed.role: 'result'`) so the operator sees
+   the current plan in the work log (there is no separate Plan mode).
 2. The same folder is **also reachable with common harness file tools**
    (`read` / `write` / `edit` / `create` / `delete` / `glob` / `grep`) using
    paths under `.langflower/memory/`. Do not ship secondary graph nodes that

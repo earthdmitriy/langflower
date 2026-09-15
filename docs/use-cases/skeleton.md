@@ -63,7 +63,7 @@ by [bootstrap-new-project](bootstrap-new-project.md)).
   (chat + agent with skill `langflower-helper` — see
   [bootstrap-new-project](bootstrap-new-project.md) S1).
 - Skills seeded include at least `langflower-helper`, `langflower-node-writer`,
-  `langflower-workflow-writer`.
+  `langflower-workflow-writer`, `spec-architect`.
 - Sample custom-node pack contract: [ADR-030](../ADR.md#adr-030--custom-node-pack-layout--npm-model).
 - Content MUST come from the skeleton tree above, not from a parallel
   undocumented seed tree. Bootstrap MUST NOT auto-run `npm install` in the pack.

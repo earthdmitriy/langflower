@@ -46,6 +46,7 @@
 				"type": "common-openai-llm",
 				"params": {
 					"rolePreset": "plan",
+					"skillId": "spec-architect",
 					"providerId": "",
 					"model": "",
 					"maxIterations": 8

@@ -64,4 +64,36 @@ describe('domain tool configs', () => {
 			harness.listBuiltinRegistrations().map((r) => r.toolId),
 		).not.toContain('get_memory_tree');
 	});
+
+	it('update_plan upserts history/plan.md and read_plan returns it', async () => {
+		const projectDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'lf-domain-plan-'),
+		);
+		tempDirs.push(projectDir);
+
+		const ctx: ToolHandlerContext = {
+			projectDir,
+			runId: 'run-plan',
+		};
+
+		const update = MEMORY_TOOL_CONFIGS.find(
+			(t) => t.toolId === 'update_plan',
+		);
+		const read = MEMORY_TOOL_CONFIGS.find((t) => t.toolId === 'read_plan');
+		expect(update).toBeDefined();
+		expect(read).toBeDefined();
+
+		const missing = await read!.handler({}, ctx);
+		expect(missing).toContain('"exists": false');
+
+		await update!.handler({ content: '- Step 1\n- Step 2' }, ctx);
+		const present = await read!.handler({}, ctx);
+		expect(present).toContain('"exists": true');
+		expect(present).toContain('## Plan');
+		expect(present).toContain('- Step 1');
+
+		await expect(update!.handler({ content: '   ' }, ctx)).rejects.toThrow(
+			/Missing required string argument/,
+		);
+	});
 });

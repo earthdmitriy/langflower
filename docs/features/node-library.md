@@ -75,8 +75,9 @@ that does **not** make coding-agent Implementable.
   palette nodes and/or agent tools — **not shipped** (epic 01).
 - **Embeddings** — Embed text, Embed similarity, Embed provider (`EmbedHandle`
   wire for custom packs) — epic 42 **landed**.
-- **Memory** — `common-memory-tools` → `.langflower/memory/` (markdown tools;
-  not vector KB — [ADR-033](../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
+- **Memory** — `common-memory-tools` → `.langflower/memory/` (markdown tools
+  plus `update_plan` / `read_plan` and a `plan` work-log output; not vector KB —
+  [ADR-033](../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
 - **Knowledge / Crawl** — vector KB pipeline **removed** (ADR-033); crawl nodes
   (epic 12) in catalog.
 
@@ -594,7 +595,7 @@ Statuses below match [STATUS.md](../STATUS.md) / `catalog.ts` (2026-07-19).
 | `common-agent-*`      | —                         | —   | planned     | **Superseded** — do not implement as separate types                                                                                                  |
 | Chat Input            | `common-chat-input`       | P0  | **done**    | epic 13; see [hitl-chat.md](hitl-chat.md)                                                                                                            |
 | Sub-Agent             | `common-sub-agent`        | P2  | **partial** | OUT `subagent-registration` + in-node loop shipped; L1+ open — [ADR-021](../ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter) |
-| Memory Tools          | `common-memory-tools`     | P2  | **done**    | Pack → `tools` (`memory_get`…`delete`); harness invoke                                                                                               |
+| Memory Tools          | `common-memory-tools`     | P2  | **done**    | Pack → `tools` (`get_memory_tree`…`update_plan`/`read_plan`) + `plan` feed result; harness invoke not used                                           |
 | Tool collection       | `common-tool-collection`  | P2  | **done**    | Optional hub: combine many `tools` → one `ToolHandle[]` (last-wins) — [ADR-035](../ADR.md#adr-035--uniform-inventory-wire--optional-tool-collection) |
 | Tool invoke           | `common-tool-invoke`      | P2  | **done**    | Graph-side `handle.invoke` by `toolId` + JSON `args` (no LLM)                                                                                        |
 | Memory                | `common-memory`           | P2  | **done**    | Secondary graph I/O via `ctx.memory`                                                                                                                 |
@@ -1407,6 +1408,9 @@ Understand the user's goal, explore the codebase read-only, and produce a clear
 implementation plan. Do not modify source code or non-documentation files.
 
 Write plans in Markdown with sections: Goal, Context, Steps, Risks, Open questions.
+
+When memory tools are wired, call update_plan with that markdown so the operator
+sees the current plan in the work log. There is no separate Plan mode.
 
 When requirements are ambiguous, use ask_user before finalizing the plan.
 ```

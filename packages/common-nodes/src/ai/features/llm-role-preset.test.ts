@@ -4,6 +4,7 @@ import {
 	migrateEnabledToolIdsToPermissions,
 	paramsAfterRolePresetApply,
 	parseLlmRolePreset,
+	resolveEffectiveSkillId,
 	resolveEffectiveToolPermissions,
 	toolPermissionsToEnabledIds,
 } from './llm-role-preset.js';
@@ -65,5 +66,14 @@ describe('llm-role-preset toolPermissions', () => {
 	it('parseLlmRolePreset falls back to custom', () => {
 		expect(parseLlmRolePreset('coder')).toBe('coder');
 		expect(parseLlmRolePreset('nope')).toBe('custom');
+	});
+
+	it('Plan preset defaults to spec-architect skill when skillId is empty', () => {
+		expect(LLM_ROLE_PRESET_DEFAULTS.plan.skillId).toBe('spec-architect');
+		expect(resolveEffectiveSkillId('plan', '')).toBe('spec-architect');
+		expect(resolveEffectiveSkillId('plan', '  ')).toBe('spec-architect');
+		expect(resolveEffectiveSkillId('plan', 'custom-plan')).toBe(
+			'custom-plan',
+		);
 	});
 });

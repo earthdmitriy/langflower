@@ -11,7 +11,6 @@ import {
 	topLevelHeadings,
 } from './markdown-sections.js';
 import {
-	MEMORY_ROOT_RELATIVE,
 	memoryRootAbsolute,
 	resolveMemoryFilePath,
 	toMemoryRelativePath,
@@ -306,4 +305,8 @@ export const createMemoryStore = (projectDir: string): MemoryStore => {
 	};
 };
 
-export { MEMORY_ROOT_RELATIVE };
+export {
+	MEMORY_PLAN_FILE,
+	MEMORY_PLAN_HEADING,
+	MEMORY_ROOT_RELATIVE,
+} from './memory-paths.js';

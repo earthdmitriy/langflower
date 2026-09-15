@@ -47,6 +47,9 @@ export const PLAN_AGENT_SYSTEM_PROMPT = [
 	'',
 	'Write plans in Markdown with sections: Goal, Context, Steps, Risks, Open questions.',
 	'',
+	'When memory tools are wired, call update_plan with that markdown so the operator',
+	'sees the current plan in the work log. There is no separate Plan mode.',
+	'',
 	'When requirements are ambiguous, use ask_user before finalizing the plan.',
 ].join('\n');
 
@@ -113,7 +116,7 @@ export const LLM_ROLE_PRESET_DEFAULTS: Readonly<
 	},
 	plan: {
 		systemPrompt: PLAN_AGENT_SYSTEM_PROMPT,
-		skillId: 'plan',
+		skillId: 'spec-architect',
 		toolPermissions: PLAN_TOOL_PERMISSIONS,
 	},
 	coder: {

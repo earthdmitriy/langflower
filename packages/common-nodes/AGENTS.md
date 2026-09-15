@@ -46,7 +46,7 @@ this package — import `@langflower/tools/build-mcp-handle` (etc.) inside nodes
 | `src/primitives/`                         | Scalar literals and JSON field helpers                                                                                         |
 | `src/logic/`                              | Branching, comparison, routing                                                                                                 |
 | `src/text/`                               | String templating and manipulation                                                                                             |
-| `src/memory/`                             | `memory-tools` pack via `defineToolRegistrations` only                                                                         |
+| `src/memory/`                             | `memory-tools` pack via `defineReactiveNode` (`tools` + `plan` feed)                                                           |
 | `src/langflower-tools/`                   | Langflower Tools (`compile_custom_nodes`; local `emitRegistrationTools` peeks this node EC)                                    |
 | `src/crawl/`                              | Crawl nodes + `crawl-tools` via `defineToolRegistrations`                                                                      |
 | `src/test-nodes/`                         | Demo and harness fixtures (not in default registry)                                                                            |

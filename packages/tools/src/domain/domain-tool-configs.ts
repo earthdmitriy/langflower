@@ -1,5 +1,9 @@
 import { createCrawlContext } from '../create-crawl-context.js';
 import { createMemoryStore } from '../memory/create-memory-store.js';
+import {
+	MEMORY_PLAN_FILE,
+	MEMORY_PLAN_HEADING,
+} from '../memory/memory-paths.js';
 import { createWebFetch } from '../create-web-fetch.js';
 import type { WebFetchRequest, WebFetchResult } from '../create-web-fetch.js';
 import { asNumber, asString, requireString } from './args.js';
@@ -404,6 +408,73 @@ export const MEMORY_TOOL_CONFIGS: readonly DomainToolConfig[] = [
 				initial,
 			);
 			return json({ file_path: filePath, ok: true });
+		},
+	},
+	{
+		toolId: 'update_plan',
+		description:
+			'Replace the current plan shown to the operator in the work log. Writes the reserved ## Plan section in history/plan.md. There is no separate Plan mode — call this whenever the live plan changes. Pass only the markdown body under the heading (Goal, Context, Steps, Risks, Open questions).',
+		inputSchema: {
+			type: 'object',
+			properties: {
+				content: {
+					type: 'string',
+					description:
+						'Markdown body under ## Plan. Do not include the heading itself.',
+				},
+			},
+			required: ['content'],
+		},
+		handler: async (args, ctx) => {
+			const content = requireString(args, 'content');
+			await createMemoryStore(ctx.projectDir).updateSection(
+				MEMORY_PLAN_FILE,
+				MEMORY_PLAN_HEADING,
+				content,
+			);
+			return json({
+				file_path: MEMORY_PLAN_FILE,
+				heading: MEMORY_PLAN_HEADING,
+				ok: true,
+			});
+		},
+	},
+	{
+		toolId: 'read_plan',
+		description:
+			'Reads the current operator-visible plan from history/plan.md (## Plan). Returns empty content when the plan file or section does not exist.',
+		inputSchema: {
+			type: 'object',
+			properties: {},
+			required: [],
+		},
+		handler: async (_args, ctx) => {
+			try {
+				const content = await createMemoryStore(
+					ctx.projectDir,
+				).readSection(MEMORY_PLAN_FILE, MEMORY_PLAN_HEADING);
+				return json({
+					file_path: MEMORY_PLAN_FILE,
+					content,
+					exists: true,
+				});
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : String(error);
+
+				if (
+					message.includes('Memory file not found') ||
+					message.includes('Heading')
+				) {
+					return json({
+						file_path: MEMORY_PLAN_FILE,
+						content: '',
+						exists: false,
+					});
+				}
+
+				throw error;
+			}
 		},
 	},
 ];

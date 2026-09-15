@@ -14,13 +14,13 @@ import {
  *
  * @example
  * ```ts
- * import { MEMORY_TOOL_CONFIGS } from '@langflower/tools/domain-tool-configs';
+ * import { CRAWL_TOOL_CONFIGS } from '@langflower/tools/domain-tool-configs';
  *
- * export const memoryToolsNode = defineToolRegistrations({
- *   type: 'common-memory-tools',
- *   displayName: 'Memory Tools',
- *   category: 'Memory',
- *   tools: MEMORY_TOOL_CONFIGS,
+ * export const crawlToolsNode = defineToolRegistrations({
+ *   type: 'common-crawl-tools',
+ *   displayName: 'Crawl Tools',
+ *   category: 'Tools',
+ *   tools: CRAWL_TOOL_CONFIGS,
  * });
  * ```
  */

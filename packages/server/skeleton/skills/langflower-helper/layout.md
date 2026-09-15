@@ -47,7 +47,7 @@ Facts for UI chrome and on-disk paths. Prefer this file over guessing.
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `langflower.jsonc` | Providers, secrets refs, project config                                                                                               |
 | `workflows/`       | Saved workflow graphs                                                                                                                 |
-| `skills/`          | Agent skills (`langflower-helper/`, `langflower-node-writer/`, `langflower-workflow-writer/`)                                         |
+| `skills/`          | Agent skills (`langflower-helper/`, `langflower-node-writer/`, `langflower-workflow-writer/`, `spec-architect/`) |
 | `nodes/`           | Custom node packs — one folder / `package.json` each (`my-nodes/`, sample `hello-embed/`, extra sibling packs; no jsonc registration) |
 | `instructions.md`  | Project-level agent instructions                                                                                                      |
 | `runs/`            | Run artifacts / checkpoints when created                                                                                              |

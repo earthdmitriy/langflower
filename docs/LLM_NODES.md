@@ -253,7 +253,7 @@ There is **one** LLM node type pair (`common-fake-llm` / `common-openai-llm`).
 | Preset     | Meaning                                                       |
 | ---------- | ------------------------------------------------------------- |
 | `custom`   | Empty defaults; author fills system prompt and skill manually |
-| `plan`     | Read-only exploration + Markdown planning prompts             |
+| `plan`     | Read-only exploration + Markdown planning; default skill `spec-architect` |
 | `coder`    | Implementation-focused system prompt                          |
 | `explorer` | Research / web notes system prompt                            |
 

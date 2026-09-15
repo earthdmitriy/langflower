@@ -53,7 +53,12 @@ describe('buildExecutionContext', () => {
 	});
 
 	it('loads skillMarkdown from rolePreset default when skillId empty', async () => {
-		const skillDir = path.join(projectDir, '.langflower', 'skills', 'plan');
+		const skillDir = path.join(
+			projectDir,
+			'.langflower',
+			'skills',
+			'spec-architect',
+		);
 		await fs.mkdir(skillDir, { recursive: true });
 		await fs.writeFile(
 			path.join(skillDir, 'SKILL.md'),

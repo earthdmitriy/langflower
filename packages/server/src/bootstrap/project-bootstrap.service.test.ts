@@ -139,6 +139,19 @@ describe('bootstrapProject', () => {
 			).isFile(),
 		).toBe(true);
 
+		expect(
+			(
+				await fs.stat(
+					path.join(
+						langflowerDir,
+						'skills',
+						'spec-architect',
+						'SKILL.md',
+					),
+				)
+			).isFile(),
+		).toBe(true);
+
 		const workflowsDir = path.join(langflowerDir, 'workflows');
 		const files = await fs.readdir(workflowsDir);
 

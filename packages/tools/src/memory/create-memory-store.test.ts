@@ -69,6 +69,29 @@ describe('createMemoryStore', () => {
 		).rejects.toThrow(/already exists/);
 	});
 
+	it('upserts the reserved plan section', async () => {
+		const project = await makeProject();
+		const store = createMemoryStore(project);
+
+		await store.updateSection(
+			'history/plan.md',
+			'## Plan',
+			'- Step 1\n- Step 2',
+		);
+		const first = await store.readSection('history/plan.md', '## Plan');
+		expect(first).toContain('## Plan');
+		expect(first).toContain('- Step 1');
+
+		await store.updateSection(
+			'history/plan.md',
+			'## Plan',
+			'- Step 1 done\n- Step 2',
+		);
+		const second = await store.readSection('history/plan.md', '## Plan');
+		expect(second).toContain('Step 1 done');
+		expect(second).not.toContain('- Step 1\n');
+	});
+
 	it('rejects path escape outside memory root', async () => {
 		const project = await makeProject();
 		const store = createMemoryStore(project);

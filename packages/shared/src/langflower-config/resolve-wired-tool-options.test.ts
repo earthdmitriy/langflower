@@ -48,8 +48,10 @@ describe('resolveWiredToolOptions', () => {
 				'create_memory_file',
 				'get_memory_tree',
 				'read_memory_section',
+				'read_plan',
 				'search_memory_grep',
 				'update_memory_section',
+				'update_plan',
 			].sort(),
 		);
 	});
