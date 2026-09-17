@@ -57,9 +57,29 @@ hosting a service.
 
 ## Quick start
 
-Requires **Node.js ≥ 22**. Live agent runs need an OpenAI-compatible
-provider in Settings (API keys via `{env:VAR_NAME}`). Simple nodes and
-the Fake LLM work without one.
+If you do not want to bother with a terminal, use the **desktop
+launcher**. Pick a project folder, click **Start**, and the editor opens
+in the browser you already have. Several folders can run at once, each
+on its own port. The launcher takes care of missing Node.js and
+Langflower, and checks for Langflower updates for you. It does not
+update itself — download a newer zip when you want a new window.
+
+![Langflower desktop launcher](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/launcher.png)
+
+Download a Windows or macOS zip from
+[GitHub Releases](https://github.com/earthdmitriy/langflower/releases).
+Unpack and run `langflower-launcher.exe` or `langflower-launcher`. It is
+a portable app: no installation. The binary is unsigned, so Windows
+Defender and macOS Gatekeeper might warn. On macOS: right-click the
+file → **Open**. No Linux zip yet. Manual:
+[Desktop launcher](https://github.com/earthdmitriy/langflower/blob/master/docs/public/launcher.md).
+
+Langflower does not host a model. Live agent runs need you to **bring
+your own key** (BYOK): add an OpenAI-compatible provider in Settings (gear icon)
+and paste the API key there. Pointing at an environment variable is
+optional. Simple nodes and the Fake LLM work without a key.
+
+From a terminal:
 
 One-shot OS installers (Node LTS if needed + global `langflower`):
 [install/](install/) (`windows.ps1`, `linux.sh`, `macos.sh`).
@@ -78,9 +98,9 @@ npm run install-local
 npx langflower
 ```
 
-Langflower opens a local UI at `http://127.0.0.1:4010` (or `--port` / the port
-in `.langflower/config.json`) for the selected folder. Use `-p` to run several
-instances from different folders at once.
+The CLI opens a local UI at `http://127.0.0.1:4010` (or `--port` / the
+port in `.langflower/config.json`) for the selected folder. Use `-p` to
+run several instances from different folders at once.
 
 Full walkthrough: [Getting started](https://github.com/earthdmitriy/langflower/blob/master/docs/public/getting-started.md).
 
@@ -124,8 +144,8 @@ Shipped with the npm package under [`docs/public/`](https://github.com/earthdmit
 
 | Want to…                         | Start here                                                                                                 |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Start without a terminal         | [Desktop launcher](https://github.com/earthdmitriy/langflower/blob/master/docs/public/launcher.md)         |
 | Install and first run            | [Getting started](https://github.com/earthdmitriy/langflower/blob/master/docs/public/getting-started.md)   |
-| Use the desktop launcher         | [Desktop launcher](https://github.com/earthdmitriy/langflower/blob/master/docs/public/launcher.md)         |
 | Understand the product           | [Product overview](https://github.com/earthdmitriy/langflower/blob/master/docs/public/product.md)          |
 | Use the canvas and runs          | [Using the editor](https://github.com/earthdmitriy/langflower/blob/master/docs/public/using-the-editor.md) |
 | Browse workflow ideas            | [Workflow ideas](https://github.com/earthdmitriy/langflower/blob/master/docs/public/workflows.md)          |
