@@ -47,6 +47,31 @@ Host peers and the bootstrap skeleton ship under `vendor/`.
     git push origin vX.Y.Z
     ```
 
+## Launcher binary (GitHub Release)
+
+The Slint supervisor is **not** part of `npm publish`. Do **not** attach
+launcher zips to npm tags `vX.Y.Z`.
+
+1. Bump `version` in [`launcher/Cargo.toml`](../launcher/Cargo.toml)
+   (and keep `Cargo.lock` in sync).
+2. Tag and push:
+
+    ```bash
+    git tag launcher-vX.Y.Z
+    git push origin launcher-vX.Y.Z
+    ```
+
+    The tag suffix must match the crate version or the workflow fails.
+    Manual **Run workflow** on
+    [launcher-release.yml](../.github/workflows/launcher-release.yml)
+    can publish the current SHA to a `launcher-v*` tag without that check.
+
+Assets: Windows x64 / ARM64 and macOS arm64 / x64 zips plus
+`SHA256SUMS.txt`. Unsigned — SmartScreen / Gatekeeper will warn. Node.js
+and `npm install -g langflower` remain required. See
+[launcher/README.md](../launcher/README.md) and
+[launcher/docs/build-and-release.md](../launcher/docs/build-and-release.md).
+
 ## Dogfood without registry
 
 ```bash

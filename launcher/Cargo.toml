@@ -1,0 +1,45 @@
+[package]
+name = "langflower-launcher"
+version = "0.1.0"
+description = "Langflower CLI supervisor window"
+authors = ["Langflower"]
+edition = "2021"
+rust-version = "1.85"
+build = "build.rs"
+
+[lib]
+name = "langflower_launcher"
+path = "src/lib.rs"
+
+[[bin]]
+name = "langflower-launcher"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[dependencies]
+arboard = "3"
+open = "5"
+rfd = { version = "0.15", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+slint = { version = "1.18", default-features = false, features = [
+	"std",
+	"backend-winit",
+	"renderer-software",
+	"software-renderer-systemfonts",
+	"compat-1-2",
+] }
+tokio = { version = "1", features = ["io-util", "macros", "process", "rt-multi-thread", "sync", "time"] }
+
+[build-dependencies]
+slint-build = "1.18"
+winresource = "0.1"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

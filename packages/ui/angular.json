@@ -18,7 +18,24 @@
 						"polyfills": ["zone.js"],
 						"tsConfig": "tsconfig.app.json",
 						"styles": ["ng-diagram/styles.css", "src/styles.scss"],
-						"scripts": []
+						"scripts": [],
+						"assets": [
+							{
+								"glob": "favicon.ico",
+								"input": "src",
+								"output": "/"
+							},
+							{
+								"glob": "favicon-32x32.png",
+								"input": "src",
+								"output": "/"
+							},
+							{
+								"glob": "apple-touch-icon.png",
+								"input": "src",
+								"output": "/"
+							}
+						]
 					},
 					"configurations": {
 						"production": {

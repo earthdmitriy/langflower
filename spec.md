@@ -379,6 +379,7 @@ Structure:
 ### 8. Open Questions for Future Stages
 
 - Execution engine, sandboxing (Worker threads / isolated-vm).
-- Desktop packaging (Electron/Tauri).
+- Embedded canvas desktop shell (not the thin launcher — that shipped
+  as Slint after Tauri and FLTK were tried and rejected).
 - More sophisticated data‑type compatibility (implicit conversions).
 - Custom frontend components for nodes (web components).

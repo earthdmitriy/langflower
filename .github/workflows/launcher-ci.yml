@@ -1,0 +1,57 @@
+name: Launcher CI
+
+on:
+    push:
+        branches:
+            - master
+        paths:
+            - 'launcher/**'
+            - '.github/workflows/launcher-ci.yml'
+            - '.github/workflows/launcher-release.yml'
+    pull_request:
+        paths:
+            - 'launcher/**'
+            - '.github/workflows/launcher-ci.yml'
+            - '.github/workflows/launcher-release.yml'
+
+concurrency:
+    group: launcher-ci-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    test:
+        name: cargo test (${{ matrix.os }})
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                os:
+                    - windows-latest
+                    - macos-latest
+        env:
+            CARGO_TERM_COLOR: always
+            MACOSX_DEPLOYMENT_TARGET: '11.0'
+        defaults:
+            run:
+                working-directory: launcher
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Install Rust
+              uses: dtolnay/rust-toolchain@stable
+
+            - name: Cache cargo
+              uses: Swatinem/rust-cache@v2
+              with:
+                  workspaces: launcher
+                  key: ${{ matrix.os }}-ci
+
+            - name: Show rustc
+              run: rustc -vV
+
+            - name: Test
+              run: cargo test --locked

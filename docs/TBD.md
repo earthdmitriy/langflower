@@ -73,19 +73,26 @@ tradeoffs — all product-level, not a thin epic.
 **Related:** [PRODUCT.md](PRODUCT.md) Non-goals · [STATUS.md](STATUS.md)
 Out of scope
 
-### TBD-002 — Electron / Tauri desktop shell
+### TBD-002 — Embedded canvas desktop shell
 
 **Horizon:** far · **Area:** platform
 
-**Goal:** Ship a native desktop shell around the existing CLI/server/UI
-stack (optional install path beyond `langflower start`).
+**Goal:** Embed the Angular editor in a native webview shell (optional
+install path that does **not** use the system browser). This is **not**
+the thin launcher. The launcher goal was a small supervisor window;
+that already shipped as Slint ([ADR-038](ADR.md#adr-038--launcher-is-a-cli-supervisor);
+[epic 46](DONE/EPICS/46-launcher.md)).
 
-**Why hard:** Packaging, updates, OS permissions, and whether the product
-stays “tool in the user’s repo” vs becoming an app — packaging choice
-locks distribution and security assumptions.
+**Why hard:** Packaging, updates, OS permissions, WebView2/LTSC, and
+whether the product stays “tool in the user’s repo” vs becoming an app —
+packaging choice locks distribution and security assumptions. **Tauri
+was already tried** for the supervisor window and rejected (WebView
+dependency, large executable). Do not treat Tauri as the intended path
+for either the launcher or this TBD.
 
-**Not yet:** Explicit product decision that a desktop shell is worth the
-cost (then ADR for shell + process model).
+**Not yet:** Explicit product decision that an embedded-canvas shell is
+worth the cost (then a new ADR — pick a toolkit then, do not default to
+Tauri).
 
 **Related:** [PRODUCT.md](PRODUCT.md) Non-goals · [STATUS.md](STATUS.md)
 Out of scope

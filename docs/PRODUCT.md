@@ -103,7 +103,14 @@ UX is not inlined here. Global config + Settings dual path: epic 18 Partial.
 ## Non-goals (current)
 
 - Hosted multi-tenant cloud product
-- Electron / Tauri desktop shell (unless later decided)
+- Embedding the editor in a native webview (Electron / WebView2)
+  unless later decided. That is **not** the launcher. A thin **Slint
+  supervisor** that can spawn one CLI per project folder and opens the
+  system browser after listen is shipped
+  ([ADR-038](ADR.md#adr-038--launcher-is-a-cli-supervisor)). Tauri was
+  tried for that supervisor and rejected (WebView, large executable);
+  FLTK was tried next (moderate size, ugly UI); Slint is the accepted
+  toolkit.
 - Serializable chat-session mechanics (node-internal state; maybe later)
 - Image / video asset management for multimodal models
 - Built-in IDE or git UI (use tools you already have)

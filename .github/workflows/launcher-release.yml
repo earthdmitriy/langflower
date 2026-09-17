@@ -1,0 +1,220 @@
+name: Launcher release
+
+on:
+    push:
+        tags:
+            - 'launcher-v*'
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: 'Release tag to create or update (e.g. launcher-v0.1.0)'
+                required: true
+                type: string
+
+concurrency:
+    group: launcher-release-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    build:
+        name: ${{ matrix.asset }}
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - os: windows-latest
+                      target: x86_64-pc-windows-msvc
+                      asset: langflower-launcher-windows-x64
+                      bin: langflower-launcher.exe
+                      native: true
+                    - os: windows-11-arm
+                      target: aarch64-pc-windows-msvc
+                      asset: langflower-launcher-windows-arm64
+                      bin: langflower-launcher.exe
+                      native: true
+                    - os: macos-latest
+                      target: aarch64-apple-darwin
+                      asset: langflower-launcher-macos-arm64
+                      bin: langflower-launcher
+                      native: true
+                    - os: macos-latest
+                      target: x86_64-apple-darwin
+                      asset: langflower-launcher-macos-x64
+                      bin: langflower-launcher
+                      native: false
+        env:
+            MACOSX_DEPLOYMENT_TARGET: '11.0'
+            CARGO_TERM_COLOR: always
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Check tag matches crate version
+              if: github.ref_type == 'tag'
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  tag="${GITHUB_REF_NAME}"
+                  case "${tag}" in
+                    launcher-v*) semver="${tag#launcher-v}" ;;
+                    *)
+                      echo "Unexpected tag: ${tag}"
+                      exit 1
+                      ;;
+                  esac
+                  crate="$(sed -n 's/^version = "\([^"]*\)"/\1/p' launcher/Cargo.toml | head -n 1)"
+                  if [ -z "${crate}" ]; then
+                    echo "Could not read version from launcher/Cargo.toml"
+                    exit 1
+                  fi
+                  if [ "${semver}" != "${crate}" ]; then
+                    echo "Tag ${tag} does not match launcher/Cargo.toml version ${crate}"
+                    exit 1
+                  fi
+                  echo "Tag ${tag} matches crate version ${crate}"
+
+            - name: Install Rust
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                  targets: ${{ matrix.target }}
+
+            - name: Cache cargo
+              uses: Swatinem/rust-cache@v2
+              with:
+                  workspaces: launcher
+                  key: ${{ matrix.os }}-${{ matrix.target }}
+
+            - name: Show rustc
+              run: rustc -vV
+
+            - name: Test
+              if: matrix.native
+              working-directory: launcher
+              run: cargo test --locked
+
+            - name: Build release
+              working-directory: launcher
+              run: cargo build --release --locked --target ${{ matrix.target }}
+
+            - name: Package zip
+              shell: bash
+              env:
+                  BIN: launcher/target/${{ matrix.target }}/release/${{ matrix.bin }}
+                  ZIP: dist/${{ matrix.asset }}.zip
+              run: |
+                  set -euo pipefail
+                  if [ ! -f "${BIN}" ]; then
+                    echo "Missing binary ${BIN}"
+                    exit 1
+                  fi
+                  if [ "${{ runner.os }}" != "Windows" ]; then
+                    chmod +x "${BIN}"
+                  fi
+                  mkdir -p dist
+                  python - <<'PY'
+                  import os
+                  import zipfile
+                  from pathlib import Path
+
+                  src = Path(os.environ["BIN"])
+                  dest = Path(os.environ["ZIP"])
+                  dest.parent.mkdir(parents=True, exist_ok=True)
+                  with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as zf:
+                      zf.write(src, src.name)
+                  print(f"packed {src} -> {dest} ({dest.stat().st_size} bytes)")
+                  PY
+                  ls -l "${BIN}" "${ZIP}"
+
+            - name: Upload zip
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ matrix.asset }}
+                  path: dist/${{ matrix.asset }}.zip
+                  if-no-files-found: error
+
+    publish:
+        name: Publish GitHub Release
+        needs: build
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Resolve tag
+              id: meta
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    tag="${{ inputs.tag }}"
+                  else
+                    tag="${GITHUB_REF_NAME}"
+                  fi
+                  case "${tag}" in
+                    launcher-v*) ;;
+                    *)
+                      echo "Tag must look like launcher-v0.1.0, got: ${tag}"
+                      exit 1
+                      ;;
+                  esac
+                  echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+                  echo "semver=${tag#launcher-v}" >> "${GITHUB_OUTPUT}"
+
+            - name: Download zips
+              uses: actions/download-artifact@v4
+              with:
+                  path: dist
+                  merge-multiple: true
+
+            - name: Checksums
+              working-directory: dist
+              run: |
+                  set -euo pipefail
+                  expected=(
+                    langflower-launcher-windows-x64.zip
+                    langflower-launcher-windows-arm64.zip
+                    langflower-launcher-macos-arm64.zip
+                    langflower-launcher-macos-x64.zip
+                  )
+                  for name in "${expected[@]}"; do
+                    if [ ! -f "${name}" ]; then
+                      echo "Missing asset ${name}"
+                      ls -la
+                      exit 1
+                    fi
+                  done
+                  sha256sum "${expected[@]}" | tee SHA256SUMS.txt
+                  ls -l
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ steps.meta.outputs.tag }}
+                  name: Launcher ${{ steps.meta.outputs.semver }}
+                  target_commitish: ${{ github.sha }}
+                  generate_release_notes: true
+                  fail_on_unmatched_files: true
+                  files: |
+                      dist/langflower-launcher-windows-x64.zip
+                      dist/langflower-launcher-windows-arm64.zip
+                      dist/langflower-launcher-macos-arm64.zip
+                      dist/langflower-launcher-macos-x64.zip
+                      dist/SHA256SUMS.txt
+                  body: |
+                      Unsigned desktop supervisor ([ADR-038](https://github.com/${{ github.repository }}/blob/master/docs/ADR.md#adr-038--launcher-is-a-cli-supervisor)).
+
+                      This zip is **not** the Langflower product. It does not include Node.js or the `langflower` CLI. Install Node.js ≥ 22 and `npm install -g langflower`, then run the binary.
+
+                      **Unsigned (v1).** Windows SmartScreen and macOS Gatekeeper will warn. On macOS, right-click the binary → Open.
+
+                      | Asset | Target |
+                      | --- | --- |
+                      | `langflower-launcher-windows-x64.zip` | Windows x64 |
+                      | `langflower-launcher-windows-arm64.zip` | Windows ARM64 |
+                      | `langflower-launcher-macos-arm64.zip` | macOS Apple Silicon |
+                      | `langflower-launcher-macos-x64.zip` | macOS Intel |
+
+                      npm CLI releases use tags `vX.Y.Z` and are a separate series. Do not attach these zips to npm tags.

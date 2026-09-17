@@ -1,3 +1,4 @@
+import { writeSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -58,7 +59,20 @@ export const parseListenPort = (raw: string): number => {
 type StartOpts = {
 	readonly dev?: boolean;
 	readonly port?: number;
+	readonly noOpen?: boolean;
 };
+
+/** Machine-readable listen fact for the launcher (and other supervisors). */
+export const formatReadyLine = (input: {
+	readonly url: string;
+	readonly port: number;
+	readonly projectDir: string;
+}): string =>
+	`LANGFLOWER_READY ${JSON.stringify({
+		url: input.url,
+		port: input.port,
+		projectDir: input.projectDir,
+	})}`;
 
 const startProject = async (
 	projectDirArg: string,
@@ -100,8 +114,19 @@ const startProject = async (
 			);
 		}
 	} else {
-		await open(`http://127.0.0.1:${port}`);
-		console.log(`Langflower running at http://127.0.0.1:${port}`);
+		const url = `http://127.0.0.1:${port}`;
+		if (opts.noOpen !== true) {
+			await open(url);
+		}
+		console.log(`Langflower running at ${url}`);
+		writeSync(
+			1,
+			`${formatReadyLine({
+				url,
+				port,
+				projectDir,
+			})}\n`,
+		);
 	}
 
 	console.log(`Project: ${projectDir}`);
@@ -109,13 +134,18 @@ const startProject = async (
 
 const runStartAction = async (
 	projectDir: string,
-	opts: { readonly dev?: boolean; readonly port?: string },
+	opts: {
+		readonly dev?: boolean;
+		readonly port?: string;
+		readonly open?: boolean;
+	},
 ): Promise<void> => {
 	try {
 		const port =
 			opts.port !== undefined ? parseListenPort(opts.port) : undefined;
 		await startProject(projectDir, {
 			dev: opts.dev === true,
+			noOpen: opts.open === false,
 			...(port !== undefined ? { port } : {}),
 		});
 	} catch (error) {
@@ -133,19 +163,29 @@ const PORT_OPTION = [
 	'HTTP listen port (overrides .langflower/config.json for this run)',
 ] as const;
 
+const NO_OPEN_OPTION = [
+	'--no-open',
+	'Do not open the system browser after listen',
+] as const;
+
+const applyStartOptions = (command: Command): Command =>
+	command
+		.option('--dev', 'Dev mode: API-only server, UI served by ng serve')
+		.option(...PORT_OPTION)
+		.option(...NO_OPEN_OPTION);
+
 /** Wire default `langflower [project-dir]` and alias `langflower start`. */
 export const registerStartCommand = (program: Command): void => {
-	program
-		.argument('[project-dir]', 'Project directory', process.cwd())
-		.option('--dev', 'Dev mode: API-only server, UI served by ng serve')
-		.option(...PORT_OPTION)
-		.action(runStartAction);
+	applyStartOptions(
+		program.argument('[project-dir]', 'Project directory', process.cwd()),
+	).action(runStartAction);
 
-	program
-		.command('start')
-		.description('Start Langflower server and open UI in browser (alias)')
-		.argument('[project-dir]', 'Project directory', process.cwd())
-		.option('--dev', 'Dev mode: API-only server, UI served by ng serve')
-		.option(...PORT_OPTION)
-		.action(runStartAction);
+	applyStartOptions(
+		program
+			.command('start')
+			.description(
+				'Start Langflower server and open UI in browser (alias)',
+			)
+			.argument('[project-dir]', 'Project directory', process.cwd()),
+	).action(runStartAction);
 };

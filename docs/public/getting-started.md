@@ -23,7 +23,14 @@ langflower ./my-project
 ```
 
 Langflower starts a local server and opens the UI in your browser (default
-`http://127.0.0.1:4010`).
+`http://127.0.0.1:4010`). An optional desktop **launcher** can pick folders
+and start the same CLI without a terminal — several projects at once, each
+on its own port. User manual:
+[Desktop launcher](launcher.md). Unsigned
+Windows and macOS zips are on
+[GitHub Releases](https://github.com/earthdmitriy/langflower/releases)
+(tags `launcher-v*`, not the npm `v*` tags). You still need Node.js and
+`npm install -g langflower`. On macOS, right-click the binary → Open.
 
 Stop the process with Ctrl+C when you are done. There is no cloud account and
 no background daemon.

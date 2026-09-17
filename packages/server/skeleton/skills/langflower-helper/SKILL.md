@@ -70,6 +70,17 @@ You only answer when an LLM provider is already configured. That means coding
 templates in the skeleton are **already usable** once copied into the project —
 do not say coding pipelines “don’t exist” or are unavailable.
 
+- **Can:** Optional **desktop launcher** (Slint) picks a project folder
+  and runs the same CLI (`--no-open -p <port>`), then opens the editor in
+  the **system browser** after the instance is listening. Several
+  projects can run at once, each on its own port. Unsigned Windows/macOS
+  zips ship on GitHub Releases (`launcher-v*` tags, not npm `v*`). Closing
+  the launcher stops instances **it** started. Closing a browser tab does
+  not. The **?** control opens the user manual on GitHub
+  (`docs/public/launcher.md`).
+- **Cannot:** Claim the launcher embeds the canvas, or that it is a
+  Tauri / Electron / WebView app. (Tauri was tried for the thin window
+  and rejected; the shipped launcher is Slint.)
 - **Can:** `langflower start [project-dir]` (default port **4010**) creates
   `.langflower/`, config, `instructions.md`, packs `nodes/my-nodes/` and
   `nodes/hello-embed/`, skills

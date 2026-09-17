@@ -1,0 +1,17 @@
+{
+	"name": "langflower-launcher",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Private script wrapper for the root launcher/ Rust crate (not an npm workspace)",
+	"type": "module",
+	"scripts": {
+		"rust:install": "node ./scripts/with-portable-rust.mjs --ensure",
+		"launcher": "node ./scripts/with-portable-rust.mjs cargo run",
+		"launcher:dev": "node ./scripts/with-portable-rust.mjs cargo run",
+		"launcher:build": "node ./scripts/with-portable-rust.mjs cargo build --release",
+		"launcher:test": "node ./scripts/with-portable-rust.mjs cargo test"
+	},
+	"engines": {
+		"node": ">=22.22.3"
+	}
+}

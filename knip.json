@@ -66,6 +66,6 @@
 		}
 	},
 	"ignoreDependencies": ["@angular/common", "@angular/core", "ng-diagram"],
-	"ignoreFiles": ["build/**", "tests/**", "demo-project/**"],
+	"ignoreFiles": ["build/**", "tests/**", "demo-project/**", "launcher/**"],
 	"exclude": ["unlisted", "files"]
 }

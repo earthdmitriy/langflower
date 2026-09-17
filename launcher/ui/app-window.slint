@@ -1,0 +1,546 @@
+export struct RecentItem {
+	name: string,
+	path: string,
+	status-text: string,
+	status-kind: string,
+	port-text: string,
+	show-open: bool,
+}
+
+export global Theme {
+	out property <color> bg: #F4F1EC;
+	out property <color> surface: #FFFCF8;
+	out property <color> surface-hover: #F3EFE8;
+	out property <color> border: #E6E0D6;
+	out property <color> text: #1E1A16;
+	out property <color> muted: #6B645C;
+	out property <color> disabled: #9A948C;
+	out property <color> primary: #3F6F52;
+	out property <color> primary-press: #345C45;
+	out property <color> on-primary: #FFFCF8;
+	out property <color> danger: #B42318;
+	out property <length> radius: 10px;
+	out property <length> pad: 18px;
+}
+
+component HelpIcon {
+	callback clicked;
+
+	width: 22px;
+	height: 22px;
+
+	ta := TouchArea {
+		mouse-cursor: pointer;
+		clicked => {
+			root.clicked();
+		}
+		Rectangle {
+			border-radius: 11px;
+			background: ta.has-hover ? Theme.surface-hover : Theme.surface;
+			border-width: 1px;
+			border-color: Theme.border;
+			Text {
+				width: parent.width;
+				height: parent.height;
+				text: "?";
+				color: Theme.muted;
+				font-size: 13px;
+				font-weight: 700;
+				horizontal-alignment: center;
+				vertical-alignment: center;
+			}
+		}
+	}
+}
+
+component FlowerMark {
+	width: 22px;
+	height: 22px;
+	Image {
+		width: 100%;
+		height: 100%;
+		source: @image-url("icon.png");
+		image-fit: contain;
+	}
+}
+
+component ActionButton {
+	in property <string> label;
+	in property <bool> enabled: true;
+	in property <bool> primary: false;
+	in property <bool> danger: false;
+	callback clicked;
+
+	min-height: root.primary ? 44px : 36px;
+	horizontal-stretch: 1;
+
+	fs := FocusScope {
+		key-pressed(event) => {
+			if (root.enabled && (event.text == " " || event.text == "\n")) {
+				root.clicked();
+				return accept;
+			}
+			return reject;
+		}
+
+		ta := TouchArea {
+			enabled: root.enabled;
+			mouse-cursor: root.enabled ? pointer : default;
+			clicked => {
+				root.clicked();
+			}
+
+			Rectangle {
+				border-radius: Theme.radius;
+				background: !root.enabled ? #E7E2DA : root.primary ? (ta.pressed ? Theme.primary-press : Theme.primary) : ta.has-hover ? Theme.surface-hover : Theme.surface;
+				border-width: root.primary ? 0px : 1px;
+				border-color: root.danger ? Theme.danger : Theme.border;
+
+				Text {
+					width: parent.width;
+					height: parent.height;
+					vertical-alignment: center;
+					horizontal-alignment: center;
+					text: root.label;
+					color: !root.enabled ? Theme.disabled : root.primary ? Theme.on-primary : root.danger ? Theme.danger : Theme.text;
+					font-size: root.primary ? 15px : 13px;
+					font-weight: root.primary ? 600 : 500;
+				}
+			}
+		}
+	}
+}
+
+component RecentRow {
+	in property <string> name;
+	in property <string> path;
+	in property <string> status-text: "Not running";
+	in property <string> status-kind: "stopped";
+	in property <string> port-text;
+	in property <bool> selected: false;
+	in property <bool> show-open: false;
+	callback clicked;
+	callback open-clicked;
+	callback remove-clicked;
+
+	min-height: 64px;
+
+	property <color> kind-color: root.status-kind == "running" ? #2F7D4A : root.status-kind == "error" ? Theme.danger : root.status-kind == "starting" || root.status-kind == "stopping" ? #B45309 : Theme.disabled;
+
+	Rectangle {
+		border-radius: 8px;
+		background: root.selected ? #E7EFE9 : transparent;
+		border-width: root.selected ? 1px : 0px;
+		border-color: #C9D9CE;
+
+		HorizontalLayout {
+			padding-left: 10px;
+			padding-right: 10px;
+			padding-top: 8px;
+			padding-bottom: 8px;
+			spacing: 10px;
+
+			select-area := TouchArea {
+				horizontal-stretch: 1;
+				mouse-cursor: pointer;
+				clicked => {
+					root.clicked();
+				}
+
+				HorizontalLayout {
+					spacing: 10px;
+					alignment: start;
+
+					Rectangle {
+						y: 6px;
+						width: 8px;
+						height: 8px;
+						border-radius: 4px;
+						background: root.kind-color;
+					}
+
+					VerticalLayout {
+						spacing: 2px;
+						alignment: start;
+						Text {
+							text: root.name;
+							color: Theme.text;
+							font-size: 13px;
+							font-weight: 600;
+							overflow: elide;
+						}
+						Text {
+							text: root.path;
+							color: Theme.muted;
+							font-size: 11px;
+							overflow: elide;
+						}
+						Text {
+							text: root.port-text == "" ? root.status-text : "●  " + root.status-text + "  ·  " + root.port-text;
+							color: root.kind-color;
+							font-size: 11px;
+							font-weight: 500;
+							overflow: elide;
+						}
+					}
+				}
+			}
+
+			if root.show-open: TouchArea {
+				width: 88px;
+				mouse-cursor: pointer;
+				clicked => {
+					root.open-clicked();
+				}
+				Text {
+					width: parent.width;
+					height: parent.height;
+					text: "Open UI ↗";
+					color: Theme.primary;
+					font-size: 12px;
+					font-weight: 600;
+					vertical-alignment: center;
+					horizontal-alignment: right;
+				}
+			}
+
+			remove-area := TouchArea {
+				width: 28px;
+				mouse-cursor: pointer;
+				clicked => {
+					root.remove-clicked();
+				}
+				Text {
+					width: parent.width;
+					height: parent.height;
+					text: "×";
+					color: remove-area.has-hover ? Theme.danger : Theme.muted;
+					font-size: 16px;
+					font-weight: 600;
+					vertical-alignment: center;
+					horizontal-alignment: center;
+				}
+			}
+		}
+	}
+}
+
+export component LauncherWindow inherits Window {
+	title: "Langflower";
+	icon: @image-url("icon.png");
+	preferred-width: 560px;
+	preferred-height: 640px;
+	min-width: 480px;
+	min-height: 520px;
+	background: Theme.bg;
+	default-font-size: 13px;
+
+	in-out property <string> project-path;
+	in property <[RecentItem]> recents;
+	in property <string> status-text: "Ready";
+	in property <color> status-color: #2F7D4A;
+	in property <string> hint-text: "Ready to start";
+	in property <string> details-text;
+	in-out property <bool> details-open: false;
+	in property <bool> show-start: true;
+	in property <bool> show-stop: false;
+	in property <bool> show-open: false;
+	in property <bool> start-enabled: false;
+	in property <bool> stop-enabled: false;
+	in property <bool> open-enabled: false;
+	in property <bool> browse-enabled: true;
+	in property <bool> show-install-node: false;
+	in property <bool> show-install-cli: false;
+	in property <bool> show-skip-update: false;
+	in property <string> install-cli-label: "Install Langflower";
+	in property <bool> project-enabled: true;
+
+	callback browse-clicked();
+	callback start-clicked();
+	callback stop-clicked();
+	callback open-clicked();
+	callback recent-clicked(string);
+	callback recent-open-clicked(string);
+	callback recent-remove-clicked(string);
+	callback project-edited(string);
+	callback install-node-clicked();
+	callback install-cli-clicked();
+	callback skip-clicked();
+	callback copy-log-clicked();
+	callback help-clicked();
+
+	VerticalLayout {
+		padding: Theme.pad;
+		spacing: 14px;
+
+		HorizontalLayout {
+			spacing: 10px;
+			alignment: center;
+			FlowerMark {}
+			Text {
+				text: "Langflower";
+				color: Theme.text;
+				font-size: 18px;
+				font-weight: 600;
+				vertical-alignment: center;
+				horizontal-stretch: 1;
+			}
+			HorizontalLayout {
+				spacing: 8px;
+				alignment: center;
+				Rectangle {
+					y: 5px;
+					width: 8px;
+					height: 8px;
+					border-radius: 4px;
+					background: root.status-color;
+				}
+				Text {
+					text: root.status-text;
+					color: Theme.text;
+					font-size: 13px;
+					font-weight: 500;
+					vertical-alignment: center;
+				}
+				HelpIcon {
+					clicked => {
+						root.help-clicked();
+					}
+				}
+			}
+		}
+
+		Text {
+			text: "Choose your project";
+			color: Theme.text;
+			font-size: 13px;
+			font-weight: 600;
+		}
+
+		HorizontalLayout {
+			spacing: 8px;
+			Rectangle {
+				horizontal-stretch: 1;
+				min-height: 40px;
+				border-radius: Theme.radius;
+				background: Theme.surface;
+				border-width: 1px;
+				border-color: Theme.border;
+				HorizontalLayout {
+					padding-left: 12px;
+					padding-right: 12px;
+					spacing: 8px;
+					Text {
+						text: "📁";
+						color: Theme.muted;
+						vertical-alignment: center;
+					}
+					project-input := TextInput {
+						vertical-alignment: center;
+						text <=> root.project-path;
+						enabled: root.project-enabled;
+						single-line: true;
+						color: Theme.text;
+						font-size: 13px;
+						edited => {
+							root.project-edited(self.text);
+						}
+						accepted => {
+							root.start-clicked();
+						}
+					}
+				}
+			}
+			ActionButton {
+				width: 96px;
+				horizontal-stretch: 0;
+				label: "Browse";
+				enabled: root.browse-enabled;
+				clicked => {
+					root.browse-clicked();
+				}
+			}
+		}
+
+		Text {
+			text: "Recent projects";
+			color: Theme.text;
+			font-size: 13px;
+			font-weight: 600;
+		}
+
+		recents-panel := Rectangle {
+			vertical-stretch: 1;
+			min-height: 96px;
+			border-radius: Theme.radius;
+			background: Theme.surface;
+			border-width: 1px;
+			border-color: Theme.border;
+
+			if recents.length == 0: Text {
+				width: parent.width;
+				height: parent.height;
+				text: "No recent projects yet";
+				color: Theme.muted;
+				horizontal-alignment: center;
+				vertical-alignment: center;
+			}
+
+			if recents.length > 0: Flickable {
+				content-width: parent.width;
+				content-height: recents-col.preferred-height;
+
+				recents-col := VerticalLayout {
+					padding: 6px;
+					spacing: 2px;
+					alignment: start;
+					for item in recents: RecentRow {
+						name: item.name;
+						path: item.path;
+						status-text: item.status-text;
+						status-kind: item.status-kind;
+						port-text: item.port-text;
+						show-open: item.show-open;
+						selected: item.path == root.project-path;
+						clicked => {
+							root.recent-clicked(item.path);
+						}
+						open-clicked => {
+							root.recent-open-clicked(item.path);
+						}
+						remove-clicked => {
+							root.recent-remove-clicked(item.path);
+						}
+					}
+				}
+			}
+		}
+
+		if root.show-install-node || root.show-install-cli: HorizontalLayout {
+			spacing: 8px;
+			if root.show-install-node: ActionButton {
+				label: "Install Node.js";
+				clicked => {
+					root.install-node-clicked();
+				}
+			}
+			if root.show-install-cli: ActionButton {
+				label: root.install-cli-label;
+				clicked => {
+					root.install-cli-clicked();
+				}
+			}
+			if root.show-skip-update: ActionButton {
+				width: 88px;
+				horizontal-stretch: 0;
+				label: "Skip";
+				clicked => {
+					root.skip-clicked();
+				}
+			}
+		}
+
+		if root.show-start: ActionButton {
+			label: "Start Langflower";
+			primary: true;
+			enabled: root.start-enabled;
+			clicked => {
+				root.start-clicked();
+			}
+		}
+
+		if root.show-stop: ActionButton {
+			label: "Stop Langflower";
+			danger: true;
+			enabled: root.stop-enabled;
+			clicked => {
+				root.stop-clicked();
+			}
+		}
+
+		if root.show-open: ActionButton {
+			label: "Open Langflower ↗";
+			enabled: root.open-enabled;
+			clicked => {
+				root.open-clicked();
+			}
+		}
+
+		Text {
+			text: root.hint-text;
+			color: Theme.muted;
+			font-size: 12px;
+			wrap: word-wrap;
+		}
+
+		details-box := Rectangle {
+			vertical-stretch: root.details-open ? 1 : 0;
+			min-height: root.details-open ? 120px : 28px;
+			border-radius: Theme.radius;
+			background: root.details-open ? #1E1A16 : transparent;
+			border-width: root.details-open ? 1px : 0px;
+			border-color: #2C2722;
+
+			VerticalLayout {
+				spacing: 6px;
+				padding-top: root.details-open ? 8px : 0px;
+				padding-bottom: root.details-open ? 8px : 0px;
+				padding-left: root.details-open ? 10px : 0px;
+				padding-right: root.details-open ? 14px : 0px;
+
+				HorizontalLayout {
+					spacing: 8px;
+					details-toggle := TouchArea {
+						height: 22px;
+						horizontal-stretch: 1;
+						mouse-cursor: pointer;
+						clicked => {
+							root.details-open = !root.details-open;
+						}
+						Text {
+							text: root.details-open ? "▾  Details" : "▸  Details";
+							color: root.details-open ? #D7D0C6 : Theme.muted;
+							font-size: 12px;
+							font-weight: 500;
+							vertical-alignment: center;
+						}
+					}
+					if root.details-open: TouchArea {
+						width: 52px;
+						height: 22px;
+						mouse-cursor: pointer;
+						clicked => {
+							root.copy-log-clicked();
+						}
+						Text {
+							width: parent.width;
+							height: parent.height;
+							text: "Copy";
+							color: #D7D0C6;
+							font-size: 12px;
+							font-weight: 600;
+							vertical-alignment: center;
+							horizontal-alignment: right;
+						}
+					}
+				}
+
+				if root.details-open: Flickable {
+					vertical-stretch: 1;
+					content-width: parent.width - 4px;
+					content-height: details-body.preferred-height;
+					content-y: max(0px, details-body.preferred-height - self.height);
+
+					details-body := Text {
+						width: parent.width;
+						wrap: word-wrap;
+						text: root.details-text;
+						color: #D7D0C6;
+						font-size: 11px;
+						font-family: "Cascadia Mono, Consolas, Menlo, monospace";
+					}
+				}
+			}
+		}
+	}
+}

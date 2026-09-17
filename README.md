@@ -125,6 +125,7 @@ Shipped with the npm package under [`docs/public/`](https://github.com/earthdmit
 | Want to…                         | Start here                                                                                                 |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Install and first run            | [Getting started](https://github.com/earthdmitriy/langflower/blob/master/docs/public/getting-started.md)   |
+| Use the desktop launcher         | [Desktop launcher](https://github.com/earthdmitriy/langflower/blob/master/docs/public/launcher.md)         |
 | Understand the product           | [Product overview](https://github.com/earthdmitriy/langflower/blob/master/docs/public/product.md)          |
 | Use the canvas and runs          | [Using the editor](https://github.com/earthdmitriy/langflower/blob/master/docs/public/using-the-editor.md) |
 | Browse workflow ideas            | [Workflow ideas](https://github.com/earthdmitriy/langflower/blob/master/docs/public/workflows.md)          |

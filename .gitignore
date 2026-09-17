@@ -40,5 +40,8 @@ tests/tests/tmp/
 # Test coverage
 coverage/
 
+# Cargo output for the Slint launcher
+launcher/target/
+
 # Windows CMD redirect artifact
 nul

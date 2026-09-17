@@ -29,7 +29,9 @@ Dogfood: `npm run install-local`. Local start: `npm run start -w @langflower/cli
 1. Parse `project-dir` (default: `cwd`) and optional `--port` / `-p`
 2. Call `createServer` from `@langflower/server/create-server` (CLI `--port`
    overrides project `ConfigService` for that run only; else config port)
-3. Open browser (`open` package); print run-settle lines when a run ends
+3. Open browser (`open` package) unless `--no-open`; print
+   `LANGFLOWER_READY` JSON after listen; print run-settle lines when a run
+   ends
 4. Run eval packs via `@langflower/eval`; compose Fake or `--replay` `runCase`
    outside the eval package
 

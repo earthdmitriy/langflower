@@ -107,6 +107,16 @@ Last aligned with `catalog.ts`, use-cases README, and features README
 | Commander wiring                         | **done** | `src/cli.ts` / `src/index.ts` (process entry, not a re-export barrel)                                                            |
 | `langflower eval`                        | **done** | `src/eval-command.ts` — Fake primary `runCase` + optional `--replay` ([eval-regression-gate](use-cases/eval-regression-gate.md)) |
 
+### Desktop launcher — **done** (supervisor)
+
+| Area                          | Status   | Path                                                                                                                                                                                      |
+| ----------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Slint window + CLI spawn      | **done** | `launcher/` — one child per project; `--no-open -p`; software renderer; no WebView2 ([ADR-038](ADR.md#adr-038--launcher-is-a-cli-supervisor)); [author guide](../launcher/docs/README.md) |
+| Recents                       | **done** | user-global `launcher.json`                                                                                                                                                               |
+| Open editor in system browser | **done** | localhost `http://127.0.0.1:` after READY; **?** opens [launcher.md](public/launcher.md) on GitHub                                                                                        |
+| User manual                   | **done** | [docs/public/launcher.md](public/launcher.md)                                                                                                                                             |
+| GitHub Release zips           | **done** | unsigned Win x64/ARM64 + macOS arm64/x64 on tag `launcher-v*` (not npm `v*`)                                                                                                              |
+
 ## Tooling — **done**
 
 - Monorepo build scripts (`build/`)
@@ -244,7 +254,10 @@ shipped**.
 
 ## Out of scope (deferred)
 
-Sandboxed user-node execution, Electron/Tauri — tracked as long-horizon
-goals in [TBD.md](TBD.md) (not the near-term epic queue).
+Sandboxed user-node execution and embedding the canvas in a native
+webview are tracked as long-horizon goals in [TBD.md](TBD.md) (not the
+near-term epic queue). The thin Slint CLI supervisor is **not** that
+shell ([ADR-038](ADR.md#adr-038--launcher-is-a-cli-supervisor)). Tauri
+is not the intended launcher path (tried; WebView + large exe).
 
 When extending stubs, keep existing file paths — do not create parallel implementations.

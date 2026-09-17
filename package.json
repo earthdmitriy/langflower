@@ -61,7 +61,12 @@
 		"pack-release": "node build/pack-release.mjs",
 		"pre-release": "node build/pre-release.mjs",
 		"start": "npm run start -w @langflower/cli",
-		"dev": "node build/dev.mjs"
+		"dev": "node build/dev.mjs",
+		"rust:install": "node ./launcher/scripts/with-portable-rust.mjs --ensure",
+		"launcher": "node ./launcher/scripts/with-portable-rust.mjs cargo run",
+		"launcher:dev": "node ./launcher/scripts/with-portable-rust.mjs cargo run",
+		"launcher:build": "node ./launcher/scripts/with-portable-rust.mjs cargo build --release",
+		"launcher:test": "node ./launcher/scripts/with-portable-rust.mjs cargo test"
 	},
 	"dependencies": {
 		"commander": "^12.1.0",

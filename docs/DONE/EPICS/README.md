@@ -104,6 +104,7 @@ Status only after `verify`.
 | 43  | [43-feed-sanity.md](43-feed-sanity.md)                                                 | Feed   | **landed** — hide unmarked / `'none'`; Finish `done`; Preview result bubble + stable size     |
 | 44  | [44-startup-optimization.md](44-startup-optimization.md)                               | CLI    | **landed** — heartbeat, pack cache hit/miss, product CLI esbuild                              |
 | 45  | [45-global-kv-secrets.md](45-global-kv-secrets.md)                                     | Config | **landed** — user-global KV secrets + MCP HTTP `headers` / `{lf_secrets:}`                    |
+| 46  | [46-launcher.md](46-launcher.md)                                                       | Desk   | **landed** — thin Slint supervisor (Tauri then FLTK tried and rejected)                       |
 
 ## Contracts
 

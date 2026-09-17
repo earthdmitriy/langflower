@@ -467,6 +467,23 @@ land.
 
 ---
 
+## Desktop launcher (Rust / Cargo)
+
+The Slint supervisor is **not** on the Vitest DAG. After changing
+`launcher/`, run:
+
+```bash
+npm run launcher:test
+```
+
+That is `cargo test` via the portable Rust wrapper. Suites live in
+`launcher/tests/` and do not open the window. READY / `--no-open`
+contracts are shared with `packages/cli/src/start-command.ts` — change
+both sides together.
+
+Author guide: [launcher/docs/testing.md](../launcher/docs/testing.md).
+CI: `.github/workflows/launcher-ci.yml` (`cargo test --locked`).
+
 ## Related docs
 
 - [TODO/EPICS/README.md](TODO/EPICS/README.md) — active product epic queue (17+)

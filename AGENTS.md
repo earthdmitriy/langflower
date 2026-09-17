@@ -64,6 +64,7 @@ Read the nested instructions before changing a package:
 | `@langflower/compiler`         | [packages/compiler/AGENTS.md](packages/compiler/AGENTS.md)                 |
 | `@langflower/mcp`              | [packages/langflower-mcp/AGENTS.md](packages/langflower-mcp/AGENTS.md)     |
 | CLI                            | [packages/cli/AGENTS.md](packages/cli/AGENTS.md)                           |
+| Desktop launcher (Rust crate)  | [launcher/AGENTS.md](launcher/AGENTS.md)                                   |
 
 The package DAG and pragmatic Package / Slice / Unit / Kernel model are
 canonical in

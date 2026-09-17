@@ -28,6 +28,19 @@ chat harness or copying a generic ETL graph tool.
 
 See [PRODUCT](PRODUCT.md) and the repo [README](../README.md).
 
+#### Launcher
+
+Optional small desktop window that picks a **project folder**, starts the
+same `langflower` CLI (one child per folder, several at once), and opens
+the editor in the **system browser** after the instance is listening. It
+does not embed the canvas and does not use WebView. The window is
+**Slint** (accepted) after **Tauri** (WebView, large exe) and **FLTK**
+(moderate size, ugly UI) were tried.
+
+See [ADR-038](ADR.md#adr-038--launcher-is-a-cli-supervisor), the
+[user manual](public/launcher.md), and the
+[launcher author guide](../launcher/docs/README.md).
+
 #### Hard harness
 
 Differentiator: the **graph** (and logic nodes such as Assert / IF / Gate) is
