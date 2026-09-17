@@ -69,6 +69,7 @@ Vitest for these tests.
 | `node_semver.rs`     | Pure               | `v` prefix, `engines.node` `>=`, compare                             |
 | `last_event_line.rs` | Pure               | `Last event:` + TTY `\r`                                             |
 | `open_url.rs`        | Pure               | Localhost allow-list + exact GitHub help URL                         |
+| `path_env.rs`        | Pure               | PATH merge keeps session entries                                     |
 | `multi_instance.rs`  | Process            | Two `stub-langflower.mjs` children, distinct ports, independent stop |
 
 `stub-langflower.mjs` is a tiny Node HTTP server that prints

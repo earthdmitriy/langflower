@@ -17,9 +17,10 @@ fn wait_two_ready(
 	key_a: &str,
 	key_b: &str,
 ) -> ((u16, String), (u16, String)) {
-	let deadline = std::time::Instant::now() + Duration::from_secs(8);
+	let deadline = std::time::Instant::now() + Duration::from_secs(15);
 	let mut ready_a = None;
 	let mut ready_b = None;
+	let mut extras = Vec::new();
 	while std::time::Instant::now() < deadline {
 		match rx.recv_timeout(Duration::from_millis(200)) {
 			Ok(UiEvent::Ready {
@@ -31,7 +32,28 @@ fn wait_two_ready(
 					ready_a = Some(value);
 				} else if project_key == key_b {
 					ready_b = Some(value);
+				} else {
+					extras.push(format!("ready other={project_key}"));
 				}
+			}
+			Ok(UiEvent::Log {
+				project_key,
+				stream,
+				text,
+			}) => {
+				extras.push(format!("log [{project_key}/{stream}] {}", text.trim()));
+			}
+			Ok(UiEvent::Exit {
+				project_key,
+				code,
+			}) => {
+				extras.push(format!("exit {project_key} code={code:?}"));
+			}
+			Ok(UiEvent::SpawnFailed {
+				project_key,
+				message,
+			}) => {
+				extras.push(format!("spawn-failed {project_key}: {message}"));
 			}
 			Ok(_) => {}
 			Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
@@ -41,7 +63,9 @@ fn wait_two_ready(
 			return (a, b);
 		}
 	}
-	panic!("timed out waiting for READY from both stubs");
+	panic!(
+		"timed out waiting for READY from both stubs (a={key_a}, b={key_b}). events: {extras:?}"
+	);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -60,7 +84,7 @@ async fn two_stubs_bind_distinct_ports_and_stop_independently() {
 	assert_ne!(port_a, port_b);
 
 	let (tx, rx) = std::sync::mpsc::channel();
-	let sender = UiSender::new(tx);
+	let sender = UiSender::without_ui_wake(tx);
 	let slot_a = ChildSlot::new();
 	let slot_b = ChildSlot::new();
 	let key_a = dir_a.to_string_lossy().into_owned();

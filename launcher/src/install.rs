@@ -147,7 +147,7 @@ async fn install_node_macos(tx: UiSender) -> Result<(), String> {
 		pkg.to_str().ok_or_else(|| "temp path".to_string())?,
 		&url,
 	]);
-	stream_status(tx, download).await?;
+	stream_status(tx.clone(), download).await?;
 	let pkg_display = pkg.display().to_string();
 	let script = format!(
 		"do shell script \"installer -pkg '{}' -target /\" with administrator privileges",

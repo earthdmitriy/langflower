@@ -6,7 +6,9 @@ use langflower_launcher::ui_state::{
 #[test]
 fn project_name_uses_last_segment() {
 	assert_eq!(project_name(r"D:\Win\Projects\prompts"), "prompts");
+	assert_eq!(project_name(r"D:\Win\Projects\prompts\"), "prompts");
 	assert_eq!(project_name("  /tmp/demo  "), "demo");
+	assert_eq!(project_name("/tmp/demo/"), "demo");
 }
 
 #[test]

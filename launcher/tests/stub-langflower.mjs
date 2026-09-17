@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import http from 'node:http';
 
 const args = process.argv.slice(2);
@@ -18,8 +17,7 @@ const server = http.createServer((_req, res) => {
 
 server.listen(port, '127.0.0.1', () => {
 	const url = `http://127.0.0.1:${port}`;
-	fs.writeSync(
-		1,
+	process.stdout.write(
 		`LANGFLOWER_READY ${JSON.stringify({
 			url,
 			port,

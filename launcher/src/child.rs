@@ -4,13 +4,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::process::{Child, Command};
-
-#[cfg(unix)]
-use std::os::unix::process::CommandExt;
+use tokio::process::Child;
 
 use crate::detect::resolve_cli_bin;
-use crate::path_env::{hide_tokio, refresh_path};
+use crate::path_env::{hide_tokio, refresh_path, tokio_node};
 use crate::ready_line::parse_ready_line;
 use crate::ui_event::{UiEvent, UiSender};
 
@@ -104,8 +101,7 @@ pub async fn spawn_cli(
 		}
 	}
 	let bin = resolve_cli_bin()?;
-	let mut command = Command::new("node");
-	hide_tokio(&mut command);
+	let mut command = tokio_node();
 	command
 		.arg(&bin)
 		.arg(trimmed)

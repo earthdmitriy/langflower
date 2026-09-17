@@ -19,11 +19,13 @@ pub struct Chrome {
 }
 
 pub fn project_name(path: &str) -> String {
-	std::path::Path::new(path.trim())
-		.file_name()
-		.map(|name| name.to_string_lossy().into_owned())
+	let trimmed = path.trim().trim_end_matches(['/', '\\']);
+	trimmed
+		.rsplit(['/', '\\'])
+		.next()
 		.filter(|name| !name.is_empty())
-		.unwrap_or_else(|| path.trim().to_string())
+		.unwrap_or(trimmed)
+		.to_string()
 }
 
 /// Log prefix for a row. Detect/startup uses `launcher`; only real installs
