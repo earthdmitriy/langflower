@@ -1,7 +1,7 @@
 import type {
 	RunnerAskUserAskPayload,
 	RunnerAskUserReplyPayload,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-config.js';
 import type { AskUserRequest } from '@langflower/tools/create-project-harness';
 
 type PendingAsk = {
@@ -35,6 +35,9 @@ export class PendingAskUserAsks {
 			askId,
 			nodeId,
 			question: request.question,
+			...(request.questions !== undefined && request.questions.length > 0
+				? { questions: request.questions }
+				: {}),
 		};
 
 		return new Promise<string>((resolve, reject) => {

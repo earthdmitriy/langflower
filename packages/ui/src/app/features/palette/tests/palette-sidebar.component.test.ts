@@ -5,12 +5,14 @@ import {
 	BrowserTestingModule,
 	platformBrowserTesting,
 } from '@angular/platform-browser/testing';
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import { Subject } from 'rxjs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CustomPaletteSnapshotPayload } from '@langflower/shared/types/langflower-custom-palette';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import { PaletteSidebarComponent } from '../components/palette-sidebar.component';
+import { categoryCollapseKey } from '../types/palette-projection';
 
 const sampleNode = {
 	type: 'common-string',
@@ -26,6 +28,24 @@ const sampleNode = {
 	chatEntry: false,
 	bypassPorts: {},
 } as unknown as PaletteNodeDefinition;
+
+const customNode = {
+	...sampleNode,
+	type: 'custom-widget',
+	displayName: 'Widget',
+	category: 'Other',
+	source: 'custom',
+} as unknown as PaletteNodeDefinition;
+
+const emptyCustomSnapshot: CustomPaletteSnapshotPayload = {
+	nodes: [],
+	errors: [],
+	status: 'ok',
+};
+
+beforeAll(() => {
+	TestBed.initTestEnvironment(BrowserTestingModule, platformBrowserTesting());
+});
 
 function createRaw() {
 	return {
@@ -48,13 +68,6 @@ describe('PaletteSidebarComponent run lock', () => {
 	let raw: ReturnType<typeof createRaw>;
 	let fixture: ComponentFixture<PaletteSidebarComponent>;
 
-	beforeAll(() => {
-		TestBed.initTestEnvironment(
-			BrowserTestingModule,
-			platformBrowserTesting(),
-		);
-	});
-
 	beforeEach(async () => {
 		TestBed.resetTestingModule();
 		raw = createRaw();
@@ -72,6 +85,7 @@ describe('PaletteSidebarComponent run lock', () => {
 
 		fixture = TestBed.createComponent(PaletteSidebarComponent);
 		raw['palette.snapshot'].next({ nodes: [sampleNode] });
+		raw['customPalette.snapshot'].next(emptyCustomSnapshot);
 		fixture.detectChanges();
 	});
 
@@ -105,5 +119,57 @@ describe('PaletteSidebarComponent run lock', () => {
 		hide?.click();
 
 		expect(spy).toHaveBeenCalledWith(false);
+	});
+});
+
+describe('PaletteSidebarComponent category seed', () => {
+	let raw: ReturnType<typeof createRaw>;
+	let fixture: ComponentFixture<PaletteSidebarComponent>;
+
+	beforeEach(async () => {
+		TestBed.resetTestingModule();
+		raw = createRaw();
+
+		await TestBed.configureTestingModule({
+			imports: [PaletteSidebarComponent],
+			providers: [
+				{
+					provide: LangflowerBridgeService,
+					useValue: { raw, cached: raw },
+				},
+				WorkflowExecutionService,
+			],
+		}).compileComponents();
+
+		fixture = TestBed.createComponent(PaletteSidebarComponent);
+	});
+
+	it('seeds custom categories after both snapshots are real', () => {
+		raw['palette.snapshot'].next({ nodes: [sampleNode] });
+		fixture.detectChanges();
+
+		expect(fixture.componentInstance.expandedCategories().size).toBe(0);
+
+		raw['customPalette.snapshot'].next({
+			nodes: [customNode],
+			errors: [],
+			status: 'ok',
+		});
+		fixture.detectChanges();
+
+		expect(
+			fixture.componentInstance.isCategoryExpanded(
+				'system',
+				'Primitives',
+			),
+		).toBe(true);
+		expect(
+			fixture.componentInstance.isCategoryExpanded('custom', 'Other'),
+		).toBe(true);
+		expect(
+			fixture.componentInstance
+				.expandedCategories()
+				.has(categoryCollapseKey('custom', 'Other')),
+		).toBe(true);
 	});
 });

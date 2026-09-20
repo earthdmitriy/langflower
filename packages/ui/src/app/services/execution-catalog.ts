@@ -2,13 +2,48 @@ import {
 	isSteerControlContinue,
 	isSteerControlPause,
 } from '@langflower/node-sdk/llm';
+import type { CustomPaletteSnapshotPayload } from '@langflower/shared/types/langflower-custom-palette';
 import type {
 	PaletteConfigPayload,
 	PaletteNodeDefinition,
-	WorkflowCurrentSnapshotPayload,
-} from '@langflower/shared/langflower';
-import type { FeedRole } from '@langflower/node-sdk';
-import { paletteByType as paletteNodesByType } from './bridge-diagram.service';
+} from '@langflower/shared/types/langflower-palette';
+import type { WorkflowCurrentSnapshotPayload } from '@langflower/shared/types/langflower-workflow';
+import { combineLatest, type Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+export const paletteByType = (
+	nodes: readonly PaletteNodeDefinition[],
+): ReadonlyMap<string, PaletteNodeDefinition> =>
+	new Map(nodes.map((node) => [node.type, node]));
+
+export const emptyCustomPaletteSnapshot: CustomPaletteSnapshotPayload = {
+	nodes: [],
+	errors: [],
+	status: 'not_compiled',
+};
+
+/** Merged catalog for canvas / execution lookups (system + custom nodes). */
+export const mergePaletteCatalogs = (
+	system: PaletteConfigPayload,
+	custom: CustomPaletteSnapshotPayload,
+): PaletteConfigPayload => ({
+	nodes: [
+		...system.nodes.map((node) => ({ ...node, source: 'system' as const })),
+		...custom.nodes.map((node) => ({ ...node, source: 'custom' as const })),
+	],
+});
+
+/**
+ * Wait for real system + custom snapshots. No empty custom `startWith` —
+ * unknown custom `chatEntry` types must not classify until both facts exist.
+ */
+export const mergedPaletteFromSnapshots$ = (
+	system$: Observable<PaletteConfigPayload>,
+	custom$: Observable<CustomPaletteSnapshotPayload>,
+): Observable<PaletteConfigPayload> =>
+	combineLatest([system$, custom$]).pipe(
+		map(([system, custom]) => mergePaletteCatalogs(system, custom)),
+	);
 
 export const nodeTypeByIdFromWorkflow = (
 	snap: WorkflowCurrentSnapshotPayload,
@@ -46,20 +81,29 @@ export const feedCatalogFromSnaps = (
 	workflow: WorkflowCurrentSnapshotPayload,
 	palette: PaletteConfigPayload,
 ): FeedCatalog => {
-	const paletteByType = paletteNodesByType(palette.nodes);
+	const catalog = paletteByType(palette.nodes);
 	const nodeTypeById = nodeTypeByIdFromWorkflow(workflow);
 	return {
-		labels: nodeLabelsFromWorkflow(workflow, paletteByType),
-		paletteByType,
+		labels: nodeLabelsFromWorkflow(workflow, catalog),
+		paletteByType: catalog,
 		nodeTypeById,
 		workflowId: workflow.activeWorkflow?.workflowId ?? null,
 	};
 };
 
+export type WorkflowDocumentKey = {
+	readonly workflowId?: string | null;
+	readonly nodeIdsKey: string;
+};
+
+export const workflowNodeIdsKey = (
+	nodeTypeById: ReadonlyMap<string, string>,
+): string => [...nodeTypeById.keys()].sort().join('\0');
+
 /** True when the catalog belongs to a different workflow document (not rename). */
 export const catalogSwitchedDocument = (
-	previous: FeedCatalog | null,
-	next: FeedCatalog,
+	previous: WorkflowDocumentKey | null,
+	next: WorkflowDocumentKey,
 ): boolean => {
 	if (previous === null) {
 		return false;
@@ -69,9 +113,7 @@ export const catalogSwitchedDocument = (
 	if (previousId === null || nextId === null || previousId === nextId) {
 		return false;
 	}
-	const previousIds = [...previous.nodeTypeById.keys()].sort().join('\0');
-	const nextIds = [...next.nodeTypeById.keys()].sort().join('\0');
-	return previousIds !== nextIds;
+	return previous.nodeIdsKey !== next.nodeIdsKey;
 };
 
 export const definitionForNode = (
@@ -81,31 +123,6 @@ export const definitionForNode = (
 ): PaletteNodeDefinition | undefined => {
 	const type = nodeTypeById.get(nodeId);
 	return type === undefined ? undefined : paletteByType.get(type);
-};
-
-const FEED_ROLES = new Set<FeedRole>([
-	'none',
-	'reasoning',
-	'progress',
-	'draft',
-	'tool',
-	'shell',
-	'result',
-	'recovery',
-]);
-
-export const resolveOutputFeedRole = (
-	paletteByType: ReadonlyMap<string, PaletteNodeDefinition>,
-	nodeTypeById: ReadonlyMap<string, string>,
-	nodeId: string,
-	portId: string,
-): FeedRole | undefined => {
-	const def = definitionForNode(paletteByType, nodeTypeById, nodeId);
-	const meta = def?.outputsConfigs.find((output) => output.portId === portId);
-	const role = meta?.feed?.role;
-	return typeof role === 'string' && FEED_ROLES.has(role as FeedRole)
-		? (role as FeedRole)
-		: undefined;
 };
 
 /** User-bubble copy for a HITL submit / input-received payload. */

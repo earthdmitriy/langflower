@@ -1,7 +1,7 @@
 # Langflower — product purpose
 
 Canonical **purpose, goal, and product framing**. Technical architecture lives
-in [ARCHITECTURE.md](ARCHITECTURE.md); end-user readiness in
+in [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md); end-user readiness in
 [use-cases/](use-cases/README.md). Short product vocabulary:
 [GLOSSARY.md](GLOSSARY.md#part-1--for-users) (Part 1). This file does not
 replace ADRs or feature docs.
@@ -53,9 +53,9 @@ Built-in nodes (`@langflower/common-nodes`) and user packs
 (`.langflower/nodes/<pack>/`) share the same SDK (`@langflower/node-sdk`).
 Default author path is **`defineNode`**; use `defineReactiveNode` when you need
 RxJS / StatefulObservable. Pack layout and npm model:
-[ADR-030](ADR.md#adr-030--custom-node-pack-layout--npm-model).
+[ADR-030](architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model).
 
-**Runtime loading differs on purpose** ([ADR-020](ADR.md#adr-020--built-in-vs-custom-node-loading)):
+**Runtime loading differs on purpose** ([ADR-020](architecture/ADR.md#adr-020--built-in-vs-custom-node-loading)):
 built-ins are imported from the npm package (no per-start bundler/scan) to keep
 startup fast. Custom packs are scanned and bundled by `@langflower/compiler`
 ([STATUS](STATUS.md) **done**). Sandboxed execution of arbitrary user-node
@@ -71,12 +71,12 @@ Skills on one Sub-Agent are an optional schema enum. Nested **workflow files**
 are far future; nested specialists use child `subagent-registration` → parent
 Sub-Agent `tools`.
 
-**Layers** ([ADR-022](ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo)):
+**Layers** ([ADR-022](architecture/ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo)):
 swarm defaults to **serial** invokes (local LLM HW); parallel-by-nodeId is
 opt-in / low priority; same-model Monte Carlo uses **Loop** + trial envelope;
 **cross-model bake-off** = **N Sub-Agent** nodes (own provider/model each).
 
-Normative: [ADR-021](ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter),
+Normative: [ADR-021](architecture/ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter),
 [MECHANICS](DONE/EPICS/MECHANICS-tool-execution.md#sub-agent-as-toolhandle).
 
 ## Roadmap frame
@@ -107,7 +107,7 @@ UX is not inlined here. Global config + Settings dual path: epic 18 Partial.
   unless later decided. That is **not** the launcher. A thin **Slint
   supervisor** that can spawn one CLI per project folder and opens the
   system browser after listen is shipped
-  ([ADR-038](ADR.md#adr-038--launcher-is-a-cli-supervisor)). Tauri was
+  ([ADR-038](architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor)). Tauri was
   tried for that supervisor and rejected (WebView, large executable);
   FLTK was tried next (moderate size, ugly UI); Slint is the accepted
   toolkit.
@@ -120,19 +120,19 @@ UX is not inlined here. Global config + Settings dual path: epic 18 Partial.
 
 Long-horizon items above (sandbox, desktop shell, multi-tenant cloud) are
 listed in [TBD.md](TBD.md) so they stay visible without entering the near-term
-TODO / epic queue. Promote to [ADR.md](ADR.md) when a direction is chosen.
+TODO / epic queue. Promote to [architecture/ADR.md](architecture/ADR.md) when a direction is chosen.
 
 ## Related docs
 
-| Doc                                                                                | Role                                                                                |
-| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [use-cases/README.md](use-cases/README.md)                                         | Scenario Status bar                                                                 |
-| [features/](features/README.md)                                                    | User-facing feature “what”                                                          |
-| [TBD.md](TBD.md)                                                                   | Long-term goals / hard tradeoffs (not soon)                                         |
-| [ARCHITECTURE.md](ARCHITECTURE.md)                                                 | System / transport architecture                                                     |
-| [STATUS.md](STATUS.md)                                                             | Package / capability implementation status                                          |
-| [CONFIG.md](CONFIG.md)                                                             | `langflower.jsonc` / providers                                                      |
-| [ADR-021](ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter) | Sub-Agent canvas node + `subagent-registration` handle                              |
-| [ADR-022](ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo)               | Sub-Agent layers + N-Sub-Agent bake-off                                             |
-| [ADR-035](ADR.md#adr-035--uniform-inventory-wire--optional-tool-collection)        | One `tool-handle` inventory wire; optional Tool collection hub                      |
-| [spec.md](../spec.md)                                                              | Historical Stage-1 bootstrap spec — prefer this file + use-cases for product intent |
+| Doc                                                                                             | Role                                                                                |
+| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [use-cases/README.md](use-cases/README.md)                                                      | Scenario Status bar                                                                 |
+| [features/](features/README.md)                                                                 | User-facing feature “what”                                                          |
+| [TBD.md](TBD.md)                                                                                | Long-term goals / hard tradeoffs (not soon)                                         |
+| [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md)                                    | System / transport architecture                                                     |
+| [STATUS.md](STATUS.md)                                                                          | Package / capability implementation status                                          |
+| [CONFIG.md](CONFIG.md)                                                                          | `langflower.jsonc` / providers                                                      |
+| [ADR-021](architecture/ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter) | Sub-Agent canvas node + `subagent-registration` handle                              |
+| [ADR-022](architecture/ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo)               | Sub-Agent layers + N-Sub-Agent bake-off                                             |
+| [ADR-035](architecture/ADR.md#adr-035--uniform-inventory-wire--optional-tool-collection)        | One `tool-handle` inventory wire; optional Tool collection hub                      |
+| [spec.md](../spec.md)                                                                           | Historical Stage-1 bootstrap spec — prefer this file + use-cases for product intent |

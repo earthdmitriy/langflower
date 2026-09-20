@@ -9,11 +9,12 @@ Test code and fixtures for the Langflower monorepo.
 ```
 tests/
 ├── fixtures/
-│   ├── workflows/          # workflow JSON for integration tests
-│   └── eval/               # golden eval packs (epic 09)
+│   ├── eval/               # golden eval packs
+│   ├── mcp/                # fixture MCP stdio
+│   └── static/             # static HTTP smoke
 ├── integration/
-│   ├── helpers/            # temp-project, test-server, repo-paths
-│   ├── ws/                 # LangflowerWsClient + execute.* WS tests
+│   ├── helpers/            # temp-project, test-server, scenarios
+│   ├── ws/                 # LangflowerWsClient + execute-*.ws.test.ts
 │   └── *.test.ts           # bootstrap / sample-workflow / eval-gate checks
 └── tmp/                    # runtime only — gitignored
 ```

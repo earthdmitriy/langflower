@@ -4,11 +4,6 @@ import type {
 	LangflowerClient,
 } from './langflower-bridge.types.js';
 
-export type {
-	LangflowerBridge,
-	LangflowerClient,
-} from './langflower-bridge.types.js';
-
 export const clientEmit = <T extends keyof LangflowerClient, Payload>(
 	client: LangflowerClient,
 	channel: T,

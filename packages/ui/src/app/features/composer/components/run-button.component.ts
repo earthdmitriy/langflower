@@ -81,6 +81,9 @@ export class RunButtonComponent {
 		if (!this.execution.hasRunnableGraph()) {
 			return true;
 		}
+		if (!this.execution.hasPaletteCatalog()) {
+			return true;
+		}
 		const nodeId = this.selectedNodeId();
 		if (nodeId !== null) {
 			// Chat-entry clusters start from the composer, not Run-from-node.
@@ -95,6 +98,9 @@ export class RunButtonComponent {
 		}
 		if (!this.execution.hasRunnableGraph()) {
 			return 'Load a workflow with nodes to run';
+		}
+		if (!this.execution.hasPaletteCatalog()) {
+			return 'Waiting for node catalog';
 		}
 		const nodeId = this.selectedNodeId();
 		if (
@@ -120,6 +126,10 @@ export class RunButtonComponent {
 	toggle(): void {
 		if (this.isRunning()) {
 			this.bridge.raw['runner.interrupt.requested'].next('cancel');
+			return;
+		}
+
+		if (!this.execution.hasPaletteCatalog()) {
 			return;
 		}
 

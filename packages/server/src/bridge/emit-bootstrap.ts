@@ -1,4 +1,5 @@
 import { hasCustomNodePacks } from '@langflower/compiler/discover-packs';
+import { DEFAULT_CONFIG } from '@langflower/shared/constants/defaults.js';
 import { listResumableCheckpoints } from '../checkpoint/list-resumable-checkpoints.js';
 import type { RunCheckpointSession } from '../checkpoint/run-checkpoint-session.js';
 import type { ServerContext } from '../server-context.js';
@@ -37,7 +38,6 @@ export const emitBootstrap = async (
 		await loadWorkflowIntoSession(
 			session,
 			context.workflowService,
-			context.projectDir,
 			langflowerConfig.currentWorkflowId,
 			context.resolveDefinition,
 		);
@@ -58,6 +58,7 @@ export const emitBootstrap = async (
 		context.langflowerConfigService,
 		context.resolveDefinition,
 		context.projectDir,
+		context.customNodeRegistry,
 	);
 	clientEmit(client, 'session.state.snapshot', bootstrap);
 
@@ -82,7 +83,10 @@ export const emitBootstrap = async (
 		checkpoints: resumable,
 	});
 
-	const toolConfig = await context.configService.read();
+	const toolConfigRead = await context.configService.read();
+	const toolConfig = toolConfigRead.ok
+		? toolConfigRead.config
+		: { ...DEFAULT_CONFIG, projectDir: context.projectDir };
 	clientEmit(client, 'toolConfig.snapshot', { config: toolConfig });
 
 	// Workflow slices
@@ -118,9 +122,7 @@ export const emitBootstrap = async (
 		clientEmit(client, 'runner.askUser.ask', ask);
 	}
 
-	const paletteResult = await context.paletteService.reload(
-		context.projectDir,
-	);
+	const paletteResult = await context.paletteService.reload();
 	clientEmit(client, 'palette.snapshot', paletteResult.payload);
 
 	const customSnapshot = context.customPaletteService.getSnapshot();

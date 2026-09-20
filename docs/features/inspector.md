@@ -9,8 +9,8 @@ without opening a separate window.
 ## Core Principles
 
 - **Selection owns the sidebar** — clicking a node swaps the sidebar from the
-  [feed](feed-panel.md) work log to the inspector; deselecting returns to the
-  feed.
+  [feed](feed-panel.md) work log to the inspector; deselecting (canvas click
+  or inspector **Close**) returns to the feed.
 - **Full port surface** — every input port (including hidden ones), editable
   inline fields, panel-level parameters, and cached outputs (read-only) are
   available here.
@@ -27,8 +27,8 @@ without opening a separate window.
 
 **Enter:** select a node on the canvas → sidebar shows that node’s inspector.
 
-**Leave:** deselect (or clear selection) → sidebar returns to the feed work
-log.
+**Leave:** deselect on the canvas, or click **Close** in the inspector
+header → sidebar returns to the feed work log.
 
 **Contents:** markdown **description** under the title (same copy as the
 palette hover popover), input ports (wired and unwired), inline editors

@@ -1,4 +1,4 @@
-import type { WorkflowSavePayload } from '@langflower/shared/langflower.js';
+import type { WorkflowSavePayload } from '@langflower/shared/types/langflower-workflow.js';
 import {
 	edge,
 	fakeLlmNode,
@@ -9,6 +9,7 @@ import {
 	savePayload,
 	scenarioMetadata,
 	stringNode,
+	toolPermissionsFromEnabledIds,
 } from '../workflow-scenario-builders.js';
 
 /**
@@ -194,7 +195,7 @@ export const fakeLlmMaxIterationsContinueWorkflow = (): WorkflowSavePayload => {
 				{
 					tokenDelayMs: 0,
 					rolePreset: 'custom',
-					enabledToolIds: ['write'],
+					toolPermissions: toolPermissionsFromEnabledIds(['write']),
 					maxIterations: 1,
 					scriptedToolTurns: [
 						{
@@ -255,6 +256,107 @@ export const fakeLlmAskUserWorkflow = (): WorkflowSavePayload => {
 							],
 						},
 						{ text: 'The project is Langflower.' },
+					],
+				},
+			),
+			previewNode('preview-1', { x: 560, y: 0 }),
+		],
+		[
+			edge('e-prompt', 'prompt-1', 'value', 'llm-1', 'userPrompt'),
+			edge('e-response', 'llm-1', 'response', 'preview-1', 'text'),
+		],
+	);
+};
+
+/**
+ * Agent `ask_user` with ordered questions + options.
+ * @see execute-ask-user.ws.test.ts
+ */
+export const fakeLlmAskUserQuestionsWorkflow = (): WorkflowSavePayload => {
+	return savePayload(
+		'fake-llm-ask-user-questions',
+		scenarioMetadata('Fake LLM ask_user questions'),
+		[
+			stringNode(
+				'prompt-1',
+				'Ask for the stack',
+				{ x: 0, y: 0 },
+				'Prompt',
+			),
+			fakeLlmNode(
+				'llm-1',
+				{ x: 280, y: 0 },
+				{
+					tokenDelayMs: 0,
+					rolePreset: 'custom',
+					maxIterations: 4,
+					scriptedToolTurns: [
+						{
+							toolCalls: [
+								{
+									name: 'ask_user',
+									arguments: {
+										question: 'Need a few choices',
+										questions: [
+											{
+												prompt: 'Stack?',
+												options: ['React', 'Vue'],
+												allowMultiple: true,
+											},
+											{
+												prompt: 'Ship it?',
+												options: ['yes', 'no'],
+											},
+										],
+									},
+								},
+							],
+						},
+						{ text: 'Picked the stack.' },
+					],
+				},
+			),
+			previewNode('preview-1', { x: 560, y: 0 }),
+		],
+		[
+			edge('e-prompt', 'prompt-1', 'value', 'llm-1', 'userPrompt'),
+			edge('e-response', 'llm-1', 'response', 'preview-1', 'text'),
+		],
+	);
+};
+
+/**
+ * `permission.ask` on `read` must outlive a tiny `toolTimeoutMs`.
+ * @see execute-permission-ask-timeout.ws.test.ts
+ */
+export const fakeLlmPermissionAskTimeoutWorkflow = (): WorkflowSavePayload => {
+	return savePayload(
+		'fake-llm-permission-ask-timeout',
+		scenarioMetadata('Fake LLM permission.ask timeout'),
+		[
+			stringNode('prompt-1', 'Read notes.md', { x: 0, y: 0 }, 'Prompt'),
+			fakeLlmNode(
+				'llm-1',
+				{ x: 280, y: 0 },
+				{
+					tokenDelayMs: 0,
+					rolePreset: 'custom',
+					toolTimeoutMs: 50,
+					maxIterations: 4,
+					toolPermissions: {
+						...toolPermissionsFromEnabledIds(['read']),
+						read: 'ask',
+					},
+					scriptedToolTurns: [
+						{
+							toolCalls: [
+								{
+									name: 'read',
+									arguments: { path: 'notes.md' },
+								},
+							],
+						},
+						{ text: 'read after allow' },
 					],
 				},
 			),

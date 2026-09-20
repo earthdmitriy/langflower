@@ -1,5 +1,5 @@
 import { createServer as createWsBridge } from '@langflower/websocket-bridge/create-server';
-import { langflowerWsConfig } from '@langflower/shared/langflower.js';
+import { langflowerWsConfig } from '@langflower/shared/langflower-bus-config.js';
 
 export type LangflowerBridge = ReturnType<
 	typeof createWsBridge<typeof langflowerWsConfig>

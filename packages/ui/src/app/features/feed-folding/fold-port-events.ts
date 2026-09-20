@@ -14,17 +14,30 @@ import type {
 	RunnerAskUserReplyPayload,
 	RunnerPermissionAskPayload,
 	RunnerPermissionReplyPayload,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-config';
 import { combineLatest, merge, type Observable } from 'rxjs';
-import { map, scan, shareReplay, startWith } from 'rxjs/operators';
-import { mergePaletteCatalogs } from '../palette/types/palette-projection';
+import {
+	distinctUntilChanged,
+	map,
+	scan,
+	shareReplay,
+	startWith,
+	switchMap,
+} from 'rxjs/operators';
 import {
 	catalogSwitchedDocument,
 	definitionForNode,
 	feedCatalogFromSnaps,
 	formatHitlUserText,
+	mergePaletteCatalogs,
+	workflowNodeIdsKey,
 	type FeedCatalog,
 } from '../../services/execution-catalog';
+import {
+	frameClosesPreviousVisit,
+	frameFeedRole,
+	frameIsStreaming,
+} from '../../services/frame-feed-meta';
 import { hitlReplyReceived } from '../../services/hitl-projection';
 import {
 	projectFeedRows,
@@ -51,12 +64,13 @@ type FeedSourceEntry =
 	RuntimeRunnerEvent | PermissionFeedEvent | AskUserFeedEvent;
 
 type FeedComposerState = {
-	readonly entries: readonly FeedSourceEntry[];
 	readonly asksById: ReadonlyMap<string, RunnerPermissionAskPayload>;
 	readonly askUserById: ReadonlyMap<string, RunnerAskUserAskPayload>;
-	readonly catalog: FeedCatalog | null;
 	readonly projection: FeedProjection;
 	readonly runId: RunId | null;
+	readonly workflowId: string | null;
+	readonly nodeIdsKey: string;
+	readonly pending: readonly FeedSourceEntry[];
 };
 
 type FeedComposerAction =
@@ -64,9 +78,14 @@ type FeedComposerAction =
 			readonly type: 'snapshot';
 			readonly events: readonly RuntimeRunnerEvent[];
 			readonly runId: RunId | null;
+			readonly catalog: FeedCatalog;
 	  }
 	| { readonly type: 'clear' }
-	| { readonly type: 'port'; readonly event: PortTelemetry }
+	| {
+			readonly type: 'port';
+			readonly event: PortTelemetry;
+			readonly catalog: FeedCatalog;
+	  }
 	| {
 			readonly type: 'permission-ask';
 			readonly ask: RunnerPermissionAskPayload;
@@ -83,16 +102,25 @@ type FeedComposerAction =
 			readonly type: 'ask-user-accepted';
 			readonly accepted: RunnerAskUserReplyPayload;
 	  }
-	| { readonly type: 'catalog'; readonly catalog: FeedCatalog }
-	| { readonly type: 'run-started'; readonly runId: RunId };
+	| {
+			readonly type: 'document';
+			readonly workflowId: string | null;
+			readonly nodeIdsKey: string;
+	  }
+	| {
+			readonly type: 'run-started';
+			readonly runId: RunId;
+			readonly catalog: FeedCatalog;
+	  };
 
 const emptyComposer: FeedComposerState = {
-	entries: [],
 	asksById: new Map(),
 	askUserById: new Map(),
-	catalog: null,
 	projection: emptyFeedProjection(),
 	runId: null,
+	workflowId: null,
+	nodeIdsKey: '',
+	pending: [],
 };
 
 const permissionPortId = (askId: string): `permission:${string}` =>
@@ -144,6 +172,15 @@ const permissionDecisionEvent = (
 const askUserPortId = (askId: string): `askUser:${string}` =>
 	`askUser:${askId}`;
 
+const askUserAskFeedValue = (ask: RunnerAskUserAskPayload): string => {
+	const headline = ask.question.trim();
+	if (headline.length > 0) {
+		return ask.question;
+	}
+
+	return (ask.questions ?? []).map((question) => question.prompt).join('\n');
+};
+
 const askUserAskEvent = (ask: RunnerAskUserAskPayload): AskUserFeedEvent => ({
 	source: 'ask-user',
 	kind: 'ask-user',
@@ -151,7 +188,7 @@ const askUserAskEvent = (ask: RunnerAskUserAskPayload): AskUserFeedEvent => ({
 	nodeId: ask.nodeId,
 	portId: askUserPortId(ask.askId),
 	state: 'pending',
-	value: ask.question,
+	value: askUserAskFeedValue(ask),
 	meta: {
 		presentation: 'ask-user-ask',
 		askId: ask.askId,
@@ -182,16 +219,6 @@ const askUserReplyEvent = (
 	};
 };
 
-const isRuntimeFeedRole = (role: string | undefined): role is RuntimeFeedRole =>
-	role === 'none' ||
-	role === 'reasoning' ||
-	role === 'progress' ||
-	role === 'draft' ||
-	role === 'tool' ||
-	role === 'shell' ||
-	role === 'result' ||
-	role === 'recovery';
-
 type RolePresentation =
 	| 'none'
 	| 'reasoning'
@@ -211,44 +238,11 @@ const presentationFromRole = (
 	return role;
 };
 
-const resolveFeedMeta = (
-	event: PortTelemetry,
-	catalog: FeedCatalog,
-): {
-	readonly role: RuntimeFeedRole | undefined;
-	readonly streaming: boolean;
-} => {
-	const [, nodeId, portId, , , , feedMeta] = event;
-	if (feedMeta != null) {
-		const role = isRuntimeFeedRole(feedMeta.role)
-			? feedMeta.role
-			: undefined;
-		return { role, streaming: feedMeta.streaming === true };
-	}
-	const definition = definitionForNode(
-		catalog.paletteByType,
-		catalog.nodeTypeById,
-		nodeId,
-	);
-	const portDir = event[0];
-	const configs =
-		portDir === 'out'
-			? definition?.outputsConfigs
-			: definition?.inputsConfigs;
-	const config = configs?.find((entry) => entry.portId === portId);
-	const rawRole = config?.feed?.role;
-	const role = isRuntimeFeedRole(rawRole) ? rawRole : undefined;
-	return { role, streaming: config?.feed?.streaming === true };
-};
-
-const SUB_AGENT_NODE_TYPE = 'common-sub-agent';
-
 const withClosesPreviousVisit = <T extends PortFrameMeta>(
 	meta: T,
-	catalog: FeedCatalog,
-	nodeId: string,
+	event: PortTelemetry,
 ): T =>
-	catalog.nodeTypeById.get(nodeId) === SUB_AGENT_NODE_TYPE
+	frameClosesPreviousVisit(event)
 		? ({ ...meta, closesPreviousVisit: true as const } as T)
 		: meta;
 
@@ -258,27 +252,21 @@ const withDerivedVisitClose = <T extends PortFrameMeta>(
 ): T =>
 	streaming ? meta : ({ ...meta, visitBoundary: 'close' as const } as T);
 
-const catalogMeta = (
-	event: PortTelemetry,
-	catalog: FeedCatalog,
-): PortFrameMeta | 'none' => {
-	const [, nodeId, , response] = event;
+const frameMeta = (event: PortTelemetry): PortFrameMeta | 'none' => {
+	const [, , , response] = event;
 	if ('error' in response) {
 		return withClosesPreviousVisit(
 			withDerivedVisitClose({ presentation: 'error' }, false),
-			catalog,
-			nodeId,
+			event,
 		);
 	}
-	const resolved = resolveFeedMeta(event, catalog);
-	const presentation = presentationFromRole(resolved.role);
+	const presentation = presentationFromRole(frameFeedRole(event));
 	if (presentation === 'none') {
 		return 'none';
 	}
 	return withClosesPreviousVisit(
-		withDerivedVisitClose({ presentation }, resolved.streaming),
-		catalog,
-		nodeId,
+		withDerivedVisitClose({ presentation }, frameIsStreaming(event)),
+		event,
 	);
 };
 
@@ -319,8 +307,7 @@ const normalizePortFrame = (
 						{ presentation: 'steering-pause', payload: value },
 						false,
 					),
-					catalog,
-					nodeId,
+					event,
 				),
 			};
 		}
@@ -337,8 +324,7 @@ const normalizePortFrame = (
 						},
 						false,
 					),
-					catalog,
-					nodeId,
+					event,
 				),
 			};
 		}
@@ -349,8 +335,7 @@ const normalizePortFrame = (
 					{ presentation: 'steering-resume', payload: value },
 					false,
 				),
-				catalog,
-				nodeId,
+				event,
 			),
 		};
 	}
@@ -365,9 +350,6 @@ const normalizePortFrame = (
 		definition !== undefined &&
 		hitlReplyReceived(definition, portId)
 	) {
-		const input = definition.inputsConfigs.find(
-			(entry) => entry.portId === portId,
-		);
 		const text = formatHitlUserText(definition, portId, value);
 		return {
 			...base,
@@ -375,15 +357,14 @@ const normalizePortFrame = (
 			meta: withClosesPreviousVisit(
 				withDerivedVisitClose(
 					{ presentation: 'hitl-user', origin: 'hitl-reply' },
-					input?.feed?.streaming === true,
+					frameIsStreaming(event),
 				),
-				catalog,
-				nodeId,
+				event,
 			),
 		};
 	}
 
-	const meta = catalogMeta(event, catalog);
+	const meta = frameMeta(event);
 	if (meta === 'none') {
 		return null;
 	}
@@ -404,22 +385,17 @@ const normalizeEntry = (
 	return normalizePortFrame(entry, runId, catalog);
 };
 
-const normalizeEntries = (
-	entries: readonly FeedSourceEntry[],
-	runId: RunId | null,
-	catalog: FeedCatalog,
-): readonly FeedEventFromSource[] =>
-	entries.flatMap((entry) => {
-		const normalized = normalizeEntry(entry, runId, catalog);
-		return normalized === null ? [] : [normalized];
-	});
-
-const rebuildProjection = (
+const replayNormalized = (
 	entries: readonly FeedSourceEntry[],
 	runId: RunId | null,
 	catalog: FeedCatalog,
 ): FeedProjection =>
-	replayFeedProjection(normalizeEntries(entries, runId, catalog));
+	replayFeedProjection(
+		entries.flatMap((entry) => {
+			const normalized = normalizeEntry(entry, runId, catalog);
+			return normalized === null ? [] : [normalized];
+		}),
+	);
 
 const appendEntry = (
 	state: FeedComposerState,
@@ -428,51 +404,79 @@ const appendEntry = (
 		readonly asksById?: ReadonlyMap<string, RunnerPermissionAskPayload>;
 		readonly askUserById?: ReadonlyMap<string, RunnerAskUserAskPayload>;
 	} = {},
+	catalog?: FeedCatalog,
 ): FeedComposerState => {
 	const asksById = maps.asksById ?? state.asksById;
 	const askUserById = maps.askUserById ?? state.askUserById;
-	const entries = [...state.entries, entry];
-	if (state.catalog === null || state.runId === null) {
-		return { ...state, entries, asksById, askUserById };
+	if (state.runId === null) {
+		return {
+			...state,
+			asksById,
+			askUserById,
+			pending: [...state.pending, entry],
+		};
 	}
-	const normalized = normalizeEntry(entry, state.runId, state.catalog);
+	const normalized =
+		catalog === undefined && !('source' in entry)
+			? null
+			: normalizeEntry(
+					entry,
+					state.runId,
+					catalog ?? {
+						labels: new Map(),
+						paletteByType: new Map(),
+						nodeTypeById: new Map(),
+					},
+				);
 	if (normalized === null) {
-		return { ...state, entries, asksById, askUserById };
+		return { ...state, asksById, askUserById };
 	}
 	return {
 		...state,
-		entries,
 		asksById,
 		askUserById,
 		projection: appendFeedFrame(state.projection, normalized),
 	};
 };
 
+const documentKey = (
+	state: FeedComposerState,
+): {
+	readonly workflowId: string | null;
+	readonly nodeIdsKey: string;
+} | null =>
+	state.workflowId === null && state.nodeIdsKey === ''
+		? null
+		: { workflowId: state.workflowId, nodeIdsKey: state.nodeIdsKey };
+
 const foldComposer = (
 	state: FeedComposerState,
 	action: FeedComposerAction,
 ): FeedComposerState => {
-	if (action.type === 'catalog') {
-		if (catalogSwitchedDocument(state.catalog, action.catalog)) {
+	if (action.type === 'document') {
+		if (
+			catalogSwitchedDocument(documentKey(state), {
+				workflowId: action.workflowId,
+				nodeIdsKey: action.nodeIdsKey,
+			})
+		) {
 			return {
 				...emptyComposer,
-				catalog: action.catalog,
+				workflowId: action.workflowId,
+				nodeIdsKey: action.nodeIdsKey,
 			};
 		}
 		return {
 			...state,
-			catalog: action.catalog,
-			projection: rebuildProjection(
-				state.entries,
-				state.runId,
-				action.catalog,
-			),
+			workflowId: action.workflowId,
+			nodeIdsKey: action.nodeIdsKey,
 		};
 	}
 	if (action.type === 'clear') {
 		return {
 			...emptyComposer,
-			catalog: state.catalog,
+			workflowId: state.workflowId,
+			nodeIdsKey: state.nodeIdsKey,
 		};
 	}
 	if (action.type === 'run-started') {
@@ -483,40 +487,41 @@ const foldComposer = (
 			return {
 				...state,
 				runId: action.runId,
-				projection:
-					state.catalog === null
-						? state.projection
-						: rebuildProjection(
-								state.entries,
-								action.runId,
-								state.catalog,
-							),
+				pending: [],
+				projection: replayNormalized(
+					state.pending,
+					action.runId,
+					action.catalog,
+				),
 			};
 		}
 		return {
 			...emptyComposer,
-			catalog: state.catalog,
+			workflowId: state.workflowId,
+			nodeIdsKey: state.nodeIdsKey,
 			runId: action.runId,
 		};
 	}
 	if (action.type === 'snapshot') {
-		const entries = action.events;
-		const asksById = new Map<string, RunnerPermissionAskPayload>();
-		const askUserById = new Map<string, RunnerAskUserAskPayload>();
 		return {
-			entries,
-			asksById,
-			askUserById,
-			catalog: state.catalog,
+			asksById: new Map(),
+			askUserById: new Map(),
+			workflowId: state.workflowId,
+			nodeIdsKey: state.nodeIdsKey,
+			pending: [],
 			runId: action.runId,
 			projection:
-				state.catalog === null || action.runId === null
+				action.runId === null
 					? emptyFeedProjection()
-					: rebuildProjection(entries, action.runId, state.catalog),
+					: replayNormalized(
+							action.events,
+							action.runId,
+							action.catalog,
+						),
 		};
 	}
 	if (action.type === 'port') {
-		return appendEntry(state, action.event);
+		return appendEntry(state, action.event, {}, action.catalog);
 	}
 	if (action.type === 'permission-ask') {
 		const asksById = new Map(state.asksById);
@@ -571,25 +576,40 @@ const composeFeedProjection = (
 	);
 
 	return merge(
-		sources.executionFeedSnapshot$.pipe(
-			map((snapshot): FeedComposerAction =>
+		combineLatest([sources.executionFeedSnapshot$, catalog$]).pipe(
+			distinctUntilChanged((prev, next) => prev[0] === next[0]),
+			map(([snapshot, catalog]): FeedComposerAction =>
 				snapshot === null
 					? { type: 'clear' }
 					: {
 							type: 'snapshot',
 							events: snapshot.events,
 							runId: snapshot.runId,
+							catalog,
 						},
 			),
 		),
-		sources.runnerPort$.pipe(
-			map((event): FeedComposerAction => ({ type: 'port', event })),
+		catalog$.pipe(
+			switchMap((catalog) =>
+				sources.runnerPort$.pipe(
+					map((event): FeedComposerAction => ({
+						type: 'port',
+						event,
+						catalog,
+					})),
+				),
+			),
 		),
-		sources.runnerStarted$.pipe(
-			map((runId): FeedComposerAction => ({
-				type: 'run-started',
-				runId,
-			})),
+		catalog$.pipe(
+			switchMap((catalog) =>
+				sources.runnerStarted$.pipe(
+					map((runId): FeedComposerAction => ({
+						type: 'run-started',
+						runId,
+						catalog,
+					})),
+				),
+			),
 		),
 		sources.permissionAsk$.pipe(
 			map((ask): FeedComposerAction => ({ type: 'permission-ask', ask })),
@@ -611,8 +631,9 @@ const composeFeedProjection = (
 		),
 		catalog$.pipe(
 			map((catalog): FeedComposerAction => ({
-				type: 'catalog',
-				catalog,
+				type: 'document',
+				workflowId: catalog.workflowId ?? null,
+				nodeIdsKey: workflowNodeIdsKey(catalog.nodeTypeById),
 			})),
 		),
 	).pipe(

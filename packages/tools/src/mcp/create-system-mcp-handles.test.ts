@@ -191,6 +191,27 @@ describe('createSystemMcpHandles partial connect (S6)', () => {
 		);
 	});
 
+	it('records config skips instead of silent continue', async () => {
+		const result = await createSystemMcpHandles({
+			projectRoot: '/tmp',
+			serverIds: ['Bad Id', 'missing', 'empty-cmd', 'empty-url'],
+			servers: {
+				'empty-cmd': { kind: 'stdio', command: '   ' },
+				'empty-url': { kind: 'http', url: '  ' },
+			},
+		});
+
+		expect(result.handles).toEqual([]);
+		expect(result.failures.map((row) => row.serverId).toSorted()).toEqual([
+			'Bad Id',
+			'empty-cmd',
+			'empty-url',
+			'missing',
+		]);
+		expect(connectStdio).not.toHaveBeenCalled();
+		expect(connectHttp).not.toHaveBeenCalled();
+	});
+
 	it('records interpolate failure without connecting', async () => {
 		const result = await createSystemMcpHandles({
 			projectRoot: '/tmp',

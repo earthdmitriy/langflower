@@ -16,7 +16,3 @@ String literal from the inline `value` input port → output `value`.
 ## Outputs
 
 `value` (string)
-
----
-
-_Implementation removed — re-add via `defineReactiveNode` + `bind()` API._

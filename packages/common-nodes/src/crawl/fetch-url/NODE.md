@@ -7,7 +7,9 @@
 
 ## Summary
 
-HTTP GET via server `ctx.harness.webFetch` (SSRF guards) + HTML → plain text.
+HTTP GET via `@langflower/tools/create-web-fetch` (SSRF guards) + HTML →
+plain text. Host allowlist comes from `getRunHostServices(ec)?.allowedHosts`
+(private bag — not `ctx.harness` on public `ExecutionContext`).
 
 ## Inputs
 
@@ -28,4 +30,4 @@ HTTP GET via server `ctx.harness.webFetch` (SSRF guards) + HTML → plain text.
 
 - Blocks private / loopback / link-local targets (and metadata IPs).
 - Optional `harness.allowedHosts` in `langflower.jsonc`.
-- Unit tests must mock `webFetch` (offline).
+- Unit tests mock `createWebFetch` (offline).

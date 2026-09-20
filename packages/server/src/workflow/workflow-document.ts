@@ -4,7 +4,7 @@ import type {
 	WorkflowMetadata,
 	WorkflowNodePersisted,
 	WorkflowPersistedGraph,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-workflow.js';
 
 /** On-disk shape — no `workflowId` (that is the filename stem). */
 export type WorkflowDiskDocument = {
@@ -45,21 +45,39 @@ const parseMetadata = (raw: unknown): WorkflowMetadata => {
  * Parse on-disk JSON `{ metadata, graph }`. Legacy `metadata.id` is ignored.
  * Callers attach `workflowId` from the filename stem.
  */
-export const parseWorkflowDocument = (raw: unknown): WorkflowDiskDocument => {
-	if (!isRecord(raw)) {
-		throw new Error('Workflow document must contain metadata and graph');
+export const parseWorkflowDocument = (
+	raw: unknown,
+):
+	| { readonly ok: true; readonly document: WorkflowDiskDocument }
+	| { readonly ok: false; readonly message: string } => {
+	if (!isRecord(raw) || !isRecord(raw['graph'])) {
+		return {
+			ok: false,
+			message: 'Workflow document must contain metadata and graph',
+		};
 	}
 
-	if (!isRecord(raw['graph'])) {
-		throw new Error('Workflow document must contain metadata and graph');
+	try {
+		return {
+			ok: true,
+			document: {
+				metadata: parseMetadata(raw['metadata']),
+				graph: raw['graph'] as WorkflowPersistedGraph,
+			},
+		};
+	} catch (error) {
+		return {
+			ok: false,
+			message: error instanceof Error ? error.message : String(error),
+		};
 	}
-
-	return {
-		metadata: parseMetadata(raw['metadata']),
-		graph: raw['graph'] as WorkflowPersistedGraph,
-	};
 };
 
+/**
+ * Catalog lookup by persisted `type` + `params`. Common-nodes still keys
+ * by `type`; callers pass `params` so instance-aware ports can consume
+ * them without a server-side mapper.
+ */
 export type ResolveNodeDefinition = {
 	(
 		node: Pick<WorkflowNodePersisted, 'type' | 'params'>,

@@ -3,9 +3,9 @@
 **Status:** landed  
 **Depends on:** [18-settings-panel](18-settings-panel.md)
 (landed — Settings aside + chat default `model`);
-[ADR-027](../../ADR.md#adr-027--author-sdk-owns-port-types-no-production-runtime-dep)
+[ADR-027](../../architecture/ADR.md#adr-027--author-sdk-owns-port-types-no-production-runtime-dep)
 (SDK owns wire types);
-[ADR-033](../../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)
+[ADR-033](../../architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)
 (amended: provider bind allowed; vector **KB as base memory** stays forbidden).  
 **Index:** [README.md](README.md)  
 **Related:** [settings-panel](../../use-cases/settings-panel.md),
@@ -264,4 +264,4 @@ required in CI); fake respects `signal` abort.
   [`lf-settings-panel.component.ts`](../../../packages/ui/src/app/features/sidebar/components/lf-settings-panel.component.ts)
 - Agent inventory contrast (`ToolHandle`, do not reuse):
   [`tool-handle.ts`](../../../packages/node-sdk/src/node-factory/define-tool-registrations/tool-handle.ts)
-- [ADR-033](../../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)
+- [ADR-033](../../architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)

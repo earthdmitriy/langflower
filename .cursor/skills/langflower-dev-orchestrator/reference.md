@@ -14,7 +14,7 @@ Read it fully. Then gather:
 
 1. Depends on / Blocks / Acceptance criteria (quote AC as a checklist).
 2. Linked use-cases, features, ADRs — open them; note Status + Missing parts.
-3. Code ownership: use docs/NAVIGATION.md + package AGENTS.md
+3. Code ownership: use docs/architecture/NAVIGATION.md + package AGENTS.md
    (shared / server / ui / tools / common-nodes / cli). List concrete paths
    likely to change.
 4. Existing demos under demo-project/.langflower/workflows/ and tests under
@@ -38,7 +38,7 @@ Return a brief (≤ ~80 lines) with sections:
 You are the Langflower developer for one epic. Implement Acceptance criteria
 only. Match existing style. No drive-by refactors. No new barrels (index.ts).
 Use `type` not `interface`; arrow functions; immutable / RxJS per
-docs/PRINCIPLES.md and docs/REACTIVITY.md. Thin server: no new domain trees
+docs/architecture/PRINCIPLES.md and docs/architecture/REACTIVITY.md. Thin server: no new domain trees
 under packages/server/src/.
 
 Epic (absolute path): <PATH>
@@ -68,7 +68,7 @@ Load package skills when relevant: `.cursor/skills/langflower-ui/SKILL.md`,
 
 ```text
 You are a Langflower principles reviewer. Prefer NO file edits — findings only.
-Validate the developer’s change set against epic AC and docs/PRINCIPLES.md.
+Validate the developer’s change set against epic AC and docs/architecture/PRINCIPLES.md.
 
 Epic (absolute path): <PATH>
 AC checklist: <paste>

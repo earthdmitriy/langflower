@@ -1,4 +1,5 @@
-import type { RunnerAskUserAskPayload } from '@langflower/shared/langflower.js';
+import type { RunnerAskUserAskPayload } from '@langflower/shared/types/langflower-config.js';
+import { formatAskUserReplyText } from '@langflower/shared/langflower-config/format-ask-user-reply-text.js';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { firstValueFrom, take } from 'rxjs';
 import {
@@ -11,7 +12,10 @@ import {
 	type TestServerHandle,
 } from '../helpers/test-server.js';
 import { scenarioReadyById } from '../helpers/workflow-scenario-registry.js';
-import { fakeLlmAskUserWorkflow } from '../helpers/scenarios/fake-llm.js';
+import {
+	fakeLlmAskUserQuestionsWorkflow,
+	fakeLlmAskUserWorkflow,
+} from '../helpers/scenarios/fake-llm.js';
 import {
 	createLangflowerWsClient,
 	runFullGraphAndWaitForOutput,
@@ -20,6 +24,7 @@ import {
 import {
 	interruptRunner,
 	type LangflowerWsClient,
+	waitForRunnerOutput,
 	waitSessionReady,
 } from '@langflower/shared/langflower-ws-waits';
 
@@ -34,7 +39,8 @@ describe('execute fake-llm ask_user (WS bridge)', () => {
 		expect(llm?.params.scriptedToolTurns).toBeDefined();
 	});
 
-	describe.skipIf(!scenarioReadyById(SCENARIO_ID))('runtime', () => {
+	describe('runtime', () => {
+		scenarioReadyById(SCENARIO_ID);
 		let projectDir: string;
 		let urls: TestServerHandle;
 		let client: LangflowerWsClient;
@@ -107,6 +113,69 @@ describe('execute fake-llm ask_user (WS bridge)', () => {
 			client['runner.start.requested'].next([]);
 			await askPromise;
 			await interruptRunner(client);
+		}, 20_000);
+
+		it('pauses on questions and continues with formatted option text', async () => {
+			await seedWorkflowFromDisk(
+				client,
+				projectDir,
+				fakeLlmAskUserQuestionsWorkflow(),
+			);
+
+			const askPromise = firstValueFrom(
+				client['runner.askUser.ask'].pipe(take(1)),
+			);
+			const toolLogPromise = waitForRunnerOutput(client, {
+				nodeId: 'llm-1',
+				portId: 'toolLog',
+				predicate: (value) =>
+					typeof value === 'string' &&
+					value.includes('Selected: React; Vue'),
+			});
+			const outputPromise = runFullGraphAndWaitForOutput(client, {
+				nodeId: 'preview-1',
+				portId: 'text',
+				predicate: (value) =>
+					typeof value === 'string' &&
+					value.includes('Picked the stack.'),
+			});
+
+			const ask: RunnerAskUserAskPayload = await askPromise;
+			expect(ask.question).toBe('Need a few choices');
+			expect(ask.questions).toEqual([
+				{
+					id: 'q1',
+					prompt: 'Stack?',
+					allowMultiple: true,
+					options: [
+						{ id: 'o1', label: 'React' },
+						{ id: 'o2', label: 'Vue' },
+					],
+				},
+				{
+					id: 'q2',
+					prompt: 'Ship it?',
+					allowMultiple: false,
+					options: [
+						{ id: 'o1', label: 'yes' },
+						{ id: 'o2', label: 'no' },
+					],
+				},
+			]);
+
+			client['runner.askUser.reply'].next({
+				runId: ask.runId,
+				askId: ask.askId,
+				text: formatAskUserReplyText({
+					questions: ask.questions ?? [],
+					selections: new Map([['q1', ['o1', 'o2']]]),
+					freeform: '',
+				}),
+			});
+
+			await toolLogPromise;
+			const { output } = await outputPromise;
+			expect(String(output[3].value)).toContain('Picked the stack.');
 		}, 20_000);
 	});
 });

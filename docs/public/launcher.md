@@ -19,10 +19,11 @@ Unsigned Windows and macOS zips are on
 - `langflower-launcher-macos-arm64.zip`
 - `langflower-launcher-macos-x64.zip`
 
-Unpack and run `langflower-launcher.exe` (Windows) or
-`langflower-launcher` (macOS). Windows SmartScreen and macOS Gatekeeper
-will warn because the binary is unsigned. On macOS: right-click the
-file → **Open**.
+The macOS zip contains `Langflower.app` (so Finder does not open
+Terminal). Unpack and run `langflower-launcher.exe` (Windows) or
+`Langflower.app` (macOS). Windows SmartScreen and macOS Gatekeeper
+will warn because the files are unsigned. On macOS: right-click the
+**app** → **Open**.
 
 Linux has no published zip in v1.
 
@@ -96,14 +97,14 @@ already have current versions — that is not an install.
 
 ## If something goes wrong
 
-| What you see                     | What to try                                               |
-| -------------------------------- | --------------------------------------------------------- |
-| Start stays grey                 | Install Node and/or Langflower; choose a folder           |
-| “That folder could not be found” | Browse again; the path must exist                         |
-| “No free port is available”      | Stop other Langflower instances using 4010–4109           |
-| Gatekeeper / SmartScreen         | Unsigned zip — Open anyway as above                       |
-| Editor does not load             | Wait for Running; open Details; try Open ↗                |
-| Update offer every launch        | Skip is session-only; Update installs `langflower@latest` |
+| What you see                     | What to try                                                  |
+| -------------------------------- | ------------------------------------------------------------ |
+| Start stays grey                 | Install Node and/or Langflower; choose a folder              |
+| “That folder could not be found” | Browse again; the path must exist                            |
+| “No free port is available”      | Stop other Langflower instances using 4010–4109              |
+| Gatekeeper / SmartScreen         | Unsigned — right-click the `.exe` or `Langflower.app` → Open |
+| Editor does not load             | Wait for Running; open Details; try Open ↗                   |
+| Update offer every launch        | Skip is session-only; Update installs `langflower@latest`    |
 
 Need the terminal path instead? See
 [Getting started](getting-started.md). Once a project is running, use

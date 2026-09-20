@@ -17,7 +17,8 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import type { NodeId } from '@langflower/runtime';
-import type { WorkflowNodePersisted } from '@langflower/shared/langflower';
+import type { WorkflowNodePersisted } from '@langflower/shared/types/langflower-workflow';
+import type { LfNodeData } from '../../../services/bridge-diagram.js';
 import {
 	NgDiagramModelService,
 	NgDiagramNodeResizeAdornmentComponent,
@@ -28,10 +29,7 @@ import {
 } from 'ng-diagram';
 import { map, shareReplay, switchMap } from 'rxjs';
 import { fromOutputPortId } from '../../../diagram/diagram-port-id.js';
-import {
-	resolveNodePorts,
-	type PortsConfig,
-} from '../../../diagram/resolve-diagram-node-ports.js';
+import { resolveNodePorts } from '../../../diagram/resolve-diagram-node-ports.js';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { NodeHoverService } from '../../../services/node-hover.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
@@ -48,10 +46,6 @@ const MIN_NODE_WIDTH_PX = 160;
 const MIN_NODE_HEIGHT_PX = 72;
 /** Chrome `py-3` (0.75rem × 2) around `.lf-node-content`. */
 const CHROME_PAD_Y_PX = 24;
-
-export type LfNodeData = WorkflowNodePersisted & {
-	readonly portsConfig: PortsConfig;
-};
 
 const displayLabel = (data: WorkflowNodePersisted): string => {
 	const custom = data.ui.label?.trim();
@@ -183,7 +177,7 @@ const displayLabel = (data: WorkflowNodePersisted): string => {
 			</div>
 		</ng-diagram-node-resize-adornment>
 	`,
-	styleUrl: './../styles/node-port-layout.css',
+	styleUrl: '../../../components/node-port-layout.css',
 	changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LfNodeComponent {

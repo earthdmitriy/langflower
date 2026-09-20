@@ -1,4 +1,5 @@
-import type { EditorSelectedNodePayload } from '@langflower/shared/langflower.js';
+import type { EditorSelectedNodePayload } from '@langflower/shared/types/langflower-editor.js';
+import type { CustomNodeRegistry } from '../palette/custom-node-registry.js';
 import { toPaletteDefinition } from '../palette/palette.service.js';
 import type { ResolveNodeDefinition } from '../workflow/workflow-document.js';
 import type { LangflowerSession } from './langflower-session.js';
@@ -11,22 +12,25 @@ import type { LangflowerSession } from './langflower-session.js';
 export function buildSelectedNodePayload(
 	session: LangflowerSession,
 	resolveDefinition: ResolveNodeDefinition,
+	customNodeRegistry: CustomNodeRegistry,
 ): EditorSelectedNodePayload {
 	const node = session.activeWorkflow?.graph.nodes.find(
 		(candidate) => candidate.id === session.selectedNodeId,
 	);
 
-	const definition =
-		node !== undefined
-			? resolveDefinition({ type: node.type, params: node.params })
-			: undefined;
+	const definition = node !== undefined ? resolveDefinition(node) : undefined;
 
 	return {
 		node:
 			node !== undefined && definition !== undefined
 				? {
 						...node,
-						definition: toPaletteDefinition(definition, 'system'),
+						definition: toPaletteDefinition(
+							definition,
+							customNodeRegistry.get(node.type) !== undefined
+								? 'custom'
+								: 'system',
+						),
 					}
 				: null,
 	};

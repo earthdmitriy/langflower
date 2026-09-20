@@ -2,9 +2,13 @@ import type { combineStatefulObservables } from '@rx-evo/stateful-observable';
 import {
 	configureOutput,
 	defineReactiveNode,
+	LLM_REQUIRED_CAPABILITIES,
 	makeInput,
+	uniqueCapabilityIds,
+	type CapsFor,
 	type DefinedReactiveNodeConfig,
 	type InputConfig,
+	type NodeCapabilityId,
 	type OutputConfig,
 } from '../define-reactive-node/define-reactive-node.js';
 import type { LlmExecutionCaps } from '../define-reactive-node/types.js';
@@ -30,11 +34,18 @@ type LlmBindResult = {
 	readonly inventoryOutputs: LlmInventoryOutputStreams;
 };
 
-type LlmCtx<UI extends readonly UISchemaConstItem[]> = Parameters<
-	DefinedReactiveNodeConfig<UI, LlmExecutionCaps>['bind']
+type LlmMergedRequires<Extra extends readonly NodeCapabilityId[] = []> =
+	readonly [...typeof LLM_REQUIRED_CAPABILITIES, ...Extra];
+
+type LlmCtx<
+	UI extends readonly UISchemaConstItem[],
+	Extra extends readonly NodeCapabilityId[] = [],
+> = Parameters<
+	DefinedReactiveNodeConfig<UI, CapsFor<LlmMergedRequires<Extra>>>['bind']
 >[0];
 
 export type { LlmExecutionCaps };
+export { LLM_REQUIRED_CAPABILITIES };
 
 const portIdOf = (config: InputConfig | OutputConfig): string =>
 	String(config.meta.portId);
@@ -71,19 +82,31 @@ const assertNoInventoryOutputs = (outputs: readonly OutputConfig[]): void => {
  * `toolLog`, `recovery`). Authors may extend with role ports but cannot omit
  * the inventory set.
  */
-export const defineLlmNode = <UI extends readonly UISchemaConstItem[]>(
-	config: Omit<DefinedReactiveNodeConfig<UI, LlmExecutionCaps>, 'bind'> & {
+export const defineLlmNode = <
+	UI extends readonly UISchemaConstItem[],
+	const Extra extends readonly NodeCapabilityId[] = [],
+>(
+	config: Omit<
+		DefinedReactiveNodeConfig<UI, CapsFor<LlmMergedRequires<Extra>>>,
+		'bind' | 'requires'
+	> & {
+		readonly requires?: Extra;
 		readonly bind: (
-			ctx: LlmCtx<UI>,
+			ctx: LlmCtx<UI, Extra>,
 			helpers: ReactiveBindHelpers,
 			inventory: LlmInventoryInputs,
 		) => LlmBindResult;
 	},
 ) => {
-	const { bind: authorBind, ...rest } = config;
+	const { bind: authorBind, requires: extraRequires, ...rest } = config;
+	const requires = uniqueCapabilityIds([
+		...LLM_REQUIRED_CAPABILITIES,
+		...(extraRequires ?? []),
+	]) as LlmMergedRequires<Extra>;
 
-	return defineReactiveNode<UI, LlmExecutionCaps>({
+	return defineReactiveNode({
 		...rest,
+		requires,
 		bind(ctx, helpers) {
 			const inventory = defaultLlmInventoryInputs(helpers.makeInput);
 			const result = authorBind(ctx, helpers, inventory);
@@ -127,7 +150,6 @@ export {
 	RECOVERY_PORT_ID,
 	isLlmRecoveryNotice,
 	isLlmRecoverySuspended,
-	recoveryNoticeText,
 	toLlmRecoveryPortValue,
 	type LlmRecoveryNotice,
 	type LlmRecoveryNoticeCode,

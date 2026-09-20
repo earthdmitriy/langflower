@@ -4,7 +4,7 @@ Horizon for goals that need **complex implementation** or **hard tradeoffs**
 and are **not** near-term work. This file exists to keep that horizon visible
 without pretending the decision or the epic is ready.
 
-**Why not [ADR.md](ADR.md):** an ADR records a **chosen** architecture (or a
+**Why not [architecture/ADR.md](architecture/ADR.md):** an ADR records a **chosen** architecture (or a
 proposed choice with alternatives). TBD items are still open — tradeoffs are
 known enough to list the goal, not settled enough to decide. When a TBD matures
 into a real decision, **migrate** it into an ADR (and remove or mark it here).
@@ -15,13 +15,13 @@ ship soon (epics, Status gaps). Putting long-horizon items there implies they
 are next in queue. TBD deliberately signals: **do not plan an epic against this
 until the horizon shortens.**
 
-| Doc                               | Owns                                                 |
-| --------------------------------- | ---------------------------------------------------- |
-| **TBD** (this file)               | Distant goals + known hard tradeoffs; not scheduled  |
-| [ADR.md](ADR.md)                  | Decided (or proposed) architecture with alternatives |
-| [TODO/](TODO/README.md)           | Near-term implementation plans / epics               |
-| [use-cases/](use-cases/README.md) | Customer scenarios + Status bar                      |
-| [FOUND_BUGS.md](FOUND_BUGS.md)    | Reproduced bugs / design flaw signals                |
+| Doc                                        | Owns                                                 |
+| ------------------------------------------ | ---------------------------------------------------- |
+| **TBD** (this file)                        | Distant goals + known hard tradeoffs; not scheduled  |
+| [architecture/ADR.md](architecture/ADR.md) | Decided (or proposed) architecture with alternatives |
+| [TODO/](TODO/README.md)                    | Near-term implementation plans / epics               |
+| [use-cases/](use-cases/README.md)          | Customer scenarios + Status bar                      |
+| [FOUND_BUGS.md](FOUND_BUGS.md)             | Reproduced bugs / design flaw signals                |
 
 ## Rules
 
@@ -80,7 +80,7 @@ Out of scope
 **Goal:** Embed the Angular editor in a native webview shell (optional
 install path that does **not** use the system browser). This is **not**
 the thin launcher. The launcher goal was a small supervisor window;
-that already shipped as Slint ([ADR-038](ADR.md#adr-038--launcher-is-a-cli-supervisor);
+that already shipped as Slint ([ADR-038](architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor);
 [epic 46](DONE/EPICS/46-launcher.md)).
 
 **Why hard:** Packaging, updates, OS permissions, WebView2/LTSC, and
@@ -127,7 +127,7 @@ boundaries today; concurrency is a runtime redesign, not a flag.
 beyond fixed parallel nodes.
 
 **Related:** [research-fanout-merge](use-cases/research-fanout-merge.md)
-(serial Loop honesty) · [ADR-022](ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo)
+(serial Loop honesty) · [ADR-022](architecture/ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo)
 
 ### TBD-005 — UI extension (node-authored Angular views)
 
@@ -165,7 +165,7 @@ canvas), and optional click/type for visual bugs the WS bus cannot show.
 **Why hard:** Canvas hit-testing and flake vs deterministic WS control; two-port
 dev (`4200` + `4010`) vs single-port `langflower start`; no deep-link routes to
 workflows; agent lifecycle must start/stop browser + server cleanly; cost of
-browser in the daily agent loop vs [ADR-024](ADR.md#adr-024--dev-mcp-control-plane-over-internal-ws-bus)
+browser in the daily agent loop vs [ADR-024](architecture/ADR.md#adr-024--dev-mcp-control-plane-over-internal-ws-bus)
 MCP observe/run.
 
 **Not yet:** Layer-1 MCP (`@langflower/mcp`) proven in daily agent use; a clear
@@ -173,7 +173,7 @@ list of UI questions the bus cannot answer; accepted cost of browser automation
 in the agent loop. Prefer `langflower start` single-port mode when this matures.
 
 **Related:** [TESTING.md](TESTING.md) (browser E2E deferred) ·
-[ADR-024](ADR.md#adr-024--dev-mcp-control-plane-over-internal-ws-bus) ·
+[ADR-024](architecture/ADR.md#adr-024--dev-mcp-control-plane-over-internal-ws-bus) ·
 [DIAGRAM_CANVAS.md](../packages/ui/docs/DIAGRAM_CANVAS.md)
 
 ### TBD-007 — Obsidian vault helpers
@@ -186,14 +186,14 @@ feature, not part of base markdown memory under `.langflower/memory/`.
 
 **Why hard:** Vault paths outside the project fence; rename/backlink integrity
 under frequent edits; product boundary vs plain Markdown memory tools
-([ADR-033](ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)); former
+([ADR-033](architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)); former
 epic-11 helpers were coupled to the removed vector KB story.
 
 **Not yet:** Settled UX for vault vs managed memory; whether wikilinks need an
 index; schedule relative to memory tools maturity.
 
-**Related:** [ADR-033](ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base) ·
-former DONE epic 11 · [ADR-014](ADR.md#adr-014--project-root-harness-io)
+**Related:** [ADR-033](architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base) ·
+former DONE epic 11 · [ADR-014](architecture/ADR.md#adr-014--project-root-harness-io)
 `allowedRoots`
 
 ### TBD-008 — Node-local reactive recovery
@@ -215,9 +215,9 @@ are retained across recovery; how finished siblings and downstream demand are
 protected; whether recovery is a runner intent, a StatefulObservable reload,
 or a new runtime primitive.
 
-**Related:** [ADR-015](ADR.md#adr-015--output-driven-run-completion-never-idle-settle) ·
-[ADR-032](ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port) ·
-[REACTIVITY.md](REACTIVITY.md). LLM loops avoid killing their cycle for
+**Related:** [ADR-015](architecture/ADR.md#adr-015--output-driven-run-completion-never-idle-settle) ·
+[ADR-032](architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port) ·
+[architecture/REACTIVITY.md](architecture/REACTIVITY.md). LLM loops avoid killing their cycle for
 recoverable provider failures
 ([LLM_RECOVERY.md](LLM_RECOVERY.md)), but that does not define general graph
 recovery.
@@ -258,9 +258,88 @@ product bar ([epic 45](DONE/EPICS/45-global-kv-secrets.md)).
 keep `{env:VAR}` as the only headless path; accepted OS API set.
 
 **Related:** [epic 45](DONE/EPICS/45-global-kv-secrets.md) ·
-[ADR-002 amend](ADR.md#adr-002--langflower-project-local-storage-opencode-style)
+[ADR-002 amend](architecture/ADR.md#adr-002--langflower-project-local-storage-opencode-style)
 (global file outside the project tree) · [CONFIG.md](CONFIG.md) § Environment
 placeholders
+
+### TBD-011 — Live editing of a running workflow
+
+**Horizon:** multi-quarter · **Area:** runtime / product / UI
+
+**Goal:** Edit the canvas while a run is `running` (including soft Pause):
+add/remove nodes and edges, rewire compatible ports, move/resize/label.
+New nodes and edges join the **active run** when they enter that weakly
+connected component. Deleting a running node tears down **that instance
+only**. Completed nodes do not auto-refire. Checkpoints of the current run
+become stale immediately. Agent `tools` / `ToolHandle` changes apply on the
+**next tool-loop iteration** without resetting the ADR-016 session (do not
+emit a new value on the LLM `tools` input mid-turn).
+
+**Why hard:** `RuntimeEditor` locks on start; `RuntimeRunner.wireScope`
+snapshots edges once. Unlocking `addEdge` without incremental demand-wire
+is a lie. LLM `context$` `switchMap` resets conversation history if
+`tools`/`userPrompt`/`ctx` emit. `getLiveWiredTools` peeks live wires, but
+`createAgentGetTools` still unions a frozen `combineInputs` snapshot, so
+disconnect would not drop handles. New nodes need a mid-run ctx seed or MCP
+never connects; isolated `addNode` must not spawn orphan processes. One
+run graph-wide forbids auto-starting a second cluster. Combine/zip/merge
+groups and `@rx-evo` merge-of-`raw$` (BUG-2026-07-15c) make adopt/drop
+non-trivial. UI run-lock chrome and [wiring-helper](TODO/wiring-helper.md)
+assume the freeze. Epic 40 already covers **hot-swap of existing** tools
+wires (`swapNode` + peek) — not new topology.
+
+**Not yet:** A research spike that proves `adoptEdge` / `dropEdge` into
+`activeRun` without `teardownRun` or a second `start`, with `getTools()`
+reflecting connect **and** disconnect on the next iteration and **no**
+ADR-016 reset. If that fails, park this TBD. If only inventory hot-plug
+works, a later epic must stay **narrow** (tools edges + producers), not
+full canvas unlock. Do **not** queue a numbered TODO epic until the spike
+is green. Near-term product work stays use-case Missing parts.
+
+**Related:** [architecture/EXECUTION_ARCHITECTURE.md](architecture/EXECUTION_ARCHITECTURE.md) ·
+[REACTIVE_NODES.md](REACTIVE_NODES.md) § HITL and graph lock ·
+[ADR-016](architecture/ADR.md) · [FOUND_BUGS.md](FOUND_BUGS.md) BUG-2026-08-16 ·
+[epic 40](DONE/EPICS/40-custom-node-recompile-reload.md) ·
+[workflow-execution.md](features/workflow-execution.md) ·
+[visual-workflow-editor.md](features/visual-workflow-editor.md) ·
+[resumable-checkpoint-jobs.md](use-cases/resumable-checkpoint-jobs.md) S6
+
+### TBD-012 — Pack-visible host `chat` / `embed`
+
+**Horizon:** unresolved product tradeoff · **Area:** product / packs / providers
+
+**Goal:** Decide whether a custom pack node may call the **host-bound**
+chat-completion and embedding factories (operator Settings / `provider.*`
+credentials) via a declared capability such as `requires: ['chat']` or
+`['embed']`. Today it cannot: `RunHostServices` is a module-local `Symbol()`
+in `@langflower/common-nodes`, so a pack (`@langflower/node-sdk` only) sees
+identity, params, `resolveSecret`, and wired ports. Packs already spend
+credits the **graph** way — wire `common-embed-provider` / an LLM node and
+call an `EmbedHandle` or talk through ports — not by invoking the host
+binding from pack `bind()`.
+
+**Why hard:** This is a new public surface, not a refactor of epic 48 A–C.
+Yes means a pack node can spend the operator's provider credits without a
+visible LLM / embed node on the canvas; keys stay unreadable (callable
+only), but there is no per-capability quota, metering, or sandbox
+([TBD-001](#tbd-001--sandboxed-user-node-execution)). It also widens the
+author ctx that
+[EXTENSION_POINT](architecture/EXTENSION_POINT.md) currently keeps as
+identity + params + `resolveSecret`. No means packs stay on ports /
+`ToolHandle` / `EmbedHandle`, and `requires` stays built-ins-only.
+
+**Not yet:** An explicit product lock (yes / no). Do **not** start epic 48
+slice D, relocate `CreateChatCompletionStream` / `CreateEmbedding` into
+`@langflower/node-sdk`, or amend ADR-030 for pack-callable host bindings
+until that lock. If yes: types in the SDK, compiler reject of host-internal
+ids (`editorBus`, `liveTools`, `authorize`, `paths`, `hosts`), docs that
+keys are never readable. If no: close the slice; A–C still land.
+
+**Related:** [epic 48](TODO/EPICS/48-declared-node-capabilities.md) ·
+[ADR-030](architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model) ·
+[EXTENSION_POINT](architecture/EXTENSION_POINT.md) § Stable for pack authors ·
+[EMBEDDING.md](EMBEDDING.md) (UC2 pack path via `EmbedHandle`) ·
+[TBD-001](#tbd-001--sandboxed-user-node-execution)
 
 ---
 

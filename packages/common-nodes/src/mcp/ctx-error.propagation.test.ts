@@ -60,17 +60,68 @@ describe('ctx CtxError → output port error (S6)', () => {
 		const ctxError: CtxError = {
 			message: 'MCP system connect failed (bad): boom',
 		};
-		// Server peels Observable context seeds and connect()s throwError
-		// onto ctx before runner.start (value seeds stay plain EC).
-		node.ctxConnection.connect(throwError(() => ctxError));
-
 		runtime.runner.start({
-			p1: [{ portId: 'input', slotIndex: 0, value: 'hello' }],
+			p1: [
+				{
+					portId: contextSymbol,
+					slotIndex: 0,
+					value: throwError(() => ctxError),
+				},
+				{ portId: 'input', slotIndex: 0, value: 'hello' },
+			],
 		});
 
 		const failed = await errorPromise;
 		expect(String(failed[3].error)).toContain('MCP system connect failed');
 		expect(contextSymbol).toBeDefined();
+
+		runtime.runner.interrupt('cancel');
+		runtime.runner.dispose();
+		runtime.editor.dispose();
+	});
+
+	it('shows an unbound capability ctx error on the output (S6)', async () => {
+		const runtime = new RuntimeFacade({ log: false });
+		const node = probeNode.getInstance();
+
+		runtime.editor.addNode({
+			nodeId: 'bus-1',
+			inputs: node.inputs,
+			outputs: node.outputs,
+			bypassPorts: node.bypassPorts,
+		});
+
+		const errorPromise = firstValueFrom(
+			runtime.runner.events$.pipe(
+				filter(
+					(event) =>
+						event[0] === 'out' &&
+						'error' in event[3] &&
+						event[1] === 'bus-1' &&
+						event[2] === 'out',
+				),
+			),
+		);
+
+		const ctxError: CtxError = {
+			message:
+				'Node "bus-1" requires capability "editorBus" which is not bound. Start the run through a Langflower server session (Langflower Tools / editor bus).',
+		};
+		runtime.runner.start({
+			'bus-1': [
+				{
+					portId: contextSymbol,
+					slotIndex: 0,
+					value: throwError(() => ctxError),
+				},
+				{ portId: 'input', slotIndex: 0, value: 'hello' },
+			],
+		});
+
+		const failed = await errorPromise;
+		expect(String(failed[3].error)).toContain('bus-1');
+		expect(String(failed[3].error)).toContain('editorBus');
+		expect(String(failed[3].error)).toContain('server session');
 
 		runtime.runner.interrupt('cancel');
 		runtime.runner.dispose();

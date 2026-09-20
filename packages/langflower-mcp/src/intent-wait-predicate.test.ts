@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	resolveLoadFailedPredicate,
 	resolveResumeFailedPredicate,
 	resolveWaitPredicate,
 } from './intent-wait-predicate.js';
@@ -177,6 +178,34 @@ describe('resolveResumeFailedPredicate', () => {
 		expect(predicate!({ code: 'BUSY', message: 'x' })).toBe(true);
 		expect(
 			predicate!({ code: 'NOT_FOUND', message: 'x', runId: 'r2' }),
+		).toBe(false);
+	});
+});
+
+describe('resolveLoadFailedPredicate', () => {
+	it('matches failed frames for the requested workflowId', () => {
+		const predicate = resolveLoadFailedPredicate({
+			workflowId: 'missing',
+		});
+		expect(
+			predicate!({
+				workflowId: 'missing',
+				code: 'NOT_FOUND',
+				message: 'x',
+			}),
+		).toBe(true);
+		expect(
+			predicate!({
+				code: 'NOT_FOUND',
+				message: 'x',
+			}),
+		).toBe(true);
+		expect(
+			predicate!({
+				workflowId: 'other',
+				code: 'NOT_FOUND',
+				message: 'x',
+			}),
 		).toBe(false);
 	});
 });

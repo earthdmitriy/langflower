@@ -57,13 +57,13 @@ extras-via-catalog stay distinct.
 On first need (no `.langflower/`; **trigger/timing owned by peers**),
 the user MUST receive a **full** skeleton seed matching use-case S2:
 
-| Included on first-run                       | Notes                                                                                                                                                                                                    |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Langflower project config                   | Defaults only; MUST NOT invent provider secrets                                                                                                                                                          |
-| **All** skeleton workflows                  | Including onboarding **`starter`** (default open) plus `simple-coder`, `advanced-coder`, `node-writer`, `agents-dialog`, `kb-create`, `kb-navigate`, …                                                   |
-| Onboarding **skills**                       | At least `langflower-helper`, `langflower-node-writer`, `langflower-workflow-writer`, `spec-architect` under `.langflower/skills/`                                                                       |
-| Custom-node authoring **instructions file** | `.langflower/instructions.md`                                                                                                                                                                            |
-| **One** sample custom-node package          | Default pack id **`my-nodes`** — source: [`packages/server/skeleton/nodes/my-nodes/`](../../packages/server/skeleton/nodes/my-nodes/) ([ADR-030](../ADR.md#adr-030--custom-node-pack-layout--npm-model)) |
+| Included on first-run                       | Notes                                                                                                                                                                                                                 |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Langflower project config                   | Defaults only; MUST NOT invent provider secrets                                                                                                                                                                       |
+| **All** skeleton workflows                  | Including onboarding **`starter`** (default open) plus `simple-coder`, `advanced-coder`, `node-writer`, `agents-dialog`, `kb-create`, `kb-navigate`, …                                                                |
+| Onboarding **skills**                       | At least `langflower-helper`, `langflower-node-writer`, `langflower-workflow-writer`, `spec-architect` under `.langflower/skills/`                                                                                    |
+| Custom-node authoring **instructions file** | `.langflower/instructions.md`                                                                                                                                                                                         |
+| **One** sample custom-node package          | Default pack id **`my-nodes`** — source: [`packages/server/skeleton/nodes/my-nodes/`](../../packages/server/skeleton/nodes/my-nodes/) ([ADR-030](../architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model)) |
 
 Getting-started / bootstrap own _when_ and the CLI path; this spec owns
 _what_ appears. Existing projects refresh templates via Settings → Bootstrap
@@ -133,14 +133,14 @@ When the project already has Langflower project data:
 
 ### States (ownership labeled)
 
-| State                                     | User sees                                                                        | Ownership                                                  |
-| ----------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| First-run complete (full skeleton seeded) | Project has config + all skeleton workflows + skills + instructions + `my-nodes` | **Content contract** — this spec; **when** it runs — peers |
-| Catalog open                              | List of predefined workflows with description / help; select + import sample     | This spec (UI); **packaging** of the list — use-case S1    |
-| Import in progress                        | Progress / busy affordance (**Draft**)                                           | This spec                                                  |
-| Import conflict                           | Rename / skip / confirm choice — no silent overwrite                             | This spec                                                  |
-| Import done                               | Selected samples present in project library; catalog remains available           | This spec                                                  |
-| Existing project, catalog unused          | Prior work intact; no automatic extra samples                                    | Content: this spec; start/reuse timing: peers              |
+| State                                     | User sees                                                                                       | Ownership                                                  |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| First-run complete (full skeleton seeded) | Project has config + all skeleton workflows + skills + instructions + `.gitignore` + `my-nodes` | **Content contract** — this spec; **when** it runs — peers |
+| Catalog open                              | List of predefined workflows with description / help; select + import sample                    | This spec (UI); **packaging** of the list — use-case S1    |
+| Import in progress                        | Progress / busy affordance (**Draft**)                                                          | This spec                                                  |
+| Import conflict                           | Rename / skip / confirm choice — no silent overwrite                                            | This spec                                                  |
+| Import done                               | Selected samples present in project library; catalog remains available                          | This spec                                                  |
+| Existing project, catalog unused          | Prior work intact; no automatic extra samples                                                   | Content: this spec; start/reuse timing: peers              |
 
 ### Draft gaps
 
@@ -148,7 +148,7 @@ When the project already has Langflower project data:
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | v1 catalog entry point                                 | Toolbar / library-adjacent **Sample workflows** is the shipped entry; alternate placements (empty-state CTA, etc.) deferred or documented as open questions in Implementation Details only |
 | Conflict resolution (rename / skip / confirm)          | Each conflicting id must be resolved before overwrite; non-conflicts wait until conflict flow closes, then import with resolved choices                                                    |
-| First-run full skeleton content                        | Matches use-case S2: config + all workflows + skills + instructions + `my-nodes`                                                                                                           |
+| First-run full skeleton content                        | Matches use-case S2: config + all workflows + skills + instructions + `.gitignore` + `my-nodes`                                                                                            |
 | “Already in project” badge                             | Explicit yes or no for v1 (browse list still shows samples either way)                                                                                                                     |
 | Peer: workflow-management “Sample workflows” paragraph | Updated so toolbar project catalog ≠ this skeleton **Sample workflows** catalog; auto-seeded minimum vs extras-via-catalog are distinct                                                    |
 | Packaging layout (dist `skeleton/`)                    | **Not** a Done when of this UI spec — owned by use-case S1                                                                                                                                 |
@@ -168,7 +168,7 @@ S3–S4; packaging layout bar is use-case S1.
   `packages/server/skeleton/` via
   `packages/server/src/bootstrap/project-bootstrap.service.ts`
   (including `starter`, coding samples, `kb-create`, `kb-navigate`) plus
-  skills + instructions + `my-nodes`. Sample workflows **catalog UI** is
+  skills + instructions + `.gitignore` + `my-nodes`. Sample workflows **catalog UI** is
   still not shipped.
 - `@langflower/server` ships `skeleton/` in package `files` (same layout as
   future `dist/skeleton/`).
@@ -205,7 +205,7 @@ S3–S4; packaging layout bar is use-case S1.
   [bootstrap-new-project](../use-cases/bootstrap-new-project.md)
 - In-project library after selection: [workflow-management](workflow-management.md)
   (update Sample workflows paragraph when this lands)
-- Startup / layout (when packaging lands): [ARCHITECTURE](../ARCHITECTURE.md),
+- Startup / layout (when packaging lands): [ARCHITECTURE](../architecture/ARCHITECTURE.md),
   [PRODUCT](../PRODUCT.md)
 
 ### Demo / CI

@@ -8,7 +8,7 @@ import {
 	mergePermissionConfigs,
 	mergeProjectAndNodePermissions,
 	permissionDetailForCall,
-	permissionDetailForMcpCall,
+	permissionDetailsForCall,
 	resolvePermission,
 	toolFloorDecision,
 	validNodePermissionOptions,
@@ -49,6 +49,7 @@ describe('resolvePermission', () => {
 		expect(resolvePermission(undefined, 'delete', 'src/a.ts')).toBe(
 			'allow',
 		);
+		expect(resolvePermission(undefined, 'move', 'src/a.ts')).toBe('allow');
 		expect(resolvePermission(undefined, 'bash', 'echo hi')).toBe('allow');
 		expect(resolvePermission(undefined, 'ask_user', 'Scope?')).toBe(
 			'allow',
@@ -107,25 +108,31 @@ describe('permissionDetailForCall', () => {
 		expect(
 			permissionDetailForCall('ask_user', { question: 'Scope?' }),
 		).toBe('Scope?');
+		expect(
+			permissionDetailForCall('ask_user', {
+				questions: [{ prompt: 'Stack?' }],
+			}),
+		).toBe('Stack?');
 		expect(DEFAULT_PERMISSION_CONFIG.bash).toEqual({ '*': 'allow' });
 		expect(DEFAULT_PERMISSION_CONFIG.ask_user).toEqual({ '*': 'allow' });
-	});
-});
-
-describe('permissionDetailForMcpCall', () => {
-	it('uses remote name alone when args are empty', () => {
-		expect(permissionDetailForMcpCall('echo', {})).toBe('echo');
+		expect(DEFAULT_PERMISSION_CONFIG.move).toEqual({ '*': 'allow' });
+		expect(DEFAULT_PERMISSION_CONFIG.sleep).toEqual({ '*': 'allow' });
 	});
 
-	it('prefixes path/url details with remote name', () => {
+	it('extracts sleep duration', () => {
+		expect(permissionDetailForCall('sleep', { seconds: 12 })).toBe('12s');
+		expect(permissionDetailForCall('sleep', {})).toBe('*');
+	});
+
+	it('extracts move from and to', () => {
 		expect(
-			permissionDetailForMcpCall('fetch', { url: 'https://example.com' }),
-		).toBe('fetch:https://example.com');
-	});
-
-	it('digests remaining args for grant granularity', () => {
-		expect(permissionDetailForMcpCall('echo', { message: 'ping' })).toBe(
-			'echo:{"message":"ping"}',
+			permissionDetailsForCall('move', {
+				from: 'src\\a.ts',
+				to: 'lib\\a.ts',
+			}),
+		).toEqual(['src/a.ts', 'lib/a.ts']);
+		expect(permissionDetailForCall('move', { from: 'src\\a.ts' })).toBe(
+			'src/a.ts',
 		);
 	});
 });

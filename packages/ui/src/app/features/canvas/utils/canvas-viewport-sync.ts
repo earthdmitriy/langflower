@@ -1,4 +1,4 @@
-import { CanvasViewport } from '@langflower/shared/langflower';
+import { CanvasViewport } from '@langflower/shared/types/langflower-workflow';
 
 const VIEWPORT_COORD_EPSILON = 0.01;
 

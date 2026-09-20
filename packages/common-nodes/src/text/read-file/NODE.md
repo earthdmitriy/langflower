@@ -5,7 +5,8 @@
 
 ## Summary
 
-Reads a **project-relative** text file into `content` via `ctx.files`. Absolute
+Reads a **project-relative** text file into `content` through the declared
+`paths` capability (`ec.denyPaths` → `createProjectFilesContext`). Absolute
 paths are rejected. No permission ask — placing the node is the allow decision.
 
 ## Inputs

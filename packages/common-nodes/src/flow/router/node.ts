@@ -2,7 +2,7 @@ import { defineReactiveNode } from '@langflower/node-sdk';
 import type { RuntimeWireType } from '@langflower/runtime';
 import { COMMON_ROUTER_TYPE } from './router-constants.js';
 
-/** N-channel router — bypass ports only; canvas channels from `routerChannels`. */
+/** N-channel router — bypass-only (`ch` grows as you wire). */
 export const routerNode = defineReactiveNode({
 	type: COMMON_ROUTER_TYPE,
 	displayName: 'Router',

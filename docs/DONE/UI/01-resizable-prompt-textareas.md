@@ -5,7 +5,7 @@
 **Bridge / persistence:** none new — only node height persists (SE resize /
 row-count re-fit). No `ui.inlineHeights`.  
 **Index:** [README.md](README.md)  
-**ADR:** [ADR-017](../../ADR.md#adr-017--canvas-multiline-node-flex-fill-not-textarea-self-resize)
+**ADR:** [ADR-017](../../architecture/ADR.md#adr-017--canvas-multiline-node-flex-fill-not-textarea-self-resize)
 
 ## Goal
 

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { TerminalExecutionProgressStatus } from '@langflower/shared/langflower.js';
+import type { TerminalExecutionProgressStatus } from '@langflower/shared/execution/derive-run-settle-outcome.js';
 import { stringFinishWorkflow } from '../helpers/scenarios/smoke.js';
 import {
 	createTempProject,

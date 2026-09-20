@@ -10,44 +10,21 @@ import {
 } from './parse-default-chat-model.js';
 import type {
 	LangflowerConfig,
+	LangflowerConfigDraft,
 	LangflowerConfigSaveRequestedPayload,
 	LangflowerConfigScope,
 	LangflowerProviderConfig,
 	LangflowerSecretsSaveRequestedPayload,
 } from '../types/langflower-config.js';
 
-export type ProviderDraft = {
-	readonly id: string;
-	readonly name: string;
-	readonly baseURL: string;
-	readonly modelsText: string;
-	/** Write-only Settings field; snapshots send ''. Persist via Save. */
-	readonly apiKey: string;
-	readonly hasApiKey: boolean;
-};
+/** Settings form draft — same type as the WS snapshot payload. */
+export type SettingsDraft = LangflowerConfigDraft;
 
-/** Named KV row in Settings Global. Snapshots send empty `value`. */
-export type SecretDraft = {
-	readonly id: string;
-	/** Write-only Settings field; snapshots send ''. Persist via secrets.save. */
-	readonly value: string;
-	readonly hasValue: boolean;
-};
+export type ProviderDraft = LangflowerConfigDraft['providers'][number];
 
-/** Tri-state for scoped `serverLogs` (Default = key omitted). */
-export type ServerLogsDraft = 'off' | 'default' | 'on';
+export type SecretDraft = LangflowerConfigDraft['secrets'][number];
 
-export type SettingsDraft = {
-	/** Split from disk `model: "provider/model"` for Settings selects. */
-	readonly defaultProviderId: string;
-	readonly defaultModelId: string;
-	/** Split from disk `embedding: "provider/model"` for Settings selects. */
-	readonly defaultEmbeddingProviderId: string;
-	readonly defaultEmbeddingModelId: string;
-	readonly providers: readonly ProviderDraft[];
-	readonly secrets: readonly SecretDraft[];
-	readonly serverLogs: ServerLogsDraft;
-};
+export type ServerLogsDraft = LangflowerConfigDraft['serverLogs'];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -222,23 +199,33 @@ export const mergeDraftPatch = (
 	patch: SettingsDraft,
 ): SettingsDraft => ({
 	...patch,
-	secrets: (patch.secrets ?? previous.secrets ?? []).map((row, index) => {
-		const prior = previous.secrets?.[index];
+	secrets: (patch.secrets ?? previous.secrets ?? []).map((row) => {
 		const incoming = row.value.trim();
 		if (incoming.length > 0) {
 			return row;
 		}
+		const key = row.id.trim();
+		const prior =
+			key.length === 0
+				? undefined
+				: previous.secrets?.find((secret) => secret.id.trim() === key);
 		return {
 			...row,
 			value: prior?.value ?? '',
 		};
 	}),
-	providers: patch.providers.map((row, index) => {
-		const prior = previous.providers[index];
+	providers: patch.providers.map((row) => {
 		const incomingKey = row.apiKey.trim();
 		if (incomingKey.length > 0) {
 			return row;
 		}
+		const key = row.id.trim();
+		const prior =
+			key.length === 0
+				? undefined
+				: previous.providers.find(
+						(provider) => provider.id.trim() === key,
+					);
 		return {
 			...row,
 			apiKey: prior?.apiKey ?? '',
@@ -310,5 +297,6 @@ export const defaultProviderStaticModelIds = (
 ): readonly string[] =>
 	staticModelIdsForProvider(draft, draft.defaultProviderId);
 
-/** Row key for connections map (stable for empty ids). */
-export const providerConnectionKey = (index: number): string => String(index);
+/** Row key for connections map — provider `id`, never array index. */
+export const providerConnectionKey = (row: { readonly id: string }): string =>
+	row.id.trim();

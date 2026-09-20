@@ -1,7 +1,7 @@
 import type {
 	WorkflowLoadFailedCode,
 	WorkflowLoadedPayload,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-workflow.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
 import { bindWorkflowToSessionEditor } from './apply-editor-mutation.js';
 import type { ResolveNodeDefinition } from './workflow-document.js';
@@ -70,7 +70,6 @@ const documentMatchingEditor = (
  */
 export const activateWorkflowInSession = (
 	session: LangflowerSession,
-	projectDir: string,
 	document: WorkflowLoadedPayload,
 	options: ActivateWorkflowOptions,
 	resolveDefinition: ResolveNodeDefinition,
@@ -80,7 +79,6 @@ export const activateWorkflowInSession = (
 	// 1. Bind graph into the runtime editor (soft-skip unsupported / invalid)
 	const bindResult = bindWorkflowToSessionEditor(
 		session.runtime.editor,
-		projectDir,
 		document,
 		resolveDefinition,
 	);
@@ -89,7 +87,6 @@ export const activateWorkflowInSession = (
 		if (previousDocument !== null) {
 			bindWorkflowToSessionEditor(
 				session.runtime.editor,
-				projectDir,
 				previousDocument,
 				resolveDefinition,
 			);

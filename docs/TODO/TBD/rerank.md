@@ -466,7 +466,7 @@ Documentation must lead with the operational difficulty:
 - `docs/CONFIG.md`
 - `docs/NODES.md`
 - `docs/STATUS.md`
-- `docs/NAVIGATION.md`
+- `docs/architecture/NAVIGATION.md`
 - `docs/TBD.md`
 
 ### Deleted files

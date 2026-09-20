@@ -4,7 +4,7 @@ Langflower nodes are authored with `defineReactiveNode` from
 `@langflower/node-sdk` (see
 [packages/node-sdk/AGENTS.md](../packages/node-sdk/AGENTS.md)).
 
-See also: [EXECUTION_ARCHITECTURE.md](EXECUTION_ARCHITECTURE.md),
+See also: [architecture/EXECUTION_ARCHITECTURE.md](architecture/EXECUTION_ARCHITECTURE.md),
 [`packages/runtime/ADR.md`](../packages/runtime/ADR.md).
 
 ## `defineReactiveNode` lifecycle
@@ -52,20 +52,20 @@ closures, once-per-instance streams) for the life of the loaded workflow:
 
 This is **in-memory session state**, not checkpoint resume. Durable continue
 after process restart remains explicit Checkpoint nodes
-([ADR-018](ADR.md#adr-018--durable-workflow-checkpoints)).
+([ADR-018](architecture/ADR.md#adr-018--durable-workflow-checkpoints)).
 
 Regression: `packages/runtime/src/testing/workflows/share-replay-rerun.workflow.test.ts`
 (passthrough buffer + counter across finish → second start).
 
 ## Runtime model
 
-| Concept        | Current runtime                                                                                                                                     |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Port values    | `StatefulObservable.value$` / `StatefulConnection` relays                                                                                           |
-| Edge wiring    | `RuntimeEditor.addEdge` + `connection.connect(source)` on run start                                                                                 |
-| Run completion | Empty graph, first watched output from a `stopsRun` node, or active-run `completeRun()` → `done`; active-run `interrupt('cancel')` → `stopped`      |
-| Port telemetry | WS `runner.output-emitted` / `runner.input-received` (`state: 'pending' \| 'value' \| 'error'`); UI derives per-node chrome from output-port states |
-| Node instances | Persist in `RuntimeEditor` across runs until workflow rematerialize / node remove / process exit                                                    |
+| Concept        | Current runtime                                                                                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Port values    | `StatefulObservable.value$` / `StatefulConnection` relays                                                                                                                            |
+| Edge wiring    | `RuntimeEditor.addEdge` + `connection.connect(source)` on run start                                                                                                                  |
+| Run completion | Empty graph, first watched output from a `stopsRun` node, or active-run `completeRun()` → `done`; active-run `interrupt('cancel')` → `stopped`                                       |
+| Port telemetry | WS `runner.port` — one key, direction `'out'` \| `'in'` at payload slot 0 (`pending` \| `value` \| `error` in the `ResponseDto`); UI derives per-node chrome from output-port states |
+| Node instances | Persist in `RuntimeEditor` across runs until workflow rematerialize / node remove / process exit                                                                                     |
 
 A graph without a reachable `stopsRun` output remains running until interrupt.
 This explicit lifecycle is what keeps interactive feedback graphs alive between
@@ -76,12 +76,11 @@ turns; there is no idle-settle completion heuristic.
 The runtime observes `StatefulObservable` status in the dataflow path and emits
 port telemetry. `inactive` on disconnect/reset is not a telemetry event.
 
-| Event                                         | Meaning                                                             |
-| --------------------------------------------- | ------------------------------------------------------------------- |
-| `runner.output-emitted`                       | `{ nodeId, portId, state: 'pending' \| 'value' \| 'error', value }` |
-| `runner.input-received`                       | `{ nodeId, portId, state: 'pending' \| 'value' \| 'error', value }` |
-| `runner.started` / `runner.startNode.started` | Run (or partial run) began                                          |
-| `runner.done` / `runner.interrupted`          | Run completed or stopped                                            |
+| Event                                         | Meaning                                                                                        |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `runner.port`                                 | `PortTelemetry` tuple — `['out' \| 'in', nodeId, portId, ResponseDto, portIdx, edgeIds, feed]` |
+| `runner.started` / `runner.startNode.started` | Run (or partial run) began                                                                     |
+| `runner.done` / `runner.interrupted`          | Run completed or stopped                                                                       |
 
 The UI derives node/wire presentation from these port states. Multi-value ports
 may emit repeatedly during one run; `value` means a value arrived, not that the
@@ -92,8 +91,8 @@ port can never emit again. Feed behavior belongs in
 
 - Inputs are `StatefulConnection`s; outputs are `StatefulObservable`s.
 - Port status is part of the data stream: **inactive / loading / value /
-  error**. Runtime telemetry (`runner.output-emitted` /
-  `runner.input-received`) mirrors those states — including errors — so the UI
+  error**. Runtime telemetry (`runner.port`) mirrors those states —
+  including errors — so the UI
   can show failure without a synthetic success value.
 - `pipeValue` transforms successful values while preserving inactive, loading,
   and error states. Async waits use `.pipe(withLoading()).pipeValue(...)` so
@@ -115,7 +114,7 @@ port can never emit again. Feed behavior belongs in
   passthrough output when that input must stay demanded. Configure it with the
   input connection and `inferTypeFrom`; do not hide the dependency behind
   `withLatestFrom`.
-- Follow [REACTIVITY.md](REACTIVITY.md) for fold, subscription, and
+- Follow [architecture/REACTIVITY.md](architecture/REACTIVITY.md) for fold, subscription, and
   `withLatestFrom` rules instead of duplicating them here.
 
 ## LLM feedback turns
@@ -149,7 +148,7 @@ Same shared inventory as other LLM-class nodes (`tools` / subagents via
 not a yes/no stub. See [LLM_NODES.md](LLM_NODES.md) § Review.
 
 Human twin: **`common-hitl-review-gate`** (approve → `response`, request-changes
-→ `feedback`) in
+→ `feedback`) or **`common-chat-loop`** (reply → `feedback` only) in
 [features/node-library.md](features/node-library.md#53b-hitl-review-gate--common-hitl-review-gate).
 
 ## HITL and graph lock
@@ -169,7 +168,7 @@ While a run is active or waiting for HITL:
 - Node handlers route injected input values to the appropriate outputs.
 
 Types: `packages/node-sdk/.../hitl-config.ts`. Reference nodes:
-`common-hitl-review-gate`, `common-chat-input`.
+`common-hitl-review-gate`, `common-chat-loop`, `common-chat-input`.
 
 Interactive feedback graphs normally have no `stopsRun` sink and therefore end
 through user Stop → `RuntimeRunner.interrupt(...)`.
@@ -178,7 +177,7 @@ through user Stop → `RuntimeRunner.interrupt(...)`.
 
 Instance-local state across input values should remain inside the stream fold.
 Prefer immutable accumulators and pure operators; see
-[REACTIVITY.md](REACTIVITY.md).
+[architecture/REACTIVITY.md](architecture/REACTIVITY.md).
 
 Example sketch (not shipped):
 

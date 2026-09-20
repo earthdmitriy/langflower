@@ -150,7 +150,7 @@ change (epic 40).
 
 - [x] Sidecar manifest; pack-level fingerprint as locked above.
 - [x] Start path: discover → compare → hit load **or** miss compile.
-- [x] Amend epic 40 / [ADR-007](../../ADR.md#adr-007--esbuild-for-custom-node-packages)
+- [x] Amend epic 40 / [ADR-007](../../architecture/ADR.md#adr-007--esbuild-for-custom-node-packages)
       / [`packages/compiler/AGENTS.md`](../../../packages/compiler/AGENTS.md):
       **wipe-every-compile is no longer the default.** Stable paths stay.
 - [x] `CustomPaletteService.update(projectDir, { force?: boolean })` (or
@@ -203,7 +203,7 @@ change (epic 40).
 ## Docs on land
 
 - This file → `docs/DONE/EPICS/`; both epic indexes.
-- [ADR-007](../../ADR.md#adr-007--esbuild-for-custom-node-packages) —
+- [ADR-007](../../architecture/ADR.md#adr-007--esbuild-for-custom-node-packages) —
   incremental cache + lazy compile import; wipe is no longer mandatory
   on every call.
 - [`packages/compiler/AGENTS.md`](../../../packages/compiler/AGENTS.md) —

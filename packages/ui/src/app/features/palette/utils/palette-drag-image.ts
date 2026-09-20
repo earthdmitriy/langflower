@@ -3,12 +3,9 @@ import {
 	createComponent,
 	EnvironmentInjector,
 } from '@angular/core';
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import { PaletteDragPreviewComponent } from '../components/palette-drag-preview.component.js';
-import {
-	PALETTE_DRAG_ANCHOR_OFFSET_PX,
-	PALETTE_DRAG_OPACITY,
-} from './palette-drag-layout.js';
+import { PALETTE_DRAG_ANCHOR_OFFSET_PX } from '../../../diagram/palette-drag.js';
 
 export type PaletteDragImageSession = {
 	readonly destroy: () => void;
@@ -35,7 +32,7 @@ export function attachPaletteDragImage(
 	host.style.display = 'inline-block';
 	host.style.width = 'max-content';
 	host.style.pointerEvents = 'none';
-	host.style.opacity = String(PALETTE_DRAG_OPACITY);
+	host.style.opacity = '0.5';
 	document.body.appendChild(host);
 
 	const previewRef = createComponent(PaletteDragPreviewComponent, {

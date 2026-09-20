@@ -8,7 +8,6 @@ import {
 } from './langflower-ws-client.js';
 import {
 	requestWorkflowDelete,
-	requestWorkflowDeleteSnapshot,
 	requestWorkflowList,
 	requestWorkflowLoad,
 	requestWorkflowLoadSnapshot,
@@ -61,7 +60,13 @@ describe('workflow manager (WS bridge)', () => {
 			);
 			await waitSessionReady(freshClient);
 
-			const { workflows } = await requestWorkflowList(freshClient);
+			const { workflows } = await requestWorkflowList(
+				freshClient,
+				(list) =>
+					list.workflows.some(
+						(entry) => entry.workflowId === 'example',
+					),
+			);
 			expect(
 				workflows.some((entry) => entry.workflowId === 'example'),
 			).toBe(true);
@@ -89,7 +94,9 @@ describe('workflow manager (WS bridge)', () => {
 
 	describe('catalog list intent', () => {
 		it('lists bootstrapped example workflow', async () => {
-			const { workflows } = await requestWorkflowList(client);
+			const { workflows } = await requestWorkflowList(client, (list) =>
+				list.workflows.some((entry) => entry.workflowId === 'example'),
+			);
 
 			expect(
 				workflows.some((entry) => entry.workflowId === 'example'),
@@ -183,9 +190,11 @@ describe('workflow manager (WS bridge)', () => {
 		});
 
 		it('leaves catalog unchanged when deleting unknown workflow id', async () => {
-			const before = await requestWorkflowList(client);
+			const before = await requestWorkflowList(client, (list) =>
+				list.workflows.some((entry) => entry.workflowId === 'example'),
+			);
 
-			const after = await requestWorkflowDeleteSnapshot(client, {
+			const after = await requestWorkflowDelete(client, {
 				workflowId: 'missing-workflow',
 			});
 

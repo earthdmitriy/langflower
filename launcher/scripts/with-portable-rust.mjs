@@ -128,7 +128,6 @@ const rustEnv = () => {
 			env.CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER = gcc;
 			applyMingwCompat(env, gcc);
 		}
-		env.CMAKE_GENERATOR = env.CMAKE_GENERATOR || 'MinGW Makefiles';
 	}
 	return env;
 };
@@ -293,8 +292,6 @@ const ensurePortableRust = async () => {
 	return env;
 };
 
-const injectCargoArgs = (args) => args;
-
 const argv = process.argv.slice(2);
 const ensureOnly = argv.length === 0 || argv[0] === '--ensure';
 
@@ -315,13 +312,12 @@ if (ensureOnly) {
 	process.exit(0);
 }
 
-const commandArgs = injectCargoArgs(argv);
 const crateRoot = path.join(repoRoot, 'launcher');
-const child = spawn(commandArgs[0], commandArgs.slice(1), {
+const child = spawn(argv[0], argv.slice(1), {
 	env,
 	stdio: 'inherit',
 	shell: isWin,
-	cwd: commandArgs[0] === 'cargo' ? crateRoot : process.cwd(),
+	cwd: argv[0] === 'cargo' ? crateRoot : process.cwd(),
 });
 child.on('exit', (code, signal) => {
 	if (signal) {

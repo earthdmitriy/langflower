@@ -4,9 +4,9 @@
 optional Tool collection.  
 **Depends on:** [16-mcp-optional](16-mcp-optional.md) (landed),
 [07-swarm-primitives](07-swarm-primitives.md) (landed),
-[ADR-021](../../ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter)
+[ADR-021](../../architecture/ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter)
 (canvas node stays; 3-wire superseded),
-[ADR-035](../../ADR.md#adr-035--uniform-inventory-wire--optional-tool-collection).  
+[ADR-035](../../architecture/ADR.md#adr-035--uniform-inventory-wire--optional-tool-collection).  
 **Index:** [README.md](README.md)  
 **Mechanics:** [MECHANICS-tool-execution.md](MECHANICS-tool-execution.md)
 — MCP, Sub-Agent, and Tool collection are `ToolHandle[]` on `tools`.  
@@ -178,7 +178,7 @@ Also update `langflower-workflow-writer` port tables (`subagentRegistration` /
           `ToolHandle[]`
         - `packages/common-nodes/src/tools/tool-collection/NODE.md`
         - `packages/common-nodes/src/tools/tool-collection/node.test.ts`
-        - `docs/ADR.md` — new ADR (uniform inventory wire) amending
+        - `docs/architecture/ADR.md` — new ADR (uniform inventory wire) amending
           ADR-021 wire protocol
     - **Changed Files (representative):**
         - `define-llm-node/default-llm-ports.ts`, `llm-inventory-wire.ts` —

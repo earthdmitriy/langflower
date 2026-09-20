@@ -28,6 +28,11 @@ export type RuntimeFeedPortMeta = {
 	readonly role?: RuntimeFeedRole;
 	/** When true, feed visit stays open for chunks / interleaved streams. */
 	readonly streaming?: boolean;
+	/**
+	 * Stamped on every frame of a {@link RuntimeNode.feedVisitBoundary} node
+	 * so the work log can close the caller visit without a palette lookup.
+	 */
+	readonly closesPreviousVisit?: true;
 };
 
 /**
@@ -65,7 +70,7 @@ export type MetaFromStatefulObservable<
 > = T extends StatefulObservable<unknown, unknown, infer Meta> ? Meta : never;
 
 /**
- * v2 runtime contracts — **execution only**.
+ * Runtime contracts — **execution only**.
  *
  * Responsibilities of `@langflower/runtime` (this module):
  * - Wire node ports and run reactive handlers (StatefulObservable graph).
@@ -74,9 +79,8 @@ export type MetaFromStatefulObservable<
  *   and `@langflower/server` on purpose — each layer must fail fast without
  *   depending on the others.
  *
- * **Out of scope** (handled by `@langflower/server` or later phases):
- * - `WorkflowGraph` → {@link RuntimeNode} factory (isolated runtime first)
- * - `defineNode` / sync lift adapters
+ * **Out of scope** (owned by `@langflower/server` / UI / tools):
+ * - Persisted `WorkflowGraph` load/save (server hydrates {@link RuntimeFacade.editor})
  * - HITL / chat semantics — server marks which ports are HITL and maps
  *   {@link RuntimeRunnerEvent} (+ user replies as seed) to chat / WS protocol
  * - runId persistence, harness, LLM, filesystem
@@ -84,8 +88,9 @@ export type MetaFromStatefulObservable<
  * **Server telemetry:** subscribe to {@link RuntimeRunner.events$} and
  * translate frames to WebSocket; runtime does not speak WS.
  *
- * Phase 1 builds an **isolated runtime** — nodes wired manually in tests,
- * no Langflower workflow loader yet.
+ * Isolated unit tests still wire {@link RuntimeNode} instances by hand.
+ * Production server hydrates {@link RuntimeFacade.editor} from the workflow
+ * graph. There is no separate `WorkflowRuntime` / Phase-1-only loader.
  *
  * ## Status lifecycle
  * - {@link RuntimeRunner.start} / {@link RuntimeRunner.startNode} → `'running'`
@@ -127,7 +132,8 @@ export type MetaFromStatefulObservable<
  * ## Input vs output ports
  * `inputs` expose {@link StatefulConnection} — runtime wires edges with
  * `connect(source)` on {@link RuntimeRunner.start} and `disconnect()` on
- * {@link RuntimeRunner.interrupt}. Seeds use `connect(of(value))` on open slots.
+ * {@link RuntimeRunner.interrupt}. Seeds use `connect(of(value))` on open slots,
+ * or `connect(value)` when `value` is already an Observable.
  * `outputs` expose {@link StatefulObservable} (read side) for telemetry and
  * optional {@link RuntimeNode.stopsRun} completion.
  */
@@ -182,7 +188,10 @@ export const isRuntimeDone = (
 	event: RuntimeRunnerEvent,
 ): event is RuntimeDoneTelemetry => Array.isArray(event) && event[0] === 'done';
 
-/** Seed value pushed into an input port slot on {@link RuntimeRunner.start}. */
+/**
+ * Seed value pushed into an input port slot on {@link RuntimeRunner.start}.
+ * Plain values are wrapped in `of`; Observables are connected as the stream.
+ */
 export type RuntimeSeedPortValue = {
 	readonly portId: string | symbol;
 	/** Multi-input slot index (`0` for single-slot ports). */
@@ -219,7 +228,7 @@ export type RuntimeNode = {
 	 *
 	 * On run start the runner calls `connect(upstreamOutput)` per edge; on
 	 * interrupt it calls `disconnect()`. Open slots may be seeded with
-	 * `connect(of(value))`.
+	 * `connect(of(value))`, or `connect(value)` when `value` is an Observable.
 	 *
 	 * Port metadata lives on `connection.meta` as {@link PortMeta}.
 	 */
@@ -276,17 +285,18 @@ export type RuntimeNode = {
 	readonly chatEntry?: boolean;
 
 	/**
+	 * When `true`, every port frame from this node (including errors on
+	 * role-less ports) carries {@link RuntimeFeedPortMeta.closesPreviousVisit}
+	 * so the work log opens a new visit card.
+	 */
+	readonly feedVisitBoundary?: boolean;
+
+	/**
 	 * Declares handler contract: at most one output value per input
 	 * activation (e.g. constant, delay). Runtime does not enforce this —
 	 * metadata for factories and tests.
 	 */
 	readonly emitOncePerActivation?: boolean;
-
-	/**
-	 * Seeded snapshot node — emits cached outputs without re-execution.
-	 * Server skips running/completed telemetry for these nodes.
-	 */
-	readonly skipExecutionTelemetry?: boolean;
 };
 
 export type RuntimeEdge = {
@@ -387,8 +397,8 @@ export type RuntimeEditorApi = {
 	/** Ready-to-use calculated graph clusters. Recalculated after graph edits. */
 	allClusters: readonly GraphCluster[];
 
-	/** Resolve the ready cluster containing `nodeId`. */
-	getClusterByNodeId(nodeId: NodeId): GraphCluster;
+	/** Resolve the ready cluster containing `nodeId`, or `false` if missing. */
+	getClusterByNodeId(nodeId: NodeId): GraphCluster | false;
 };
 
 export type RuntimeRunnerApi = {
@@ -425,7 +435,7 @@ export type RuntimeRunnerApi = {
 	 * Run stays `'running'` until {@link RuntimeRunnerApi.interrupt} or a
 	 * {@link RuntimeNode.stopsRun} node in scope emits.
 	 *
-	 * Throws if status is already `'running'`.
+	 * Returns `false` if status is already `'running'` or `nodeId` is missing.
 	 *
 	 * Flow: `RuntimeEditorApi.getClusterByNodeId(nodeId)` -> internal runner
 	 * `runScope` (cluster node/edge sets).

@@ -70,6 +70,18 @@ You only answer when an LLM provider is already configured. That means coding
 templates in the skeleton are **already usable** once copied into the project —
 do not say coding pipelines “don’t exist” or are unavailable.
 
+- **Can:** Optional **desktop launcher** (Slint) picks a project folder
+  and runs the same CLI (`--no-open -p <port>`), then opens the editor in
+  the **system browser** after the instance is listening. Several
+  projects can run at once, each on its own port. Unsigned Windows/macOS
+  zips ship on GitHub Releases (`launcher-v*` tags, not npm `v*`). The
+  macOS zip contains `Langflower.app`. Closing the launcher stops
+  instances **it** started. Closing a browser tab does
+  not. The **?** control opens the user manual on GitHub
+  (`docs/public/launcher.md`).
+- **Cannot:** Claim the launcher embeds the canvas, or that it is a
+  Tauri / Electron / WebView app. (Tauri was tried for the thin window
+  and rejected; the shipped launcher is Slint.)
 - **Can:** `langflower start [project-dir]` (default port **4010**) creates
   `.langflower/`, config, `instructions.md`, packs `nodes/my-nodes/` and
   `nodes/hello-embed/`, skills
@@ -152,10 +164,16 @@ do not say coding pipelines “don’t exist” or are unavailable.
 
 ### 5. Editor chrome
 
+- **Can:** Infinite agent chat uses **Chat Loop** (`common-chat-loop`):
+  agent `response` → `result`, `feedback` → agent `feedback`. Send only —
+  no Approve; the run ends on Stop. Do not use Review Gate Approve for that
+  loop, and do not use bash for the conversation.
 - **Can:** Chat Input graphs start from the composer **Start** control. Plain
   **Run** stays disabled for those graphs. Prefill or last typed text lives on
   the Chat Input node (`inputs.message`) and reappears after Stop.
-- **Can:** While running — Hard **Stop**, soft **Pause**, HITL and
+- **Can:** While running — Hard **Stop**, soft **Pause**, HITL,
+  `ask_user` (composer Send; question in the work log; option chips when
+  the agent passed `questions`), and
   `permission.ask` in the composer. Work log **clears** on successful
   workflow load / create / copy (not rename).
 - **Cannot:** Switch, rename, delete, copy, or create a workflow while a run
@@ -232,7 +250,14 @@ These four are **not** the same thing.
 
 ### 8. Tools, permissions, MCP
 
-- **Can:** Harness builtins + `permission.ask` Allow/Deny for those builtins.
+- **Can:** Harness builtins (including default `ask_user` and `sleep`) +
+  `permission.ask`
+  Allow/Deny for those builtins. Rename or move a file or directory with
+  builtin `move` (`from` + `to` under the project) — do not use bash `mv`.
+  Wait without bash with builtin `sleep` (`seconds` 1–300); Stop aborts.
+  Not a job-wait and not canvas Delay (`common-delay`).
+  `ask_user` shows the question in the work log and opens the composer
+  (textarea + optional option chips, Send), not Allow/Deny.
   Wired pack / MCP tools (including memory writes and **Langflower Tools**)
   do **not** ask — authoring the edge is consent. Write Allow does **not**
   grant bash. MCP **nodes** wire `tools` → agent `tools` (`ToolHandle[]`).
@@ -293,7 +318,7 @@ Sub-Agent is an **explicit canvas node** for **control and observability**
   Managed markdown under `.langflower/memory/` (also reachable with harness
   file tools). **Embeddings** catalog nodes + Settings default embedding model
   are shipped for API checks and pack **`EmbedHandle`** wiring — separate from
-  vector KB ([ADR-033](../../../../../docs/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
+  vector KB ([ADR-033](../../../../../docs/architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
   Obsidian vault helpers are **not** shipped (TBD-007).
 - **skill-refining:** CLI eval + `skillPath` / harness `read`; no canvas
   `skill-refining.json` demo.

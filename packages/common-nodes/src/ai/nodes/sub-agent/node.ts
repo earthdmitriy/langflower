@@ -33,11 +33,7 @@ import { llmPanelUiSchema } from '../../features/ui-schema/llm-panel-ui-schema.j
 import { llmCompactionUiSchema } from '../../features/ui-schema/llm-compaction-ui-schema.js';
 import { llmRecoveryUiSchema } from '../../features/ui-schema/llm-recovery-ui-schema.js';
 import {
-	AGENT_MAX_ITERATIONS_CAP,
-	DEFAULT_AGENT_MAX_ITERATIONS,
-	normalizeMaxIterations,
-} from '../../features/prompt/normalize-max-iterations.js';
-import {
+	assembleLlmAgentInventoryContext,
 	appendToolInventory,
 	demuxByKind,
 	type LlmAgentInventoryContext,
@@ -46,16 +42,6 @@ import {
 	runAgentLoop,
 	type ToolLoopChunk,
 } from '../../features/llm-loop/run-agent-loop.js';
-import { collectAgentToolHandles } from '../../../tools/collect-agent-tool-handles.js';
-import {
-	parseLlmRolePreset,
-	resolveEffectiveSkillId,
-} from '../../features/llm-role-preset.js';
-import { resolveChatProviderModel } from '../../features/prompt/resolve-chat-provider-model.js';
-import { getRunHostServices } from '../../features/run-host-services.js';
-import { buildEffectiveSystemPrompt } from '../../features/prompt/build-effective-system-prompt.js';
-import { normalizeCompactionConfig } from '../../features/openai/normalize-compaction-params.js';
-import { normalizeLlmRecoveryPolicy } from '../../features/llm-loop/normalize-llm-recovery-policy.js';
 import {
 	createScriptedFactory,
 	parseScriptedTurns,
@@ -77,7 +63,7 @@ type SubAgentChunk =
 	  };
 
 type SubAgentContext = LlmAgentInventoryContext & {
-	readonly factory: CreateChatCompletionStream | undefined;
+	readonly factory: CreateChatCompletionStream;
 	readonly scriptedTurns: readonly ScriptedTurn[] | undefined;
 	readonly nodeId: string;
 	readonly displayName: string;
@@ -170,7 +156,7 @@ const buildSpecialistInputSchema = (skillIds: readonly string[]): object => {
 
 const resolveTurnFactory = (
 	context: SubAgentContext,
-): CreateChatCompletionStream | undefined => {
+): CreateChatCompletionStream => {
 	if (context.scriptedTurns !== undefined) {
 		return createScriptedFactory(context.scriptedTurns);
 	}
@@ -228,7 +214,7 @@ const seedInvokeHistory = (
 		role: 'system',
 		content: appendToolInventory(
 			context.effectiveSystemPrompt,
-			context.tools,
+			context.getTools?.() ?? context.tools,
 		),
 	};
 
@@ -276,12 +262,6 @@ const runSubAgentTurn = (
 	const scripted = context.scriptedTurns !== undefined;
 	const factory = resolveTurnFactory(context);
 
-	if (factory === undefined) {
-		return fail(
-			'Error: Sub-Agent chat is only available during server workflow runs',
-		);
-	}
-
 	const configError = chatConfigError(
 		context.providerId,
 		context.model,
@@ -316,6 +296,9 @@ const runSubAgentTurn = (
 				: context.model,
 			messages: [...history, { role: 'user', content: userContent }],
 			tools: context.tools,
+			...(context.getTools !== undefined
+				? { getTools: context.getTools }
+				: {}),
 			toolCtx: context.toolCtx,
 			maxIterations: context.maxIterations,
 			compaction: context.compaction,
@@ -437,7 +420,7 @@ const parseInvokeTurn = (
 /**
  * Sub-Agent: ordinary OpenAI-compatible agent that announces one ToolHandle
  * on `subagent-registration`. Parent invoke runs this node's in-node loop.
- * @see docs/ADR.md ADR-021
+ * @see docs/architecture/ADR.md ADR-021
  */
 export const subAgentNode = defineLlmNode({
 	type: 'common-sub-agent',
@@ -448,6 +431,8 @@ A specialist agent on the canvas. Wire it into a parent agent's **tools** so the
 
 The specialist streams in its own work-log card. Set name, role, and skills on this node.
 `.trim(),
+	// Own work-log card: the first frame closes the caller's visit.
+	feedVisitBoundary: true,
 	uiSchema: [
 		{
 			field: 'name',
@@ -491,69 +476,24 @@ The specialist streams in its own work-log card. Set name, role, and skills on t
 		const context$ = combineInputs(
 			[systemPrompt, tools, ctx],
 			([systemPromptValue, toolList, ec]) => {
-				const rolePreset = parseLlmRolePreset(ec.params.rolePreset);
-				const skillId = resolveEffectiveSkillId(
-					rolePreset,
-					ec.params.skillId,
+				const base = assembleLlmAgentInventoryContext(
+					'',
+					toolList,
+					systemPromptValue,
+					ec,
 				);
-				const hostServices = getRunHostServices(ec);
-				const skillMarkdown = hostServices?.skillMarkdown ?? '';
-				const agentsMarkdown = hostServices?.agentsMarkdown ?? '';
 				const name = String(ec.params.name ?? 'Sub-Agent').trim();
 				const inspectorDescription = String(
 					ec.params.description ?? '',
 				);
 
 				return {
-					prompt: '',
-					tools: collectAgentToolHandles({
-						toolHandles: ec.toolHandles,
-						toolsPort: toolList,
-					}),
-					...resolveChatProviderModel(ec.params, hostServices),
-					skillId,
-					rolePreset,
-					skillMarkdown,
-					agentsMarkdown,
-					effectiveSystemPrompt: buildEffectiveSystemPrompt({
-						rolePreset,
-						systemPromptInput: String(systemPromptValue ?? ''),
-						agentsMarkdown,
-						skillMarkdown,
-					}),
-					toolCtx: {
-						projectDir: ec.projectDir,
-						runId: ec.runId,
-						...(hostServices?.authorize !== undefined
-							? { authorize: hostServices.authorize }
-							: {}),
-						...(hostServices?.denyPaths !== undefined
-							? { denyPaths: hostServices.denyPaths }
-							: {}),
-						...(hostServices?.allowedHosts !== undefined
-							? { allowedHosts: hostServices.allowedHosts }
-							: {}),
-					},
-					maxIterations: normalizeMaxIterations(
-						ec.params.maxIterations,
-						{
-							fallback: DEFAULT_AGENT_MAX_ITERATIONS,
-							maxCap: AGENT_MAX_ITERATIONS_CAP,
-						},
-					),
+					...base,
 					maxFeedbackTurns: 0,
-					...(hostServices?.requestPermission !== undefined
-						? {
-								requestPermission:
-									hostServices.requestPermission,
-							}
-						: {}),
-					compaction: normalizeCompactionConfig(ec.params),
-					recovery: normalizeLlmRecoveryPolicy(ec.params),
 					steerControl$: steerControl.value$.pipe(
 						filter(isSteerControlPayload),
 					),
-					factory: hostServices?.createChatCompletionStream,
+					factory: ec.chat,
 					scriptedTurns: parseScriptedTurns(
 						(ec.params as Readonly<Record<string, unknown>>)[
 							'scriptedToolTurns'

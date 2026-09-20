@@ -1,63 +1,44 @@
 import type { Subject } from 'rxjs';
 import type { WsBridgeClientApi, WsBridgeServerApi } from './bridge-types.js';
-import {
-	diagramWsConfig,
-	type DiagramWsConfig,
-} from './testing/sample-diagram-ws-config.js';
+import { type PingWsConfig } from './testing/sample-ping-ws-config.js';
 
-declare const client: WsBridgeClientApi<DiagramWsConfig>;
-declare const server: WsBridgeServerApi<DiagramWsConfig>;
+declare const client: WsBridgeClientApi<PingWsConfig>;
+declare const server: WsBridgeServerApi<PingWsConfig>;
 
 // client -> server only
-client['edge.create.requested'].next({
-	fromNodeId: 'source',
-	fromPortId: 'result',
-	toNodeId: 'target',
-	toPortId: 'input',
+client['ping.sent'].next({
+	nonce: 'abc',
 });
 
 // server -> client only
-client['edge.create.command'].subscribe((_payload) => {
-	// payload: EdgeCreateCommandPayload
+client['pong.received'].subscribe((_payload) => {
+	// payload: PongPayload
 });
 
 // @ts-expect-error server-only outgoing message is not on client outgoing side
-client['edge.create.command'].next({
-	edgeId: 'edge-1',
-	fromNodeId: 'source',
-	fromPortId: 'result',
-	toNodeId: 'target',
-	toPortId: 'input',
+client['pong.received'].next({
+	nonce: 'abc',
+	serverTime: 1,
 });
 
-// @ts-expect-error incoming message on client is Observable, not outgoing Subject
-client['session.ready'].next({ version: 1 });
-
-client['edge.create.requested'].next(
-	// @ts-expect-error invalid payload shape for edge.create.requested
+client['ping.sent'].next(
+	// @ts-expect-error invalid payload shape for ping.sent
 	{ edgeId: 'edge-1' },
 );
 
 // server -> client broadcast
-server['edge.create.command'].next({
-	edgeId: 'edge-1',
+server['pong.received'].next({
+	nonce: 'abc',
+	serverTime: 1,
 });
-
-server['session.ready'].next({ version: 1 });
 
 // @ts-expect-error client-only message is not server outgoing
-server['edge.create.requested'].next({
-	fromNodeId: 'source',
-	fromPortId: 'result',
-	toNodeId: 'target',
-	toPortId: 'input',
+server['ping.sent'].next({
+	nonce: 'abc',
 });
 
-server.injectInbound('edge.create.requested', {
-	fromNodeId: 'source',
-	fromPortId: 'result',
-	toNodeId: 'target',
-	toPortId: 'input',
+server.injectInbound('ping.sent', {
+	nonce: 'abc',
 });
 
 // @ts-expect-error unknown message key

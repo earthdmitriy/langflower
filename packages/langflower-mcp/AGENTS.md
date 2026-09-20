@@ -2,7 +2,7 @@
 
 Dev-only **stdio MCP server** so Cursor (and similar hosts) can observe and
 drive a **running** local Langflower instance over the internal WS bus
-([ADR-024](../../docs/ADR.md#adr-024--dev-mcp-control-plane-over-internal-ws-bus)).
+([ADR-024](../../docs/architecture/ADR.md#adr-024--dev-mcp-control-plane-over-internal-ws-bus)).
 
 **Agent how-to:** [docs/LANGFLOWER_MCP.md](../../docs/LANGFLOWER_MCP.md)
 (connect, observe, run, HITL, troubleshooting).
@@ -29,8 +29,15 @@ drive a **running** local Langflower instance over the internal WS bus
 4. For run telemetry prefer `get_execution_feed_tail` over
    `wait_event(mode=next)`.
 
-Stdio accepts **Content-Length** and **newline JSON**; replies echo the peer's
-last inbound framing (Cursor host uses newline).
+Do **not** add a `wait_session_ready` tool. `ensure_connected` already
+waits once; a second `waitSessionReady` on the hot `session.ready`
+Subject hangs (BUG-2026-07-14).
+
+Stdio accepts **Content-Length** (CRLF and LF header ends) and **newline JSON**;
+replies echo the peer's last inbound framing (Cursor host uses newline).
+The parse path is a DAG twin of `@langflower/tools` `mcp-stdio-frame-parser.ts`
+— do not import tools here. Parity:
+`packages/tools/src/mcp/mcp-stdio-frame-parser.parity.test.ts`.
 
 Env / flags:
 

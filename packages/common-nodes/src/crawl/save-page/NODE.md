@@ -7,7 +7,8 @@
 
 ## Summary
 
-Persists a page under `<project>/.langflower/crawl/{runId}/` via `ctx.crawl`.
+Persists a page under `<project>/.langflower/crawl/{runId}/` via
+`createCrawlContext` from `@langflower/tools`.
 
 ## Inputs
 

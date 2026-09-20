@@ -2,7 +2,7 @@
 > live in [`docs/PRODUCT.md`](docs/PRODUCT.md) and
 > [`docs/use-cases/`](docs/use-cases/README.md). Do **not** plan work from
 > “Stage 1 / 2 / 3” labels in this file. Prefer
-> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), ADRs, and use-case Status for
+> [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md), ADRs, and use-case Status for
 > current truth. Sections below may lag (e.g. Execute greyed out, project dir
 > UI-only, `defineNode` examples).
 
@@ -46,7 +46,7 @@ This folder contains all user‑specific configuration, custom nodes, and saved 
 ├── .langflower/
 │   ├── config.json              ← global tool settings (port, API endpoints, etc.)
 │   ├── nodes/                   ← custom node packs (one folder per pack)
-│   │   ├── my-nodes/            ← default seed pack ([ADR-030](docs/ADR.md#adr-030--custom-node-pack-layout--npm-model))
+│   │   ├── my-nodes/            ← default seed pack ([ADR-030](docs/architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model))
 │   │   │   ├── package.json     ← peerDeps: @langflower/node-sdk; author runs npm i
 │   │   │   ├── tsconfig.json    ← IDE highlight
 │   │   │   ├── README.md        ← humans + agents
@@ -85,7 +85,7 @@ The server is a single‑process Node.js application written in TypeScript. It s
 #### 3.1.1 Communication model
 
 **WebSocket is the default.** On editor load the UI opens a persistent WebSocket to the
-shared transport defined by `@langflower/shared/langflower` (`/ws`, default port
+shared transport defined by `@langflower/shared/langflower-bus-config` (`/ws`, default port
 `4010`). Interactions use typed event messages: clients emit `*.requested` intents,
 and the backend pushes `*.delta`, snapshot, telemetry, and lifecycle facts to all
 connected clients without polling.
@@ -234,7 +234,7 @@ Here is special `WireType: "dynamic"` - it allow any input wire, but can be bypa
 ### 4. Custom Nodes System
 
 Custom nodes are **packs** under `.langflower/nodes/<pack>/`. Default seed pack
-id: **`my-nodes`**. Contract: [ADR-030](docs/ADR.md#adr-030--custom-node-pack-layout--npm-model).
+id: **`my-nodes`**. Contract: [ADR-030](docs/architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model).
 
 Each pack has its own `package.json` (peer `@langflower/node-sdk`). There is
 **no** required `index.ts`: each `*.ts` / `*.tsx` may `export default` a node
@@ -294,7 +294,7 @@ Key points:
   probe) — not from a TypeScript Compiler API scan of `execute`.
 - Author runs `npm install` inside the pack; Langflower never auto-installs.
 - Author npm deps are allowed in pack `dependencies`; the future
-  `@langflower/compiler` (epic 32) esbuild-bundles them ([ADR-007](docs/ADR.md#adr-007--esbuild-for-custom-node-packages)).
+  `@langflower/compiler` (epic 32) esbuild-bundles them ([ADR-007](docs/architecture/ADR.md#adr-007--esbuild-for-custom-node-packages)).
 - Reactive packs also peer `rxjs` + `@rx-evo/stateful-observable`.
 - Until the compiler ships, packs are **authoring drafts only** (palette /
   runtime remain common-nodes / system catalog).

@@ -15,7 +15,7 @@ Short version: mutations → server session + `markDirty` + broadcast deltas;
 disk only on Save. Rename/resize reuse `editor.updateNode.requested`. Paste
 uses `editor.paste.requested` (server-authoritative). Sizing: mode A
 (`autoSize` until width set) vs mode B (width locked, height-only sync on
-port row-count). Multiline fill: [ADR-017](../../ADR.md#adr-017--canvas-multiline-node-flex-fill-not-textarea-self-resize).
+port row-count). Multiline fill: [ADR-017](../../architecture/ADR.md#adr-017--canvas-multiline-node-flex-fill-not-textarea-self-resize).
 
 ## Order (historical)
 

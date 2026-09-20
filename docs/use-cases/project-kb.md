@@ -1,7 +1,7 @@
 # Project KB
 
 **Status:** Superseded — vector KB removed; use markdown memory under
-`.langflower/memory/` via `common-memory-tools` ([ADR-033](../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
+`.langflower/memory/` via `common-memory-tools` ([ADR-033](../architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
 Skeleton samples: `kb-create` / `kb-navigate`.
 
 ---

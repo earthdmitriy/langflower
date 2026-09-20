@@ -1,0 +1,245 @@
+{
+	"$schema": "../schemas/workflow.schema.json",
+	"metadata": {
+		"name": "Fan-out",
+		"description": "Question → three research branches → Concat → Synthesis → Review → Finish. Parallel notes are joined only after every branch emits.",
+		"createdAt": "2026-09-20T19:05:00.000Z",
+		"updatedAt": "2026-09-21T17:12:13.059Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 15.97943664864502,
+			"y": -21.19692201766307,
+			"scale": 0.7163391408110813,
+			"width": 1015.390625,
+			"height": 661.328125
+		},
+		"nodes": [
+			{
+				"id": "question",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {
+					"message": "Should this project add a public HTTP API?"
+				},
+				"ui": {
+					"position": {
+						"x": 0,
+						"y": 360
+					},
+					"label": "Question"
+				}
+			},
+			{
+				"id": "docs",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "explorer",
+					"includeAgentsMd": false,
+					"maxIterations": 6,
+					"maxFeedbackTurns": 0
+				},
+				"inputs": {
+					"systemPrompt": "Research the question from the docs / product-claim angle only.\nWrite short notes plus open questions. Do not write the final brief."
+				},
+				"ui": {
+					"position": {
+						"x": 320,
+						"y": 40
+					},
+					"label": "Docs branch"
+				}
+			},
+			{
+				"id": "risks",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "explorer",
+					"includeAgentsMd": false,
+					"maxIterations": 6,
+					"maxFeedbackTurns": 0
+				},
+				"inputs": {
+					"systemPrompt": "Research the question from the risks / cost / security angle only.\nWrite short notes plus open questions. Do not write the final brief."
+				},
+				"ui": {
+					"position": {
+						"x": 320,
+						"y": 360
+					},
+					"label": "Risks branch"
+				}
+			},
+			{
+				"id": "alternatives",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "explorer",
+					"includeAgentsMd": false,
+					"maxIterations": 6,
+					"maxFeedbackTurns": 0
+				},
+				"inputs": {
+					"systemPrompt": "Research the question from the alternatives / do-nothing angle only.\nWrite short notes plus open questions. Do not write the final brief."
+				},
+				"ui": {
+					"position": {
+						"x": 320,
+						"y": 680
+					},
+					"label": "Alternatives branch"
+				}
+			},
+			{
+				"id": "concat",
+				"type": "common-concat",
+				"params": {},
+				"inputs": {
+					"separator": "\\n---\\n"
+				},
+				"ui": {
+					"position": {
+						"x": 600,
+						"y": 360
+					},
+					"label": "Concat"
+				}
+			},
+			{
+				"id": "concat-hint",
+				"type": "common-hint",
+				"params": {},
+				"inputs": {
+					"note": "**Concat waits for every branch.**\n\nSynthesis starts only after Docs, Risks, and Alternatives each emit. Merge would pass the first value through and leave the rest behind."
+				},
+				"ui": {
+					"position": {
+						"x": 600,
+						"y": 600,
+						"width": 211.04771205357133,
+						"height": 245.71437290736606
+					},
+					"label": "Hint"
+				}
+			},
+			{
+				"id": "synth",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "custom",
+					"includeAgentsMd": false,
+					"maxIterations": 6,
+					"maxFeedbackTurns": 2
+				},
+				"inputs": {
+					"systemPrompt": "You are the Synthesizer. The userPrompt is concatenated research notes from independent branches.\nWrite a short reconciled brief. Call out conflicts instead of hiding them.\nWhen review feedback arrives, revise the brief."
+				},
+				"ui": {
+					"position": {
+						"x": 880,
+						"y": 300
+					},
+					"label": "Synthesis"
+				}
+			},
+			{
+				"id": "review",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 1120,
+						"y": 600
+					},
+					"label": "Review"
+				}
+			},
+			{
+				"id": "done",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 1320,
+						"y": 580
+					},
+					"label": "Finish"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-q-docs",
+				"fromNodeId": "question",
+				"fromPort": ["message", 0],
+				"toNodeId": "docs",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-q-risks",
+				"fromNodeId": "question",
+				"fromPort": ["message", 0],
+				"toNodeId": "risks",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-q-alt",
+				"fromNodeId": "question",
+				"fromPort": ["message", 0],
+				"toNodeId": "alternatives",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-docs-concat",
+				"fromNodeId": "docs",
+				"fromPort": ["response", 0],
+				"toNodeId": "concat",
+				"toPort": ["value", 0]
+			},
+			{
+				"edgeId": "e-risks-concat",
+				"fromNodeId": "risks",
+				"fromPort": ["response", 0],
+				"toNodeId": "concat",
+				"toPort": ["value", 1]
+			},
+			{
+				"edgeId": "e-alt-concat",
+				"fromNodeId": "alternatives",
+				"fromPort": ["response", 0],
+				"toNodeId": "concat",
+				"toPort": ["value", 2]
+			},
+			{
+				"edgeId": "e-concat-synth",
+				"fromNodeId": "concat",
+				"fromPort": ["value", 0],
+				"toNodeId": "synth",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-synth-review",
+				"fromNodeId": "synth",
+				"fromPort": ["response", 0],
+				"toNodeId": "review",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-review-synth",
+				"fromNodeId": "review",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "synth",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-review-done",
+				"fromNodeId": "review",
+				"fromPort": ["response", 0],
+				"toNodeId": "done",
+				"toPort": ["value", 0]
+			}
+		]
+	}
+}

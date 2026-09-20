@@ -7,7 +7,7 @@
  */
 import { Injectable, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import type { EditorSelectedNodePayload } from '@langflower/shared/langflower';
+import type { EditorSelectedNodePayload } from '@langflower/shared/types/langflower-editor';
 import { map, merge, shareReplay, startWith } from 'rxjs';
 import { LangflowerBridgeService } from './langflower-bridge.service';
 

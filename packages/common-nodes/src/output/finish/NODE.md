@@ -7,7 +7,11 @@
 
 ## Summary
 
-Sink-нода с `stopsRun: true` — первое значение на выходе завершает run. Используется как синтетический finish-sink.
+Passthrough sink with `stopsRun: true`. The first emission on a watched
+output ends the run (`RuntimeRunner` finish). Wire the final result here
+so Start/Stop settle instead of hanging on open work.
+
+Live bind: `src/output/finish/node.ts`.
 
 ## Inputs
 
@@ -15,12 +19,11 @@ Sink-нода с `stopsRun: true` — первое значение на вых�
 
 ## Outputs
 
-`value` (passthroughFrom: value)
+| Port    | Notes                                        |
+| ------- | -------------------------------------------- |
+| `done`  | Hidden string `'done'`, `feed.role: result`  |
+| `value` | Passthrough of the input (`feed.role: none`) |
 
 ## Notes
 
 `stopsRun: true`, `emitOncePerActivation: true`
-
----
-
-_Implementation removed — re-add via `defineReactiveNode` + `bind()` API._

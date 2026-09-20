@@ -3,7 +3,7 @@ import {
 	deriveExecutionProgressStatus,
 	terminalExecutionProgressStatus,
 	type TerminalExecutionProgressStatus,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/execution/derive-run-settle-outcome.js';
 import { Subscription } from 'rxjs';
 import { RunCheckpointSession } from '../checkpoint/run-checkpoint-session.js';
 import type { ServerContext } from '../server-context.js';
@@ -25,7 +25,10 @@ import { wireEditorHandlers } from './wire-editor-handlers.js';
 import { wireCustomPaletteHandlers } from './wire-custom-palette-handlers.js';
 import { wirePaletteHandlers } from './wire-palette-handlers.js';
 import { wireProjectBootstrapHandlers } from './wire-project-bootstrap-handlers.js';
-import { wireRunnerHandlers } from './wire-runner-handlers.js';
+import {
+	persistCheckpointFromRunnerEvent,
+	wireRunnerHandlers,
+} from './wire-runner-handlers.js';
 import { wireWorkflowHandlers } from './wire-workflow-handlers.js';
 import { createSettingsDraftController } from './settings-draft-controller.js';
 
@@ -42,9 +45,11 @@ export type AttachLangflowerBridgeOptions = {
  *
  * Call order (see also `BRIDGE.md`):
  * 0. Diagnostic bridge JSONL log (gated by effective `serverLogs`)
- * 1. Always-on runner telemetry fan-out
+ * 1. Always-on runner event composer (forward → checkpoint → settle)
  * 2. Connect / disconnect → index + bootstrap snapshots
- * 3. Intent handlers by bus namespace (workflow → palette → editor → runner)
+ * 3. Intent handlers by bus namespace (workflow → palette → customPalette
+ *    → config → project bootstrap → editor → runner).
+ * `bridgeEmit` broadcasts; `clientEmit` unicasts via `client-index`.
  */
 export const attachLangflowerBridge = (
 	bridge: LangflowerBridge,
@@ -67,13 +72,22 @@ export const attachLangflowerBridge = (
 		session,
 	);
 
-	// 1. Always-on telemetry: subscribe once for the whole bridge lifetime,
-	// independent of clients/runs. Guarantees initial `pending` events from
-	// `runner.start()` are captured — a later per-client subscription would
-	// miss them (`events$` is a non-replaying Subject). Late clients get the
-	// backlog via `executionFeed.snapshot`. See FOUND_BUGS pending race.
+	// 1. Always-on runner composer: one subscribe for the bridge lifetime.
+	// Sibling steps: forward → checkpoint persist → onRunSettled.
+	// Independent of clients/runs so initial `pending` from `runner.start()`
+	// is not dropped (`events$` is a non-replaying Subject). Late clients
+	// get the backlog via `executionFeed.snapshot`. See FOUND_BUGS pending race.
 	rootSubscription.add(
 		session.runtime.runner.events$.subscribe((event) => {
+			forwardRunnerEvent(bridge, event);
+			persistCheckpointFromRunnerEvent(
+				bridge,
+				session,
+				checkpoints,
+				event,
+				context.resolveDefinition,
+			);
+
 			if (isRuntimeDone(event) && onRunSettled !== undefined) {
 				const progress = deriveExecutionProgressStatus(
 					'idle',
@@ -84,8 +98,6 @@ export const attachLangflowerBridge = (
 					onRunSettled(status);
 				}
 			}
-
-			forwardRunnerEvent(bridge, event);
 		}),
 	);
 
@@ -119,7 +131,7 @@ export const attachLangflowerBridge = (
 	rootSubscription.add(wirePaletteHandlers(bridge, context));
 	rootSubscription.add(wireCustomPaletteHandlers(bridge, context, session));
 	rootSubscription.add(
-		wireConfigHandlers(bridge, context, session, draftController, {
+		wireConfigHandlers(bridge, context, draftController, {
 			onEffectiveConfig: (config) => {
 				applyServerLogsGate(diagnosticLog.setEnabled, config);
 			},

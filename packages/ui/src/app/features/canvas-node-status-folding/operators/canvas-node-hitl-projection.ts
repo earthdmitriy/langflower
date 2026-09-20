@@ -5,12 +5,12 @@ import {
 } from '@langflower/node-sdk/llm';
 import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
 import { isPortTelemetry } from '@langflower/runtime';
-import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
+import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap';
 import {
 	definitionForNode,
-	resolveOutputFeedRole,
 	type FeedCatalog,
 } from '../../../services/execution-catalog';
+import { frameFeedRole } from '../../../services/frame-feed-meta';
 import {
 	hitlReplyReceived,
 	nonHitlInputReceived,
@@ -43,7 +43,7 @@ export const applyNodeHitlFrame = (
 	if (catalog === null || !isPortTelemetry(event)) {
 		return state;
 	}
-	const [portDir, eventNodeId, portId, response] = event;
+	const [portDir, , portId, response] = event;
 	const effectiveRunId = runId ?? state.runId;
 	const def = definitionForNode(
 		catalog.paletteByType,
@@ -59,12 +59,7 @@ export const applyNodeHitlFrame = (
 		typeof portId === 'string' &&
 		'value' in response
 	) {
-		const role = resolveOutputFeedRole(
-			catalog.paletteByType,
-			catalog.nodeTypeById,
-			eventNodeId,
-			portId,
-		);
+		const role = frameFeedRole(event);
 		if (
 			(role === 'recovery' || portId === RECOVERY_PORT_ID) &&
 			isLlmRecoverySuspended(response.value)

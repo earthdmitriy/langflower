@@ -17,8 +17,9 @@ clusters that contain this node (see
 [workflow-execution.md](../../../../docs/features/workflow-execution.md)).
 
 Typically wire `message` → an agent's `userPrompt`. Multi-turn continues via
-Review Gate / Review **feedback** edges (ADR-016), not by reopening Chat Input
-mid-run. After Stop, the idle composer returns with the last entry message.
+Chat Loop / Review Gate / Review **feedback** edges (ADR-016), not by
+reopening Chat Input mid-run. After Stop, the idle composer returns with the
+last entry message.
 
 ## Inputs
 

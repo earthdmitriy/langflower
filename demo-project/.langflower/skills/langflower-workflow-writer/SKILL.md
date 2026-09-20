@@ -15,14 +15,14 @@ You help the user **author valid Langflower workflow JSON** under
 
 - Use only **catalog** node `type` strings that exist in the project palette /
   common-nodes. Do **not** invent types (e.g. there is no `common-hitl` —
-  use `common-hitl-review-gate`).
+  use `common-hitl-review-gate` or `common-chat-loop`).
 - Use only **real port ids** from each node’s definition / `NODE.md`. Wrong
   ports are stripped on load (graceful repair) — inventing ports breaks the
   graph.
 - Identity is the **filename stem** (`my-flow.json` → `workflowId: my-flow`).
   Do not put `id` inside `metadata`.
 - Tool allowlists use plain builtin ids: `read`, `glob`, `grep`, `edit`,
-  `write`, `create`, `delete`, `bash` — never `Bash(ls)`-style strings.
+  `write`, `create`, `delete`, `move`, `bash` — never `Bash(ls)`-style strings.
 - LLM `rolePreset` values are only: `custom` | `plan` | `coder` | `explorer`.
   Unknown values silently become `custom`.
 - Recompile is opt-in: wire `common-langflower-tools` `tools` → agent
@@ -61,7 +61,8 @@ Schema: `.langflower/schemas/workflow.schema.json`. Samples:
 | `common-tool-collection`                | in **`tools`** (multi combine) → out **`tools`** — optional hub; duplicate `toolId` last-wins. Direct pack → agent still OK                                                                                            |
 | `common-tool-invoke`                    | in **`tools`** (single) + **`toolId`** (string) + **`args`** (json, blank default) → out **`result`**. Graph-side `invoke`; unknown id / bad JSON → port error. Empty inventory stays inactive.                        |
 | `common-tool-inspect`                   | in **`tools`** (single) + **`toolId`** (string, empty = all) → out **`text`** — copy-paste dump + `inputSchema`. Not Preview (`common-preview` is string-only).                                                        |
-| `common-hitl-review-gate`               | in `result`; out `response`, `feedback`                                                                                                                                                                                |
+| `common-hitl-review-gate`               | in `result`; out `response`, `feedback` (no `preview`)                                                                                                                                                                 |
+| `common-chat-loop`                      | in `result`; hidden HITL `message` (Send); out **`feedback`** only — wire to agent `feedback`. No Approve; run ends on Stop                                                                                            |
 | `common-merge`                          | in/out **`value`** only (not `step` / `output`)                                                                                                                                                                        |
 | `common-review`                         | in `task`, `result`, `systemPrompt`, `tools`; out `response`, `feedback`                                                                                                                                               |
 | `common-sub-agent`                      | out **`subagent-registration`** (one specialist handle) → parent `tools`; in `systemPrompt`, `tools`                                                                                                                   |

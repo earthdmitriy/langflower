@@ -21,7 +21,7 @@ import { LangflowerBridgeService } from '../../../services/langflower-bridge.ser
 import { NodeHoverService } from '../../../services/node-hover.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import { LfNodeComponent } from '../components/lf-node.component';
-import type { LfNodeData } from '../components/lf-node.component';
+import type { LfNodeData } from '../../../services/bridge-diagram';
 
 @Component({
 	selector: 'ng-diagram-node-resize-adornment',

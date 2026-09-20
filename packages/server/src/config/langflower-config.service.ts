@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import type { DividerPositions } from '@langflower/shared/types/langflower-bootstrap.js';
 import type {
-	DividerPositions,
 	LangflowerConfig,
 	LangflowerConfigScope,
 	LangflowerHarnessConfig,
@@ -12,16 +12,15 @@ import type {
 	LangflowerPermissionToolConfig,
 	LangflowerProviderConfig,
 	LangflowerToolConfig,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-config.js';
 import {
 	DIVIDER_MIN_COMPOSER_HEIGHT,
 	DIVIDER_MIN_LEFT_WIDTH,
 	DIVIDER_MIN_RIGHT_WIDTH,
 	clampDividerSize,
-	isValidMcpServerId,
-	mergeLangflowerConfigLayers,
-} from '@langflower/shared/langflower.js';
-import { parseJsonc } from '../utils/parse-jsonc.js';
+} from '@langflower/shared/constants/defaults.js';
+import { mergeLangflowerConfigLayers } from '@langflower/shared/langflower-config/merge-langflower-config-layers.js';
+import { isValidMcpServerId } from '@langflower/tools/mcp-tool-id';
 import { resolveGlobalLangflowerConfigPath } from './resolve-global-langflower-config-path.js';
 import {
 	LANGFLOWER_SECRETS_FILENAME,
@@ -35,6 +34,37 @@ import {
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
+
+const isEnoent = (error: unknown): boolean =>
+	typeof error === 'object' &&
+	error !== null &&
+	'code' in error &&
+	(error as { readonly code: unknown }).code === 'ENOENT';
+
+const ioErrorMessage = (error: unknown): string =>
+	error instanceof Error ? error.message : String(error);
+
+const parseJsonc = (raw: string): unknown => {
+	const withoutBlock = raw.replace(/\/\*[\s\S]*?\*\//g, '');
+	const withoutLine = withoutBlock.replace(/^\s*\/\/.*$/gm, '');
+	const withoutTrailingCommas = withoutLine.replace(/,\s*([\]}])/g, '$1');
+	return JSON.parse(withoutTrailingCommas);
+};
+
+export type LangflowerConfigIoFailure = {
+	readonly ok: false;
+	readonly code: 'INVALID';
+	readonly message: string;
+};
+
+type LangflowerConfigRawRead =
+	| { readonly ok: true; readonly value: unknown }
+	| {
+			readonly ok: false;
+			readonly code: 'ENOENT';
+			readonly message: string;
+	  }
+	| LangflowerConfigIoFailure;
 
 const isPermissionDecision = (
 	value: unknown,
@@ -481,13 +511,59 @@ export class LangflowerConfigService {
 		return path.join(this.projectDir, '.langflower', 'langflower.jsonc');
 	}
 
-	private async readRawAt(filePath: string): Promise<unknown> {
+	private async readRawAt(
+		filePath: string,
+	): Promise<LangflowerConfigRawRead> {
+		let raw: string;
 		try {
-			const raw = await fs.readFile(filePath, 'utf8');
-			return parseJsonc(raw);
-		} catch {
-			return {};
+			raw = await fs.readFile(filePath, 'utf8');
+		} catch (error) {
+			if (isEnoent(error)) {
+				return {
+					ok: false,
+					code: 'ENOENT',
+					message: `Config file not found: ${filePath}`,
+				};
+			}
+
+			return {
+				ok: false,
+				code: 'INVALID',
+				message: ioErrorMessage(error),
+			};
 		}
+
+		try {
+			return { ok: true, value: parseJsonc(raw) };
+		} catch (error) {
+			return {
+				ok: false,
+				code: 'INVALID',
+				message: ioErrorMessage(error),
+			};
+		}
+	}
+
+	/**
+	 * Merge writes may use `{}` only when the file is genuinely absent.
+	 * An existing unparsed body is fail-closed.
+	 */
+	private async readRawForMerge(
+		filePath: string,
+	): Promise<
+		| { readonly ok: true; readonly value: unknown }
+		| LangflowerConfigIoFailure
+	> {
+		const raw = await this.readRawAt(filePath);
+		if (raw.ok) {
+			return raw;
+		}
+
+		if (raw.code === 'ENOENT') {
+			return { ok: true, value: {} };
+		}
+
+		return raw;
 	}
 
 	private async writeRawAt(
@@ -499,15 +575,13 @@ export class LangflowerConfigService {
 	}
 
 	async readProject(): Promise<LangflowerConfig> {
-		return parseLangflowerConfig(
-			await this.readRawAt(this.projectConfigPath()),
-		);
+		const raw = await this.readRawAt(this.projectConfigPath());
+		return parseLangflowerConfig(raw.ok ? raw.value : {});
 	}
 
 	async readGlobal(): Promise<LangflowerConfig> {
-		return parseLangflowerConfig(
-			await this.readRawAt(this.globalConfigPath),
-		);
+		const raw = await this.readRawAt(this.globalConfigPath);
+		return parseLangflowerConfig(raw.ok ? raw.value : {});
 	}
 
 	async readLayers(): Promise<LangflowerConfigLayers> {
@@ -524,24 +598,29 @@ export class LangflowerConfigService {
 		return mergeLangflowerConfigLayers(layers.global, layers.project);
 	}
 
-	async write(config: LangflowerConfig): Promise<void> {
-		const merged = mergeLangflowerConfig(
-			await this.readRawAt(this.projectConfigPath()),
-			{
-				...(config.currentWorkflowId !== undefined
-					? { currentWorkflowId: config.currentWorkflowId }
-					: {}),
-				...(config.model !== undefined ? { model: config.model } : {}),
-				...(config.embedding !== undefined
-					? { embedding: config.embedding }
-					: {}),
-				...(config.provider !== undefined
-					? { provider: config.provider }
-					: {}),
-			},
-		);
+	async write(
+		config: LangflowerConfig,
+	): Promise<{ readonly ok: true } | LangflowerConfigIoFailure> {
+		const existing = await this.readRawForMerge(this.projectConfigPath());
+		if (!existing.ok) {
+			return existing;
+		}
+
+		const merged = mergeLangflowerConfig(existing.value, {
+			...(config.currentWorkflowId !== undefined
+				? { currentWorkflowId: config.currentWorkflowId }
+				: {}),
+			...(config.model !== undefined ? { model: config.model } : {}),
+			...(config.embedding !== undefined
+				? { embedding: config.embedding }
+				: {}),
+			...(config.provider !== undefined
+				? { provider: config.provider }
+				: {}),
+		});
 
 		await this.writeRawAt(this.projectConfigPath(), merged);
+		return { ok: true };
 	}
 
 	private async writeSecretsFile(
@@ -566,13 +645,12 @@ export class LangflowerConfigService {
 	 * Full secret values — server-only. Never put this map on the bridge.
 	 */
 	async readSecrets(): Promise<LangflowerSecretsMap> {
-		try {
-			return parseLangflowerSecrets(
-				await this.readRawAt(this.secretsPath()),
-			);
-		} catch {
+		const raw = await this.readRawAt(this.secretsPath());
+		if (!raw.ok) {
 			return {};
 		}
+
+		return parseLangflowerSecrets(raw.value);
 	}
 
 	async listSecretIds(): Promise<readonly string[]> {
@@ -581,22 +659,37 @@ export class LangflowerConfigService {
 
 	private async persistSecretsPatch(
 		input: LangflowerSecretsWrite,
-	): Promise<void> {
-		const merged = mergeLangflowerSecrets(await this.readSecrets(), input);
+	): Promise<{ readonly ok: true } | LangflowerConfigIoFailure> {
+		if (input.secretIds === undefined && input.secretValues === undefined) {
+			return { ok: true };
+		}
+
+		const existing = await this.readRawForMerge(this.secretsPath());
+		if (!existing.ok) {
+			return existing;
+		}
+
+		const merged = mergeLangflowerSecrets(
+			parseLangflowerSecrets(existing.value),
+			input,
+		);
 
 		if (merged === undefined) {
-			return;
+			return { ok: true };
 		}
 
 		await this.writeSecretsFile(merged);
+		return { ok: true };
 	}
 
 	/**
 	 * Persist named KV secrets to the user-global file. Both omitted fields
 	 * leave the file unchanged.
 	 */
-	async writeSecrets(patch: LangflowerSecretsWrite): Promise<void> {
-		await this.persistSecretsPatch(patch);
+	async writeSecrets(
+		patch: LangflowerSecretsWrite,
+	): Promise<{ readonly ok: true } | LangflowerConfigIoFailure> {
+		return this.persistSecretsPatch(patch);
 	}
 
 	/**
@@ -607,15 +700,31 @@ export class LangflowerConfigService {
 	 */
 	async writeSettings(
 		input: LangflowerConfigSettingsWrite,
-	): Promise<LangflowerConfigLayers> {
+	): Promise<
+		| { readonly ok: true; readonly layers: LangflowerConfigLayers }
+		| LangflowerConfigIoFailure
+	> {
 		const filePath =
 			input.scope === 'global'
 				? this.globalConfigPath
 				: this.projectConfigPath();
-		const existingRaw = await this.readRawAt(filePath);
-		const existingProviders = isRecord(existingRaw)
-			? isRecord(existingRaw.provider)
-				? existingRaw.provider
+		const existingRaw = await this.readRawForMerge(filePath);
+		if (!existingRaw.ok) {
+			return existingRaw;
+		}
+
+		if (input.secretIds !== undefined || input.secretValues !== undefined) {
+			const secretsExisting = await this.readRawForMerge(
+				this.secretsPath(),
+			);
+			if (!secretsExisting.ok) {
+				return secretsExisting;
+			}
+		}
+
+		const existingProviders = isRecord(existingRaw.value)
+			? isRecord(existingRaw.value.provider)
+				? existingRaw.value.provider
 				: {}
 			: {};
 
@@ -649,49 +758,70 @@ export class LangflowerConfigService {
 				: {}),
 		};
 
-		const merged = mergeLangflowerConfig(existingRaw, patch);
+		const merged = mergeLangflowerConfig(existingRaw.value, patch);
 		await this.writeRawAt(filePath, merged);
-		await this.persistSecretsPatch(input);
-		return this.readLayers();
+		const secrets = await this.persistSecretsPatch(input);
+		if (!secrets.ok) {
+			return secrets;
+		}
+
+		return { ok: true, layers: await this.readLayers() };
 	}
 
 	async setCurrentWorkflowId(
 		workflowId: string | undefined,
-	): Promise<LangflowerConfig> {
-		const merged = mergeLangflowerConfig(
-			await this.readRawAt(this.projectConfigPath()),
-			{
-				currentWorkflowId: workflowId,
-			},
-		);
+	): Promise<
+		| { readonly ok: true; readonly config: LangflowerConfig }
+		| LangflowerConfigIoFailure
+	> {
+		const existing = await this.readRawForMerge(this.projectConfigPath());
+		if (!existing.ok) {
+			return existing;
+		}
+
+		const merged = mergeLangflowerConfig(existing.value, {
+			currentWorkflowId: workflowId,
+		});
 
 		await this.writeRawAt(this.projectConfigPath(), merged);
-		return parseLangflowerConfig(merged);
+		return { ok: true, config: parseLangflowerConfig(merged) };
 	}
 
 	async setDividerPositions(
 		positions: DividerPositions,
-	): Promise<LangflowerConfig> {
-		const merged = mergeLangflowerConfig(
-			await this.readRawAt(this.projectConfigPath()),
-			{
-				dividerPositions: positions,
-			},
-		);
+	): Promise<
+		| { readonly ok: true; readonly config: LangflowerConfig }
+		| LangflowerConfigIoFailure
+	> {
+		const existing = await this.readRawForMerge(this.projectConfigPath());
+		if (!existing.ok) {
+			return existing;
+		}
+
+		const merged = mergeLangflowerConfig(existing.value, {
+			dividerPositions: positions,
+		});
 
 		await this.writeRawAt(this.projectConfigPath(), merged);
-		return parseLangflowerConfig(merged);
+		return { ok: true, config: parseLangflowerConfig(merged) };
 	}
 
-	async setPaletteVisible(visible: boolean): Promise<LangflowerConfig> {
-		const merged = mergeLangflowerConfig(
-			await this.readRawAt(this.projectConfigPath()),
-			{
-				paletteVisible: visible,
-			},
-		);
+	async setPaletteVisible(
+		visible: boolean,
+	): Promise<
+		| { readonly ok: true; readonly config: LangflowerConfig }
+		| LangflowerConfigIoFailure
+	> {
+		const existing = await this.readRawForMerge(this.projectConfigPath());
+		if (!existing.ok) {
+			return existing;
+		}
+
+		const merged = mergeLangflowerConfig(existing.value, {
+			paletteVisible: visible,
+		});
 
 		await this.writeRawAt(this.projectConfigPath(), merged);
-		return parseLangflowerConfig(merged);
+		return { ok: true, config: parseLangflowerConfig(merged) };
 	}
 }

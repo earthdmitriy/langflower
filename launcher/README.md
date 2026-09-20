@@ -3,7 +3,7 @@
 Thin **Slint** supervisor window. It does **not** embed the editor, does
 not use WebView2, and does not bundle Node.js. The published npm CLI
 remains the product process. See
-[ADR-038](../docs/ADR.md#adr-038--launcher-is-a-cli-supervisor).
+[ADR-038](../docs/architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor).
 
 **Authors who do not know Rust:** start at
 [docs/README.md](docs/README.md) (primer, architecture, source map,
@@ -58,7 +58,8 @@ do not attach launcher zips to them.
 
 The zip is a supervisor only. Install Node.js ≥ 22 and
 `npm install -g langflower` separately. Windows SmartScreen and macOS
-Gatekeeper will warn until a signing epic. On macOS: right-click → Open.
+Gatekeeper will warn until a signing epic. On macOS the zip contains
+`Langflower.app`; right-click the **app** → Open.
 
 Windows ARM64 uses the GitHub-hosted `windows-11-arm` runner. If that
 label is missing for the repo plan, switch the job to
@@ -75,10 +76,10 @@ Full release notes: [docs/build-and-release.md](docs/build-and-release.md).
 ## Maintainer build (local)
 
 Requires the Slint software renderer, Node meeting `engines.node`, and a
-Rust toolchain. `launcher` / `launcher:dev` / `launcher:build` install a
-**portable** rustup under `.tools/rust/` (gitignored) and do not modify
-the user PATH. GitHub Actions uses `dtolnay/rust-toolchain` instead of
-that wrapper.
+Rust toolchain. Root `launcher:dev` / `launcher:build` / `launcher:test`
+install a **portable** rustup under `.tools/rust/` (gitignored) and do
+not modify the user PATH. GitHub Actions uses `dtolnay/rust-toolchain`
+instead of that wrapper. There is no bare `launcher` npm script.
 
 On Windows, Git's `link` is not the MSVC linker. If VS Build Tools are
 absent, the wrapper uses `windows-gnu` plus MinGW `gcc` (for example
@@ -92,7 +93,9 @@ npm run launcher:build
 ```
 
 Output: `launcher/target/release/langflower-launcher.exe` (Windows)
-or `langflower-launcher` (macOS/Linux).
+or `langflower-launcher` (macOS/Linux). On macOS, wrap the binary in
+`Langflower.app` with `npm run launcher:package` (writes
+`launcher/dist/Langflower.app`).
 
 ## Layout
 

@@ -28,7 +28,7 @@ const invoke = async (
 	const fenceRoot =
 		resolveFenceRoot(ctx.projectRoot, searchRoot, ctx.allowedRoots) ??
 		path.resolve(ctx.projectRoot);
-	const files = await walkFiles(fenceRoot, searchRoot, respectGitignore);
+	const files = await walkFiles(fenceRoot, searchRoot, { respectGitignore });
 	const regex = globToRegExp(pattern.replace(/\\/g, '/'));
 	const searchRel = path
 		.relative(fenceRoot, searchRoot)

@@ -1,6 +1,5 @@
 import type { ToolHandle } from '@langflower/node-sdk';
 import type { SteerControlPayload } from '@langflower/node-sdk/llm';
-import type { Harness } from '@langflower/tools/create-project-harness';
 import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
 import type { PermissionAskRequest } from '@langflower/tools/permission';
 import type { Observable } from 'rxjs';
@@ -8,7 +7,7 @@ import type {
 	ChatCompletionMessage,
 	CreateChatCompletionStream,
 } from '../chat-completion-stream.js';
-import { toChatToolDefinitions } from '../../../tools/inventory-tool-round.js';
+import { toChatToolDefinitions } from './inventory-tool-round.js';
 import type { LlmCompactionConfig } from '../openai/normalize-compaction-params.js';
 import { DISABLED_COMPACTION_CONFIG } from '../openai/normalize-compaction-params.js';
 import {
@@ -53,7 +52,6 @@ export const runAgentLoop = (args: {
 	readonly messages: readonly ChatCompletionMessage[];
 	readonly tools: readonly ToolHandle[];
 	readonly getTools?: () => readonly ToolHandle[];
-	readonly harness?: Harness;
 	readonly toolCtx?: ToolHandlerContext;
 	readonly maxIterations: number;
 	readonly compaction?: LlmCompactionConfig;
@@ -75,7 +73,6 @@ export const runAgentLoop = (args: {
 		compaction: args.compaction ?? DISABLED_COMPACTION_CONFIG,
 		recovery: args.recovery ?? DEFAULT_LLM_RECOVERY_POLICY,
 		policy: AGENT_LOOP_POLICY,
-		...(args.harness !== undefined ? { harness: args.harness } : {}),
 		...(args.toolCtx !== undefined ? { toolCtx: args.toolCtx } : {}),
 		...(args.requestPermission !== undefined
 			? { requestPermission: args.requestPermission }

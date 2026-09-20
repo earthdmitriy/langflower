@@ -651,4 +651,76 @@ describe('LangflowerConfigService', () => {
 			NEW: 'three',
 		});
 	});
+
+	it('setCurrentWorkflowId writes defaults when the project file is missing', async () => {
+		const written = await service.setCurrentWorkflowId('example');
+		expect(written.ok).toBe(true);
+		if (written.ok) {
+			expect(written.config).toEqual({ currentWorkflowId: 'example' });
+		}
+
+		await expect(service.read()).resolves.toEqual({
+			currentWorkflowId: 'example',
+		});
+	});
+
+	it('setCurrentWorkflowId does not overwrite a corrupt project file', async () => {
+		const configPath = path.join(
+			projectDir,
+			'.langflower',
+			'langflower.jsonc',
+		);
+		const corrupt = '{ "model": "keep-me",\n';
+		await fs.mkdir(path.dirname(configPath), { recursive: true });
+		await fs.writeFile(configPath, corrupt, 'utf8');
+
+		const written = await service.setCurrentWorkflowId('example');
+		expect(written.ok).toBe(false);
+		if (!written.ok) {
+			expect(written.code).toBe('INVALID');
+			expect(written.message.length).toBeGreaterThan(0);
+		}
+
+		expect(await fs.readFile(configPath, 'utf8')).toBe(corrupt);
+	});
+
+	it('writeSettings does not overwrite a corrupt project file', async () => {
+		const configPath = path.join(
+			projectDir,
+			'.langflower',
+			'langflower.jsonc',
+		);
+		const corrupt = '{ "provider": { "openai": \n';
+		await fs.mkdir(path.dirname(configPath), { recursive: true });
+		await fs.writeFile(configPath, corrupt, 'utf8');
+
+		const written = await service.writeSettings({
+			scope: 'project',
+			model: 'openai/gpt-4o-mini',
+		});
+		expect(written.ok).toBe(false);
+		if (!written.ok) {
+			expect(written.code).toBe('INVALID');
+			expect(written.message.length).toBeGreaterThan(0);
+		}
+
+		expect(await fs.readFile(configPath, 'utf8')).toBe(corrupt);
+	});
+
+	it('writeSecrets does not overwrite a corrupt secrets file', async () => {
+		const secretsPath = service.secretsPath();
+		const corrupt = '{ "API_TOKEN": "keep-me",\n';
+		await fs.mkdir(path.dirname(secretsPath), { recursive: true });
+		await fs.writeFile(secretsPath, corrupt, 'utf8');
+
+		const written = await service.writeSecrets({
+			secretValues: { API_TOKEN: 'new-secret' },
+		});
+		expect(written.ok).toBe(false);
+		if (!written.ok) {
+			expect(written.code).toBe('INVALID');
+		}
+
+		expect(await fs.readFile(secretsPath, 'utf8')).toBe(corrupt);
+	});
 });

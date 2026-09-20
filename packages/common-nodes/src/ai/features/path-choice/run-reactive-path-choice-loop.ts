@@ -1,6 +1,5 @@
 import type { ToolHandle } from '@langflower/node-sdk';
 import type { SteerControlPayload } from '@langflower/node-sdk/llm';
-import type { Harness } from '@langflower/tools/create-project-harness';
 import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
 import type { Observable } from 'rxjs';
 import type {
@@ -10,7 +9,7 @@ import type {
 import {
 	parseToolArgs,
 	toChatToolDefinitions,
-} from '../../../tools/inventory-tool-round.js';
+} from '../llm-loop/inventory-tool-round.js';
 import type { LlmCompactionConfig } from '../openai/normalize-compaction-params.js';
 import { DISABLED_COMPACTION_CONFIG } from '../openai/normalize-compaction-params.js';
 import {
@@ -121,7 +120,7 @@ export const runPathChoiceToolLoop = (args: {
 	readonly messages: readonly ChatCompletionMessage[];
 	readonly maxIterations: number;
 	readonly tools?: readonly ToolHandle[];
-	readonly harness?: Harness;
+	readonly getTools?: () => readonly ToolHandle[];
 	readonly toolCtx?: ToolHandlerContext;
 	readonly compaction?: LlmCompactionConfig;
 	readonly recovery?: LlmRecoveryPolicy;
@@ -137,10 +136,10 @@ export const runPathChoiceToolLoop = (args: {
 		maxIterations: args.maxIterations,
 		inventoryTools: inventory,
 		chatTools: [...REVIEW_CHAT_TOOLS, ...toChatToolDefinitions(inventory)],
+		...(args.getTools !== undefined ? { getTools: args.getTools } : {}),
 		compaction: args.compaction ?? DISABLED_COMPACTION_CONFIG,
 		recovery: args.recovery ?? DEFAULT_LLM_RECOVERY_POLICY,
 		policy: PATH_CHOICE_POLICY,
-		...(args.harness !== undefined ? { harness: args.harness } : {}),
 		...(args.toolCtx !== undefined ? { toolCtx: args.toolCtx } : {}),
 		...(args.steerControl$ !== undefined
 			? { steerControl$: args.steerControl$ }

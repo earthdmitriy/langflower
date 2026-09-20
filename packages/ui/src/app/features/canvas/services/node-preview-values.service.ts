@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import type { RunId } from '@langflower/runtime';
 import { isPortValueTelemetry } from '@langflower/runtime';
-import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
+import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap';
 import { merge } from 'rxjs';
 import { distinctUntilChanged, filter, map, scan, skip } from 'rxjs/operators';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
@@ -14,7 +14,6 @@ type PreviewAction =
 	  }
 	| {
 			readonly type: 'input';
-			readonly runId: RunId;
 			readonly nodeId: string;
 			readonly portId: string;
 			readonly value: unknown;
@@ -64,7 +63,6 @@ export class NodePreviewValuesService {
 				),
 				map((event): PreviewAction => ({
 					type: 'input',
-					runId: '' as RunId,
 					nodeId: String(event[1]),
 					portId: event[2],
 					value: event[3].value,
@@ -95,17 +93,14 @@ export class NodePreviewValuesService {
 					return emptyPreviewState;
 				}
 				if (action.type === 'reset') {
-					if (action.runId === state.runId) {
-						return state;
-					}
-					return { map: new Map(), runId: action.runId };
+					return adoptPreviewRunId(action.runId, state);
 				}
 				const next = new Map(state.map);
 				next.set(
 					previewKey(action.nodeId, action.portId),
 					action.value,
 				);
-				return { map: next, runId: state.runId ?? action.runId };
+				return { map: next, runId: state.runId };
 			}, emptyPreviewState),
 			map((state) => state.map),
 		),
@@ -115,23 +110,24 @@ export class NodePreviewValuesService {
 	valueFor(nodeId: string, portId: string): unknown {
 		return this.values().get(previewKey(nodeId, portId));
 	}
-
-	entriesForNode(nodeId: string): ReadonlyMap<string, unknown> {
-		const prefix = `${nodeId}:`;
-		const entries = new Map<string, unknown>();
-
-		for (const [key, value] of this.values()) {
-			if (key.startsWith(prefix)) {
-				entries.set(key.slice(prefix.length), value);
-			}
-		}
-
-		return entries;
-	}
 }
 
 const previewKey = (nodeId: string, portId: string): string =>
 	`${nodeId}:${portId}`;
+
+/** Same adopt as chrome: unknown `null` runId is this run, not a wipe. */
+const adoptPreviewRunId = (
+	runId: RunId,
+	previous: PreviewState,
+): PreviewState => {
+	if (runId === previous.runId) {
+		return previous;
+	}
+	if (previous.runId === null) {
+		return { ...previous, runId };
+	}
+	return { map: new Map(), runId };
+};
 
 const replayPreviewValues = (
 	snapshot: ExecutionFeedSnapshotPayload | null,

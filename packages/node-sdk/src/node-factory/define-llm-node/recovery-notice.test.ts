@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
 	isLlmRecoveryNotice,
 	isLlmRecoverySuspended,
-	recoveryNoticeText,
 	toLlmRecoveryPortValue,
 } from './recovery-notice.js';
 
@@ -45,17 +44,6 @@ describe('recovery-notice', () => {
 				attempt: 1,
 			}),
 		).toBe(false);
-	});
-
-	it('extracts display text', () => {
-		expect(
-			recoveryNoticeText({
-				code: 'suspended',
-				text: 'Paused for Steer',
-			}),
-		).toBe('Paused for Steer');
-		expect(recoveryNoticeText('plain')).toBe('plain');
-		expect(recoveryNoticeText(null)).toBe('');
 	});
 
 	it('forwards additive timing fields onto the port value', () => {

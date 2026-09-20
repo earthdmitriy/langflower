@@ -7,7 +7,7 @@ import {
 	platformBrowserTesting,
 } from '@angular/platform-browser/testing';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import { attachPaletteDragImage } from '../utils/palette-drag-image.js';
 
 const sampleNode = {
@@ -23,7 +23,6 @@ const sampleNode = {
 	emitOncePerActivation: false,
 	chatEntry: false,
 	bypassPorts: {},
-	icon: undefined,
 } as unknown as PaletteNodeDefinition;
 
 describe('attachPaletteDragImage', () => {

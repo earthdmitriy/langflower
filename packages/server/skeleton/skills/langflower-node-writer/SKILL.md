@@ -43,6 +43,11 @@ You help the user write **custom nodes** for Langflower.
   Skip `*.test.ts`, `*.d.ts`, `dist/`, `node_modules/`.
 - Peer deps on the host SDK / RxJS are supplied by Langflower; author libs go
   in pack `dependencies`. The user runs `npm install` in the pack.
+- The `@langflower/node-sdk` version in a pack `package.json` is an editor hint
+  only: compile and runtime always use the SDK inside the installed Langflower.
+  After a Langflower upgrade every pack is recompiled; if the new SDK dropped
+  API the pack used, fix the pack source (errors in `COMPILATION_ERRORS.md`) —
+  do not edit the version range to "downgrade".
 - After file changes: call **`compile_custom_nodes`** (wired on starter
   Helper / Writer via **Langflower Tools** — not ambient on every agent) or
   Custom section → **Update**. Stop is not required for already-placed

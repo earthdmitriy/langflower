@@ -1,6 +1,5 @@
 import { of, firstValueFrom, type Subscription } from 'rxjs';
 import type {
-	ExecutionContext,
 	ReactiveNodeDefinition,
 	ReactiveNodeInstance,
 } from '../node-factory/define-reactive-node/define-reactive-node.js';
@@ -12,9 +11,8 @@ import { createResolveSecret } from '../node-factory/define-reactive-node/resolv
 
 type HarnessUi = readonly UISchemaConstItem[];
 type HarnessInstance = ReactiveNodeInstance<HarnessUi, object>;
-type HarnessContext = ExecutionContext<HarnessUi, object>;
 
-export type NodeHarnessOptions = {
+type NodeHarnessBaseOptions = {
 	readonly projectDir?: string;
 	readonly runId?: string;
 	readonly nodeId?: string;
@@ -24,6 +22,16 @@ export type NodeHarnessOptions = {
 	/** Env map for `env:ID`. Omitted → `process.env`. */
 	readonly env?: Readonly<Record<string, string | undefined>>;
 };
+
+export type NodeHarnessOptions<Caps extends object = Record<string, never>> = [
+	keyof Caps,
+] extends [never]
+	? NodeHarnessBaseOptions & {
+			readonly caps?: Caps;
+		}
+	: NodeHarnessBaseOptions & {
+			readonly caps: Caps;
+		};
 
 export type CollectedPort<T> = {
 	readonly values: readonly T[];
@@ -48,9 +56,9 @@ const missingPort = (kind: 'input' | 'output', portId: string): Error =>
  * Subscribe with `next` or `collect` **before** `send` when the graph can
  * emit synchronously.
  */
-export const createNodeHarness = (
+export const createNodeHarness = <Caps extends object = Record<string, never>>(
 	definition: Pick<ReactiveNodeDefinition, 'getInstance' | 'uiSchema'>,
-	options?: NodeHarnessOptions,
+	options?: NodeHarnessOptions<Caps>,
 ): NodeHarness => {
 	const instance = definition.getInstance();
 	const collectors: Subscription[] = [];
@@ -59,20 +67,23 @@ export const createNodeHarness = (
 		...defaultParamsFromUiSchema(uiSchema),
 		...options?.params,
 	};
+	const base = {
+		projectDir: options?.projectDir ?? '/tmp',
+		runId: options?.runId ?? 'test',
+		nodeId: options?.nodeId ?? 'node-1',
+		params,
+		uiSchema,
+		resolveSecret: createResolveSecret({
+			secrets: options?.secrets ?? {},
+			...(options?.env !== undefined ? { env: options.env } : {}),
+		}),
+	};
+	const ctx =
+		options !== undefined && options.caps !== undefined
+			? { ...base, ...options.caps }
+			: base;
 
-	instance.ctxConnection.connect(
-		of({
-			projectDir: options?.projectDir ?? '/tmp',
-			runId: options?.runId ?? 'test',
-			nodeId: options?.nodeId ?? 'node-1',
-			params,
-			uiSchema,
-			resolveSecret: createResolveSecret({
-				secrets: options?.secrets ?? {},
-				...(options?.env !== undefined ? { env: options.env } : {}),
-			}),
-		} as HarnessContext),
-	);
+	instance.ctxConnection.connect(of(ctx));
 
 	const send = (portId: string, value: unknown): void => {
 		const input = instance.inputs[portId];

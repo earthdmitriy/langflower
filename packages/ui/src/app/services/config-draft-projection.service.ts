@@ -8,13 +8,13 @@ import type {
 	LangflowerConfigDraftSnapshotPayload,
 	LangflowerConfigScope,
 	ProviderConnectionStatus,
-	SettingsDraft,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-config';
 import {
 	configToDraft,
 	providerConnectionKey,
 	redactDraftSecrets,
-} from '@langflower/shared/langflower';
+	type SettingsDraft,
+} from '@langflower/shared/langflower-config/settings-draft';
 import { map, shareReplay, startWith } from 'rxjs';
 import { LangflowerBridgeService } from './langflower-bridge.service';
 
@@ -43,11 +43,9 @@ export class ConfigDraftProjectionService {
 		initialValue: EMPTY_SNAPSHOT,
 	});
 
-	readonly draft = computed(() => this.snapshot().draft as SettingsDraft);
+	readonly draft = computed(() => this.snapshot().draft);
 
-	readonly baseline = computed(
-		() => this.snapshot().baseline as SettingsDraft,
-	);
+	readonly baseline = computed(() => this.snapshot().baseline);
 
 	readonly dirty = computed(() => this.snapshot().dirty);
 
@@ -61,8 +59,12 @@ export class ConfigDraftProjectionService {
 	);
 
 	connectionFor(index: number): ProviderConnectionStatus {
+		const row = this.draft().providers[index];
+		if (row === undefined) {
+			return { state: 'idle' };
+		}
 		return (
-			this.connections()[providerConnectionKey(index)] ?? {
+			this.connections()[providerConnectionKey(row)] ?? {
 				state: 'idle',
 			}
 		);

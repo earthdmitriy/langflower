@@ -103,7 +103,11 @@ describe('ExecutionFeedService unmarked inputs', () => {
 		harness.raw.runnerPort$.next(
 			inputEvent('agent', 'prompt', undefined, { state: 'pending' }),
 		);
-		harness.raw.runnerPort$.next(inputEvent('agent', 'prompt', 'ready'));
+		harness.raw.runnerPort$.next(
+			inputEvent('agent', 'prompt', 'ready', {
+				feed: { role: 'result' },
+			}),
+		);
 
 		const items = await readItems(harness.latestNodes()[0]!, 'prompt');
 		expect(items.map((item) => item.value)).toEqual(['ready']);
@@ -192,8 +196,12 @@ describe('ExecutionFeedService unmarked inputs', () => {
 		]);
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ agent: 'agent' }, [agent]);
-		harness.raw.runnerPort$.next(inputEvent('agent', 'a', 'A'));
-		harness.raw.runnerPort$.next(inputEvent('agent', 'b', 'B'));
+		harness.raw.runnerPort$.next(
+			inputEvent('agent', 'a', 'A', { feed: { role: 'result' } }),
+		);
+		harness.raw.runnerPort$.next(
+			inputEvent('agent', 'b', 'B', { feed: { role: 'result' } }),
+		);
 
 		const visit = harness.latestNodes()[0]!;
 		expect(await readPortIds(visit)).toEqual(['a', 'b']);
@@ -210,5 +218,22 @@ describe('ExecutionFeedService unmarked inputs', () => {
 		harness.raw.runnerPort$.next(inputEvent('agent', 'prompt', 'hello'));
 
 		expect(harness.latestNodes()).toEqual([]);
+	});
+
+	it('renders an input frame that declares feed result', async () => {
+		const harness = createExecutionFeedHarness();
+		harness.seedCatalog({ agent: 'agent' }, []);
+		harness.raw.runnerPort$.next(
+			inputEvent('agent', 'prompt', 'ready', {
+				feed: { role: 'result' },
+			}),
+		);
+
+		const visit = harness.latestNodes()[0]!;
+		expect(await readPortIds(visit)).toEqual(['prompt']);
+		expect((await readItems(visit, 'prompt'))[0]?.value).toBe('ready');
+		expect((await readItems(visit, 'prompt'))[0]?.meta).toEqual(
+			expect.objectContaining({ presentation: 'result' }),
+		);
 	});
 });

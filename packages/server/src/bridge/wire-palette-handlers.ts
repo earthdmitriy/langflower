@@ -13,6 +13,6 @@ export const wirePaletteHandlers = (
 			return;
 		}
 
-		const result = await context.paletteService.reload(context.projectDir);
+		const result = await context.paletteService.reload();
 		bridgeEmit(bridge, 'palette.snapshot', result.payload);
 	});

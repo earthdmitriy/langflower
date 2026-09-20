@@ -2,12 +2,14 @@ import type { RunId, RuntimeRunnerStatus } from '@langflower/runtime';
 import { RuntimeFacade } from '@langflower/runtime';
 import type {
 	DividerPositions,
-	EditorSettingsSnapshotPayload,
 	ExecutionFeedSnapshotPayload,
+} from '@langflower/shared/types/langflower-bootstrap.js';
+import type { EditorSettingsSnapshotPayload } from '@langflower/shared/types/langflower-editor.js';
+import type {
 	WorkflowCurrentStatus,
 	WorkflowLoadedPayload,
-} from '@langflower/shared/langflower.js';
-import { deriveExecutionProgressStatus } from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-workflow.js';
+import { deriveExecutionProgressStatus } from '@langflower/shared/execution/derive-run-settle-outcome.js';
 import { Subscription } from 'rxjs';
 import { PendingAskUserAsks } from '../harness/pending-ask-user-asks.js';
 import { PendingPermissionAsks } from '../harness/pending-permission-asks.js';

@@ -66,16 +66,29 @@ export const createSystemMcpHandles = async (options: {
 		}
 	};
 
+	const recordSkip = (serverId: string, message: string): void => {
+		failures.push({
+			serverId,
+			message: formatMcpConnectError(new Error(message), {
+				nodeId: serverId,
+				kind: 'system',
+				target: serverId,
+			}).message,
+		});
+	};
+
 	for (const rawId of options.serverIds) {
 		const id = rawId.trim();
 
 		if (!isValidMcpServerId(id)) {
+			recordSkip(rawId.trim() || rawId, 'invalid server id');
 			continue;
 		}
 
 		const entry = options.servers[id];
 
 		if (entry === undefined) {
+			recordSkip(id, 'server is not in config');
 			continue;
 		}
 
@@ -84,6 +97,7 @@ export const createSystemMcpHandles = async (options: {
 				const command = entry.command.trim();
 
 				if (command.length === 0) {
+					recordSkip(id, 'empty stdio command');
 					continue;
 				}
 
@@ -108,6 +122,7 @@ export const createSystemMcpHandles = async (options: {
 			const url = entry.url.trim();
 
 			if (url.length === 0) {
+				recordSkip(id, 'empty http url');
 				continue;
 			}
 

@@ -3,7 +3,23 @@ export type SwitchRule = {
 	readonly output: string;
 };
 
-export function parseSwitchRules(rules: unknown): readonly SwitchRule[] {
+const isSwitchRuleEntry = (
+	entry: unknown,
+): entry is { readonly match: string; readonly output: string } => {
+	if (typeof entry !== 'object' || entry === null) {
+		return false;
+	}
+
+	const record = entry as Record<string, unknown>;
+	return (
+		typeof record['match'] === 'string' &&
+		record['match'].length > 0 &&
+		typeof record['output'] === 'string' &&
+		record['output'].length > 0
+	);
+};
+
+export const parseSwitchRules = (rules: unknown): readonly SwitchRule[] => {
 	if (!Array.isArray(rules)) {
 		return [];
 	}
@@ -11,33 +27,22 @@ export function parseSwitchRules(rules: unknown): readonly SwitchRule[] {
 	const parsed: SwitchRule[] = [];
 
 	for (const entry of rules) {
-		if (typeof entry !== 'object' || entry === null) {
+		if (!isSwitchRuleEntry(entry)) {
 			continue;
 		}
 
-		const match = (entry as { match?: unknown }).match;
-		const output = (entry as { output?: unknown }).output;
-
-		if (typeof match !== 'string' || typeof output !== 'string') {
-			continue;
-		}
-
-		if (match.length === 0 || output.length === 0) {
-			continue;
-		}
-
-		parsed.push({ match, output });
+		parsed.push({ match: entry.match, output: entry.output });
 	}
 
 	return parsed;
-}
+};
 
-export function resolveSwitchOutput(
+export const resolveSwitchOutput = (
 	value: string,
 	rules: readonly SwitchRule[],
 	matchMode: 'equals' | 'regex',
 	defaultOutput?: string,
-): string | undefined {
+): string | undefined => {
 	for (const rule of rules) {
 		const matched =
 			matchMode === 'regex'
@@ -54,12 +59,12 @@ export function resolveSwitchOutput(
 	}
 
 	return undefined;
-}
+};
 
-function matchesRegex(value: string, pattern: string): boolean {
+const matchesRegex = (value: string, pattern: string): boolean => {
 	try {
 		return new RegExp(pattern).test(value);
 	} catch {
 		return false;
 	}
-}
+};

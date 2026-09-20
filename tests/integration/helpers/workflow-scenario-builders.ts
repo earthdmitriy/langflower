@@ -1,11 +1,11 @@
 import type { RuntimeEdge } from '@langflower/runtime';
+import type { EditorAddNodeRequestedPayload } from '@langflower/shared/types/langflower-editor.js';
 import type {
-	EditorAddNodeRequestedPayload,
 	WorkflowMetadata,
 	WorkflowNodePersisted,
 	WorkflowNodeUiState,
 	WorkflowSavePayload,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-workflow.js';
 
 const BASE_TIME = '2026-06-16T00:00:00.000Z';
 
@@ -297,18 +297,63 @@ export const mergeNode = (
 	};
 };
 
+const HARNESS_BUILTIN_TOOL_IDS = [
+	'read',
+	'glob',
+	'grep',
+	'edit',
+	'write',
+	'create',
+	'delete',
+	'move',
+	'sleep',
+	'bash',
+	'ask_user',
+] as const;
+
+type ToolPermissionDecision = 'allow' | 'ask' | 'deny';
+
+/** Fixture map: listed tools allow (bash/delete ask); others deny. */
+export const toolPermissionsFromEnabledIds = (
+	allowedToolIds: readonly string[],
+): Readonly<Record<string, ToolPermissionDecision>> => {
+	const allowed = new Set(allowedToolIds);
+	const next: Record<string, ToolPermissionDecision> = {};
+
+	for (const id of HARNESS_BUILTIN_TOOL_IDS) {
+		if (!allowed.has(id)) {
+			next[id] = 'deny';
+			continue;
+		}
+
+		next[id] =
+			id === 'bash' || id === 'delete' || id === 'move' ? 'ask' : 'allow';
+	}
+
+	for (const id of allowedToolIds) {
+		if (!(id in next)) {
+			next[id] = 'allow';
+		}
+	}
+
+	return next;
+};
+
 export const fakeLlmNode = (
 	id: string,
 	position: { readonly x: number; readonly y: number },
 	params: {
 		readonly tokenDelayMs?: number;
 		readonly rolePreset?: string;
-		readonly enabledToolIds?: readonly string[];
+		readonly toolPermissions?: Readonly<
+			Record<string, 'allow' | 'ask' | 'deny'>
+		>;
 		readonly maxIterations?: number;
 		readonly maxFeedbackTurns?: number;
 		readonly scriptedToolTurns?: readonly unknown[];
 		readonly providerId?: string;
 		readonly model?: string;
+		readonly toolTimeoutMs?: number;
 	} = {},
 	label = 'Fake LLM',
 ): WorkflowNodePersisted => {
@@ -320,8 +365,8 @@ export const fakeLlmNode = (
 			...(params.rolePreset !== undefined
 				? { rolePreset: params.rolePreset }
 				: {}),
-			...(params.enabledToolIds !== undefined
-				? { enabledToolIds: [...params.enabledToolIds] }
+			...(params.toolPermissions !== undefined
+				? { toolPermissions: { ...params.toolPermissions } }
 				: {}),
 			...(params.maxIterations !== undefined
 				? { maxIterations: params.maxIterations }
@@ -336,6 +381,9 @@ export const fakeLlmNode = (
 				? { providerId: params.providerId }
 				: {}),
 			...(params.model !== undefined ? { model: params.model } : {}),
+			...(params.toolTimeoutMs !== undefined
+				? { toolTimeoutMs: params.toolTimeoutMs }
+				: {}),
 		},
 		inputs: {},
 		ui: ui(position.x, position.y, label),
@@ -364,6 +412,20 @@ export const chatInputNode = (
 	return {
 		id,
 		type: 'common-chat-input',
+		params: {},
+		inputs: {},
+		ui: ui(position.x, position.y, label),
+	};
+};
+
+export const chatLoopNode = (
+	id: string,
+	position: { readonly x: number; readonly y: number },
+	label = 'Chat Loop',
+): WorkflowNodePersisted => {
+	return {
+		id,
+		type: 'common-chat-loop',
 		params: {},
 		inputs: {},
 		ui: ui(position.x, position.y, label),

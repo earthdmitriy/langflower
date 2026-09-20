@@ -22,8 +22,8 @@ the user names a different epic or stop condition.
 2. **Epic file is the contract** — Goal / In scope / Out of scope / Acceptance
    criteria. Do not invent scope. Prefer AskQuestion when AC or product intent
    is ambiguous ([AGENTS.md](../../../AGENTS.md) § When stuck).
-3. **Principles are the review bar** — [PRINCIPLES.md](../../../docs/PRINCIPLES.md),
-   [REACTIVITY.md](../../../docs/REACTIVITY.md), thin server, no barrels, no
+3. **Principles are the review bar** — [PRINCIPLES.md](../../../docs/architecture/PRINCIPLES.md),
+   [REACTIVITY.md](../../../docs/architecture/REACTIVITY.md), thin server, no barrels, no
    glue adapters without ADR, delete dead code.
 4. **Verify before DONE** —
    `node build/tools/agent-run.mjs verify` (or epic’s stated gate). Then

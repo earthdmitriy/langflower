@@ -101,32 +101,47 @@ function connectSocket(url: string): WsBridgeSocket {
 	};
 }
 
-function resolveClientUrl(
+const resolveClientUrl = (
 	config: WsBridgeConfig,
 	options: CreateClientOptions,
-): string {
+): string => {
 	if (options.url !== undefined) {
 		return options.url;
 	}
 
-	const path = config.transport?.path ?? '/ws';
+	const path = config.transport?.path;
 
 	if (typeof globalThis.window !== 'undefined') {
+		if (path === undefined) {
+			throw new Error(
+				'createClient: omit options.url only when ' +
+					'config.transport.path is set (browser uses ' +
+					'window.location.host).',
+			);
+		}
+
 		const protocol =
 			globalThis.window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
 		return `${protocol}//${globalThis.window.location.host}${path}`;
 	}
 
-	const port = config.transport?.port ?? 4010;
+	const port = config.transport?.port;
+	if (port === undefined || path === undefined) {
+		throw new Error(
+			'createClient: Node requires options.url, or both ' +
+				'config.transport.port and config.transport.path. ' +
+				'The kernel does not default to a product port or /ws.',
+		);
+	}
 
-	return `ws://127.0.0.1:${port}${path}`;
-}
+	return `ws://127.0.0.1:${String(port)}${path}`;
+};
 
-export function createClient<C extends WsBridgeConfig>(
+export const createClient = <C extends WsBridgeConfig>(
 	config: C,
 	options: CreateClientOptions = {},
-): WsBridgeClientApi<C> {
+): WsBridgeClientApi<C> => {
 	const codec: WsBridgeCodec = config.codec ?? defaultWsBridgeCodec;
 	const url = resolveClientUrl(config, options);
 
@@ -234,4 +249,4 @@ export function createClient<C extends WsBridgeConfig>(
 		outgoingSubjects,
 		inboundObservables,
 	) as WsBridgeClientApi<C>;
-}
+};

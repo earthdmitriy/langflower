@@ -1,5 +1,5 @@
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
-import type { WorkflowPersistedGraph } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
+import type { WorkflowPersistedGraph } from '@langflower/shared/types/langflower-workflow';
 
 /**
  * Undirected weakly-connected components on a persisted workflow graph —

@@ -1,4 +1,4 @@
-import type { WorkflowLoadedPayload } from '@langflower/shared/langflower.js';
+import type { WorkflowLoadedPayload } from '@langflower/shared/types/langflower-workflow.js';
 import { describe, expect, it } from 'vitest';
 import { LangflowerSession } from '../session/langflower-session.js';
 import { buildSaveCurrentPayload } from './build-save-current-payload.js';

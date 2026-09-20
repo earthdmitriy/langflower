@@ -8,13 +8,13 @@ import type {
 	LangflowerConfigSaveRequestedPayload,
 	LangflowerConfigScope,
 	ProviderConnectionStatus,
-	SettingsDraft,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-config.js';
+import type { SettingsDraft } from '@langflower/shared/langflower-config/settings-draft.js';
 import {
 	draftToSavePayload,
-	mergeLangflowerConfigLayers,
 	secretsDraftFromIds,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/langflower-config/settings-draft.js';
+import { mergeLangflowerConfigLayers } from '@langflower/shared/langflower-config/merge-langflower-config-layers.js';
 import { resolveDraftProviderCredentials } from '../config/resolve-draft-provider-credentials.js';
 import type { ServerContext } from '../server-context.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
@@ -329,7 +329,7 @@ export const createSettingsDraftController = (
 			state?.draft,
 		);
 
-		const layers = await context.langflowerConfigService.writeSettings({
+		const written = await context.langflowerConfigService.writeSettings({
 			scope: payload.scope,
 			...(payload.model !== undefined ? { model: payload.model } : {}),
 			...(payload.embedding !== undefined
@@ -344,6 +344,11 @@ export const createSettingsDraftController = (
 				: {}),
 		});
 
+		if (!written.ok) {
+			return null;
+		}
+
+		const layers = written.layers;
 		const layer = layerForScope(layers, scope);
 		const seeded = await seedForScope(scope, layer);
 		setState(scope, seeded);

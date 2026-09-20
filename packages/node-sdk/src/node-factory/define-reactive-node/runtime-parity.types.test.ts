@@ -1,6 +1,6 @@
 /**
  * Contract: SDK port / instance shapes stay structurally aligned with
- * `@langflower/runtime` ([ADR-027](../../../../../docs/ADR.md#adr-027--author-sdk-owns-port-types-no-production-runtime-dep)).
+ * `@langflower/runtime` ([ADR-027](../../../../../docs/architecture/ADR.md#adr-027--author-sdk-owns-port-types-no-production-runtime-dep)).
  * Test-only relative imports.
  */
 import type {

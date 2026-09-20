@@ -1,6 +1,6 @@
 import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
 import { isPortTelemetry } from '@langflower/runtime';
-import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
+import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap';
 import {
 	definitionForNode,
 	type FeedCatalog,

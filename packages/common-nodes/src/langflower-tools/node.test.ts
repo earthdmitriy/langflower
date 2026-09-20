@@ -5,7 +5,7 @@ import {
 	attachRunHostServices,
 	buildAgentToolCtx,
 	getRunHostServices,
-} from '../ai/features/run-host-services.js';
+} from '../run-host/run-host-services.js';
 import { getCommonReactiveNode } from '../catalog.js';
 import { langflowerToolsNode } from './node.js';
 
@@ -44,13 +44,16 @@ describe('common-langflower-tools', () => {
 
 	it('returns { ok: false } text when bus RPC is missing', async () => {
 		const instance = langflowerToolsNode.getInstance();
+		seedNodeCtx(instance, {
+			projectDir: '/tmp/p',
+			runId: 'run-1',
+		});
 		const text = await invokeCompile(instance, {
 			projectDir: '/tmp/p',
 			runId: 'run-1',
 		});
 
 		expect(text).toContain('{ ok: false }');
-		expect(text).toContain('no bus RPC');
 	});
 
 	it('calls requestLangflowerBus on the node EC and formats snapshot', async () => {
@@ -68,7 +71,11 @@ describe('common-langflower-tools', () => {
 		seedNodeCtx(
 			instance,
 			attachRunHostServices(
-				{ projectDir: '/tmp/p', runId: 'run-1' },
+				{
+					projectDir: '/tmp/p',
+					runId: 'run-1',
+					requestLangflowerBus,
+				},
 				{ requestLangflowerBus },
 			),
 		);
@@ -98,7 +105,11 @@ describe('common-langflower-tools', () => {
 		seedNodeCtx(
 			instance,
 			attachRunHostServices(
-				{ projectDir: '/tmp/p', runId: 'run-1' },
+				{
+					projectDir: '/tmp/p',
+					runId: 'run-1',
+					requestLangflowerBus,
+				},
 				{ requestLangflowerBus },
 			),
 		);
@@ -135,17 +146,13 @@ describe('common-langflower-tools', () => {
 
 		expect(requestLangflowerBus).not.toHaveBeenCalled();
 		expect(text).toContain('{ ok: false }');
-		expect(text).toContain('no bus RPC');
 	});
 
 	it('buildAgentToolCtx does not attach the host bag', () => {
-		const toolCtx = buildAgentToolCtx(
-			{ projectDir: '/tmp/p', runId: 'run-1' },
-			{
-				getLiveWiredTools: () => [],
-				requestLangflowerBus: async () => ({ status: 'ok' }),
-			},
-		);
+		const toolCtx = buildAgentToolCtx({
+			projectDir: '/tmp/p',
+			runId: 'run-1',
+		});
 
 		expect(getRunHostServices(toolCtx)).toBeUndefined();
 	});

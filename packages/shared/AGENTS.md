@@ -13,9 +13,12 @@ identity types originate in `@langflower/runtime`; frame transport originates in
 
 ## Entry point
 
-**No `index.ts`** — barrels are forbidden ([PRINCIPLES.md](../../docs/PRINCIPLES.md)).
+**No `index.ts`** — barrels are forbidden ([PRINCIPLES.md](../../docs/architecture/PRINCIPLES.md)).
 Import concrete modules from `src/` by path within the package or via
-`package.json` `exports` when configured.
+`package.json` `exports` (`@langflower/shared/types/langflower-workflow`,
+`@langflower/shared/langflower-config/settings-draft`,
+`@langflower/shared/langflower-bus-config`, …). Do not restore
+`src/langflower.ts`.
 
 ## Dependencies and owners
 
@@ -74,7 +77,10 @@ corresponding `types/` modules.
 
 **WS wait helpers** ([`langflower-ws-waits.ts`](src/langflower-ws-waits.ts)): pure
 RxJS request/wait helpers over a `langflowerWsConfig` client (no filesystem).
-Used by integration tests and `@langflower/mcp`.
+Used by integration tests and `@langflower/mcp`. Workflow intents share one
+internal composer (subscribe → `next` → evidence `filter` → `take(1)`). Save
+waits for pristine active current; delete waits for id-absent list;
+`requestWorkflowLoadSnapshot` is the documented next-emission exception.
 
 ## Layout
 
@@ -88,23 +94,27 @@ src/
 ├── execution/
 │   └── derive-run-settle-outcome.ts  # pure execution terminal-status helpers
 ├── langflower-config/
-│   ├── mcp-tool-id.ts
 │   ├── merge-langflower-config-layers.ts
 │   ├── merge-provider-model-options.ts
+│   ├── parse-default-chat-model.ts
+│   ├── resolve-server-logs-enabled.ts
 │   ├── resolve-ui-schema-options.ts
-│   └── resolve-wired-tool-options.ts
+│   ├── resolve-wired-tool-options.ts
+│   ├── secret-id.ts
+│   └── settings-draft.ts
 ├── types/
 │   ├── config.ts
 │   ├── langflower-bootstrap.ts
 │   ├── langflower-config.ts
+│   ├── langflower-custom-palette.ts
 │   ├── langflower-editor.ts
 │   ├── langflower-palette.ts
+│   ├── langflower-project-bootstrap.ts
 │   ├── langflower-server.ts
 │   ├── langflower-workflow.ts
 │   └── workflow-checkpoint.ts
 ├── langflower-bus-config.ts          # typed internal WS registry
 ├── langflower-ws-waits.ts            # pure request/wait helpers (tests + MCP)
-└── langflower.ts                     # supported aggregate domain surface
 ```
 
 ## Package boundary
@@ -119,10 +129,14 @@ src/
 ## Type safety
 
 - Prefer **utility types** and **type guards** over `as`.
-- Every `as` cast needs a strong, reviewable reason (see [docs/PRINCIPLES.md](../../docs/PRINCIPLES.md)).
+- Every `as` cast needs a strong, reviewable reason (see [docs/architecture/PRINCIPLES.md](../../docs/architecture/PRINCIPLES.md)).
 - **Reuse existing types** — do not add parallel shapes that mirror an exported type.
   Extend with intersection (`OriginalType & { readonly extra: T }`) when a field is
   genuinely local.
+- Exception: DAG-forced twins of tools/compiler contracts stay copies until
+  the DAG flips
+  ([ADR-039](../../docs/architecture/ADR.md#adr-039--dag-forced-twins-stay-copies-until-the-dag-flips)).
+  Do not import tools or compiler from shared to collapse them.
 
 ## Rules
 

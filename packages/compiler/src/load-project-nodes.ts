@@ -15,6 +15,8 @@ import { wipeCacheRoot } from './cache-wipe.js';
 import { HOST_REWRITE_POLICY_ID } from './pack-fingerprint.js';
 
 export type {
+	CompileDiagnostic,
+	CompilePackError,
 	LoadProjectNodesOptions,
 	LoadProjectNodesResult,
 } from './compile-types.js';

@@ -3,14 +3,34 @@
  */
 
 import angular from '@analogjs/vite-plugin-angular';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 
+const resolveSharedSrc = {
+	name: 'langflower-shared-src',
+	resolveId(id) {
+		if (!id.startsWith('@langflower/shared/')) {
+			return undefined;
+		}
+
+		const sub = id.slice('@langflower/shared/'.length).replace(/\.js$/, '');
+		const file = path.join(ROOT, 'packages/shared/src', `${sub}.ts`);
+
+		if (fs.existsSync(file)) {
+			return file;
+		}
+
+		return undefined;
+	},
+};
+
 export default defineConfig({
 	plugins: [
+		resolveSharedSrc,
 		angular({ tsconfig: path.join(ROOT, 'packages/ui/tsconfig.json') }),
 	],
 	resolve: {
@@ -39,9 +59,13 @@ export default defineConfig({
 				ROOT,
 				'packages/common-nodes/src/ai/features/llm-role-preset.ts',
 			),
-			'@langflower/common-nodes/ai/run-host-services': path.join(
+			'@langflower/common-nodes/run-host-services': path.join(
 				ROOT,
-				'packages/common-nodes/src/ai/features/run-host-services.ts',
+				'packages/common-nodes/src/run-host/run-host-services.ts',
+			),
+			'@langflower/common-nodes/ai/llm-run-host': path.join(
+				ROOT,
+				'packages/common-nodes/src/ai/features/llm-run-host.ts',
 			),
 			'@langflower/common-nodes/ai/openai/create-chat-completion-stream':
 				path.join(
@@ -57,17 +81,14 @@ export default defineConfig({
 				ROOT,
 				'packages/common-nodes/src/embeddings/create-embedding.ts',
 			),
+			'@langflower/common-nodes/tools/collect-agent-tool-handles':
+				path.join(
+					ROOT,
+					'packages/common-nodes/src/tools/collect-agent-tool-handles.ts',
+				),
 			'@langflower/common-nodes': path.join(
 				ROOT,
 				'packages/common-nodes/src/catalog.ts',
-			),
-			'@langflower/shared/langflower.js': path.join(
-				ROOT,
-				'packages/shared/dist/langflower.js',
-			),
-			'@langflower/shared/langflower-ws-waits': path.join(
-				ROOT,
-				'packages/shared/dist/langflower-ws-waits.js',
 			),
 			'@langflower/mcp/build-tool-catalog': path.join(
 				ROOT,

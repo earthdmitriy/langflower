@@ -3,11 +3,8 @@ import {
 	TOOL_HANDLE_WIRE_TYPE,
 	type ToolHandler,
 } from '@langflower/node-sdk';
-import { getRunHostServices } from '../ai/features/run-host-services.js';
+import type { CapabilityEditorBus } from '@langflower/node-sdk';
 import { emitRegistrationTools } from './emit-registration-tools.js';
-
-const MISSING_RPC_TEXT =
-	'{ ok: false }\ncompile_custom_nodes unavailable (no bus RPC)';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -66,17 +63,18 @@ const LANGFLOWER_BUS_TOOL_CONFIGS = [
 			additionalProperties: false,
 		},
 		handler: (async (args, ctx) => {
-			const request = getRunHostServices(ctx)?.requestLangflowerBus;
-
-			if (request === undefined) {
-				return MISSING_RPC_TEXT;
-			}
+			const request = (ctx as Record<string, unknown>)[
+				'requestLangflowerBus'
+			];
 
 			const force = isRecord(args) && args.force === true;
 			const payload = force ? { force: true } : {};
 
 			try {
-				const snapshot = await request(
+				if (typeof request !== 'function') {
+					throw new TypeError('request is not a function');
+				}
+				const snapshot = await (request as CapabilityEditorBus)(
 					'customPalette.update.requested',
 					payload,
 				);
@@ -103,6 +101,7 @@ Wire this into an agent so it can recompile custom nodes from chat — same inte
 
 On starter, Helper and Writer already have this wired.
 `.trim(),
+	requires: ['editorBus'] as const,
 	uiSchema: [] as const,
 	bind(ctx, { configureOutput }) {
 		return {

@@ -1,9 +1,47 @@
 /**
- * Incremental MCP stdio frame parser (Content-Length + newline JSON).
- * Kept local to `@langflower/tools` — no dependency on `@langflower/mcp`.
+ * Incremental MCP stdio frame parser (Content-Length CRLF/LF + newline JSON).
+ * Twin of `@langflower/mcp` `mcp-stdio-framing.ts` parse path — tools must
+ * not import mcp in production. Encode / reply-mode echo stays on the mcp
+ * server. Gate: `mcp-stdio-frame-parser.parity.test.ts`. Do not restore
+ * CRLF-only headers.
  */
 
-const HEADER_SEPARATOR = '\r\n\r\n';
+const CRLF_HEADER_END = '\r\n\r\n';
+const LF_HEADER_END = '\n\n';
+
+const findHeaderEnd = (
+	buffer: Buffer,
+): { readonly index: number; readonly separatorLength: number } | null => {
+	const crlf = buffer.indexOf(CRLF_HEADER_END);
+	if (crlf !== -1) {
+		return { index: crlf, separatorLength: CRLF_HEADER_END.length };
+	}
+
+	const lf = buffer.indexOf(LF_HEADER_END);
+	if (lf !== -1) {
+		return { index: lf, separatorLength: LF_HEADER_END.length };
+	}
+
+	return null;
+};
+
+const emitJsonRpcObject = (
+	onMessage: (message: unknown) => void,
+	raw: string,
+): void => {
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		if (
+			parsed !== null &&
+			typeof parsed === 'object' &&
+			!Array.isArray(parsed)
+		) {
+			onMessage(parsed);
+		}
+	} catch {
+		/* ignore malformed body */
+	}
+};
 
 export const createMcpStdioFrameParser = (
 	onMessage: (message: unknown) => void,
@@ -26,12 +64,14 @@ export const createMcpStdioFrameParser = (
 				prefix.startsWith('content-length:');
 
 			if (startsWithContentLength) {
-				const headerEnd = buffer.indexOf(HEADER_SEPARATOR);
-				if (headerEnd === -1) {
+				const headerEnd = findHeaderEnd(buffer);
+				if (headerEnd === null) {
 					return;
 				}
 
-				const header = buffer.subarray(0, headerEnd).toString('utf8');
+				const header = buffer
+					.subarray(0, headerEnd.index)
+					.toString('utf8');
 				const match = /content-length:\s*(\d+)/i.exec(header);
 				if (match === null) {
 					buffer = buffer.subarray(1);
@@ -41,12 +81,12 @@ export const createMcpStdioFrameParser = (
 				const bodyLength = Number(match[1]);
 				if (!Number.isFinite(bodyLength) || bodyLength < 0) {
 					buffer = buffer.subarray(
-						headerEnd + HEADER_SEPARATOR.length,
+						headerEnd.index + headerEnd.separatorLength,
 					);
 					continue;
 				}
 
-				const bodyStart = headerEnd + HEADER_SEPARATOR.length;
+				const bodyStart = headerEnd.index + headerEnd.separatorLength;
 				if (buffer.length < bodyStart + bodyLength) {
 					return;
 				}
@@ -55,12 +95,7 @@ export const createMcpStdioFrameParser = (
 					.subarray(bodyStart, bodyStart + bodyLength)
 					.toString('utf8');
 				buffer = buffer.subarray(bodyStart + bodyLength);
-
-				try {
-					onMessage(JSON.parse(body));
-				} catch {
-					/* ignore malformed body */
-				}
+				emitJsonRpcObject(onMessage, body);
 				continue;
 			}
 
@@ -79,11 +114,7 @@ export const createMcpStdioFrameParser = (
 				continue;
 			}
 
-			try {
-				onMessage(JSON.parse(line));
-			} catch {
-				/* ignore non-JSON lines */
-			}
+			emitJsonRpcObject(onMessage, line);
 		}
 	};
 

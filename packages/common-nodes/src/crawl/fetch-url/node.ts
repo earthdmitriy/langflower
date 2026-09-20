@@ -2,7 +2,6 @@ import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
 import { createWebFetch } from '@langflower/tools/create-web-fetch';
 import { from, map, mergeMap, throwError } from 'rxjs';
 import { htmlToText } from '@langflower/tools/html';
-import { getRunHostServices } from '../../ai/features/run-host-services.js';
 
 type FetchedPage = {
 	readonly html: string;
@@ -11,8 +10,9 @@ type FetchedPage = {
 };
 
 /**
- * HTTP GET a URL via server `ctx.harness.webFetch` (SSRF guards), then extract
- * plain text from HTML.
+ * HTTP GET a URL via `@langflower/tools/create-web-fetch` (SSRF guards), then
+ * extract plain text from HTML. Optional allowlist:
+ * `ec.allowedHosts` (`requires: ['hosts']`).
  *
  * **Use when:** a research branch needs one page’s body without a full BFS crawl.
  *
@@ -25,6 +25,7 @@ export const fetchUrlNode = defineReactiveNode({
 	displayName: 'Fetch URL',
 	category: 'Crawl',
 	paletteSecondary: true,
+	requires: ['hosts'] as const,
 	description: `
 Download a page and get HTML plus readable text.
 
@@ -70,9 +71,8 @@ Typical uses:
 						);
 					}
 
-					const allowedHosts = getRunHostServices(ec)?.allowedHosts;
 					const webFetch = createWebFetch({
-						...(allowedHosts !== undefined ? { allowedHosts } : {}),
+						allowedHosts: ec.allowedHosts,
 					});
 
 					const timeoutMs = Number(ec.params.timeoutMs ?? 30_000);

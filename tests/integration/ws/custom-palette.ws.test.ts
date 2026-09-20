@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { CustomPaletteSnapshotPayload } from '@langflower/shared/langflower.js';
+import type { CustomPaletteSnapshotPayload } from '@langflower/shared/types/langflower-custom-palette.js';
 import { filter, firstValueFrom, take, timeout } from 'rxjs';
 import {
 	createTempProject,

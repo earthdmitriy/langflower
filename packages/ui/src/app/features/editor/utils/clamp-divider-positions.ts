@@ -3,8 +3,8 @@ import {
 	DIVIDER_MIN_LEFT_WIDTH,
 	DIVIDER_MIN_RIGHT_WIDTH,
 	DIVIDER_SANITY_MAX,
-	type DividerPositions,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/constants/defaults';
+import type { DividerPositions } from '@langflower/shared/types/langflower-bootstrap';
 
 /** Each vertical resize handle is Tailwind `w-1` (4px). */
 const DIVIDER_GUTTER_WIDTH_PX = 4;

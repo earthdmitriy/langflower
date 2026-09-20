@@ -2,8 +2,20 @@ import type { BuiltinToolRegistration } from '../harness-types.js';
 
 export type { BuiltinToolRegistration };
 
+export type AskUserQuestion = {
+	readonly id: string;
+	readonly prompt: string;
+	readonly options: readonly {
+		readonly id: string;
+		readonly label: string;
+	}[];
+	readonly allowMultiple: boolean;
+};
+
 export type AskUserRequest = {
 	readonly question: string;
+	/** Empty / omitted for a legacy single-`question` call. */
+	readonly questions?: readonly AskUserQuestion[];
 };
 
 export type HandlerContext = {

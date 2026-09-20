@@ -62,7 +62,7 @@ factory. Details: [packages/node-sdk/AGENTS.md](../packages/node-sdk/AGENTS.md).
 Prefer **`defineNode`** for simple custom nodes; use `defineReactiveNode` when
 you need RxJS streams. Project packs live under
 `.langflower/nodes/<pack>/` (default seed `my-nodes`) — see
-[ADR-030](ADR.md#adr-030--custom-node-pack-layout--npm-model) and
+[ADR-030](architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model) and
 [`packages/server/skeleton/nodes/my-nodes/README.md`](../packages/server/skeleton/nodes/my-nodes/README.md).
 Pack compile is `tsc --noEmit` from that pack’s `tsconfig.json`. If files
 `import` each other with a `.ts` suffix, set `allowImportingTsExtensions`
@@ -362,7 +362,7 @@ metadata; `getInstance()` calls `bind` again to build each live graph. Keep
 - **SDK rules** — [packages/node-sdk/AGENTS.md](../packages/node-sdk/AGENTS.md).
 
 Reactive composition rules (`StatefulObservable`, demand, pure folds, and
-subscription boundaries) live in [REACTIVITY.md](REACTIVITY.md); do not
+subscription boundaries) live in [architecture/REACTIVITY.md](architecture/REACTIVITY.md); do not
 duplicate them in node docs.
 
 ---

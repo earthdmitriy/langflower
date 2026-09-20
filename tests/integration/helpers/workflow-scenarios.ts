@@ -1,12 +1,4 @@
-import type { WorkflowSavePayload } from '@langflower/shared/langflower.js';
-import {
-	agentCoderBashWorkflow,
-	agentPlanAskWorkflow,
-	agentPlanReadWorkflow,
-	agentReviewAcceptWorkflow,
-	agentReviewLoopWorkflow,
-	agentStructuredOutputWorkflow,
-} from './scenarios/agents-mock.js';
+import type { WorkflowSavePayload } from '@langflower/shared/types/langflower-workflow.js';
 import {
 	agentSwarmWorkflow,
 	articleWritingWorkflow,
@@ -20,36 +12,33 @@ import {
 import { evalRegressionGateWorkflow } from './scenarios/eval.js';
 import {
 	adversarialRedTeamWorkflow,
+	fakeLlmAskUserQuestionsWorkflow,
 	fakeLlmAskUserWorkflow,
 	fakeLlmDebateLoopWorkflow,
 	fakeLlmMaxIterationsContinueWorkflow,
+	fakeLlmPermissionAskTimeoutWorkflow,
 	fakeLlmStreamWorkflow,
 	fakeLlmToolsWorkflow,
 } from './scenarios/fake-llm.js';
 import {
+	hitlChatLoopWorkflow,
 	hitlReviewApproveWorkflow,
 	hitlReviewFeedbackWorkflow,
-	llmHitlFeedbackWorkflow,
-	llmHitlOnceWorkflow,
-	simpleHitlPreviewWorkflow,
 } from './scenarios/hitl.js';
 import {
 	bootstrapExampleWorkflow,
 	checkpointResumeWorkflow,
 	delayPreviewWorkflow,
 	hardHarnessAssertIfWorkflow,
-	routerTwoChannelsWorkflow,
 	stringFinishWorkflow,
 	stringPreviewOpenRunWorkflow,
 	stringPreviewWorkflow,
-	throwPreviewWorkflow,
-	tripleEmitWorkflow,
 } from './scenarios/smoke.js';
 
 /**
  * Single composer table: scenario id === factory `workflowId` ===
  * `workflowScenarioById` key === `scenarioReadyById` argument.
- * Catalog gates are derived from each factory's node types.
+ * Every row must use types present in `getCommonReactiveNodeCatalog()`.
  */
 export type WorkflowScenarioComposerEntry = {
 	readonly id: string;
@@ -76,23 +65,9 @@ export const WORKFLOW_SCENARIO_COMPOSER: readonly WorkflowScenarioComposerEntry[
 			id: 'eval-regression-gate-fail',
 			factory: () => evalRegressionGateWorkflow(0.5, 1),
 		},
-		{ id: 'router-two-channels', factory: routerTwoChannelsWorkflow },
-		{ id: 'triple-emit', factory: tripleEmitWorkflow },
-		{ id: 'throw-preview', factory: throwPreviewWorkflow },
-		{ id: 'llm-hitl-once', factory: llmHitlOnceWorkflow },
-		{ id: 'llm-hitl', factory: llmHitlFeedbackWorkflow },
-		{ id: 'simple', factory: simpleHitlPreviewWorkflow },
-		{
-			id: 'agent-structured-output',
-			factory: agentStructuredOutputWorkflow,
-		},
-		{ id: 'agent-review-accept', factory: agentReviewAcceptWorkflow },
-		{ id: 'agent-review-loop', factory: agentReviewLoopWorkflow },
-		{ id: 'agent-plan-read', factory: agentPlanReadWorkflow },
-		{ id: 'agent-plan-ask', factory: agentPlanAskWorkflow },
-		{ id: 'agent-coder-bash', factory: agentCoderBashWorkflow },
 		{ id: 'hitl-review-approve', factory: hitlReviewApproveWorkflow },
 		{ id: 'hitl-review-feedback', factory: hitlReviewFeedbackWorkflow },
+		{ id: 'hitl-chat-loop', factory: hitlChatLoopWorkflow },
 		{ id: 'fake-llm-stream', factory: fakeLlmStreamWorkflow },
 		{ id: 'fake-llm-tools', factory: fakeLlmToolsWorkflow },
 		{ id: 'fake-llm-debate-loop', factory: fakeLlmDebateLoopWorkflow },
@@ -101,6 +76,14 @@ export const WORKFLOW_SCENARIO_COMPOSER: readonly WorkflowScenarioComposerEntry[
 			factory: fakeLlmMaxIterationsContinueWorkflow,
 		},
 		{ id: 'fake-llm-ask-user', factory: fakeLlmAskUserWorkflow },
+		{
+			id: 'fake-llm-ask-user-questions',
+			factory: fakeLlmAskUserQuestionsWorkflow,
+		},
+		{
+			id: 'fake-llm-permission-ask-timeout',
+			factory: fakeLlmPermissionAskTimeoutWorkflow,
+		},
 		{ id: 'adversarial-red-team', factory: adversarialRedTeamWorkflow },
 		{ id: 'prompt-refining', factory: promptRefiningWorkflow },
 		{ id: 'article-writing', factory: articleWritingWorkflow },

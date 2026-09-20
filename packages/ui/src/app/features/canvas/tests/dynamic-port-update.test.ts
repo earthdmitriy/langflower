@@ -8,10 +8,8 @@ import {
 	platformBrowserTesting,
 } from '@angular/platform-browser/testing';
 import type { EdgeId, NodeId, RuntimeEdge } from '@langflower/runtime';
-import type {
-	PaletteNodeDefinition,
-	WorkflowNodePersisted,
-} from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
+import type { WorkflowNodePersisted } from '@langflower/shared/types/langflower-workflow';
 import {
 	initializeModel,
 	NgDiagramComponent,
@@ -25,7 +23,7 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
 	persistedEdgeToDiagram,
 	persistedNodeToDiagram,
-} from '../../../services/bridge-diagram.service';
+} from '../../../services/bridge-diagram';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { LfNodeComponent } from '../components/lf-node.component';
 

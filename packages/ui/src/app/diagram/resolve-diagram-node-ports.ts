@@ -1,5 +1,5 @@
 import type { InlineConfig } from '@langflower/node-sdk';
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import type { Edge } from 'ng-diagram';
 import {
 	fromInputPortId,
@@ -60,12 +60,17 @@ export type PortsConfig = {
 	readonly bypassPorts: Record<string, string | symbol>;
 };
 
-function isHidden(value: { readonly hidden?: boolean } | undefined): boolean {
-	return value?.hidden === true;
-}
+const isHidden = (
+	value:
+		| {
+				readonly hidden?: boolean;
+		  }
+		| undefined,
+): boolean => value?.hidden === true;
 
-function isEditableInline(inline: unknown): boolean {
-	if (inline === undefined) {
+/** True when the port's inline control is an author-time editor (not a live preview). */
+export const isEditableInline = (inline: unknown): boolean => {
+	if (inline === undefined || inline === null) {
 		return false;
 	}
 
@@ -73,13 +78,13 @@ function isEditableInline(inline: unknown): boolean {
 		return !inline.startsWith('preview');
 	}
 
-	if (typeof inline === 'object' && inline !== null && 'type' in inline) {
-		const type = (inline as { readonly type: unknown }).type;
-		return typeof type === 'string' && !type.startsWith('preview');
+	if (typeof inline !== 'object' || !('type' in inline)) {
+		return true;
 	}
 
-	return true;
-}
+	const type = inline.type;
+	return typeof type === 'string' && !type.startsWith('preview');
+};
 
 function isVisibleOutputPort(entry: {
 	readonly portId?: string | symbol;

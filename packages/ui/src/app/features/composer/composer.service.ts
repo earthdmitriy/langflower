@@ -1,34 +1,39 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import type { HitlInputConfig } from '@langflower/node-sdk';
 import { STEER_CONTROL_PORT_ID } from '@langflower/node-sdk/llm';
 import type { NodeId, PortTelemetry, RunId } from '@langflower/runtime';
 import { isPortTelemetry, isPortValueTelemetry } from '@langflower/runtime';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import type {
-	PaletteNodeDefinition,
 	RunnerAskUserAskPayload,
 	RunnerPermissionAskPayload,
-} from '@langflower/shared/langflower';
-import { combineLatest, EMPTY, merge, Subject, type Observable } from 'rxjs';
-import { filter, map, shareReplay, startWith } from 'rxjs/operators';
-import { paletteByType as paletteNodesByType } from '../../services/bridge-diagram.service';
+} from '@langflower/shared/types/langflower-config';
+import { EMPTY, merge, Subject, type Observable } from 'rxjs';
+import { filter, map, scan, shareReplay, startWith } from 'rxjs/operators';
+import { paletteByType as paletteNodesByType } from '../../services/execution-catalog';
 import { chatEntryNodeIdsInGraph } from '../../services/chat-entry-clusters';
 import {
 	definitionForNode,
+	mergedPaletteFromSnapshots$,
 	nodeTypeByIdFromWorkflow,
 } from '../../services/execution-catalog';
-import type { OutputPortTelemetry } from '../../services/execution-chrome-fold';
+import type {
+	InputPortTelemetry,
+	OutputPortTelemetry,
+} from '../../services/execution-chrome-fold';
 import {
 	hitlControlsForNode,
 	type HitlControlProjection,
 } from '../../services/hitl-projection';
 import { LangflowerBridgeService } from '../../services/langflower-bridge.service';
 import { WorkflowExecutionService } from '../../services/workflow-execution.service';
-import { isQuietSince, QUIET_AFTER_MS } from '../sidebar/liveness';
+import { isQuietSince, QUIET_AFTER_MS } from './liveness';
 import {
-	emptyCustomPaletteSnapshot,
-	mergePaletteCatalogs,
-} from '../palette/types/palette-projection';
+	foldComposerDrafts,
+	initialComposerDraftsState,
+	type ComposerDraftsAction,
+} from './composer-drafts-fold';
 import { ExecutionFeedService } from '../feed-folding/execution-feed.service';
 import { createHitlTriggeredNodes$ } from './execution-hitl-fold';
 import { createPendingAskUserAsks$ } from './execution-ask-user-fold';
@@ -45,12 +50,6 @@ export const ASK_USER_TEXTAREA_CONFIG: HitlInputConfig = {
 	placeholder: 'Reply to the agent…',
 };
 
-type InputPortTelemetry = PortTelemetry & {
-	readonly 0: 'in';
-	readonly 2: string;
-	readonly 3: { readonly value: unknown };
-};
-
 /**
  * Composer HITL: tabs, drafts, Chat Input `node.inputs`, permissions, Pause.
  * Cross-feature run gate / live graph stay on {@link WorkflowExecutionService}.
@@ -61,15 +60,11 @@ export class ComposerService {
 	private readonly execution = inject(WorkflowExecutionService);
 	private readonly executionFeed = inject(ExecutionFeedService);
 
-	private readonly paletteSnapshot$ = combineLatest([
+	/** Wait for real system + custom snapshots — no empty custom startWith. */
+	private readonly paletteSnapshot$ = mergedPaletteFromSnapshots$(
 		this.bridge.cached['palette.snapshot'],
-		this.bridge.cached['customPalette.snapshot'].pipe(
-			startWith(emptyCustomPaletteSnapshot),
-		),
-	]).pipe(
-		map(([system, custom]) => mergePaletteCatalogs(system, custom)),
-		shareReplay(1),
-	);
+		this.bridge.cached['customPalette.snapshot'],
+	).pipe(shareReplay(1));
 	private readonly workflowSnapshot$ =
 		this.bridge.cached['workflow.current.snapshot'];
 	private readonly executionFeedSnapshot$ =
@@ -107,7 +102,6 @@ export class ComposerService {
 
 	private readonly paletteByType$ = this.paletteSnapshot$.pipe(
 		map((snap) => paletteNodesByType(snap.nodes)),
-		startWith(new Map<string, PaletteNodeDefinition>()),
 		shareReplay(1),
 	);
 	private readonly nodeTypeById$ = this.workflowSnapshot$.pipe(
@@ -122,10 +116,29 @@ export class ComposerService {
 		initialValue: new Map<string, string>(),
 	});
 
-	private readonly chatStartPending = signal(false);
+	private readonly draftActions$ = new Subject<ComposerDraftsAction>();
+
+	private readonly draftState$ = merge(
+		merge(this.runnerDone$, this.runnerInterrupted$).pipe(
+			map((): ComposerDraftsAction => ({ type: 'runnerSettled' })),
+		),
+		this.execution.isRunning$.pipe(
+			filter((running) => running),
+			map((): ComposerDraftsAction => ({ type: 'runStarted' })),
+		),
+		this.draftActions$,
+	).pipe(
+		scan(foldComposerDrafts, initialComposerDraftsState),
+		startWith(initialComposerDraftsState),
+		shareReplay(1),
+	);
+
+	private readonly draftState = toSignal(this.draftState$, {
+		initialValue: initialComposerDraftsState,
+	});
 
 	readonly idleChatEntryNodeIds = computed(() => {
-		if (this.execution.isRunning() || this.chatStartPending()) {
+		if (this.execution.isRunning() || this.draftState().chatStartPending) {
 			return [] as readonly string[];
 		}
 		const graph = this.execution.activeGraph();
@@ -160,10 +173,6 @@ export class ComposerService {
 		initialValue: new Set<string>(),
 	});
 
-	private readonly hitlDrafts = signal<ReadonlyMap<string, string>>(
-		new Map(),
-	);
-
 	private readonly pendingPermissionAsks$ = createPendingPermissionAsks$({
 		permissionAsk$: this.permissionAsk$,
 		permissionAccepted$: this.permissionAccepted$,
@@ -189,19 +198,6 @@ export class ComposerService {
 	readonly pendingAskUserAsks = toSignal(this.pendingAskUserAsks$, {
 		initialValue: [] as readonly RunnerAskUserAskPayload[],
 	});
-
-	constructor() {
-		merge(this.runnerDone$, this.runnerInterrupted$).subscribe(() => {
-			this.hitlDrafts.set(new Map());
-			this.chatStartPending.set(false);
-		});
-
-		this.execution.isRunning$
-			.pipe(filter((running) => running))
-			.subscribe(() => {
-				this.chatStartPending.set(false);
-			});
-	}
 
 	hitlTriggered(nodeId: string): boolean {
 		return (
@@ -257,7 +253,7 @@ export class ComposerService {
 			);
 		}
 
-		return this.hitlDrafts().get(`${nodeId}:${portId}`) ?? '';
+		return this.draftState().drafts.get(`${nodeId}:${portId}`) ?? '';
 	}
 
 	setComposerText(nodeId: string, portId: string, value: string): void {
@@ -266,10 +262,10 @@ export class ComposerService {
 			return;
 		}
 
-		this.hitlDrafts.update((current) => {
-			const next = new Map(current);
-			next.set(`${nodeId}:${portId}`, value);
-			return next;
+		this.draftActions$.next({
+			type: 'setDraft',
+			key: `${nodeId}:${portId}`,
+			value,
 		});
 	}
 
@@ -388,18 +384,12 @@ export class ComposerService {
 		});
 		this.hitlResolveLocal$.next(nodeId);
 		if (isChatEntry) {
-			this.chatStartPending.set(true);
+			this.draftActions$.next({ type: 'chatStartPending' });
 			return;
 		}
-		this.hitlDrafts.update((current) => {
-			const prefix = `${nodeId}:`;
-			const next = new Map<string, string>();
-			for (const [key, value] of current) {
-				if (!key.startsWith(prefix)) {
-					next.set(key, value);
-				}
-			}
-			return next;
+		this.draftActions$.next({
+			type: 'clearPrefix',
+			prefix: `${nodeId}:`,
 		});
 	}
 
@@ -424,10 +414,9 @@ export class ComposerService {
 			askId: ask.askId,
 			text: trimmed,
 		});
-		this.hitlDrafts.update((current) => {
-			const next = new Map(current);
-			next.delete(`${ask.nodeId}:${ASK_USER_COMPOSER_PORT_ID}`);
-			return next;
+		this.draftActions$.next({
+			type: 'deleteKey',
+			key: `${ask.nodeId}:${ASK_USER_COMPOSER_PORT_ID}`,
 		});
 	}
 }

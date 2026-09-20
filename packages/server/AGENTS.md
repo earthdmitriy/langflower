@@ -1,7 +1,7 @@
 # @langflower/server
 
 Express static shell + **event-driven WebSocket bridge** on
-`langflowerWsConfig` (`@langflower/shared/langflower`).
+`langflowerWsConfig` (`@langflower/shared/langflower-bus-config`).
 
 ## Boundary — keep this package thin
 
@@ -25,9 +25,11 @@ ask “is this WS/session/config/secrets, or is it project runtime / provider
 logic?” If the latter → put it in `@langflower/tools` or
 `@langflower/common-nodes` and **inject** from
 [`bridge/build-execution-context.ts`](src/bridge/build-execution-context.ts).
+Builtin `ToolHandle[]` wrapping lives in `@langflower/tools`
+(`wrapBuiltinToolHandles`); do not restore `bridge/wrap-builtin-tool-handles.ts`.
 
-Normative ownership: [ADR-014](../../docs/ADR.md#adr-014--project-root-harness-io),
-[PRINCIPLES.md § Thin server](../../docs/PRINCIPLES.md#thin-server--do-not-grow-domain-here).
+Normative ownership: [ADR-014](../../docs/architecture/ADR.md#adr-014--project-root-harness-io),
+[PRINCIPLES.md § Thin server](../../docs/architecture/PRINCIPLES.md#thin-server--do-not-grow-domain-here).
 
 All application network I/O goes through `@langflower/websocket-bridge`.
 HTTP serves the UI shell only.
@@ -74,10 +76,10 @@ src/
 
 Call stack / intent map: [`src/bridge/BRIDGE.md`](src/bridge/BRIDGE.md).
 
-Handler and service code: follow [PRINCIPLES.md](../../docs/PRINCIPLES.md)
+Handler and service code: follow [PRINCIPLES.md](../../docs/architecture/PRINCIPLES.md)
 (helpers must shrink call sites — inline trivial one-liners;
-[§ Composer entry points](../../docs/PRINCIPLES.md#composer-entry-points);
-[§ Functional error handling](../../docs/PRINCIPLES.md#functional-error-handling)
+[§ Composer entry points](../../docs/architecture/PRINCIPLES.md#composer-entry-points);
+[§ Functional error handling](../../docs/architecture/PRINCIPLES.md#functional-error-handling)
 — expected failures return `{ ok: false, message }`, do not throw).
 
 ## Build

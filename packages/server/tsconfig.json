@@ -6,7 +6,7 @@
 		"lib": ["ES2022", "DOM"],
 		"types": ["node"],
 		"paths": {
-			"@langflower/shared/langflower.js": ["../shared/src/langflower.ts"]
+			"@langflower/shared/*": ["../shared/src/*"]
 		}
 	},
 	"include": ["src/**/*.ts"],

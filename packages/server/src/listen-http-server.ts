@@ -12,7 +12,7 @@ export const listenHttpServer = (
 	new Promise((resolve, reject) => {
 		const onError = (error: NodeJS.ErrnoException): void => {
 			if (error.code === 'EADDRINUSE') {
-				reject(new Error(`порт занят: ${host}:${String(port)}`));
+				reject(new Error(`port in use: ${host}:${String(port)}`));
 				return;
 			}
 

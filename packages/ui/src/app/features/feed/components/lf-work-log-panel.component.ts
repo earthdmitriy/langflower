@@ -7,11 +7,13 @@ import {
 	Injector,
 	NgZone,
 	computed,
+	effect,
 	inject,
 	signal,
+	untracked,
 	viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { Subject, auditTime, debounceTime } from 'rxjs';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service.js';
@@ -162,7 +164,9 @@ export class LfWorkLogPanelComponent {
 
 	readonly pinnedToBottom = signal(true);
 	readonly openKeys = signal<ReadonlySet<string>>(new Set());
-	readonly rows = signal<readonly FeedRow[]>([]);
+	readonly rows = toSignal(this.feed.feedRows$, {
+		initialValue: [] as readonly FeedRow[],
+	});
 	readonly visibleRows = computed(() =>
 		sliceFeedWindow(this.rows(), this.feedWindow()),
 	);
@@ -229,6 +233,12 @@ export class LfWorkLogPanelComponent {
 	private pendingDragSlide: FeedWindowSlideEdge | undefined;
 
 	constructor() {
+		effect(() => {
+			const rows = this.rows();
+			untracked(() => {
+				this.syncWindowFromRows(rows);
+			});
+		});
 		this.layout$
 			.pipe(debounceTime(0), takeUntilDestroyed(this.destroyRef))
 			.subscribe(() => {
@@ -245,11 +255,6 @@ export class LfWorkLogPanelComponent {
 				this.ngZone.run(() => {
 					this.flushRecenter();
 				});
-			});
-		this.feed.feedRows$
-			.pipe(takeUntilDestroyed(this.destroyRef))
-			.subscribe((rows) => {
-				this.onRows(rows);
 			});
 		this.destroyRef.onDestroy(() => {
 			this.layout$.complete();
@@ -395,8 +400,7 @@ export class LfWorkLogPanelComponent {
 		this.scheduleLayout();
 	}
 
-	private onRows(rows: readonly FeedRow[]): void {
-		this.rows.set(rows);
+	private syncWindowFromRows(rows: readonly FeedRow[]): void {
 		if (rows.length === 0) {
 			this.resetWindow();
 			return;

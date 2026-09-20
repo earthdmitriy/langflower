@@ -10,7 +10,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import type {
 	RunnerResumeFailedPayload,
 	WorkflowCheckpointSummary,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/workflow-checkpoint';
 import { map, merge, scan, startWith } from 'rxjs';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';

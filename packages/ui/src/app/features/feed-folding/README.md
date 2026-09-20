@@ -13,7 +13,7 @@ raw/cached bridge streams
 Visit grouping stays on `nodeFeed$`. The work log renders a sliding window
 over `feedRows$` (header + one row per visible port item) selected from the
 same projection — not a second fold of raw history. Measured window, pin,
-and recenter around the visible range: [ADR-037](../../../../../../docs/ADR.md#adr-037--work-log-sliding-measured-window),
+and recenter around the visible range: [ADR-037](../../../../../../docs/architecture/ADR.md#adr-037--work-log-sliding-measured-window),
 [VIRTUAL_SCROLL.md](../../../../../../docs/VIRTUAL_SCROLL.md).
 
 ## Hard rule — never re-fold history on a new event
@@ -25,21 +25,22 @@ Streaming tokens arrive as a high-frequency event stream. Re-walking all prior
 frames (or re-running visit assignment / port collapse per subscriber) is an
 antipattern and will dominate the JS main thread.
 
-| Allowed                                                                                | Forbidden                                                                  |
-| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `appendFeedFrame(projection, oneEvent)`                                                | `history.map` / `reduce` over all frames on every token                    |
-| `foldPortStream(portItems, oneFrame)` on that segment only                             | `replayPortStream(allMatchingFrames)` on every emit                        |
-| Nested streams **select** from shared `projection$`                                    | Per-port / per-visit rematerialize of full history (`visitFrames` fan-out) |
-| Snapshot / clear / catalog change → rebuild **once** by replaying the same append fold | Treating every history array emission as “rebuild projection from scratch” |
+| Allowed                                                               | Forbidden                                                                  |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `appendFeedFrame(projection, oneEvent)`                               | `history.map` / `reduce` over all frames on every token                    |
+| `foldPortStream(portItems, oneFrame)` on that segment only            | `replayPortStream(allMatchingFrames)` on every emit                        |
+| Nested streams **select** from shared `projection$`                   | Per-port / per-visit rematerialize of full history (`visitFrames` fan-out) |
+| Snapshot / clear → rebuild **once** by replaying the same append fold | Treating every history array emission as “rebuild projection from scratch” |
 
-Full rebuild is allowed **only** when the authoritative history is replaced or
-reclassified:
+The fold is **pure over self-describing frames**. Role, streaming, and
+`closesPreviousVisit` come from `runner.port` slot 6 — not from the palette.
+Full rebuild is allowed **only** when the authoritative history is replaced:
 
-1. `executionFeed.snapshot` (replace + replay once),
-2. clear (`null` snapshot),
-3. catalog change (re-normalize retained raw entries + replay once).
-   A **document switch** (different `workflowId` **and** node-id set) clears
-   entries first — rename (new id, same nodes) does not.
+1. `executionFeed.snapshot` (replace + replay once through `replayFeedProjection`),
+2. clear (`null` snapshot).
+   A **document switch** (different `workflowId` **and** node-id set, from the
+   workflow snapshot only) clears the projection — rename (new id, same nodes)
+   does not.
 
 Those are rare relative to live tokens. Live `output-emitted` / `input-received`
 / permission facts must stay O(1) in history length.
@@ -56,8 +57,8 @@ Canonical implementation:
 
 - [`operators/feed-projection.ts`](operators/feed-projection.ts) —
   `appendFeedFrame` / `replayFeedProjection`
-- [`fold-port-events.ts`](fold-port-events.ts) — composer `scan` over bridge +
-  catalog actions
+- [`fold-port-events.ts`](fold-port-events.ts) — composer `scan` over
+  self-describing frames + document-switch reset
 - [`operators/feed-folding-operators.ts`](operators/feed-folding-operators.ts) —
   nested selectors only (no history remap)
 
@@ -166,7 +167,7 @@ then dead-loop + reasoning/draft (while-last reopen) is **one visit** with two
 notices in segment order. A frozen latest-seq would still attach the timer to
 the idle row. Do not treat two notices as one attempt that changed reason.
 
-### 9. Sub-Agent tool call closes the caller visit
+### 9. A `feedVisitBoundary` node closes the caller visit
 
 ```text
 ❌ Parent.draft → Parent.toolLog(→ slug) → Writer.draft → Parent.draft
@@ -176,11 +177,12 @@ the idle row. Do not treat two notices as one attempt that changed reason.
 ```
 
 `toolLog` stays `feed.streaming: true` for ordinary tools (same visit). The
-first frame from a `common-sub-agent` node stamps `closesPreviousVisit` and
-closes the previous visit (the caller), so the specialist is its own card.
-Parent continuation after that is a new visit at the bottom. Ordinary
-`→ echo({})` and `←` result lines stay on the open caller visit until a
-Sub-Agent node emits.
+first frame from a `feedVisitBoundary` node (`common-sub-agent`, and any
+custom pack node that opts in) already carries `closesPreviousVisit` on the
+tuple and closes the previous visit (the caller), so the specialist is its
+own card. Parent continuation after that is a new visit at the bottom.
+Ordinary `→ echo({})` and `←` result lines stay on the open caller visit
+until such a node emits. No node type is hardcoded in the UI.
 
 ## Append-only projection
 
@@ -204,9 +206,9 @@ type FeedProjection = {
 | Action                       | Cost      | Behavior                                                                                                                          |
 | ---------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | Live port / permission frame | O(1)      | Normalize that frame; `seq = nextSeq++`; visit open/close; segment open/continue; `foldPortStream` into that segment’s items only |
-| `executionFeed.snapshot`     | O(N) once | Replace raw history; replay through `appendFeedFrame`                                                                             |
-| Clear (`null` snapshot)      | O(1)      | Empty projection (keep catalog if known)                                                                                          |
-| Catalog change               | O(N) once | Re-normalize retained raw history; rebuild by replaying appends                                                                   |
+| `executionFeed.snapshot`     | O(N) once | Replay normalized events through `appendFeedFrame`                                                                                |
+| Clear (`null` snapshot)      | O(1)      | Empty projection (keep the current workflow document key)                                                                         |
+| Workflow document switch     | O(1)      | Clear projection; palette-only catalog ticks do not rebuild                                                                       |
 
 Nested `NodeFeedItem` / `PortEvent` / `port.stream` observables are **selectors**
 over shared `projection$` (`shareReplay({ bufferSize: 1, refCount: true })`).
@@ -240,8 +242,8 @@ from one shared projection.
 ```ts
 const { nodeFeed$, feedRows$ } = foldExecutionFeed({
 	executionFeedSnapshot$,
-	outputEmitted$,
-	inputReceived$,
+	runnerPort$,
+	runnerStarted$,
 	permissionAsk$,
 	permissionAccepted$,
 	askUserAsk$,
@@ -289,19 +291,19 @@ segments when the port re-enters after another port (LLM multi-phase timeline).
 
 ## Raw event classification
 
-Classification runs when appending (or during a one-shot snapshot/catalog
-replay). Author roles use exported `RuntimeFeedRole` from `@langflower/runtime`
+Classification runs when appending (or during a one-shot snapshot replay).
+Author roles use exported `RuntimeFeedRole` from `@langflower/runtime`
 (`none | reasoning | progress | draft | tool | shell | result | recovery`):
 
-- **`feed.role: 'none'`** or **no role** (event or palette) → **none** —
+- **`feed.role: 'none'`** or **no role** on the frame → **none** —
   nothing in the feed;
 - drop pending frames with `value: undefined` or `value: null`
   (wire loading noise; JSON/WS serializes loading as `null`);
 - drop `done`, non-port events, and symbol ports;
 - tag `steerControl` pause / steer / resume;
-- tag HITL reply inputs via palette;
-- derive visit close from `feed.streaming !== true` (event or palette);
-- first `common-sub-agent` frame closes the previous visit (different node);
+- tag HITL reply inputs via palette (copy only; role/boundary stay on the frame);
+- derive visit close from `feed.streaming !== true` on the frame;
+- a frame with `closesPreviousVisit` closes the previous visit (different node);
 - keep runtime errors as `presentation: 'error'` (always close).
 
 Permission asks/decisions come from control-plane channels and project as
@@ -316,7 +318,7 @@ synthetic `permission:<askId>` ports (`authority: 'server'`).
 | `operators/fold-port-stream.ts`          | Per-frame port item fold                                            |
 | `operators/tool-log-line.ts`             | Parse serial `→` / `←` toolLog lines into `{ name, args, result? }` |
 | `operators/feed-folding-operators.ts`    | Selectors over `projection$` (`projectNodeFeed`, `flattenFeedRows`) |
-| `fold-port-events.ts`                    | Composer scan (history + catalog + projection)                      |
+| `fold-port-events.ts`                    | Composer scan (self-describing frames + projection)                 |
 | `execution-feed.service.ts`              | Angular entry (`nodeFeed$` + `feedRows$`)                           |
 | `tests/feed-projection.test.ts`          | Incremental append vs snapshot parity                               |
 | `tests/flatten-feed-rows.test.ts`        | Header + item window grain                                          |
@@ -327,5 +329,5 @@ Product UI: [`features/feed/components/lf-work-log-panel.component.ts`](../feed/
 
 - [`lf-feed-row.component.ts`](../feed/components/lf-feed-row.component.ts);
   behavior: [`docs/features/feed-panel.md`](../../../../../../docs/features/feed-panel.md).
-  Execution wiring: [`docs/EXECUTION_ARCHITECTURE.md`](../../../../../../docs/EXECUTION_ARCHITECTURE.md)
+  Execution wiring: [`docs/architecture/EXECUTION_ARCHITECTURE.md`](../../../../../../docs/architecture/EXECUTION_ARCHITECTURE.md)
   § UI execution projections.

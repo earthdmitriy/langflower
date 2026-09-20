@@ -24,12 +24,15 @@ Regression gate: [`tests/unit/package-boundaries/`](../../tests/unit/package-bou
   protocol / handle-build / system-pool code lands **here** — never under
   `packages/server/src/` or as util exports from `common-nodes`. Server only
   maps config/secrets and injects factories
-  ([PRINCIPLES.md § Thin server](../../docs/PRINCIPLES.md#thin-server--do-not-grow-domain-here)).
+  ([PRINCIPLES.md § Thin server](../../docs/architecture/PRINCIPLES.md#thin-server--do-not-grow-domain-here)).
 
 ## Public imports
 
 ```typescript
-import { createProjectHarness } from '@langflower/tools/create-project-harness';
+import {
+	createProjectHarness,
+	wrapBuiltinToolHandles,
+} from '@langflower/tools/create-project-harness';
 import { createWebFetch } from '@langflower/tools/create-web-fetch';
 import { createCrawlContext } from '@langflower/tools/create-crawl-context';
 import { createMemoryStore } from '@langflower/tools/create-memory-store';
@@ -50,9 +53,16 @@ import { formatMcpConnectError } from '@langflower/tools/format-mcp-connect-erro
 import { runBfsCrawl } from '@langflower/tools/run-bfs-crawl';
 ```
 
-`mcp-tool-id` is the **owner** of MCP inventory id encode/parse. Shared keeps a
-boundary twin (`packages/shared/src/langflower-config/mcp-tool-id.ts`); parity is
-pinned by `src/mcp/mcp-tool-id.parity.test.ts`.
+`mcp-tool-id` is the **owner** of MCP inventory id encode/parse. Server
+config validation imports `@langflower/tools/mcp-tool-id`. There is no
+shared twin. Inspector catalogs and secret-id charset remain DAG twins
+([ADR-039](../../docs/architecture/ADR.md#adr-039--dag-forced-twins-stay-copies-until-the-dag-flips)).
+
+MCP stdio **frame parse** is a DAG twin of `@langflower/mcp`
+`mcp-stdio-framing.ts` (CRLF + LF Content-Length and newline JSON). Do not
+import mcp. Encode / reply-mode echo stay on the mcp server. Gate:
+`src/mcp/mcp-stdio-frame-parser.parity.test.ts`. Do not restore CRLF-only
+headers.
 
 Wire MCP nodes own connect/close lifecycle; they call `buildMcpHandle` after
 client connect (returns `ToolHandle[]`). System / project MCP uses
@@ -70,7 +80,9 @@ Graph `common-crawl` and agent `crawl_bfs` both call it with different options
 
 No `index.ts` barrel. Domain tools appear in LLM inventory **only when wired**
 from `common-*-tools` nodes; invoke uses the attached `registration.handler`,
-not a harness `toolId` lookup map.
+not a harness `toolId` lookup map. `wrapBuiltinToolHandles` maps builtins to
+`ToolHandle[]` (omit always-deny); the server injects that list — it does not
+own the wrap.
 
 ## Builtins layout
 
@@ -88,8 +100,8 @@ Also: `domain/domain-tool-configs.ts`, `memory/` (`create-memory-store`),
 `create-web-fetch.ts`, `ssrf-guard.ts`, `create-crawl-context.ts`,
 `permission.ts`.
 
-Builtins: `read`, `glob`, `grep`, `edit`, `write`, `create`, `delete`, `bash`,
-`ask_user`.
+Builtins: `read`, `glob`, `grep`, `edit`, `write`, `create`, `delete`, `move`,
+`bash`, `ask_user`.
 
 `bash` is default-deny (`bashEnabled: false`). `ask_user` waits on a live HITL
 host (`CreateHarnessOptions.askUser`). Read-class tools accept optional

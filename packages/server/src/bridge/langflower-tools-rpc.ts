@@ -2,8 +2,8 @@ import { waitBusEvent } from '@langflower/shared/langflower-ws-waits';
 import type {
 	CustomPaletteSnapshotPayload,
 	CustomPaletteUpdateRequestedPayload,
-} from '@langflower/shared/langflower.js';
-import type { LangflowerBusRequest } from '@langflower/common-nodes/ai/run-host-services';
+} from '@langflower/shared/types/langflower-custom-palette.js';
+import type { LangflowerBusRequest } from '@langflower/common-nodes/run-host-services';
 import type { LangflowerBridge } from './langflower-bridge.types.js';
 
 /**
@@ -32,19 +32,26 @@ export const createLangflowerToolsRpc = (
 			);
 		}
 
-		const resultPromise = waitBusEvent(bridge['customPalette.snapshot'], {
-			predicate: (snapshot: CustomPaletteSnapshotPayload) =>
-				snapshot.status !== 'compiling',
-		});
-		const body =
+		const body: Record<string, unknown> =
 			payload !== null &&
 			typeof payload === 'object' &&
 			!Array.isArray(payload)
-				? payload
+				? (payload as Record<string, unknown>)
 				: {};
+		const existingRequestId = body['requestId'];
+		const requestId =
+			typeof existingRequestId === 'string' &&
+			existingRequestId.length > 0
+				? existingRequestId
+				: crypto.randomUUID();
+		const resultPromise = waitBusEvent(bridge['customPalette.snapshot'], {
+			predicate: (snapshot: CustomPaletteSnapshotPayload) =>
+				snapshot.requestId === requestId &&
+				snapshot.status !== 'compiling',
+		});
 		bridge.injectInbound(
 			intent,
-			body as CustomPaletteUpdateRequestedPayload,
+			{ ...body, requestId } as CustomPaletteUpdateRequestedPayload,
 			'langflower-tools',
 		);
 		return resultPromise;

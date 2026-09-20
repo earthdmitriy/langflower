@@ -1,4 +1,4 @@
-import type { WorkflowSavePayload } from '@langflower/shared/langflower.js';
+import type { WorkflowSavePayload } from '@langflower/shared/types/langflower-workflow.js';
 import {
 	chatInputNode,
 	edge,
@@ -12,6 +12,7 @@ import {
 	scenarioMetadata,
 	stringNode,
 	subAgentNode,
+	toolPermissionsFromEnabledIds,
 } from '../workflow-scenario-builders.js';
 
 const PROMPT_REFINING_ARTIFACT = [
@@ -47,7 +48,11 @@ export const promptRefiningWorkflow = (): WorkflowSavePayload => {
 				{
 					tokenDelayMs: 0,
 					rolePreset: 'custom',
-					enabledToolIds: ['read', 'write', 'create'],
+					toolPermissions: toolPermissionsFromEnabledIds([
+						'read',
+						'write',
+						'create',
+					]),
 					maxIterations: 4,
 					scriptedToolTurns: [
 						{
@@ -113,7 +118,11 @@ export const articleWritingWorkflow = (): WorkflowSavePayload => {
 				{
 					tokenDelayMs: 0,
 					rolePreset: 'custom',
-					enabledToolIds: ['read', 'write', 'create'],
+					toolPermissions: toolPermissionsFromEnabledIds([
+						'read',
+						'write',
+						'create',
+					]),
 					maxIterations: 4,
 					scriptedToolTurns: [
 						{
@@ -255,6 +264,7 @@ const WRITE_STAGE_TOOL_IDS = [
 	'write',
 	'create',
 	'delete',
+	'move',
 ] as const;
 
 /**
@@ -316,7 +326,8 @@ export const permissionEscalationOpsWorkflow = (): WorkflowSavePayload => {
 				{
 					tokenDelayMs: 0,
 					rolePreset: 'coder',
-					enabledToolIds: WRITE_STAGE_TOOL_IDS,
+					toolPermissions:
+						toolPermissionsFromEnabledIds(WRITE_STAGE_TOOL_IDS),
 					maxIterations: 4,
 					scriptedToolTurns: [
 						{

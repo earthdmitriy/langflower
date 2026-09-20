@@ -1,5 +1,5 @@
 import type { NodeId, RunId } from '@langflower/runtime';
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import { STEER_CONTROL_PORT_ID } from '@langflower/node-sdk/llm';
 import { describe, expect, it } from 'vitest';
 import type { FeedCatalog } from '../../../services/execution-catalog';

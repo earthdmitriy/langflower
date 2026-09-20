@@ -184,7 +184,7 @@ coding samples.
 - **Project + global config:** `LangflowerConfigService` reads/writes project
   `.langflower/langflower.jsonc` and the OS global file; `read()` returns
   merged effective config (project > global). Paths: [CONFIG.md](../CONFIG.md)
-  § Global config; ADR-002 amend in [ADR.md](../ADR.md).
+  § Global config; ADR-002 amend in [ADR.md](../architecture/ADR.md).
 - **Session draft:** `langflower.config.draft.patch|discard.requested` →
   session fold → broadcast `langflower.config.draft.snapshot` (redacted draft +
   connection statuses). Hydrated on connect after `config.snapshot`.

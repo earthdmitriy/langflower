@@ -3,13 +3,9 @@
  * Shape: `<mcp_name>__<toolName>` where `mcp_name` is the MCP server's
  * `serverInfo.name` (OpenAI-safe `[a-zA-Z0-9_-]` segments).
  *
- * **Owner** of encode/parse for this contract. Consumers:
- * - runtime: this package (MCP clients) + common-nodes MCP handles
- * - common-nodes: `@langflower/tools/mcp-tool-id` (allowed dependency)
- * - shared UI/config: boundary twin at
- *   `packages/shared/src/langflower-config/mcp-tool-id.ts` (tools must not
- *   import shared; shared must not import tools) — kept equal by
- *   `mcp-tool-id.parity.test.ts`
+ * **Owner** of encode/parse for this contract. Server config validation
+ * imports `@langflower/tools/mcp-tool-id` (server already depends on tools).
+ * Shared has no twin.
  */
 
 const SERVER_ID_RE = /^[a-zA-Z][a-zA-Z0-9-]*$/;

@@ -156,4 +156,37 @@ describe('createNodeHarness', () => {
 		await expect(harness.next<string>('token')).resolves.toBe('from-env');
 		harness.dispose();
 	});
+
+	it('seeds declared caps without a cast', async () => {
+		const capNode = defineReactiveNode({
+			type: 'harness-caps',
+			displayName: 'Caps',
+			requires: ['chat'] as const,
+			uiSchema: [] as const,
+			bind(ctx, { configureOutput }) {
+				const ready$ = ctx.pipeValue(
+					map((ec) =>
+						typeof ec.chat === 'function' ? 'ok' : 'missing',
+					),
+				);
+				return {
+					inputs: [],
+					outputs: [
+						configureOutput('ready', ready$, {
+							wireType: 'string',
+						}),
+					],
+				};
+			},
+		});
+		const chat = async () =>
+			(async function* () {
+				yield { kind: 'done' as const, text: '' };
+			})();
+		const harness = createNodeHarness(capNode, {
+			caps: { chat },
+		});
+		await expect(harness.next<string>('ready')).resolves.toBe('ok');
+		harness.dispose();
+	});
 });

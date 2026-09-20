@@ -1,7 +1,11 @@
 import { statefulObservable } from '@rx-evo/stateful-observable';
 import { concat, delay, filter, firstValueFrom, of, Subject } from 'rxjs';
 import { describe, expect, it } from 'vitest';
-import { createLlmSessionCycle$ } from './llm-session-shell.js';
+import type { ToolHandle } from '@langflower/node-sdk';
+import {
+	assembleLlmAgentInventoryContext,
+	createLlmSessionCycle$,
+} from './llm-session-shell.js';
 
 type Chunk =
 	| { readonly kind: 'reasoning'; readonly text: string }
@@ -85,5 +89,47 @@ describe('createLlmSessionCycle$ pending', () => {
 
 		expect(pendingTrue.length).toBeGreaterThan(pendingAfterTurn0);
 		expect(responses).toEqual(['t0', 'fb:again']);
+	});
+});
+
+describe('assembleLlmAgentInventoryContext', () => {
+	it('attaches getTools that re-reads collected inventory', () => {
+		const handle: ToolHandle = {
+			toolId: 'read',
+			name: 'read',
+			description: 'read',
+			inputSchema: { type: 'object' },
+			invoke: async () => 'ok',
+		};
+		const assembled = assembleLlmAgentInventoryContext(
+			'hello',
+			[handle],
+			'',
+			{
+				projectDir: '/p',
+				runId: 'r1',
+				nodeId: 'n1',
+				params: {},
+				chat: async () =>
+					(async function* () {
+						yield { kind: 'done' as const, text: '' };
+					})(),
+				toolHandles: [],
+				skillMarkdown: '',
+				agentsMarkdown: '',
+				requestPermission: async () => 'allow',
+				getLiveWiredTools: () => [],
+			},
+		);
+
+		expect(assembled.prompt).toBe('hello');
+		expect(assembled.tools.map((tool) => tool.toolId)).toEqual(['read']);
+		expect(assembled.getTools?.().map((tool) => tool.toolId)).toEqual([
+			'read',
+		]);
+		expect(assembled.toolCtx).toEqual({
+			projectDir: '/p',
+			runId: 'r1',
+		});
 	});
 });

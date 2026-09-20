@@ -5,6 +5,7 @@ import {
 	defineLlmNode,
 	LLM_INVENTORY_INPUT_PORT_IDS,
 	LLM_INVENTORY_OUTPUT_PORT_IDS,
+	LLM_REQUIRED_CAPABILITIES,
 } from './define-llm-node.js';
 
 const idle$ = () =>
@@ -77,6 +78,38 @@ describe('defineLlmNode', () => {
 			(meta) => meta.portId === 'recovery',
 		);
 		expect(recoveryMeta?.hidden).toBe(true);
+		expect(node.requires).toEqual([...LLM_REQUIRED_CAPABILITIES]);
+	});
+
+	it('merges author requires with the LLM capability set', () => {
+		const node = defineLlmNode({
+			type: 'test-llm-extra',
+			displayName: 'Test LLM extra',
+			requires: ['embed'] as const,
+			uiSchema: [] as const,
+			bind(_ctx, { makeInput, configureOutput }, _inventory) {
+				const prompt = makeInput<string>('userPrompt', {
+					name: 'userPrompt',
+					wireType: 'string',
+					defaultValue: '',
+				});
+				const stream$ = idle$();
+				return {
+					inputs: [prompt],
+					outputs: [
+						configureOutput('response', stream$, {
+							wireType: 'string',
+						}),
+					],
+					inventoryOutputs: {
+						toolLog$: stream$,
+						recovery$: stream$,
+					},
+				};
+			},
+		});
+
+		expect(node.requires).toEqual([...LLM_REQUIRED_CAPABILITIES, 'embed']);
 	});
 
 	it('rejects redeclared inventory inputs', () => {

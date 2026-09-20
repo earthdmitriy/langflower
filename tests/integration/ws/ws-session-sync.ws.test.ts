@@ -31,7 +31,8 @@ describe('WS session sync (WS bridge)', () => {
 		expect(stringPreviewWorkflow().workflowId).toBe(SCENARIO_ID);
 	});
 
-	describe.skipIf(!scenarioReadyById(SCENARIO_ID))('runtime', () => {
+	describe('runtime', () => {
+		scenarioReadyById(SCENARIO_ID);
 		let projectDir: string;
 		let urls: TestServerHandle;
 
@@ -127,9 +128,6 @@ describe('WS session sync (WS bridge)', () => {
 			clientB.close();
 			clientC.close();
 		});
-
-		it.todo('saveCurrent broadcasts workflow.list.snapshot');
-		it.todo('workflow.load binds graph — second tab sync via bridge facts');
 
 		it('broadcasts runner.started and runner.interrupted to peer clients', async () => {
 			const clientA = createLangflowerWsClient(urls.wsUrl);

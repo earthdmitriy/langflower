@@ -3,12 +3,10 @@ import type {
 	RunId,
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
-import type {
-	CustomPaletteSnapshotPayload,
-	ExecutionFeedSnapshotPayload,
-	PaletteConfigPayload,
-	WorkflowCurrentSnapshotPayload,
-} from '@langflower/shared/langflower';
+import type { CustomPaletteSnapshotPayload } from '@langflower/shared/types/langflower-custom-palette';
+import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap';
+import type { PaletteConfigPayload } from '@langflower/shared/types/langflower-palette';
+import type { WorkflowCurrentSnapshotPayload } from '@langflower/shared/types/langflower-workflow';
 import type { Observable } from 'rxjs';
 
 /** Steady-state canvas node chrome (execution + HITL await). */

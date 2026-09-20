@@ -2,6 +2,7 @@ import { contextSymbol } from '@langflower/node-sdk';
 import { RuntimeFacade } from '@langflower/runtime';
 import { describe, expect, it } from 'vitest';
 import { filter, firstValueFrom, map, of } from 'rxjs';
+import { testLlmCapFields } from '../../ai/features/test-llm-caps.js';
 import { fakeLlmNode } from '../../ai/nodes/fake-llm/node.js';
 import { previewNode } from '../../output/preview/node.js';
 import { stringNode } from '../../primitives/string/node.js';
@@ -45,7 +46,7 @@ const llmContext = (nodeId: string) => [
 			nodeId,
 			params: { tokenDelayMs: 0 },
 			uiSchema: fakeLlmNode.uiSchema,
-			skillMarkdown: '',
+			...testLlmCapFields(),
 		},
 	},
 ];

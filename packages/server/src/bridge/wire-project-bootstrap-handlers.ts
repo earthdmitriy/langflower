@@ -1,4 +1,4 @@
-import type { ProjectBootstrapResultPayload } from '@langflower/shared/langflower.js';
+import type { ProjectBootstrapResultPayload } from '@langflower/shared/types/langflower-project-bootstrap.js';
 import { Subscription } from 'rxjs';
 import { bootstrapProject } from '../bootstrap/project-bootstrap.service.js';
 import { listResumableCheckpoints } from '../checkpoint/list-resumable-checkpoints.js';
@@ -6,6 +6,7 @@ import { WorkflowCheckpointStore } from '../checkpoint/workflow-checkpoint-store
 import type { ServerContext } from '../server-context.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
 import { loadWorkflowIntoSession } from '../workflow/load-workflow-into-session.js';
+import { compileAndHotSwapCustomNodes } from './compile-and-hot-swap-custom-nodes.js';
 import { bridgeEmit, clientEmit } from './bridge-outbound.js';
 import { findClientById } from './client-index.js';
 import { isInboundEvent } from './inbound-guards.js';
@@ -66,7 +67,6 @@ export const wireProjectBootstrapHandlers = (
 				await loadWorkflowIntoSession(
 					session,
 					context.workflowService,
-					context.projectDir,
 					activeId,
 					context.resolveDefinition,
 				);
@@ -87,16 +87,9 @@ export const wireProjectBootstrapHandlers = (
 				});
 			}
 
-			bridgeEmit(
-				bridge,
-				'customPalette.snapshot',
-				context.customPaletteService.compilingSnapshot(),
-			);
-			const { snapshot: customPalette } =
-				await context.customPaletteService.update(context.projectDir, {
-					force: true,
-				});
-			bridgeEmit(bridge, 'customPalette.snapshot', customPalette);
+			await compileAndHotSwapCustomNodes(session, context, bridge, {
+				force: true,
+			});
 
 			emitResult({ ok: true });
 		} catch (error) {

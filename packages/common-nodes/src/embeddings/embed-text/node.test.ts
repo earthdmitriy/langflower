@@ -1,6 +1,6 @@
 import { firstValueFrom, of } from 'rxjs';
 import { describe, expect, it } from 'vitest';
-import { attachRunHostServices } from '../../ai/features/run-host-services.js';
+import { attachRunHostServices } from '../../run-host/run-host-services.js';
 import { createEmbedding, type CreateEmbedding } from '../create-embedding.js';
 import { embedTextNode } from './node.js';
 
@@ -57,6 +57,9 @@ const connectEmbedText = (
 					nodeId: 'embed-text-1',
 					params,
 					uiSchema: embedTextNode.uiSchema,
+					...(createEmbedding !== undefined
+						? { embed: createEmbedding }
+						: {}),
 				},
 				createEmbedding !== undefined ? { createEmbedding } : {},
 			),
@@ -99,6 +102,17 @@ describe('common-embed-text', () => {
 						nodeId: 'embed-text-1',
 						params: { providerId: '', model: '' },
 						uiSchema: embedTextNode.uiSchema,
+						embed: fakeCreateEmbedding({
+							onCall: (args) => {
+								calls.push([...args.texts]);
+								expect(args.providerId).toBe('lmstudio');
+								expect(args.model).toBe('nomic');
+							},
+						}),
+						defaultEmbedding: {
+							providerId: 'lmstudio',
+							model: 'nomic',
+						},
 					},
 					{
 						createEmbedding: fakeCreateEmbedding({
@@ -178,8 +192,7 @@ describe('common-embed-text', () => {
 		await expect(
 			firstValueFrom(instance.outputs.vector.error$),
 		).resolves.toMatchObject({
-			message:
-				'OpenAI-compatible embeddings are only available during server workflow runs',
+			message: expect.stringMatching(/is not a function/),
 		});
 	});
 

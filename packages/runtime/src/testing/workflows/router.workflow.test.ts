@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { graphHasCycle } from '../../runtime-helpers.js';
 import { createConstantTestNode } from '../nodes/constant-node.js';
 import { createDelayTestNode } from '../nodes/delay-node.js';
 import { createRouterTestNode } from '../nodes/router-node.js';
@@ -93,8 +92,6 @@ describe('router workflow (events$)', () => {
 	it('passes each bypass channel independently', async () => {
 		const runtime = createRouterChannelsScenario();
 
-		expect(graphHasCycle(runtime.editor.getEdges())).toBe(false);
-
 		const runId = runtime.runner.start();
 
 		const branchA = await waitForOutput(runtime, 'sink-a', 'value', runId);
@@ -106,8 +103,6 @@ describe('router workflow (events$)', () => {
 
 	it('fans out one router channel to multiple downstream nodes', async () => {
 		const runtime = createRouterFanOutScenario();
-
-		expect(graphHasCycle(runtime.editor.getEdges())).toBe(false);
 
 		const runId = runtime.runner.start();
 

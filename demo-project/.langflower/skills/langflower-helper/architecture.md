@@ -13,10 +13,13 @@ this file over inventing infrastructure.
 
 ## Layers (user-facing)
 
-1. CLI — `langflower start` (default port **4010**)
+1. CLI — `langflower start` (default port **4010**). Optional **Slint
+   launcher** can spawn several of these CLIs (one per project folder);
+   it does not embed the editor.
 2. Local **server** — owns runtime, project I/O under `.langflower/`
 3. **WebSocket bus** — control plane between server and editor
 4. Angular **editor** — canvas, feed, inspector, Settings, composer
+   (system browser; not a WebView inside the launcher)
 
 Project product data for Langflower lives under **`.langflower/`**.
 

@@ -1,7 +1,7 @@
 import type {
 	LangflowerConfig,
 	LangflowerProviderConfig,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-config.js';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);

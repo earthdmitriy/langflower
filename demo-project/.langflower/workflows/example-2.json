@@ -1,0 +1,124 @@
+{
+	"metadata": {
+		"name": "Example 2",
+		"createdAt": "2026-09-20T18:48:23.186Z",
+		"updatedAt": "2026-09-20T18:51:06.761Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 319.4667205810547,
+			"y": -395.73338317871094,
+			"scale": 1,
+			"width": 1015.390625,
+			"height": 661.328125
+		},
+		"nodes": [
+			{
+				"id": "0d217b11-e079-4f5d-9b2e-f7667a732cd0",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "custom",
+					"includeAgentsMd": false,
+					"maxIterations": 100,
+					"maxFeedbackTurns": 50,
+					"contextSize": 200000,
+					"compactOnError": false,
+					"streamIdleTimeoutMs": 90000,
+					"toolTimeoutMs": 60000,
+					"subagentTimeoutMs": 0,
+					"maxTransientRetries": 2,
+					"autokickOnIdle": true,
+					"deadLoopEnabled": true,
+					"maxAutokickAttempts": 0,
+					"autokickBackoffMs": 60000,
+					"autokickMaxBackoffMs": 960000,
+					"autokickUserMessage": "I notice you are repeating yourself. Please stop and provide a concise answer.",
+					"autokickPenaltyFrequency": 0.3,
+					"autokickPenaltyPresence": 0.3,
+					"deadLoopMaxWindowTokens": 1000,
+					"deadLoopConsecutiveThreshold": 5,
+					"deadLoopMinRepetitions": 3,
+					"deadLoopMinPatternTokens": 2,
+					"deadLoopStructuralRunCap": 128
+				},
+				"inputs": {
+					"systemPrompt": "You're helpful assistant"
+				},
+				"ui": {
+					"position": {
+						"x": 160,
+						"y": 440
+					}
+				}
+			},
+			{
+				"id": "b5b28b82-acd0-4bc6-b2f1-a17385a8e9a9",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 442.6667175292969,
+						"y": 699.9332847595215
+					}
+				}
+			},
+			{
+				"id": "51c3e36b-82c6-4091-b43d-b273194893a6",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {
+					"message": "Hi"
+				},
+				"ui": {
+					"position": {
+						"x": -166.59994506835938,
+						"y": 497.7332420349121
+					}
+				}
+			},
+			{
+				"id": "45bc442d-7bba-455c-886a-b823bc87801e",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 360,
+						"y": 920
+					}
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "ed50f1ff-de6f-40dd-ba10-427b9fd1e3c0",
+				"fromNodeId": "51c3e36b-82c6-4091-b43d-b273194893a6",
+				"fromPort": ["message", 0],
+				"toNodeId": "0d217b11-e079-4f5d-9b2e-f7667a732cd0",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "f9bc8e83-c575-4ec3-ade2-9c71615e9717",
+				"fromNodeId": "0d217b11-e079-4f5d-9b2e-f7667a732cd0",
+				"fromPort": ["response", 0],
+				"toNodeId": "45bc442d-7bba-455c-886a-b823bc87801e",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "727e4f28-d34b-46a1-83a0-a7d790692261",
+				"fromNodeId": "45bc442d-7bba-455c-886a-b823bc87801e",
+				"fromPort": ["response", 0],
+				"toNodeId": "b5b28b82-acd0-4bc6-b2f1-a17385a8e9a9",
+				"toPort": ["value", 0]
+			},
+			{
+				"edgeId": "9702732a-61d9-4e5e-b563-f7d310660f37",
+				"fromNodeId": "45bc442d-7bba-455c-886a-b823bc87801e",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "0d217b11-e079-4f5d-9b2e-f7667a732cd0",
+				"toPort": ["feedback", 0]
+			}
+		]
+	}
+}

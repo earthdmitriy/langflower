@@ -5,7 +5,8 @@ import { RuntimeFacade } from '@langflower/runtime';
 import { describe, expect, it } from 'vitest';
 import { BehaviorSubject, filter, firstValueFrom, of } from 'rxjs';
 import { PLAN_AGENT_SYSTEM_PROMPT } from '../../features/llm-role-preset.js';
-import { attachRunHostServices } from '../../features/run-host-services.js';
+import { attachRunHostServices } from '../../../run-host/run-host-services.js';
+import { testLlmCapFields } from '../../features/test-llm-caps.js';
 import { hitlReviewGateNode } from '../../../hitl/review-gate/node.js';
 import { memoryToolsNode } from '../../../memory/memory-tools/node.js';
 import { previewNode } from '../../../output/preview/node.js';
@@ -51,9 +52,13 @@ const llmContext = (
 				nodeId,
 				params,
 				uiSchema: fakeLlmNode.uiSchema,
-				...(options?.toolHandles !== undefined
-					? { toolHandles: options.toolHandles }
-					: {}),
+				...testLlmCapFields({
+					skillMarkdown: options?.skillMarkdown,
+					toolHandles: options?.toolHandles,
+					...(options?.createChatCompletionStream !== undefined
+						? { chat: options.createChatCompletionStream }
+						: {}),
+				}),
 			},
 			{
 				skillMarkdown: options?.skillMarkdown ?? '',

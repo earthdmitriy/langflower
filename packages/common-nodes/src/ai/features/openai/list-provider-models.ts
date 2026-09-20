@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { OpenAiProviderCredentials } from './create-chat-completion-stream.js';
+import type { OpenAiProviderCredentials } from './openai-credentials.js';
 
 export type ProviderModelEntry = {
 	readonly id: string;

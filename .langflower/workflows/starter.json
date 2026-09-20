@@ -61,6 +61,7 @@
 						"write": "allow",
 						"create": "allow",
 						"delete": "ask",
+						"move": "ask",
 						"bash": "ask"
 					}
 				},
@@ -99,6 +100,7 @@
 						"write": "allow",
 						"create": "allow",
 						"delete": "ask",
+						"move": "ask",
 						"bash": "ask",
 						"compile_custom_nodes": "allow"
 					}

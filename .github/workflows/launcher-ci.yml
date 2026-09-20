@@ -41,6 +41,10 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
+            - name: Package macOS app self-test
+              working-directory: ${{ github.workspace }}
+              run: python launcher/scripts/package-macos-app.py --self-test
+
             - name: Install Rust
               uses: dtolnay/rust-toolchain@stable
 

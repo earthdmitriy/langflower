@@ -1,7 +1,7 @@
 # KB contradiction curation
 
 **Status:** Removed — vector KB / curation nodes deleted
-([ADR-033](../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
+([ADR-033](../architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
 
 **Historical status:** Partial — first-class dedupe / contradiction packets, merge-packet
 HITL, gated apply/discard, and dedicated demo + Fake CI landed. Claim

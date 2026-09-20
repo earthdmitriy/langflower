@@ -52,7 +52,7 @@ Use normal Tailwind classes:
   CTAs use `.lf-composer-pill`; round icons use `.lf-composer-icon-btn`
   (both under `@layer components`).
 - **Run-control encoding**
-  ([ADR-031](../../../docs/ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer)):
+  ([ADR-031](../../../docs/architecture/ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer)):
   **Start** = emerald; hard **Stop** = rose (left while running); soft
   **Pause** / Steer accents = amber (right while running). Do not reuse amber
   for hard Stop. Left-corner tip grows top-left; right-corner tip grows

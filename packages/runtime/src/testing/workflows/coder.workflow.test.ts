@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { graphHasCycle } from '../../runtime-helpers.js';
 import { createAgentTestNode } from '../nodes/agent-node.js';
 import { createConstantTestNode } from '../nodes/constant-node.js';
 import {
@@ -70,7 +69,6 @@ describe('coder workflow (events$)', () => {
 	it('emits review prompt and never done on feedback loop', async () => {
 		const { runtime } = createCoderScenario();
 
-		expect(graphHasCycle(runtime.editor.getEdges())).toBe(true);
 		expect(runtime.editor.getNodes()).toHaveLength(4);
 
 		const runId = runtime.runner.start();

@@ -35,25 +35,35 @@ export const flattenToolHandles = (
 	});
 
 /**
+ * Flatten a tools wire (single handle, pack, or `multi: 'combine'` array)
+ * and last-wins on `toolId`.
+ */
+export const lastWinsToolHandles = (wired: unknown): readonly ToolHandle[] => {
+	const flattened = Array.isArray(wired)
+		? flattenToolHandles(wired)
+		: flattenToolHandles(
+				wired === undefined || wired === null ? [] : [wired],
+			);
+	const byId = new Map<string, ToolHandle>();
+	for (const handle of flattened) {
+		byId.set(handle.toolId, handle);
+	}
+
+	return [...byId.values()];
+};
+
+/**
  * Agent inventory: EC ∪ port for tools.
- * No catalog list, no enabledToolIds filter (server already filtered EC).
+ * No catalog list, no inventory allowlist filter (server already filtered EC).
  * Later `toolHandles` last-wins on `toolId` (jsonc MCP after builtins).
  */
 export const collectAgentToolHandles = (options: {
 	readonly toolHandles: readonly ToolHandle[] | undefined;
 	readonly toolsPort: unknown;
 }): readonly ToolHandle[] => {
-	const portTools = Array.isArray(options.toolsPort)
-		? flattenToolHandles(options.toolsPort as readonly unknown[])
-		: flattenToolHandles(
-				options.toolsPort === undefined || options.toolsPort === null
-					? []
-					: [options.toolsPort],
-			);
-
 	const byId = new Map<string, ToolHandle>();
 
-	for (const handle of portTools) {
+	for (const handle of lastWinsToolHandles(options.toolsPort)) {
 		byId.set(handle.toolId, handle);
 	}
 

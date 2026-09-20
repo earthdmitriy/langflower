@@ -34,4 +34,4 @@ checkpoints.
 
 - [resumable-checkpoint-jobs](../../use-cases/resumable-checkpoint-jobs.md)
 - [14-checkpoints-resume](14-checkpoints-resume.md)
-- [ADR-018](../../ADR.md#adr-018--durable-workflow-checkpoints)
+- [ADR-018](../../architecture/ADR.md#adr-018--durable-workflow-checkpoints)

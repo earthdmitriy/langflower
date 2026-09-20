@@ -181,7 +181,7 @@ Rules:
   repeated on a later visit.
 - **Reconnect:** HITL replies are rebuilt from `executionFeed` `input-received`
   events only after workflow + palette defs are available. If live bubbles
-  vanish on tab reload, see [REACTIVITY.md](../REACTIVITY.md) § False-ready
+  vanish on tab reload, see [REACTIVITY.md](../architecture/REACTIVITY.md) § False-ready
   context and [FOUND_BUGS.md](../FOUND_BUGS.md) BUG-2026-07-21b.
 - Composer remains the control surface; timeline shows the turn.
 - User / HITL bubbles use dark-theme-friendly surfaces (zinc-800, not inverted
@@ -267,7 +267,7 @@ Icon / run-control rules:
   had no output for **10s**, tip softens to `API quiet — Pause to nudge`
   (observation only — does not auto-pause). Per-node `{ kind: 'pause' }` on
   `steerControl` for the **last feed section**'s working agent
-  ([ADR-032](../ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port)).
+  ([ADR-032](../architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port)).
   Other working agents keep running; Pause again when another agent becomes
   last in feed. **Shipped** (DONE epic 36).
 - **After Pause** — HITL composer unlocks (textarea + **Send**); tabs when 2+
@@ -322,7 +322,7 @@ the active document’s node-id set changes with the workflow id.
   shifts one row that way every ~48 ms, then `pointerup` recenters once.
   Edges of the slice show **rendering N of M items** while
   older or newer rows exist outside the window.
-  ([ADR-037](../ADR.md#adr-037--work-log-sliding-measured-window);
+  ([ADR-037](../architecture/ADR.md#adr-037--work-log-sliding-measured-window);
   narrative: [VIRTUAL_SCROLL.md](../VIRTUAL_SCROLL.md)).
   While unpinned, new events do not move the window. A **visible and expanded** (or live peek / result bubble) huge
   snapshot can still hitch the tab — very unlikely unless a node
@@ -334,16 +334,16 @@ the active document’s node-id set changes with the workflow id.
 - HITL composer: `packages/ui/src/app/features/composer/components/lf-composer-shell.component.ts`
   (stage + footer), `lf-hitl-textarea.component.ts`, `lf-hitl-actions.component.ts`,
   `run-button.component.ts` / `pause-button.component.ts`. Protocol:
-  [EXECUTION_ARCHITECTURE.md](../EXECUTION_ARCHITECTURE.md)
+  [EXECUTION_ARCHITECTURE.md](../architecture/EXECUTION_ARCHITECTURE.md)
   § LLM + human-in-the-loop ("Work log chat (interactive HITL)").
 - Activity / streaming model: [REACTIVE_NODES.md](../REACTIVE_NODES.md)
   § Activity and working state.
 - Chat vs review-and-revise: [hitl-chat.md](hitl-chat.md).
 - Run start / one-run rule: [workflow-execution.md](workflow-execution.md).
 - Reconnect snapshot then live events:
-  [ARCHITECTURE.md](../ARCHITECTURE.md) § State sync: snapshot vs event-sourcing.
+  [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) § State sync: snapshot vs event-sourcing.
 - Scenario validation: [grok-feed](../use-cases/grok-feed.md),
   [run-interruption](../use-cases/run-interruption.md).
-- Stop / Pause product chrome: [ADR-031](../ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer).
-- Soft Pause mechanism: [ADR-032](../ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port).
+- Stop / Pause product chrome: [ADR-031](../architecture/ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer).
+- Soft Pause mechanism: [ADR-032](../architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port).
 - Visual normalize target: [`docs/palette.html`](../palette.html) §7–8.

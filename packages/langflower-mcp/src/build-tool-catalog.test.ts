@@ -17,6 +17,7 @@ describe('buildToolCatalog', () => {
 
 		expect(names).toContain('ensure_connected');
 		expect(names).toContain('wait_event');
+		expect(names).not.toContain('wait_session_ready');
 		expect(names).toContain(sanitizeToolName('workflow.load.requested'));
 		expect(names).toContain(sanitizeToolName('runner.start.requested'));
 		expect(names.some((name) => name.startsWith('editor_'))).toBe(false);

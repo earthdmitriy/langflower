@@ -6,7 +6,7 @@ import {
 	type LlmRecoveryRetryReason,
 	type SteerControlPayload,
 } from '@langflower/node-sdk/llm';
-import type { Harness } from '@langflower/tools/create-project-harness';
+import { isBuiltinToolId } from '@langflower/tools/create-project-harness';
 import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
 import type { PermissionAskRequest } from '@langflower/tools/permission';
 import {
@@ -43,9 +43,10 @@ import type {
 	CreateChatCompletionStream,
 } from '../chat-completion-stream.js';
 import {
-	invokeInventoryTool,
+	invokePreparedInventoryTool,
+	prepareInventoryTool,
 	toChatToolDefinitions,
-} from '../../../tools/inventory-tool-round.js';
+} from './inventory-tool-round.js';
 import { prepareChatCompletion } from '../openai/prepare-chat-completion.js';
 import type { LlmCompactionConfig } from '../openai/normalize-compaction-params.js';
 import {
@@ -111,7 +112,6 @@ export type RunLlmLoopOptions<Chunk> = {
 	readonly chatTools: readonly ChatCompletionToolDefinition[];
 	readonly inventoryTools: readonly ToolHandle[];
 	readonly getTools?: () => readonly ToolHandle[];
-	readonly harness?: Harness;
 	readonly toolCtx?: ToolHandlerContext;
 	readonly maxIterations: number;
 	readonly compaction: LlmCompactionConfig;
@@ -997,9 +997,38 @@ const prepareAndStream = <Chunk>(
 const isSubAgentToolCall = (name: string): boolean =>
 	name.endsWith('_subagent') || name.endsWith('(subagent)');
 
-/** Human waits and canvas specialists are not bounded by `toolTimeoutMs`. */
-const isUnboundedWaitToolCall = (name: string): boolean =>
-	name === 'ask_user' || isSubAgentToolCall(name);
+/**
+ * Hung-watchdog: `toolTimeoutMs` applies only to bash and non-harness
+ * inventory (MCP / crawl / custom). Never to permission.ask, ask_user,
+ * sleep, FS builtins, or Sub-Agent tools.
+ */
+const appliesToolTimeout = (name: string): boolean => {
+	if (isSubAgentToolCall(name)) {
+		return false;
+	}
+
+	if (name === 'bash') {
+		return true;
+	}
+
+	return !isBuiltinToolId(name);
+};
+
+const abortedToolResult = {
+	ok: false as const,
+	text: 'Tool aborted.',
+};
+
+const catchAbortedInvoke = (
+	error: unknown,
+	signal: AbortSignal,
+): { readonly ok: false; readonly text: string } => {
+	if (signal.aborted) {
+		return abortedToolResult;
+	}
+
+	throw error;
+};
 
 const invokeTool = <Chunk>(
 	state: LlmLoopState,
@@ -1027,45 +1056,40 @@ const invokeTool = <Chunk>(
 		signal: toolAbort.signal,
 	};
 
+	const tools = resolveInventoryTools(options);
+	const toolTimeoutMs = appliesToolTimeout(call.name)
+		? options.recovery.toolTimeoutMs
+		: 0;
+
 	const invocation$ = defer(() =>
-		invokeInventoryTool(
-			options.harness,
-			resolveInventoryTools(options),
-			call,
-			options.toolCtx,
-			invokeOptions,
-		).catch((error: unknown) => {
-			// Avoid unhandled rejection when timeout/cancel aborts in-flight work.
-			if (toolAbort.signal.aborted) {
-				return {
-					ok: false as const,
-					text: 'Tool aborted.',
-				};
+		prepareInventoryTool(tools, call, options.toolCtx, invokeOptions).catch(
+			(error: unknown) => catchAbortedInvoke(error, toolAbort.signal),
+		),
+	).pipe(
+		mergeMap((prepared) => {
+			if (!prepared.ok) {
+				return of(prepared);
 			}
 
-			throw error;
+			const body$ = defer(() =>
+				invokePreparedInventoryTool(prepared.invoke).catch(
+					(error: unknown) =>
+						catchAbortedInvoke(error, toolAbort.signal),
+				),
+			);
+
+			return toolTimeoutMs > 0
+				? body$.pipe(timeout({ first: toolTimeoutMs }))
+				: body$;
 		}),
-	).pipe(
 		finalize(() => {
 			cancelSignal.removeEventListener('abort', abortTool);
 		}),
 	);
 
-	const toolTimeoutMs = isUnboundedWaitToolCall(call.name)
-		? 0
-		: options.recovery.toolTimeoutMs;
-	const boundedInvocation$ =
-		toolTimeoutMs > 0
-			? invocation$.pipe(
-					timeout({
-						first: toolTimeoutMs,
-					}),
-				)
-			: invocation$;
-
 	return concat(
 		of(callLog),
-		boundedInvocation$.pipe(
+		invocation$.pipe(
 			map((result) =>
 				result.ok ? result.text : `Error: ${result.text}`,
 			),

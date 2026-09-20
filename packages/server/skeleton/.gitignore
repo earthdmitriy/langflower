@@ -1,0 +1,8 @@
+# Compiled custom nodes (esbuild cache: .cache/nodes/)
+.cache/
+
+# Server bridge diagnostic JSONL logs
+logs/
+
+# Dependencies installed inside custom-node packs
+nodes/**/node_modules/

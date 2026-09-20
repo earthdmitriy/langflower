@@ -5,26 +5,12 @@ import {
 	type ToolHandle,
 } from '@langflower/node-sdk';
 import { concatMap, EMPTY, from, of, throwError } from 'rxjs';
-import { flattenToolHandles } from '../collect-agent-tool-handles.js';
+import { lastWinsToolHandles } from '../collect-agent-tool-handles.js';
 
 const isArgsObject = (
 	value: unknown,
 ): value is Readonly<Record<string, unknown>> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const flattenWiredHandles = (wired: unknown): readonly ToolHandle[] => {
-	const flattened = Array.isArray(wired)
-		? flattenToolHandles(wired)
-		: flattenToolHandles(
-				wired === undefined || wired === null ? [] : [wired],
-			);
-	const byId = new Map<string, ToolHandle>();
-	for (const handle of flattened) {
-		byId.set(handle.toolId, handle);
-	}
-
-	return [...byId.values()];
-};
 
 const parseInvokeArgs = (
 	raw: unknown,
@@ -138,7 +124,7 @@ Typical uses:
 		const call$ = combineInputs(
 			[tools, toolId, args, ctx],
 			([wired, rawId, rawArgs, ec]) => ({
-				handles: flattenWiredHandles(wired),
+				handles: lastWinsToolHandles(wired),
 				toolId: String(rawId ?? '').trim(),
 				rawArgs,
 				projectDir: String(ec.projectDir ?? ''),

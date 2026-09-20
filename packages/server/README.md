@@ -3,4 +3,4 @@
 Backend: **WebSocket gateway** (default UI transport), bulk REST for workflows,
 `.langflower/` I/O, esbuild node bundles.
 
-See `docs/ARCHITECTURE.md` and ADR-012.
+See `docs/architecture/ARCHITECTURE.md` and ADR-012.

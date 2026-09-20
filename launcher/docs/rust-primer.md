@@ -27,6 +27,7 @@ PATH is left alone:
 npm run rust:install      # download rustc/cargo once
 npm run launcher:dev      # cargo run (debug window)
 npm run launcher:build    # cargo build --release
+npm run launcher:package  # macOS: wrap release bin as Langflower.app
 npm run launcher:test     # cargo test
 ```
 

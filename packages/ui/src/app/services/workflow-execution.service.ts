@@ -7,11 +7,9 @@ import type {
 	RunId,
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
-import { isPortTelemetry, isPortValueTelemetry } from '@langflower/runtime';
-import type {
-	PaletteNodeDefinition,
-	WorkflowPersistedGraph,
-} from '@langflower/shared/langflower';
+import { isPortTelemetry } from '@langflower/runtime';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
+import type { WorkflowPersistedGraph } from '@langflower/shared/types/langflower-workflow';
 import {
 	combineLatest,
 	EMPTY,
@@ -20,40 +18,32 @@ import {
 	of,
 	type Observable,
 } from 'rxjs';
-import { filter, map, scan, shareReplay, startWith } from 'rxjs/operators';
+import { filter, map, shareReplay } from 'rxjs/operators';
 import {
 	createLastActivityByNode$,
 	type LivenessState,
 } from './execution-liveness-fold.js';
-import { paletteByType as paletteNodesByType } from './bridge-diagram.service';
+import {
+	mergedPaletteFromSnapshots$,
+	nodeLabelsFromWorkflow,
+	paletteByType as paletteNodesByType,
+} from './execution-catalog';
 import {
 	graphHasPlainStartTargets,
 	nodeClusterRequiresChatEntry,
 } from './chat-entry-clusters';
 import {
-	nodeLabelsFromWorkflow,
-	nodeTypeByIdFromWorkflow,
-} from './execution-catalog';
-import {
 	createEdgeStates$,
+	type InputPortTelemetry,
 	type OutputPortTelemetry,
 } from './execution-chrome-fold';
 import { createLiveGraph$ } from './execution-live-graph-fold';
+import { createLatestOutputValues$ } from './execution-output-values-fold';
 import { createIsRunning$ } from './execution-run-gate-fold';
-import {
-	emptyCustomPaletteSnapshot,
-	mergePaletteCatalogs,
-} from '../features/palette/types/palette-projection';
 import { LangflowerBridgeService } from './langflower-bridge.service';
 
-type InputPortTelemetry = PortTelemetry & {
-	readonly 0: 'in';
-	readonly 2: string;
-	readonly 3: { readonly value: unknown };
-};
-
 /**
- * Cross-feature execution façade: feed values, edges, run gate, live graph.
+ * Cross-feature execution façade: last output values, edges, run gate, live graph.
  * Canvas **node** chrome lives in {@link CanvasNodeStatusService}.
  * Composer HITL lives in `features/composer` (`ComposerService`).
  *
@@ -63,15 +53,11 @@ type InputPortTelemetry = PortTelemetry & {
 export class WorkflowExecutionService {
 	private readonly bridge = inject(LangflowerBridgeService);
 
-	private readonly paletteSnapshot$ = combineLatest([
+	/** Wait for real system + custom snapshots — no empty custom startWith. */
+	private readonly paletteSnapshot$ = mergedPaletteFromSnapshots$(
 		this.bridge.cached['palette.snapshot'],
-		this.bridge.cached['customPalette.snapshot'].pipe(
-			startWith(emptyCustomPaletteSnapshot),
-		),
-	]).pipe(
-		map(([system, custom]) => mergePaletteCatalogs(system, custom)),
-		shareReplay(1),
-	);
+		this.bridge.cached['customPalette.snapshot'],
+	).pipe(shareReplay(1));
 	private readonly workflowSnapshot$ =
 		this.bridge.cached['workflow.current.snapshot'];
 	private readonly executionFeedSnapshot$ =
@@ -97,13 +83,6 @@ export class WorkflowExecutionService {
 
 	private readonly paletteByType$ = this.paletteSnapshot$.pipe(
 		map((snap) => paletteNodesByType(snap.nodes)),
-		startWith(new Map<string, PaletteNodeDefinition>()),
-		shareReplay(1),
-	);
-
-	private readonly nodeTypeById$ = this.workflowSnapshot$.pipe(
-		map((snap) => nodeTypeByIdFromWorkflow(snap)),
-		startWith(new Map<string, string>()),
 		shareReplay(1),
 	);
 
@@ -131,9 +110,6 @@ export class WorkflowExecutionService {
 	private readonly paletteByType = toSignal(this.paletteByType$, {
 		initialValue: new Map<string, PaletteNodeDefinition>(),
 	});
-	private readonly nodeTypeById = toSignal(this.nodeTypeById$, {
-		initialValue: new Map<string, string>(),
-	});
 	private readonly nodeLabels = toSignal(this.nodeLabels$, {
 		initialValue: new Map<string, string>(),
 	});
@@ -145,51 +121,27 @@ export class WorkflowExecutionService {
 		initialValue: null as WorkflowPersistedGraph | null,
 	});
 
-	readonly hasRunnableGraph = computed(() => this.nodeTypeById().size > 0);
+	readonly hasRunnableGraph = computed(
+		() => (this.activeGraph()?.nodes.length ?? 0) > 0,
+	);
+
+	/** False until the merged catalog emits (system palette is never empty). */
+	readonly hasPaletteCatalog = computed(() => this.paletteByType().size > 0);
 
 	readonly hasPlainStartTargets = computed(() => {
 		const graph = this.activeGraph();
-		if (graph === null) {
+		const palette = this.paletteByType();
+		if (graph === null || palette.size === 0) {
 			return false;
 		}
-		return graphHasPlainStartTargets(graph, this.paletteByType());
+		return graphHasPlainStartTargets(graph, palette);
 	});
 
 	private readonly latestOutputValues = toSignal(
-		merge(
-			this.executionFeedSnapshot$.pipe(
-				map((snapshot) => ({
-					type: 'snapshot' as const,
-					events: snapshot?.events ?? [],
-				})),
-			),
-			this.outputEmitted$.pipe(
-				map((event) => ({ type: 'event' as const, event })),
-			),
-		).pipe(
-			scan((values, action) => {
-				if (action.type === 'snapshot') {
-					const next = new Map<string, unknown>();
-					for (const event of action.events) {
-						if (
-							isPortValueTelemetry(event) &&
-							event[0] === 'out' &&
-							typeof event[2] === 'string'
-						) {
-							next.set(`${event[1]}:${event[2]}`, event[3].value);
-						}
-					}
-					return next;
-				}
-				const [, nodeId, portId, response] = action.event;
-				if (typeof portId !== 'string' || !('value' in response)) {
-					return values;
-				}
-				const next = new Map(values);
-				next.set(`${nodeId}:${portId}`, response.value);
-				return next;
-			}, new Map<string, unknown>()),
-		),
+		createLatestOutputValues$({
+			executionFeedSnapshot$: this.executionFeedSnapshot$,
+			outputEmitted$: this.outputEmitted$,
+		}),
 		{ initialValue: new Map<string, unknown>() },
 	);
 
@@ -238,14 +190,11 @@ export class WorkflowExecutionService {
 
 	nodeClusterRequiresChatEntry(nodeId: string): boolean {
 		const graph = this.activeGraph();
-		if (graph === null) {
+		const palette = this.paletteByType();
+		if (graph === null || palette.size === 0) {
 			return false;
 		}
-		return nodeClusterRequiresChatEntry(
-			graph,
-			this.paletteByType(),
-			nodeId,
-		);
+		return nodeClusterRequiresChatEntry(graph, palette, nodeId);
 	}
 
 	nodeLabel(nodeId: string): string {

@@ -16,12 +16,11 @@ import {
 	runAgentLoop,
 	type ToolLoopChunk,
 } from '../../features/llm-loop/run-agent-loop.js';
-import { getRunHostServices } from '../../features/run-host-services.js';
 
 type OpenAiLlmChunk = ToolLoopChunk;
 
 type OpenAiLlmContext = LlmAgentInventoryContext & {
-	readonly factory: CreateChatCompletionStream | undefined;
+	readonly factory: CreateChatCompletionStream;
 };
 
 const requireChatConfig = (providerId: string, model: string): void => {
@@ -40,16 +39,6 @@ const runOpenAiTurn = (
 	_feedback: string | undefined,
 ): Observable<OpenAiLlmChunk> => {
 	const factory = context.factory;
-
-	if (factory === undefined) {
-		return new Observable((subscriber) => {
-			subscriber.error(
-				new Error(
-					'OpenAI-compatible chat is only available during server workflow runs',
-				),
-			);
-		});
-	}
 
 	requireChatConfig(context.providerId, context.model);
 
@@ -79,7 +68,7 @@ const runOpenAiTurn = (
  * OpenAI-compatible LLM node: agent session with init context + feedback turns
  * and conversation history. Invokes allowlisted tools via `ctx.toolHandles` in an
  * internal tool loop (no per-call canvas edges).
- * @see docs/ADR.md ADR-016
+ * @see docs/architecture/ADR.md ADR-016
  * @see docs/TODO/EPICS/01-tool-loop-builtins.md
  */
 export const openAiLlmNode = defineLlmNode({
@@ -104,7 +93,7 @@ Wire tools and skills so the model can search, edit files, or call specialists. 
 			{
 				extendContext: (base, ec) => ({
 					...base,
-					factory: getRunHostServices(ec)?.createChatCompletionStream,
+					factory: ec.chat,
 				}),
 				prepareSession: (context) => ({
 					history: [

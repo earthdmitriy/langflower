@@ -1,5 +1,5 @@
 import { createServer } from '@langflower/server/create-server';
-import type { TerminalExecutionProgressStatus } from '@langflower/shared/langflower.js';
+import type { TerminalExecutionProgressStatus } from '@langflower/shared/execution/derive-run-settle-outcome.js';
 import type http from 'node:http';
 
 export type TestServerUrls = {

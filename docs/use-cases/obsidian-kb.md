@@ -2,7 +2,7 @@
 
 **Status:** Deferred — helpers removed from catalog; see
 [TBD-007](../TBD.md#tbd-007--obsidian-vault-helpers). Base memory is
-[ADR-033](../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base).
+[ADR-033](../architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base).
 
 **Historical status:** Partial — epic 11 helpers + `harness.allowedRoots` landed; demo is
 offline inbox → frontmatter → wikilinks → MOC → Preview (no live LLM, no HITL

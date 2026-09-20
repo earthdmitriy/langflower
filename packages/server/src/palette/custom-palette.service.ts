@@ -2,30 +2,11 @@ import { loadProjectNodes } from '@langflower/compiler/load-project-nodes';
 import type { ReactiveNodeDefinition } from '@langflower/node-sdk';
 import type {
 	CustomPaletteCompilationStatus,
-	CustomPalettePackError,
 	CustomPaletteSnapshotPayload,
-	PaletteNodeDefinition,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-custom-palette.js';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette.js';
 import { toPaletteDefinition } from './palette.service.js';
 import type { CustomNodeRegistry } from './custom-node-registry.js';
-
-const toPackErrors = (
-	errors: readonly {
-		readonly packageName: string;
-		readonly message: string;
-		readonly diagnostics: readonly {
-			readonly file?: string;
-			readonly line?: number;
-			readonly column?: number;
-			readonly message: string;
-		}[];
-	}[],
-): readonly CustomPalettePackError[] =>
-	errors.map((error) => ({
-		packageName: error.packageName,
-		message: error.message,
-		diagnostics: error.diagnostics,
-	}));
 
 const statusFromResult = (
 	nodeCount: number,
@@ -103,7 +84,7 @@ export class CustomPaletteService {
 			(node: ReactiveNodeDefinition) =>
 				toPaletteDefinition(node, 'custom'),
 		);
-		const errors = toPackErrors(loaded.errors);
+		const errors = loaded.errors;
 		const snapshot: CustomPaletteSnapshotPayload = {
 			nodes,
 			errors,

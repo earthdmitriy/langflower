@@ -13,6 +13,7 @@ const allowAllPermission: PermissionConfig = {
 	write: { '*': 'allow' },
 	create: { '*': 'allow' },
 	delete: { '*': 'allow' },
+	move: { '*': 'allow' },
 	bash: { '*': 'allow' },
 };
 
@@ -207,7 +208,7 @@ describe('createProjectHarness', () => {
 		expect(asks).toHaveLength(2);
 	});
 
-	it('lists all nine builtin registrations', () => {
+	it('lists all builtin registrations', () => {
 		const harness = createProjectHarness({ projectRoot });
 		const ids = harness.listBuiltinRegistrations().map((r) => r.toolId);
 		expect(ids).toEqual([
@@ -218,9 +219,75 @@ describe('createProjectHarness', () => {
 			'write',
 			'create',
 			'delete',
+			'move',
+			'sleep',
 			'bash',
 			'ask_user',
 		]);
+	});
+
+	it('move asks once for from and to, then grants the pair', async () => {
+		await fs.writeFile(path.join(projectRoot, 'a.txt'), 'src', 'utf8');
+		const asks: string[] = [];
+		const harness = createProjectHarness({
+			projectRoot,
+			permission: { move: { '*': 'ask' } },
+			requestPermission: async (req) => {
+				asks.push(req.summary);
+				return 'allow';
+			},
+		});
+
+		const moved = await harness.invoke({
+			toolId: 'move',
+			args: { from: 'a.txt', to: 'b.txt' },
+		});
+		expect(moved.ok).toBe(true);
+		expect(asks).toEqual(['Allow move: a.txt → b.txt?']);
+		expect(await fs.readFile(path.join(projectRoot, 'b.txt'), 'utf8')).toBe(
+			'src',
+		);
+
+		const retrySame = await harness.invoke({
+			toolId: 'move',
+			args: { from: 'a.txt', to: 'b.txt' },
+		});
+		expect(retrySame.ok).toBe(false);
+		expect(asks).toHaveLength(1);
+
+		const reverse = await harness.invoke({
+			toolId: 'move',
+			args: { from: 'b.txt', to: 'a.txt' },
+		});
+		expect(reverse.ok).toBe(true);
+		expect(asks).toHaveLength(1);
+
+		const newDest = await harness.invoke({
+			toolId: 'move',
+			args: { from: 'a.txt', to: 'c.txt' },
+		});
+		expect(newDest.ok).toBe(true);
+		expect(asks).toEqual([
+			'Allow move: a.txt → b.txt?',
+			'Allow move: a.txt → c.txt?',
+		]);
+	});
+
+	it('move denies when either path is denied', async () => {
+		await fs.writeFile(path.join(projectRoot, 'a.txt'), 'src', 'utf8');
+		const harness = createProjectHarness({
+			projectRoot,
+			permission: {
+				move: { 'docs/**': 'deny', '*': 'allow' },
+			},
+		});
+		const result = await harness.invoke({
+			toolId: 'move',
+			args: { from: 'a.txt', to: 'docs/a.txt' },
+		});
+		expect(result.ok).toBe(false);
+		expect(result.text).toMatch(/Permission denied.*docs\/a\.txt/i);
+		await expect(fs.stat(path.join(projectRoot, 'docs'))).rejects.toThrow();
 	});
 
 	it('ask_user returns host text and fails without a hook', async () => {

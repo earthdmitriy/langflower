@@ -192,6 +192,6 @@ Continue-from picker. Auto every-node Continue remains rejected (ADR-018 C).
   covers boundary → Stop → restart → Continue + STALE fingerprint path.
 - Epic: [20-explicit-checkpoints](../DONE/EPICS/20-explicit-checkpoints.md)
   (infra: [14-checkpoints-resume](../DONE/EPICS/14-checkpoints-resume.md)).
-- ADR: [ADR-018](../ADR.md#adr-018--durable-workflow-checkpoints).
+- ADR: [ADR-018](../architecture/ADR.md#adr-018--durable-workflow-checkpoints).
 - Architecture:
-  [EXECUTION_ARCHITECTURE — Durable checkpoints](../EXECUTION_ARCHITECTURE.md#durable-checkpoints-adr-018-d--epic-20).
+  [EXECUTION_ARCHITECTURE — Durable checkpoints](../architecture/EXECUTION_ARCHITECTURE.md#durable-checkpoints-adr-018-d--epic-20).

@@ -175,8 +175,10 @@ For node fields and cached ports when S2 expand is insufficient, use the
 
 ### Demo / CI
 
-- Smoke / CI: `basic-coder` + UI unit `feed-timeline` / `feed-section` density
-  tests (epic 17).
+- Smoke / CI: `basic-coder` + UI unit
+  `packages/ui/src/app/features/feed-folding/tests/`
+  (`flatten-feed-rows.test.ts`, `feed-projection.test.ts`,
+  `execution-feed.service-*.test.ts`) (epic 17 + 37).
 - Long multi-stage readability: denser graphs (e.g. [coding-agent](coding-agent.md))
   once that demo exists — not claimed by basic-coder alone.
 - Epic: [17-grok-feed-chat-density](../DONE/EPICS/17-grok-feed-chat-density.md)

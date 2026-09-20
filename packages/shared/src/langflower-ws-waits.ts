@@ -17,7 +17,6 @@ import type {
 	ExecutionFeedSnapshotPayload,
 	SessionStateSnapshotPayload,
 } from './types/langflower-bootstrap.js';
-import type { LangflowerConfigSnapshotPayload } from './types/langflower-config.js';
 import type {
 	WorkflowCurrentSnapshotPayload,
 	WorkflowDeletePayload,
@@ -34,6 +33,9 @@ const asRunId = (value: RunId | false): RunId => {
 	}
 	return value;
 };
+
+const createClientRunId = (): RunId =>
+	`run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}` as RunId;
 
 export type LangflowerWsClient = WsBridgeClientApi<typeof langflowerWsConfig>;
 
@@ -74,11 +76,6 @@ export const waitSessionSnapshot = async (
 	return snapshot;
 };
 
-export const waitLangflowerConfigSnapshot = async (
-	client: LangflowerWsClient,
-): Promise<LangflowerConfigSnapshotPayload> =>
-	firstValueFrom(client['langflower.config.snapshot'].pipe(take(1)));
-
 export const waitWorkflowListSnapshot = async (
 	client: LangflowerWsClient,
 	predicate: (payload: WorkflowListSnapshotPayload) => boolean,
@@ -95,33 +92,60 @@ export const waitWorkflowCurrentSnapshot = async (
 		client['workflow.current.snapshot'].pipe(filter(predicate), take(1)),
 	);
 
+/**
+ * Subscribe → send intent → wait until `predicate` (no bus `requestId`).
+ * Always subscribe before `next` so a same-turn snapshot is not missed.
+ */
+const requestThenWait = <T>(
+	source$: Observable<T>,
+	send: () => void,
+	predicate: (value: T) => boolean,
+): Promise<T> => {
+	const ready = firstValueFrom(source$.pipe(filter(predicate), take(1)));
+	send();
+	return ready;
+};
+
+const listOmitsWorkflowId =
+	(workflowId: string) =>
+	(list: WorkflowListSnapshotPayload): boolean =>
+		!list.workflows.some((entry) => entry.workflowId === workflowId);
+
+const currentIsActiveWorkflow =
+	(workflowId: string) =>
+	(snapshot: WorkflowCurrentSnapshotPayload): boolean =>
+		snapshot.activeWorkflow?.workflowId === workflowId;
+
+const currentIsSavedActive = (
+	snapshot: WorkflowCurrentSnapshotPayload,
+): boolean =>
+	snapshot.activeWorkflow !== null &&
+	snapshot.currentStatus.status === 'pristine';
+
 export const requestWorkflowList = async (
 	client: LangflowerWsClient,
-): Promise<WorkflowListSnapshotPayload> => {
-	const snapshot$ = firstValueFrom(
-		client['workflow.list.snapshot'].pipe(take(1)),
+	predicate: (payload: WorkflowListSnapshotPayload) => boolean,
+): Promise<WorkflowListSnapshotPayload> =>
+	requestThenWait(
+		client['workflow.list.snapshot'],
+		() => {
+			client['workflow.list.requested'].next({});
+		},
+		predicate,
 	);
-	client['workflow.list.requested'].next({});
-	return snapshot$;
-};
 
 export const requestWorkflowLoad = async (
 	client: LangflowerWsClient,
 	payload: WorkflowLoadPayload,
 ): Promise<WorkflowLoadedPayload> => {
-	const snapshot$ = firstValueFrom(
-		client['workflow.current.snapshot'].pipe(
-			filter(
-				(snapshot) =>
-					snapshot.activeWorkflow?.workflowId === payload.workflowId,
-			),
-			take(1),
-		),
+	const snapshot = await requestThenWait(
+		client['workflow.current.snapshot'],
+		() => {
+			client['workflow.load.requested'].next(payload);
+		},
+		currentIsActiveWorkflow(payload.workflowId),
 	);
 
-	client['workflow.load.requested'].next(payload);
-
-	const snapshot = await snapshot$;
 	const active = snapshot.activeWorkflow;
 
 	if (active === null || active.workflowId !== payload.workflowId) {
@@ -135,80 +159,57 @@ export const requestWorkflowLoad = async (
  * Load then await the post-mutation current snapshot (success or keep-active).
  * Unlike {@link requestWorkflowLoad}, does **not** require `workflowId` to
  * become active — failed/unknown loads still sync a snapshot with the prior
- * workflow. Subscribe before `next` so the reply is not missed.
+ * workflow. Pass `predicate` when the caller can name evidence; default is
+ * the next emission (documented exception — no activation id to correlate).
  */
 export const requestWorkflowLoadSnapshot = async (
 	client: LangflowerWsClient,
 	payload: WorkflowLoadPayload,
-): Promise<WorkflowCurrentSnapshotPayload> => {
-	const snapshot$ = firstValueFrom(
-		client['workflow.current.snapshot'].pipe(take(1)),
+	predicate: (payload: WorkflowCurrentSnapshotPayload) => boolean = () =>
+		true,
+): Promise<WorkflowCurrentSnapshotPayload> =>
+	requestThenWait(
+		client['workflow.current.snapshot'],
+		() => {
+			client['workflow.load.requested'].next(payload);
+		},
+		predicate,
 	);
-
-	client['workflow.load.requested'].next(payload);
-
-	return snapshot$;
-};
 
 export const requestWorkflowSaveCurrent = async (
 	client: LangflowerWsClient,
-): Promise<WorkflowCurrentSnapshotPayload> => {
-	const snapshot$ = firstValueFrom(
-		client['workflow.current.snapshot'].pipe(take(1)),
+): Promise<WorkflowCurrentSnapshotPayload> =>
+	requestThenWait(
+		client['workflow.current.snapshot'],
+		() => {
+			client['workflow.saveCurrent.requested'].next({});
+		},
+		currentIsSavedActive,
 	);
-
-	client['workflow.saveCurrent.requested'].next({});
-
-	return snapshot$;
-};
 
 export const requestWorkflowDelete = async (
 	client: LangflowerWsClient,
 	payload: WorkflowDeletePayload,
-): Promise<WorkflowListSnapshotPayload> => {
-	const list$ = firstValueFrom(
-		client['workflow.list.snapshot'].pipe(
-			filter(
-				(list) =>
-					!list.workflows.some(
-						(entry) => entry.workflowId === payload.workflowId,
-					),
-			),
-			take(1),
-		),
+): Promise<WorkflowListSnapshotPayload> =>
+	requestThenWait(
+		client['workflow.list.snapshot'],
+		() => {
+			client['workflow.delete.requested'].next(payload);
+		},
+		listOmitsWorkflowId(payload.workflowId),
 	);
-
-	client['workflow.delete.requested'].next(payload);
-
-	return list$;
-};
-
-export const requestWorkflowDeleteSnapshot = async (
-	client: LangflowerWsClient,
-	payload: WorkflowDeletePayload,
-): Promise<WorkflowListSnapshotPayload> => {
-	const list$ = firstValueFrom(
-		client['workflow.list.snapshot'].pipe(
-			filter(
-				(list) =>
-					!list.workflows.some(
-						(entry) => entry.workflowId === payload.workflowId,
-					),
-			),
-			take(1),
-		),
-	);
-
-	client['workflow.delete.requested'].next(payload);
-
-	return list$;
-};
 
 export const startRunner = async (
 	client: LangflowerWsClient,
 ): Promise<RunId> => {
-	const runIdPromise = firstValueFrom(client['runner.started'].pipe(take(1)));
-	client['runner.start.requested'].next([]);
+	const runId = createClientRunId();
+	const runIdPromise = firstValueFrom(
+		client['runner.started'].pipe(
+			filter((id) => id === runId),
+			take(1),
+		),
+	);
+	client['runner.start.requested'].next([undefined, runId]);
 	return asRunId(await runIdPromise);
 };
 
@@ -216,10 +217,14 @@ export const startRunnerFromNode = async (
 	client: LangflowerWsClient,
 	nodeId: NodeId,
 ): Promise<RunId> => {
+	const runId = createClientRunId();
 	const runIdPromise = firstValueFrom(
-		client['runner.startNode.started'].pipe(take(1)),
+		client['runner.startNode.started'].pipe(
+			filter((id) => id === runId),
+			take(1),
+		),
 	);
-	client['runner.startNode.requested'].next([nodeId]);
+	client['runner.startNode.requested'].next([nodeId, undefined, runId]);
 	return asRunId(await runIdPromise);
 };
 

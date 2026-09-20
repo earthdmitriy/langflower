@@ -23,7 +23,6 @@ import {
 	filter,
 	map,
 	pipe,
-	shareReplay,
 	startWith,
 	switchMap,
 	type Observable,
@@ -39,7 +38,11 @@ import {
 import type { LlmCompactionConfig } from '../openai/normalize-compaction-params.js';
 import { normalizeCompactionConfig } from '../openai/normalize-compaction-params.js';
 import { resolveChatProviderModel } from '../prompt/resolve-chat-provider-model.js';
-import { buildAgentToolCtx, getRunHostServices } from '../run-host-services.js';
+import {
+	buildAgentToolCtx,
+	type AgentToolCtxCaps,
+} from '../../../run-host/run-host-services.js';
+import type { CapabilityChat } from '@langflower/node-sdk';
 import {
 	AGENT_MAX_ITERATIONS_CAP,
 	DEFAULT_AGENT_MAX_ITERATIONS,
@@ -73,7 +76,7 @@ export type LlmAgentInventoryContext = {
 	 * HITL continue asks for storm caps (`agent.maxIterations` /
 	 * `agent.maxFeedbackTurns`). Missing → Deny (prior stop behavior).
 	 */
-	readonly requestPermission?: (
+	readonly requestPermission: (
 		request: PermissionAskRequest,
 	) => Promise<'allow' | 'deny'>;
 	readonly compaction: LlmCompactionConfig;
@@ -117,12 +120,26 @@ type StandardLlmAgentChunk =
 			readonly messages: readonly ChatCompletionMessage[];
 	  };
 
-type LlmAgentEcSlice = {
+export type LlmAgentEcSlice = {
 	readonly projectDir: string;
 	readonly runId: string;
 	readonly nodeId: string;
 	readonly params: Readonly<Record<string, unknown>>;
-	readonly toolHandles?: readonly ToolHandle[];
+	readonly chat: CapabilityChat;
+	readonly toolHandles: readonly ToolHandle[];
+	readonly skillMarkdown: string;
+	readonly agentsMarkdown: string;
+	readonly defaultChat?: {
+		readonly providerId: string;
+		readonly model: string;
+	};
+	readonly requestPermission: (
+		request: PermissionAskRequest,
+	) => Promise<'allow' | 'deny'>;
+	readonly getLiveWiredTools: (agentNodeId: string) => readonly ToolHandle[];
+	readonly authorize: AgentToolCtxCaps['authorize'];
+	readonly denyPaths: readonly string[];
+	readonly allowedHosts: readonly string[];
 };
 
 const asPortList = (value: unknown): readonly unknown[] => {
@@ -138,21 +155,14 @@ const asPortList = (value: unknown): readonly unknown[] => {
  * otherwise freeze the combineInputs snapshot (unit tests).
  */
 const createAgentGetTools = (
-	ec: {
-		readonly nodeId: string;
-		readonly toolHandles?: readonly ToolHandle[];
-	},
+	ec: LlmAgentEcSlice,
 	toolList: unknown,
 ): (() => readonly ToolHandle[]) => {
-	const hostServices = getRunHostServices(ec);
 	return () => {
-		const live = hostServices?.getLiveWiredTools?.(ec.nodeId);
+		const live = ec.getLiveWiredTools(ec.nodeId);
 		return collectAgentToolHandles({
 			toolHandles: ec.toolHandles,
-			toolsPort:
-				live === undefined
-					? toolList
-					: [...asPortList(toolList), ...live],
+			toolsPort: [...asPortList(toolList), ...live],
 		});
 	};
 };
@@ -172,7 +182,7 @@ const formatList = <T>(
 ): string => (items.length === 0 ? 'none' : items.map(labelOf).join(', '));
 
 /** 0 = unlimited; positive = max feedback turns after turn 0. */
-export const normalizeMaxFeedbackTurns = (value: unknown): number => {
+const normalizeMaxFeedbackTurns = (value: unknown): number => {
 	const n = typeof value === 'number' ? value : Number(value);
 
 	if (!Number.isFinite(n) || n < 1) {
@@ -200,8 +210,10 @@ export const appendToolInventory = (
 
 /**
  * Step: merge prompt / inventory / role panel into the shared agent context.
+ * OpenAI / Fake / Review / Critique / Sub-Agent must reuse this — do not
+ * reassemble host services, `buildAgentToolCtx`, or `getTools` in a node bind.
  */
-const assembleLlmAgentInventoryContext = (
+export const assembleLlmAgentInventoryContext = (
 	prompt: unknown,
 	toolList: unknown,
 	systemPromptValue: unknown,
@@ -209,16 +221,15 @@ const assembleLlmAgentInventoryContext = (
 ): LlmAgentInventoryContext => {
 	const rolePreset = parseLlmRolePreset(ec.params.rolePreset);
 	const skillId = resolveEffectiveSkillId(rolePreset, ec.params.skillId);
-	const hostServices = getRunHostServices(ec);
-	const skillMarkdown = hostServices?.skillMarkdown ?? '';
-	const agentsMarkdown = hostServices?.agentsMarkdown ?? '';
+	const skillMarkdown = ec.skillMarkdown;
+	const agentsMarkdown = ec.agentsMarkdown;
 	const getTools = createAgentGetTools(ec, toolList);
 
 	return {
 		prompt: String(prompt ?? ''),
 		tools: getTools(),
 		getTools,
-		...resolveChatProviderModel(ec.params, hostServices),
+		...resolveChatProviderModel(ec.params, ec.defaultChat),
 		skillId,
 		rolePreset,
 		skillMarkdown,
@@ -231,16 +242,18 @@ const assembleLlmAgentInventoryContext = (
 		}),
 		toolCtx: buildAgentToolCtx(
 			{ projectDir: ec.projectDir, runId: ec.runId },
-			hostServices,
+			{
+				authorize: ec.authorize,
+				denyPaths: ec.denyPaths,
+				allowedHosts: ec.allowedHosts,
+			},
 		),
 		maxIterations: normalizeMaxIterationsParam(ec.params.maxIterations, {
 			fallback: DEFAULT_AGENT_MAX_ITERATIONS,
 			maxCap: AGENT_MAX_ITERATIONS_CAP,
 		}),
 		maxFeedbackTurns: normalizeMaxFeedbackTurns(ec.params.maxFeedbackTurns),
-		...(hostServices?.requestPermission !== undefined
-			? { requestPermission: hostServices.requestPermission }
-			: {}),
+		requestPermission: ec.requestPermission,
 		compaction: normalizeCompactionConfig(ec.params),
 		recovery: normalizeLlmRecoveryPolicy(ec.params),
 	};
@@ -410,9 +423,7 @@ export const createLlmSessionCycle$ = <
 				map((next) => next.emitted),
 			);
 		},
-	}).pipe(
-		shareReplay({ bufferSize: 1, refCount: true }),
-	) as StatefulObservable<Chunk, Deps, Meta>;
+	}) as StatefulObservable<Chunk, Deps, Meta>;
 };
 
 type BindLlmAgentSessionOptions<

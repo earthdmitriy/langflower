@@ -10,6 +10,7 @@ import {
 	classifyContextLengthError,
 	ContextLengthExceededError,
 } from './context-length-error.js';
+import type { OpenAiProviderCredentials } from './openai-credentials.js';
 
 export type {
 	ChatCompletionAbortSignal,
@@ -22,13 +23,9 @@ export type {
 	CreateChatCompletionStreamArgs,
 } from '../chat-completion-stream.js';
 
+export type { OpenAiProviderCredentials } from './openai-credentials.js';
 export { ContextLengthExceededError, classifyContextLengthError };
 export { isContextLengthExceededError } from './context-length-error.js';
-
-export type OpenAiProviderCredentials = {
-	readonly apiKey?: string;
-	readonly baseURL?: string;
-};
 
 const requireNonEmpty = (value: string, label: string): string => {
 	const trimmed = value.trim();
@@ -154,6 +151,12 @@ export const reasoningTextFromDelta = (delta: unknown): string => {
 	return '';
 };
 
+const HOST_BOUND_CHAT = Symbol.for('langflower.hostBoundChat');
+
+export const isHostBoundChatFactory = (
+	factory: CreateChatCompletionStream,
+): boolean => HOST_BOUND_CHAT in factory;
+
 /**
  * Unbound OpenAI-compatible chat stream factory.
  * Caller supplies credential resolve (server injects secrets).
@@ -163,7 +166,7 @@ export const createChatCompletionStream = (deps: {
 		providerId: string,
 	) => Promise<OpenAiProviderCredentials>;
 }): CreateChatCompletionStream => {
-	return async (args) => {
+	const factory: CreateChatCompletionStream = async (args) => {
 		const providerId = requireNonEmpty(args.providerId, 'Provider');
 		const model = requireNonEmpty(args.model, 'Model');
 		const credentials = await deps.resolveProvider(providerId);
@@ -276,4 +279,6 @@ export const createChatCompletionStream = (deps: {
 
 		return iterate();
 	};
+	Object.defineProperty(factory, HOST_BOUND_CHAT, { value: true });
+	return factory;
 };

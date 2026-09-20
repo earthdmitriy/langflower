@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { WorkflowPersistedGraph } from '@langflower/shared/langflower';
+import type { WorkflowPersistedGraph } from '@langflower/shared/types/langflower-workflow';
 import { nodeInputString } from '../node-input-string.js';
 
 const graphWithMessage = (message: string): WorkflowPersistedGraph => ({

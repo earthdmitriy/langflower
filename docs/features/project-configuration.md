@@ -74,11 +74,11 @@ inspector feedback gap.
   (subset of the OpenCode config format).
 - Types: `packages/shared/src/types/langflower-config.ts`.
 - Read/write service: `packages/server/src/services/langflower-config.service.ts`
-  (referenced from [docs/NAVIGATION.md](../NAVIGATION.md)).
+  (referenced from [docs/architecture/NAVIGATION.md](../architecture/NAVIGATION.md)).
 - Permission resolution (OpenCode-style allow/ask/deny rules) and path
   sandboxing: `packages/server/src/harness/permission.ts`,
   `packages/server/src/harness/path-sandbox.ts` — see
   [node-library.md §10](node-library.md#10-security--permissions).
 - Mock LLM provider for chain testing: `packages/server/src/llm/mock-llm-provider.ts`,
-  detailed in [docs/EXECUTION_ARCHITECTURE.md](../EXECUTION_ARCHITECTURE.md)
+  detailed in [docs/architecture/EXECUTION_ARCHITECTURE.md](../architecture/EXECUTION_ARCHITECTURE.md)
   § Mock LLM provider and [node-library.md §14](node-library.md#14-mock-llm-chain-testing).

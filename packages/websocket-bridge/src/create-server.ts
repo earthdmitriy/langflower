@@ -108,7 +108,6 @@ export function createServer<C extends WsBridgeConfig>(
 		const id = randomUUID();
 		const outgoingSubjects = createSubjectMap(serverToClientKeys);
 		const disconnectedSubject = new Subject<void>();
-		const connectedSubject = new BehaviorSubject<boolean>(true);
 		const subscriptions = wireOutgoingSubjects(
 			outgoingSubjects,
 			(event, transportDir) => {
@@ -130,7 +129,6 @@ export function createServer<C extends WsBridgeConfig>(
 		const api = Object.assign(
 			{
 				id,
-				connected$: connectedSubject.asObservable(),
 				disconnected$: disconnectedSubject.asObservable(),
 				close: closeClient,
 			},
@@ -166,8 +164,6 @@ export function createServer<C extends WsBridgeConfig>(
 		});
 
 		ws.on('close', () => {
-			connectedSubject.next(false);
-			connectedSubject.complete();
 			disconnectedSubject.next();
 			disconnectedSubject.complete();
 			clients.delete(record);

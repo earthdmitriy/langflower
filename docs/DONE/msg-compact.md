@@ -22,13 +22,13 @@
     - `packages/websocket-bridge/src/bridge-types.ts`, `bridge-codec.ts`, `bridge-guards.ts` — `BridgeFrame` tuple + transport guards only
     - `packages/server/src/bridge/` — emit tuples end-to-end
     - `packages/ui/src/app/features/feed-folding/`, `packages/ui/src/app/services/*-fold.ts`, canvas folds — migrate off `.kind` / `.runId` field access
-    - `tests/integration/ws/`, MCP, `docs/ADR.md`
+    - `tests/integration/ws/`, MCP, `docs/architecture/ADR.md`
 - **Architectural Patterns & Boilerplates Enforced:**
-    - **Compact source types:** tuple aliases in `types.ts` **are** the domain shape — no parallel wire DTO, no accessor/glue module ([PRINCIPLES.md § No adapters, no glue code](../../docs/PRINCIPLES.md#no-adapters-no-glue-code), [shared AGENTS.md](../../packages/shared/AGENTS.md) — bus uses runtime types as-is).
+    - **Compact source types:** tuple aliases in `types.ts` **are** the domain shape — no parallel wire DTO, no accessor/glue module ([PRINCIPLES.md § No adapters, no glue code](../../docs/architecture/PRINCIPLES.md#no-adapters-no-glue-code), [shared AGENTS.md](../../packages/shared/AGENTS.md) — bus uses runtime types as-is).
     - **One format, two sinks:** identical JSON array on WS and in `.langflower/logs/` — same bytes, same shape; no log-only transform or sanitization pass.
     - **Named tuple indices:** TypeScript labels on tuple slots (`portDir`, `nodeId`, …) document positions; call sites destructure or index directly — no `portDir()` / `readPortValue()` shim layer.
     - **`runId` is session-scoped:** carried on `runner.snapshot`, `executionFeed.snapshot`, `runner.started` — **not** on each port tuple.
-    - **Hard cutover — no legacy path:** delete object codec, old bus types, and envelope wrappers in the same change ([PRINCIPLES.md § Delete obsolete code immediately](../../docs/PRINCIPLES.md#delete-obsolete-code-immediately)). No rollback flag, dual codec, or temporary compatibility shim.
+    - **Hard cutover — no legacy path:** delete object codec, old bus types, and envelope wrappers in the same change ([PRINCIPLES.md § Delete obsolete code immediately](../../docs/architecture/PRINCIPLES.md#delete-obsolete-code-immediately)). No rollback flag, dual codec, or temporary compatibility shim.
     - Co-versioned breaking change — ADR required ([`packages/shared/AGENTS.md`](../../packages/shared/AGENTS.md)).
 - **Pattern & Boilerplate Reference Baseline:**
     - [`types.ts`](../../packages/runtime/src/types.ts) 131–172 — **replace** `RuntimeOutputEmittedEvent` / `RuntimeInputReceivedEvent` objects.
@@ -45,7 +45,7 @@
 - **Affected Modules / Components:** Runtime types + runner emit path, shared bus config, WS codec, server log, **all** port-event consumers (feed, canvas chrome, execution folds, MCP, integration tests, runtime tests).
 - **Affected Files Inventory:**
     - **New Files:**
-        - ADR in `docs/ADR.md`
+        - ADR in `docs/architecture/ADR.md`
     - **Changed Files:**
         - `packages/runtime/src/types.ts` — compact tuple source types (see §B); tail assembly stays at emit sites
         - `packages/runtime/src/runtime-runner.ts` — build and emit tuples inline (no builder module)

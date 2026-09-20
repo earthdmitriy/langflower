@@ -24,10 +24,18 @@ Writes pack `COMPILATION_ERRORS.md` on failure (no silent fails).
 ```typescript
 import { compileProjectNodes } from '@langflower/compiler/compile-project-nodes';
 import { hasCustomNodePacks } from '@langflower/compiler/discover-packs';
-import { loadProjectNodes } from '@langflower/compiler/load-project-nodes';
+import {
+	loadProjectNodes,
+	type CompilePackError,
+} from '@langflower/compiler/load-project-nodes';
 ```
 
 No `index.ts` barrel.
+
+`CompilePackError` / `CompileDiagnostic` are re-exported from
+`load-project-nodes` so the server can assign `loaded.errors` onto the WS
+snapshot. Shared palette error types stay a DAG twin
+([ADR-039](../../docs/architecture/ADR.md#adr-039--dag-forced-twins-stay-copies-until-the-dag-flips)).
 
 `loadProjectNodes` is the start-path API: cache hit loads existing `.mjs`;
 miss or `{ force: true }` dynamically imports `compile-project-nodes`.

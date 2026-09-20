@@ -57,4 +57,4 @@ path. Secrets are write-only in UI.
 - [inspector](../../features/inspector.md)
 - [project-configuration](../../features/project-configuration.md)
 - [CONFIG.md](../../CONFIG.md)
-- [ADR-002](../../ADR.md#adr-002--langflower-project-local-storage-opencode-style)
+- [ADR-002](../../architecture/ADR.md#adr-002--langflower-project-local-storage-opencode-style)

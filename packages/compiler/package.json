@@ -15,10 +15,6 @@
 		"./load-project-nodes": {
 			"types": "./dist/load-project-nodes.d.ts",
 			"import": "./dist/load-project-nodes.js"
-		},
-		"./format-compilation-errors": {
-			"types": "./dist/format-compilation-errors.d.ts",
-			"import": "./dist/format-compilation-errors.js"
 		}
 	},
 	"scripts": {

@@ -3,8 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ResolveNodeDefinition } from './workflow-document.js';
 import { repairWorkflowGraph } from './repair-workflow-graph.js';
 
-const resolveDefinition: ResolveNodeDefinition = (node) =>
-	resolveWorkflowNodeDefinition({ type: node.type });
+const resolveDefinition: ResolveNodeDefinition = resolveWorkflowNodeDefinition;
 
 describe('repairWorkflowGraph', () => {
 	it('drops unknown node types and incident edges', () => {

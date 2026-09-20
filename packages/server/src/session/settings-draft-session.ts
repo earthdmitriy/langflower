@@ -6,8 +6,8 @@ import type {
 	LangflowerConfigDraftSnapshotPayload,
 	LangflowerConfigScope,
 	ProviderConnectionStatus,
-	SettingsDraft,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-config.js';
+import type { SettingsDraft } from '@langflower/shared/langflower-config/settings-draft.js';
 import {
 	configToDraft,
 	mergeDraftPatch,
@@ -15,7 +15,7 @@ import {
 	redactDraftSecrets,
 	sameDraft,
 	secretsDraftFromIds,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/langflower-config/settings-draft.js';
 
 export type ScopeSettingsDraft = {
 	readonly draft: SettingsDraft;
@@ -37,8 +37,8 @@ export const idleConnectionsForDraft = (
 	draft: SettingsDraft,
 ): Readonly<Record<string, ProviderConnectionStatus>> =>
 	Object.fromEntries(
-		draft.providers.map((_, index) => [
-			providerConnectionKey(index),
+		draft.providers.map((row) => [
+			providerConnectionKey(row),
 			{ state: 'idle' as const },
 		]),
 	);
@@ -51,8 +51,8 @@ const initialConnectionsForDraft = (
 	draft: SettingsDraft,
 ): Readonly<Record<string, ProviderConnectionStatus>> =>
 	Object.fromEntries(
-		draft.providers.map((row, index) => [
-			providerConnectionKey(index),
+		draft.providers.map((row) => [
+			providerConnectionKey(row),
 			row.baseURL.trim().length > 0
 				? ({ state: 'checking' } as const)
 				: ({ state: 'idle' } as const),
@@ -107,16 +107,12 @@ export const applyDraftPatch = (
 	const merged = mergeDraftPatch(previous.draft, incoming);
 	const probeIndexes: number[] = [];
 
-	const max = Math.max(
-		previous.draft.providers.length,
-		merged.providers.length,
-	);
-	for (let index = 0; index < max; index++) {
-		const before = previous.draft.providers[index];
-		const after = merged.providers[index];
-		if (after === undefined) {
-			continue;
-		}
+	for (const [index, after] of merged.providers.entries()) {
+		const key = after.id.trim();
+		const before =
+			key.length === 0
+				? undefined
+				: previous.draft.providers.find((row) => row.id.trim() === key);
 		const urlChanged = (before?.baseURL ?? '') !== after.baseURL;
 		const keyChanged = (before?.apiKey ?? '') !== after.apiKey;
 		if (urlChanged || keyChanged) {
@@ -125,10 +121,10 @@ export const applyDraftPatch = (
 	}
 
 	const connections: Record<string, ProviderConnectionStatus> = {};
-	for (let index = 0; index < merged.providers.length; index++) {
-		const key = providerConnectionKey(index);
+	for (const [index, row] of merged.providers.entries()) {
+		const key = providerConnectionKey(row);
 		if (probeIndexes.includes(index)) {
-			const baseURL = merged.providers[index]!.baseURL.trim();
+			const baseURL = row.baseURL.trim();
 			connections[key] =
 				baseURL.length === 0
 					? { state: 'idle' }
@@ -154,10 +150,16 @@ export const setConnectionStatus = (
 	state: ScopeSettingsDraft,
 	index: number,
 	status: ProviderConnectionStatus,
-): ScopeSettingsDraft => ({
-	...state,
-	connections: {
-		...state.connections,
-		[providerConnectionKey(index)]: status,
-	},
-});
+): ScopeSettingsDraft => {
+	const row = state.draft.providers[index];
+	if (row === undefined) {
+		return state;
+	}
+	return {
+		...state,
+		connections: {
+			...state.connections,
+			[providerConnectionKey(row)]: status,
+		},
+	};
+};

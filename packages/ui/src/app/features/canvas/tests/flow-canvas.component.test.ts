@@ -10,15 +10,17 @@ import type { EdgeId, NodeId, RuntimeEdge } from '@langflower/runtime';
 import type {
 	PaletteConfigPayload,
 	PaletteNodeDefinition,
+} from '@langflower/shared/types/langflower-palette';
+import type {
 	WorkflowNodePersisted,
 	WorkflowPersistedGraph,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-workflow';
 import { Subject } from 'rxjs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import { FlowCanvasComponent } from '../components/flow-canvas.component';
-import { NgDiagramModelService } from 'ng-diagram';
+import { NgDiagramModelService, NgDiagramSelectionService } from 'ng-diagram';
 
 // ---------------------------------------------------------------------------
 // Mock NgDiagramModelService
@@ -258,6 +260,15 @@ describe('FlowCanvasComponent', () => {
 		canvas = debugEl!.componentInstance;
 	});
 
+	const remountWithGraph = (graph: WorkflowPersistedGraph) => {
+		fixture.destroy();
+		fixture = TestBed.createComponent(TestHostComponent);
+		host = fixture.componentInstance;
+		host.graphInput.set(graph);
+		fixture.detectChanges();
+		canvas = fixture.debugElement.children[0]!.componentInstance;
+	};
+
 	it('creates', () => {
 		expect(canvas).toBeTruthy();
 	});
@@ -294,11 +305,25 @@ describe('FlowCanvasComponent', () => {
 		});
 	});
 
-	it('drops common-preview with a 320×280 size lock', () => {
+	it('drops a node with the size lock declared by its definition', () => {
+		const sizedDef = {
+			type: 'pack/preview',
+			category: 'core',
+			inputsConfigs: [],
+			outputsConfigs: [],
+			bypassPorts: {},
+			uiSchema: [],
+			source: 'custom',
+			defaultCanvasSize: { width: 320, height: 280 },
+		} as unknown as PaletteNodeDefinition;
+
+		host.palette.set(paletteWith([sizedDef]));
+		fixture.detectChanges();
+
 		const spy = vi.spyOn(raw['editor.addNode.requested'], 'next');
 
 		const dt = new DataTransfer();
-		dt.setData(DRAG_MIME, 'common-preview');
+		dt.setData(DRAG_MIME, 'pack/preview');
 
 		canvas.hostHandlers.handleDrop({
 			dataTransfer: dt,
@@ -310,7 +335,7 @@ describe('FlowCanvasComponent', () => {
 
 		expect(spy).toHaveBeenCalledWith(
 			expect.objectContaining({
-				type: 'common-preview',
+				type: 'pack/preview',
 				position: expect.objectContaining({
 					width: 320,
 					height: 280,
@@ -464,6 +489,43 @@ describe('FlowCanvasComponent', () => {
 		} as any);
 
 		expect(spy).not.toHaveBeenCalled();
+	});
+
+	it('re-applies the confirmed selection after a same-id graph reseed so canvas deselect can fire', async () => {
+		const selection = fixture.debugElement.children[0]!.injector.get(
+			NgDiagramSelectionService,
+		);
+		const selectSpy = vi.spyOn(selection, 'select');
+
+		host.graphInput.set(graphWith([makeNode('n1')]));
+		fixture.detectChanges();
+
+		raw['session.state.snapshot'].next({
+			selectedNode: { id: 'n1' },
+		} as any);
+
+		expect(selectSpy).toHaveBeenCalledWith(['n1']);
+
+		vi.spyOn(selection, 'selection').mockReturnValue({
+			nodes: [],
+			edges: [],
+		} as ReturnType<NgDiagramSelectionService['selection']>);
+		selectSpy.mockClear();
+
+		host.graphInput.set(graphWith([makeNode('n1')]));
+		fixture.detectChanges();
+		await fixture.whenStable();
+		fixture.detectChanges();
+
+		expect(selectSpy).toHaveBeenCalledWith(['n1']);
+
+		const spy = vi.spyOn(raw['editor.selectNode.requested'], 'next');
+		canvas.handlers.handleSelectionChanged({
+			selectedNodes: [],
+			selectedEdges: [],
+		} as any);
+
+		expect(spy).toHaveBeenCalledWith({ nodeId: null });
 	});
 
 	it('ignores handleDrop when drag data is not palette MIME', () => {
@@ -667,10 +729,20 @@ describe('FlowCanvasComponent', () => {
 		expect(patched?.data?.portsConfig).toBe(nodeDef);
 	});
 
+	it('keeps modelAdapter identity when graphInput is replaced (Save snapshot)', () => {
+		remountWithGraph(graphWith([makeNode('n1')]));
+		const firstAdapter = canvas.modelAdapter();
+
+		host.graphInput.set(graphWith([makeNode('n1')]));
+		fixture.detectChanges();
+
+		expect(canvas.modelAdapter()).toBe(firstAdapter);
+	});
+
 	// --- Node rendering with ports ---
 
 	it('renders nodes in the diagram DOM', () => {
-		host.graphInput.set(
+		remountWithGraph(
 			graphWith([
 				makeNode('n1', {
 					ui: { position: { x: 10, y: 20 }, label: 'Node One' },
@@ -680,7 +752,6 @@ describe('FlowCanvasComponent', () => {
 				}),
 			]),
 		);
-		fixture.detectChanges();
 
 		const content = fixture.nativeElement.textContent;
 		expect(content).toContain('Node One');
@@ -688,14 +759,13 @@ describe('FlowCanvasComponent', () => {
 	});
 
 	it('renders node labels from persistedNodeToDiagram', () => {
-		host.graphInput.set(
+		remountWithGraph(
 			graphWith([
 				makeNode('n1', {
 					ui: { position: { x: 10, y: 20 }, label: 'My Constant' },
 				}),
 			]),
 		);
-		fixture.detectChanges();
 
 		const content = fixture.nativeElement.textContent;
 		expect(content).toContain('My Constant');

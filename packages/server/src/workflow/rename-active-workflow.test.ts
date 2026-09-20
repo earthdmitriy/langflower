@@ -1,5 +1,5 @@
 import { resolveWorkflowNodeDefinition } from '@langflower/common-nodes';
-import type { WorkflowLoadedPayload } from '@langflower/shared/langflower.js';
+import type { WorkflowLoadedPayload } from '@langflower/shared/types/langflower-workflow.js';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -9,17 +9,7 @@ import { renameActiveWorkflow } from './rename-active-workflow.js';
 import type { ResolveNodeDefinition } from './workflow-document.js';
 import { WorkflowService } from './workflow.service.js';
 
-const resolveDefinition: ResolveNodeDefinition = (node) => {
-	const definition = resolveWorkflowNodeDefinition({
-		type: node.type,
-	});
-
-	if (definition === undefined) {
-		return undefined;
-	}
-
-	return definition;
-};
+const resolveDefinition: ResolveNodeDefinition = resolveWorkflowNodeDefinition;
 
 const emptyDocument = (
 	id: string,

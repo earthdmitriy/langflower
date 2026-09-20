@@ -7,7 +7,7 @@ that path is **not** the same as chat. Settings identity and catalog nodes:
 [FOUND_BUGS BUG-2026-08-26b](FOUND_BUGS.md).
 
 This is **not** product vector-KB storage. Project memory is markdown tools
-([ADR-033](ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)). Packs
+([ADR-033](architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)). Packs
 own their sqlite/indexes and call `EmbedHandle.embedTexts`.
 
 ---

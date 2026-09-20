@@ -1,7 +1,7 @@
 import type {
 	RunnerAskUserAskPayload,
 	RunnerAskUserReplyPayload,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-config';
 import type { RunId } from '@langflower/runtime';
 import { Subject } from 'rxjs';
 import { describe, expect, it } from 'vitest';

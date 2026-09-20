@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { WorkflowCheckpoint } from '@langflower/shared/langflower.js';
+import type { WorkflowCheckpoint } from '@langflower/shared/types/workflow-checkpoint.js';
 import { WorkflowCheckpointStore } from './workflow-checkpoint-store.js';
 
 const sample = (

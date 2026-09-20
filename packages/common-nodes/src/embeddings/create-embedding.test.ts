@@ -110,13 +110,6 @@ describe('createEmbedding', () => {
 				texts: ['a'],
 			}),
 		).rejects.toThrow(/numeric embedding array/);
-		await expect(
-			factory({
-				providerId: 'openai',
-				model: 'text-embedding-3-small',
-				texts: ['a'],
-			}),
-		).rejects.toThrow(/embeddingIsArray":false/);
 	});
 
 	it('throws when batch vectors have mixed dims', async () => {

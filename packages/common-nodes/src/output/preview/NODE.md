@@ -7,16 +7,16 @@
 
 ## Summary
 
-Форматирует входное значение в строку (JSON для объектов) и пробрасывает в work log. Терминальная нода для отображения результата.
+Formats the wired `text` input as display string (JSON for objects) and
+emits it on `text` with `feed.role: result` (work log in `features/feed/`).
+Passthrough — downstream nodes still receive the formatted string.
+
+Live bind: `src/output/preview/node.ts`.
 
 ## Inputs
 
-`text` (any, required, inline: preview)
+`text` (any, required, inline: preview-markdown)
 
 ## Outputs
 
-`text` (passthroughFrom: text)
-
----
-
-_Implementation removed — re-add via `defineReactiveNode` + `bind()` API._
+`text` (passthrough, `feed.role: result`)

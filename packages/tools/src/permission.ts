@@ -30,6 +30,8 @@ export const DEFAULT_PERMISSION_CONFIG: PermissionConfig = {
 	write: { '*': 'allow' },
 	create: { '*': 'allow' },
 	delete: { '*': 'allow' },
+	move: { '*': 'allow' },
+	sleep: { '*': 'allow' },
 	bash: { '*': 'allow' },
 	ask_user: { '*': 'allow' },
 };
@@ -174,8 +176,12 @@ export const resolvePermission = (
 	return matches[0]?.[1] ?? 'deny';
 };
 
-/** Extract the path/command string used for pattern matching. */
-export const permissionDetailForCall = (
+const posixArg = (value: unknown): string | undefined =>
+	typeof value === 'string' && value.length > 0
+		? value.replace(/\\/g, '/')
+		: undefined;
+
+const singlePermissionDetail = (
 	toolId: string,
 	args: Readonly<Record<string, unknown>>,
 ): string => {
@@ -183,68 +189,72 @@ export const permissionDetailForCall = (
 		return typeof args.command === 'string' ? args.command : '';
 	}
 
+	if (toolId === 'sleep') {
+		return typeof args.seconds === 'number' && Number.isFinite(args.seconds)
+			? `${String(Math.trunc(args.seconds))}s`
+			: '*';
+	}
+
 	if (toolId === 'ask_user') {
-		return typeof args.question === 'string' ? args.question : '';
-	}
-
-	if (typeof args.path === 'string' && args.path.length > 0) {
-		return args.path.replace(/\\/g, '/');
-	}
-
-	if (typeof args.file === 'string' && args.file.length > 0) {
-		return args.file.replace(/\\/g, '/');
-	}
-
-	if (typeof args.url === 'string' && args.url.length > 0) {
-		return args.url;
-	}
-
-	if (typeof args.key === 'string' && args.key.length > 0) {
-		return args.key;
-	}
-
-	if (typeof args.collectionId === 'string' && args.collectionId.length > 0) {
-		return args.collectionId;
-	}
-
-	return '*';
-};
-
-const MCP_DETAIL_ARGS_CAP = 180;
-
-/**
- * Permission detail for an MCP invoke — remote tool name plus a stable args
- * digest so grants/patterns are not collapsed to a single `'mcp'` key.
- */
-export const permissionDetailForMcpCall = (
-	remoteName: string,
-	args: Readonly<Record<string, unknown>>,
-): string => {
-	const name = remoteName.trim().length > 0 ? remoteName.trim() : 'mcp';
-	const fromArgs = permissionDetailForCall('_', args);
-
-	if (fromArgs !== '*') {
-		return `${name}:${fromArgs}`;
-	}
-
-	const keys = Object.keys(args).sort();
-
-	if (keys.length === 0) {
-		return name;
-	}
-
-	try {
-		const digest = JSON.stringify(args, keys);
-
-		if (digest.length <= MCP_DETAIL_ARGS_CAP) {
-			return `${name}:${digest}`;
+		if (
+			typeof args.question === 'string' &&
+			args.question.trim().length > 0
+		) {
+			return args.question;
 		}
 
-		return `${name}:${digest.slice(0, MCP_DETAIL_ARGS_CAP)}…`;
-	} catch {
-		return name;
+		const questions = args.questions;
+		if (!Array.isArray(questions) || questions.length === 0) {
+			return '';
+		}
+
+		const first = questions[0];
+		if (
+			first !== null &&
+			typeof first === 'object' &&
+			!Array.isArray(first) &&
+			'prompt' in first &&
+			typeof first.prompt === 'string'
+		) {
+			return first.prompt;
+		}
+
+		return '';
 	}
+
+	return (
+		posixArg(args.path) ??
+		posixArg(args.file) ??
+		posixArg(args.url) ??
+		posixArg(args.key) ??
+		posixArg(args.collectionId) ??
+		'*'
+	);
 };
+
+/**
+ * Path/command strings used for pattern matching.
+ * `move` gates both `from` and `to` independently.
+ */
+export const permissionDetailsForCall = (
+	toolId: string,
+	args: Readonly<Record<string, unknown>>,
+): readonly string[] => {
+	if (toolId === 'move') {
+		const details = [posixArg(args.from), posixArg(args.to)].filter(
+			(value): value is string => value !== undefined,
+		);
+		return details.length > 0 ? details : ['*'];
+	}
+
+	return [singlePermissionDetail(toolId, args)];
+};
+
+/** Extract the path/command string used for pattern matching. */
+export const permissionDetailForCall = (
+	toolId: string,
+	args: Readonly<Record<string, unknown>>,
+): string => permissionDetailsForCall(toolId, args)[0] ?? '*';
 
 export const permissionAskSummary = (
 	toolId: string,

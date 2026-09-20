@@ -74,6 +74,15 @@ describe('resolveHostPackageEntry', () => {
 		expect(fs.existsSync(entry ?? '')).toBe(true);
 	});
 
+	it('maps tsc paths for @langflower/node-sdk/llm', () => {
+		const typesPath = resolveHostPackageTypes('@langflower/node-sdk/llm');
+		expect(typesPath).toBeDefined();
+		expect(typesPath?.endsWith('define-llm-node.d.ts')).toBe(true);
+		expect(hostPathMappings()['@langflower/node-sdk/llm']?.[0]).toBe(
+			toPosix(typesPath ?? ''),
+		);
+	});
+
 	it('detects host peer bare names and subpaths', () => {
 		expect(isHostPeerSpecifier('@langflower/node-sdk')).toBe(true);
 		expect(isHostPeerSpecifier('@langflower/node-sdk/llm')).toBe(true);

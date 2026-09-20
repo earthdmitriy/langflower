@@ -11,7 +11,7 @@ import { NodeHoverService } from '../../../services/node-hover.service';
 import { ComposerService } from '../composer.service';
 
 /**
- * Full-bleed HITL textarea for the composer shell (palette §8). Fills the
+ * Full-bleed HITL textarea for the composer shell. Fills the
  * shell stage; footer/tabs float over it. No field-title label — destination
  * is the pressed footer CTA. Bottom/top padding reserves overlay chrome.
  */

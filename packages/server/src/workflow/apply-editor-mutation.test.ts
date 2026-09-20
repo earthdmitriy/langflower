@@ -4,13 +4,12 @@ import type { EdgeId, NodeId, RuntimeEdge } from '@langflower/runtime';
 import type {
 	EditorAddEdgeRequestedPayload,
 	EditorUpdateNodeRequestedPayload,
+} from '@langflower/shared/types/langflower-editor.js';
+import type {
 	WorkflowLoadedPayload,
 	WorkflowNodePersisted,
-} from '@langflower/shared/langflower.js';
-import fs from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+} from '@langflower/shared/types/langflower-workflow.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { LangflowerSession } from '../session/langflower-session.js';
 import {
 	applyEditorAddEdge,
@@ -25,17 +24,7 @@ import {
 } from './apply-editor-mutation.js';
 import type { ResolveNodeDefinition } from './workflow-document.js';
 
-const resolveDefinition: ResolveNodeDefinition = (node) => {
-	const definition = resolveWorkflowNodeDefinition({
-		type: node.type,
-	});
-
-	if (definition === undefined) {
-		return undefined;
-	}
-
-	return definition;
-};
+const resolveDefinition: ResolveNodeDefinition = resolveWorkflowNodeDefinition;
 
 const stringNode = (id: string, value = 'hello'): WorkflowNodePersisted => ({
 	id,
@@ -90,7 +79,6 @@ const seedActiveWorkflow = (
 
 	const bindResult = bindWorkflowToSessionEditor(
 		session.runtime.editor,
-		projectDir,
 		document,
 		resolve,
 	);
@@ -120,24 +108,13 @@ const expectEditorSessionTopologyMatch = (session: LangflowerSession): void => {
 	expect(sessionEdgeIds).toEqual(editorEdgeIds);
 };
 
-let projectDir: string;
-
 describe('applyEditorAddNode', () => {
-	beforeEach(async () => {
-		projectDir = await fs.mkdtemp(path.join(os.tmpdir(), 'lf-editor-add-'));
-	});
-
-	afterEach(async () => {
-		await fs.rm(projectDir, { recursive: true, force: true });
-	});
-
 	it('returns added node on success', () => {
 		const session = new LangflowerSession();
 		seedActiveWorkflow(session, []);
 
 		const result = applyEditorAddNode(
 			session,
-			projectDir,
 			{
 				type: 'common-string',
 				position: { x: 0, y: 0 },
@@ -160,7 +137,6 @@ describe('applyEditorAddNode', () => {
 
 		const result = applyEditorAddNode(
 			session,
-			projectDir,
 			{
 				type: 'common-string',
 				position: { x: 0, y: 0 },
@@ -177,7 +153,6 @@ describe('applyEditorAddNode', () => {
 
 		const result = applyEditorAddNode(
 			session,
-			projectDir,
 			{
 				type: 'common-string',
 				position: { x: 0, y: 0 },
@@ -196,7 +171,6 @@ describe('applyEditorAddNode', () => {
 
 		const result = applyEditorAddNode(
 			session,
-			projectDir,
 			{
 				type: 'common-string',
 				position: { x: 0, y: 0 },
@@ -213,7 +187,6 @@ describe('applyEditorAddNode', () => {
 
 		const result = applyEditorAddNode(
 			session,
-			projectDir,
 			{
 				type: 'unknown-type',
 				position: { x: 0, y: 0 },
@@ -226,23 +199,12 @@ describe('applyEditorAddNode', () => {
 });
 
 describe('applyEditorPaste', () => {
-	beforeEach(async () => {
-		projectDir = await fs.mkdtemp(
-			path.join(os.tmpdir(), 'lf-editor-paste-'),
-		);
-	});
-
-	afterEach(async () => {
-		await fs.rm(projectDir, { recursive: true, force: true });
-	});
-
 	it('remaps clientIds and pastes nodes with edges and size', () => {
 		const session = new LangflowerSession();
 		seedActiveWorkflow(session, []);
 
 		const result = applyEditorPaste(
 			session,
-			projectDir,
 			{
 				nodes: [
 					{
@@ -291,7 +253,6 @@ describe('applyEditorPaste', () => {
 
 		const result = applyEditorPaste(
 			session,
-			projectDir,
 			{
 				nodes: [
 					{
@@ -312,19 +273,12 @@ describe('applyEditorPaste', () => {
 describe('applyEditorAddEdge', () => {
 	let session: LangflowerSession;
 
-	beforeEach(async () => {
-		projectDir = await fs.mkdtemp(
-			path.join(os.tmpdir(), 'lf-editor-edge-'),
-		);
+	beforeEach(() => {
 		session = new LangflowerSession();
 		seedActiveWorkflow(session, [
 			stringNode('string-1'),
 			previewNode('preview-1'),
 		]);
-	});
-
-	afterEach(async () => {
-		await fs.rm(projectDir, { recursive: true, force: true });
 	});
 
 	it('returns persisted edge on success', () => {
@@ -455,16 +409,6 @@ describe('applyEditorAddEdge', () => {
 });
 
 describe('applyEditorRemoveNode', () => {
-	beforeEach(async () => {
-		projectDir = await fs.mkdtemp(
-			path.join(os.tmpdir(), 'lf-editor-rm-node-'),
-		);
-	});
-
-	afterEach(async () => {
-		await fs.rm(projectDir, { recursive: true, force: true });
-	});
-
 	it('returns removed node snapshot', () => {
 		const session = new LangflowerSession();
 		const node = stringNode('string-1');
@@ -487,16 +431,6 @@ describe('applyEditorRemoveNode', () => {
 });
 
 describe('applyEditorRemoveEdge', () => {
-	beforeEach(async () => {
-		projectDir = await fs.mkdtemp(
-			path.join(os.tmpdir(), 'lf-editor-rm-edge-'),
-		);
-	});
-
-	afterEach(async () => {
-		await fs.rm(projectDir, { recursive: true, force: true });
-	});
-
 	it('returns removed edge snapshots', () => {
 		const session = new LangflowerSession();
 		seedActiveWorkflow(session, [
@@ -528,16 +462,6 @@ describe('applyEditorRemoveEdge', () => {
 });
 
 describe('applyEditorUpdateNode', () => {
-	beforeEach(async () => {
-		projectDir = await fs.mkdtemp(
-			path.join(os.tmpdir(), 'lf-editor-update-'),
-		);
-	});
-
-	afterEach(async () => {
-		await fs.rm(projectDir, { recursive: true, force: true });
-	});
-
 	it('updates position and ui without runtime rebind', () => {
 		const session = new LangflowerSession();
 		seedActiveWorkflow(session, [stringNode('string-1')]);
@@ -550,7 +474,6 @@ describe('applyEditorUpdateNode', () => {
 
 		const result = applyEditorUpdateNode(
 			session,
-			projectDir,
 			payload,
 			resolveDefinition,
 		);
@@ -571,7 +494,6 @@ describe('applyEditorUpdateNode', () => {
 
 		const result = applyEditorUpdateNode(
 			session,
-			projectDir,
 			{
 				nodeId: 'number-1' as NodeId,
 				inputs: { value: '1000' },
@@ -603,7 +525,6 @@ describe('applyEditorUpdateNode', () => {
 		expect(
 			applyEditorUpdateNode(
 				session,
-				projectDir,
 				{ nodeId: 'string-1' as NodeId },
 				resolveDefinition,
 			),
@@ -618,7 +539,6 @@ describe('applyEditorUpdateNode', () => {
 		expect(
 			applyEditorUpdateNode(
 				session,
-				projectDir,
 				{
 					nodeId: 'string-1' as NodeId,
 					position: { x: 10, y: 10 },
@@ -648,7 +568,6 @@ describe('applyEditorUpdateNode', () => {
 
 		const result = applyEditorUpdateNode(
 			session,
-			projectDir,
 			{
 				nodeId: 'llm-1' as NodeId,
 				params: {
@@ -686,7 +605,6 @@ describe('applyEditorUpdateNode', () => {
 		expect(
 			applyEditorUpdateNode(
 				session,
-				projectDir,
 				{
 					nodeId: 'number-1' as NodeId,
 					inputs: { value: 42 },
@@ -719,7 +637,6 @@ describe('applyEditorUpdateNode', () => {
 
 		const result = applyEditorUpdateNode(
 			session,
-			projectDir,
 			{
 				nodeId: 'llm-1' as NodeId,
 				params: {
@@ -749,7 +666,11 @@ describe('applyEditorUpdateNode', () => {
 					rolePreset: 'custom',
 					providerId: 'lmstudio',
 					model: 'test-model',
-					enabledToolIds: ['read', 'glob', 'grep'],
+					toolPermissions: {
+						read: 'allow',
+						glob: 'allow',
+						grep: 'allow',
+					},
 					maxIterations: 6,
 					maxFeedbackTurns: 3,
 				},
@@ -762,7 +683,6 @@ describe('applyEditorUpdateNode', () => {
 
 		const bindWhileLocked = bindWorkflowToSessionEditor(
 			session.runtime.editor,
-			projectDir,
 			session.activeWorkflow!,
 			resolveDefinition,
 		);
@@ -770,14 +690,17 @@ describe('applyEditorUpdateNode', () => {
 
 		const result = applyEditorUpdateNode(
 			session,
-			projectDir,
 			{
 				nodeId: 'proposer' as NodeId,
 				params: {
 					rolePreset: 'custom',
 					providerId: 'lmstudio',
 					model: 'test-model',
-					enabledToolIds: ['read', 'glob', 'grep'],
+					toolPermissions: {
+						read: 'allow',
+						glob: 'allow',
+						grep: 'allow',
+					},
 					maxIterations: 7,
 					maxFeedbackTurns: 3,
 				},
@@ -797,16 +720,6 @@ describe('applyEditorUpdateNode', () => {
 });
 
 describe('editor ↔ session topology single-writer', () => {
-	beforeEach(async () => {
-		projectDir = await fs.mkdtemp(
-			path.join(os.tmpdir(), 'lf-editor-topology-'),
-		);
-	});
-
-	afterEach(async () => {
-		await fs.rm(projectDir, { recursive: true, force: true });
-	});
-
 	it('keeps node/edge ids aligned after add/update/remove mutations', () => {
 		const session = new LangflowerSession();
 		seedActiveWorkflow(session, []);
@@ -814,7 +727,6 @@ describe('editor ↔ session topology single-writer', () => {
 
 		const [added] = applyEditorAddNode(
 			session,
-			projectDir,
 			{
 				type: 'common-string',
 				position: { x: 0, y: 0 },
@@ -824,7 +736,6 @@ describe('editor ↔ session topology single-writer', () => {
 		);
 		const [preview] = applyEditorAddNode(
 			session,
-			projectDir,
 			{
 				type: 'common-preview',
 				position: { x: 240, y: 0 },
@@ -847,7 +758,6 @@ describe('editor ↔ session topology single-writer', () => {
 
 		applyEditorUpdateNode(
 			session,
-			projectDir,
 			{
 				nodeId: added!.id as NodeId,
 				position: { x: 40, y: 40 },
@@ -891,7 +801,6 @@ describe('editor ↔ session topology single-writer', () => {
 
 		applyEditorPaste(
 			session,
-			projectDir,
 			{
 				nodes: [
 					{
@@ -957,16 +866,6 @@ const resolveSwapFixture = (
 };
 
 describe('swapCustomNodesInEditor', () => {
-	beforeEach(async () => {
-		projectDir = await fs.mkdtemp(
-			path.join(os.tmpdir(), 'lf-editor-swap-'),
-		);
-	});
-
-	afterEach(async () => {
-		await fs.rm(projectDir, { recursive: true, force: true });
-	});
-
 	it('drops vanished-port edges, keeps other nodes, works while locked', () => {
 		const session = new LangflowerSession();
 		const v1 = swapFixture({ extra: true });
@@ -1012,7 +911,6 @@ describe('swapCustomNodesInEditor', () => {
 
 		const dropped = swapCustomNodesInEditor(
 			session,
-			projectDir,
 			resolveSwapFixture(swapFixture({})),
 			new Set(['swap-fixture']),
 		);
@@ -1053,7 +951,6 @@ describe('swapCustomNodesInEditor', () => {
 
 		const skipped = swapCustomNodesInEditor(
 			session,
-			projectDir,
 			resolveSwapFixture(v1),
 			new Set(),
 		);
@@ -1064,7 +961,6 @@ describe('swapCustomNodesInEditor', () => {
 
 		const sameShape = swapCustomNodesInEditor(
 			session,
-			projectDir,
 			resolveSwapFixture(v1),
 			new Set(['swap-fixture']),
 		);

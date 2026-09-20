@@ -37,7 +37,7 @@ The editor screen has four areas:
   (`paletteVisible` in project `langflower.jsonc`; missing key = shown).
   Less-common / dual-surface graph I/O types live under a collapsed
   **Advanced** group
-  ([ADR-023](../ADR.md#adr-023--palette-palettesecondary--collapsed-advanced)).
+  ([ADR-023](../architecture/ADR.md#adr-023--palette-palettesecondary--collapsed-advanced)).
 - **Center canvas** — the interactive graph: place node instances, draw
   connections between ports, move/delete nodes and edges, pan and zoom.
 - **Right panel** — either the work log (execution order and outputs) when
@@ -99,9 +99,10 @@ palette reports the compilation error instead of silently dropping the node.
   documented in [packages/ui/docs/DIAGRAM_CANVAS.md](../../packages/ui/docs/DIAGRAM_CANVAS.md).
 - Editor layout / feature-folder map: [packages/ui/AGENTS.md](../../packages/ui/AGENTS.md)
   (§ Feature Structure, § Palette sidebar, § Inline editing).
-- Diagram ↔ workflow graph mapping: `packages/ui/src/app/diagram/workflow-diagram.mapper.ts`;
-  port id prefixing: `packages/ui/src/app/diagram/diagram-port-id.ts`; single-wire-per-input
-  rule: `packages/ui/src/app/diagram/single-input-edge.ts`.
+- Diagram ↔ workflow graph mapping:
+  `packages/ui/src/app/services/bridge-diagram.ts`;
+  port id prefixing: `packages/ui/src/app/diagram/diagram-port-id.ts`.
+  Do not restore `workflow-diagram.mapper.ts` or `single-input-edge.ts`.
 - Multi-wire ports (`multi: 'merge' | 'combine'` on a port definition) and their
   dynamic slot growth: `packages/ui/src/app/diagram/resolve-diagram-node-ports.ts`
   (`resolveNodePorts`), documented in
@@ -109,11 +110,12 @@ palette reports the compilation error instead of silently dropping the node.
   § Multi input ports. Dedicated combining node: `common-merge`
   (`packages/common-nodes/src/flow/merge/node.ts`), see
   [node-library.md §7.1](node-library.md#71-logic).
-- Connection type-compatibility rules: `packages/shared/src/validators/connection-validator.ts`,
-  enforced in `packages/ui/src/app/diagram/diagram.config.ts` (`validateConnection`).
+- Connection type-compatibility rules:
+  `packages/shared/src/validators/connection-validator.ts` (`canConnectPorts`).
+  The UI does not host `diagram.config.ts`.
 - Palette catalog and node metadata: `packages/ui/src/app/features/palette/`;
-  secondary → Advanced: [ADR-023](../ADR.md#adr-023--palette-palettesecondary--collapsed-advanced);
-  reload/compile-error flow described in [docs/ARCHITECTURE.md](../ARCHITECTURE.md)
+  secondary → Advanced: [ADR-023](../architecture/ADR.md#adr-023--palette-palettesecondary--collapsed-advanced);
+  reload/compile-error flow described in [docs/architecture/ARCHITECTURE.md](../architecture/ARCHITECTURE.md)
   and [spec.md](../../spec.md) §4.
 - Inline vs panel field placement, port descriptors, and canvas layout timing
   background: [docs/NG_DIAGRAM.md](../NG_DIAGRAM.md), [spec.md](../../spec.md) §3.2.

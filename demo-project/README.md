@@ -61,7 +61,7 @@ Load **Checkpoint resume** (`checkpoint-resume`): Source → Stage A → Preview
    Stage A. **Discard** clears the resume option; **Run** starts fresh.
 
 See [docs/use-cases/resumable-checkpoint-jobs.md](../docs/use-cases/resumable-checkpoint-jobs.md)
-and [ADR-018](../docs/ADR.md#adr-018--durable-workflow-checkpoints).
+and [ADR-018](../docs/architecture/ADR.md#adr-018--durable-workflow-checkpoints).
 CI: `tests/integration/ws/execute-checkpoint-resume.ws.test.ts`.
 
 ## Multi-role approval (parallel HITL gates)

@@ -3,15 +3,11 @@ import type {
 	RunId,
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
-import { isPortTelemetry } from '@langflower/runtime';
-import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
-import { combineLatest, merge, type Observable } from 'rxjs';
+import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap';
+import { merge, type Observable } from 'rxjs';
 import { filter, map, scan, shareReplay, startWith } from 'rxjs/operators';
-import {
-	feedCatalogFromSnaps,
-	type FeedCatalog,
-} from '../../services/execution-catalog';
-import { mergePaletteCatalogs } from '../palette/types/palette-projection';
+import { type FeedCatalog } from '../../services/execution-catalog';
+import { foldCanvasNodeCatalog$ } from './fold-canvas-node-catalog';
 import { eventsForNode } from './operators/canvas-node-status-projection';
 import {
 	applyNodeHitlFrame,
@@ -53,7 +49,7 @@ const foldHitlComposer = (
 ): HitlComposerState => {
 	if (action.type === 'catalog') {
 		const state =
-			composer.events.length === 0 || composer.catalog === null
+			composer.events.length === 0
 				? composer.state
 				: rebuildNodeHitlAwaitState(
 						composer.events,
@@ -131,18 +127,7 @@ export const foldSingleNodeHitlAwaiting = (
 		| 'customPaletteSnapshot$'
 	>,
 ): Observable<boolean> => {
-	const catalog$ = combineLatest([
-		sources.workflowSnapshot$,
-		combineLatest([
-			sources.paletteSnapshot$,
-			sources.customPaletteSnapshot$,
-		]).pipe(
-			map(([system, custom]) => mergePaletteCatalogs(system, custom)),
-		),
-	]).pipe(
-		map(([workflow, palette]) => feedCatalogFromSnaps(workflow, palette)),
-		shareReplay({ bufferSize: 1, refCount: true }),
-	);
+	const catalog$ = foldCanvasNodeCatalog$(sources);
 
 	const forNode = (event: PortTelemetry): boolean => event[1] === nodeId;
 

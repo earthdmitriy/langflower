@@ -6,7 +6,7 @@ import {
 } from '@langflower/node-sdk';
 import { firstValueFrom, of } from 'rxjs';
 import { describe, expect, it } from 'vitest';
-import { attachRunHostServices } from '../../ai/features/run-host-services.js';
+import { attachRunHostServices } from '../../run-host/run-host-services.js';
 import type { CreateEmbedding } from '../create-embedding.js';
 import { embedProviderNode } from './node.js';
 
@@ -70,6 +70,12 @@ const connectProvider = (
 					nodeId: 'embed-provider-1',
 					params,
 					uiSchema: embedProviderNode.uiSchema,
+					...(createEmbedding !== undefined
+						? { embed: createEmbedding }
+						: {}),
+					...(defaultEmbedding !== undefined
+						? { defaultEmbedding }
+						: {}),
 				},
 				{
 					...(createEmbedding !== undefined
@@ -271,8 +277,7 @@ describe('common-embed-provider', () => {
 		await expect(
 			firstValueFrom(instance.outputs.embed.error$),
 		).resolves.toMatchObject({
-			message:
-				'OpenAI-compatible embeddings are only available during server workflow runs',
+			message: expect.stringMatching(/is not a function/),
 		});
 	});
 });

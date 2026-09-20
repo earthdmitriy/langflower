@@ -1,7 +1,29 @@
-import type { WorkflowNodePersisted } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
+import type { WorkflowNodePersisted } from '@langflower/shared/types/langflower-workflow';
 import { describe, expect, it } from 'vitest';
-import { persistedNodeToDiagram } from '../bridge-diagram.service.js';
-import { previewNodeDefaultSize } from '../../features/canvas/utils/preview-node-default-size.js';
+import { persistedNodeToDiagram } from '../bridge-diagram.js';
+
+const catalog = (
+	type: string,
+	defaultCanvasSize?: { readonly width: number; readonly height: number },
+): ReadonlyMap<string, PaletteNodeDefinition> =>
+	new Map([
+		[
+			type,
+			{
+				type,
+				displayName: type,
+				category: 'Test',
+				source: 'system',
+				uiSchema: [],
+				inputsConfigs: [],
+				outputsConfigs: [],
+				...(defaultCanvasSize !== undefined
+					? { defaultCanvasSize }
+					: {}),
+			} as unknown as PaletteNodeDefinition,
+		],
+	]);
 
 const baseNode = (
 	position: {
@@ -67,23 +89,33 @@ describe('persistedNodeToDiagram sizing', () => {
 		expect(diagram.size).toEqual({ width: 200, height: 72 });
 	});
 
-	it('locks common-preview to 320×280 when width is unset', () => {
+	it('locks the box declared by defaultCanvasSize when width is unset', () => {
 		const diagram = persistedNodeToDiagram(
-			{ ...baseNode(), type: 'common-preview' },
-			new Map(),
+			{ ...baseNode(), type: 'pack/preview' },
+			catalog('pack/preview', { width: 320, height: 280 }),
 		);
 
 		expect(diagram.autoSize).toBe(false);
-		expect(diagram.size).toEqual(previewNodeDefaultSize);
+		expect(diagram.size).toEqual({ width: 320, height: 280 });
 	});
 
-	it('keeps a persisted Preview size over the default', () => {
+	it('auto-sizes a catalog node without defaultCanvasSize', () => {
+		const diagram = persistedNodeToDiagram(
+			{ ...baseNode(), type: 'pack/plain' },
+			catalog('pack/plain'),
+		);
+
+		expect(diagram.autoSize).toBe(true);
+		expect(diagram.size).toBeUndefined();
+	});
+
+	it('keeps a persisted size over the declared default', () => {
 		const diagram = persistedNodeToDiagram(
 			{
 				...baseNode({ width: 400, height: 200 }),
-				type: 'common-preview',
+				type: 'pack/preview',
 			},
-			new Map(),
+			catalog('pack/preview', { width: 320, height: 280 }),
 		);
 
 		expect(diagram.autoSize).toBe(false);

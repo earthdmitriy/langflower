@@ -1,15 +1,21 @@
 import {
 	ChangeDetectionStrategy,
 	Component,
-	Input,
 	computed,
 	inject,
+	input,
 	signal,
 } from '@angular/core';
 import type {
+	AskUserQuestion,
 	RunnerAskUserAskPayload,
 	RunnerPermissionAskPayload,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-config';
+import {
+	formatAskUserReplyText,
+	hasAskUserReplyContent,
+} from '@langflower/shared/langflower-config/format-ask-user-reply-text';
+import { LfAskUserQuestionsComponent } from './lf-ask-user-questions.component';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
 import { NodeHoverService } from '../../../services/node-hover.service';
 import type { HitlControlProjection } from '../../../services/hitl-projection';
@@ -28,7 +34,7 @@ import { PauseButtonComponent } from './pause-button.component';
 import { RunButtonComponent } from './run-button.component';
 
 /**
- * Composer shell — palette §8 / epic 35. One surface: textarea fills the
+ * Composer shell. One surface: textarea fills the
  * shell; tab strip and footer float over it (absolute + fade). Stop left,
  * Start/Run/Send right; Pause is per-node (last feed section) and may show
  * again in HITL footer when another agent becomes last in feed. Enter (no
@@ -44,6 +50,7 @@ import { RunButtonComponent } from './run-button.component';
 		LfHitlTextareaComponent,
 		LfHitlActionsComponent,
 		LfHoverTipComponent,
+		LfAskUserQuestionsComponent,
 	],
 	host: {
 		class: 'block shrink-0',
@@ -51,7 +58,7 @@ import { RunButtonComponent } from './run-button.component';
 	template: `
 		<section
 			class="relative overflow-hidden border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-			[style.height.px]="height"
+			[style.height.px]="height()"
 		>
 			@if (activePermissionAsk(); as ask) {
 				<div
@@ -74,13 +81,24 @@ import { RunButtonComponent } from './run-button.component';
 					</p>
 				</div>
 			} @else if (activeAskUser(); as ask) {
-				<lf-hitl-textarea
-					class="absolute inset-0 z-0"
-					[nodeId]="ask.nodeId"
-					[portId]="askUserPortId"
-					[config]="askUserTextareaConfig"
-					(enterActivate)="onEnterActivate()"
-				/>
+				<div class="absolute inset-0 z-0 flex min-h-0 flex-col pb-14">
+					@if (askUserQuestions(ask).length > 0) {
+						<lf-ask-user-questions
+							class="lf-scroll min-h-0 max-h-[55%] shrink-0 overflow-y-auto border-b border-zinc-200 px-3 py-2 dark:border-zinc-800"
+							[askId]="ask.askId"
+							[headline]="ask.question"
+							[questions]="askUserQuestions(ask)"
+							(selectionsChange)="onAskUserSelections($event)"
+						/>
+					}
+					<lf-hitl-textarea
+						class="min-h-0 flex-1"
+						[nodeId]="ask.nodeId"
+						[portId]="askUserPortId"
+						[config]="askUserTextareaConfig"
+						(enterActivate)="onEnterActivate()"
+					/>
+				</div>
 			} @else if (hitlTabs().length === 0) {
 				@if (footerMode() !== 'working') {
 					<p
@@ -151,7 +169,7 @@ import { RunButtonComponent } from './run-button.component';
 				</p>
 			}
 
-			<!-- Footer floats over the stage (palette §8) — not a reserved band. -->
+			<!-- Footer floats over the stage — not a reserved band. -->
 			<div
 				class="absolute inset-x-0 bottom-0 z-[3] flex min-h-[calc(var(--lf-control-h)+1.1rem)] items-center bg-gradient-to-t from-white from-45% to-transparent px-3 py-2 dark:from-zinc-900"
 			>
@@ -198,18 +216,15 @@ import { RunButtonComponent } from './run-button.component';
 								}
 								<lf-hover-tip
 									[tip]="
-										askUserDraft(ask).trim().length > 0
+										canSubmitAskUser(ask)
 											? 'Send this answer to the agent'
-											: 'Type a message first'
+											: 'Select an option or type a message'
 									"
 								>
 									<button
 										type="button"
 										class="lf-composer-pill ml-auto border border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-										[disabled]="
-											askUserDraft(ask).trim().length ===
-											0
-										"
+										[disabled]="!canSubmitAskUser(ask)"
 										(click)="onAskUserSubmit(ask)"
 									>
 										Send
@@ -279,8 +294,7 @@ import { RunButtonComponent } from './run-button.component';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LfComposerShellComponent {
-	/** Full shell height from editor divider fold (stage + overlay footer). */
-	@Input({ required: true }) height!: number;
+	readonly height = input.required<number>();
 
 	readonly execution = inject(WorkflowExecutionService);
 	readonly composer = inject(ComposerService);
@@ -296,6 +310,9 @@ export class LfComposerShellComponent {
 
 	readonly askUserPortId = ASK_USER_COMPOSER_PORT_ID;
 	readonly askUserTextareaConfig = ASK_USER_TEXTAREA_CONFIG;
+	readonly askUserSelections = signal<ReadonlyMap<string, readonly string[]>>(
+		new Map(),
+	);
 
 	readonly hitlTabs = computed<
 		ReadonlyArray<{
@@ -430,8 +447,29 @@ export class LfComposerShellComponent {
 		);
 	}
 
+	askUserQuestions(ask: RunnerAskUserAskPayload): readonly AskUserQuestion[] {
+		return ask.questions ?? [];
+	}
+
+	canSubmitAskUser(ask: RunnerAskUserAskPayload): boolean {
+		return hasAskUserReplyContent(
+			this.askUserDraft(ask),
+			this.askUserSelections(),
+		);
+	}
+
+	onAskUserSelections(next: ReadonlyMap<string, readonly string[]>): void {
+		this.askUserSelections.set(next);
+	}
+
 	onAskUserSubmit(ask: RunnerAskUserAskPayload): void {
-		this.composer.submitAskUserReply(ask, this.askUserDraft(ask));
+		const text = formatAskUserReplyText({
+			questions: this.askUserQuestions(ask),
+			selections: this.askUserSelections(),
+			freeform: this.askUserDraft(ask),
+		});
+		this.composer.submitAskUserReply(ask, text);
+		this.askUserSelections.set(new Map());
 	}
 
 	permissionAskMeta(ask: RunnerPermissionAskPayload): string {

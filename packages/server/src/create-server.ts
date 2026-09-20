@@ -1,9 +1,8 @@
 import { hasCustomNodePacks } from '@langflower/compiler/discover-packs';
-import {
-	langflowerWsConfig,
-	resolveServerLogsEnabled,
-	type TerminalExecutionProgressStatus,
-} from '@langflower/shared/langflower.js';
+import { DEFAULT_CONFIG } from '@langflower/shared/constants/defaults.js';
+import { langflowerWsConfig } from '@langflower/shared/langflower-bus-config.js';
+import { resolveServerLogsEnabled } from '@langflower/shared/langflower-config/resolve-server-logs-enabled.js';
+import type { TerminalExecutionProgressStatus } from '@langflower/shared/execution/derive-run-settle-outcome.js';
 import { createServer as createWsBridge } from '@langflower/websocket-bridge/create-server';
 import express from 'express';
 import http from 'node:http';
@@ -67,7 +66,10 @@ export async function createServer(
 		});
 	}
 
-	const toolConfig = await context.configService.read();
+	const toolConfigRead = await context.configService.read();
+	const toolConfig = toolConfigRead.ok
+		? toolConfigRead.config
+		: { ...DEFAULT_CONFIG, projectDir: options.projectDir };
 	const langflowerConfig = await context.langflowerConfigService.read();
 	const port = options.port ?? toolConfig.port;
 	const httpServer = http.createServer(app);

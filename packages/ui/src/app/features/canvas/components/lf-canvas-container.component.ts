@@ -2,7 +2,7 @@ import { AsyncPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { combineLatest, map } from 'rxjs';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
-import { mergePaletteCatalogs } from '../../palette/types/palette-projection';
+import { mergePaletteCatalogs } from '../../../services/execution-catalog';
 import { FlowCanvasComponent } from './flow-canvas.component';
 
 @Component({
@@ -15,7 +15,7 @@ import { FlowCanvasComponent } from './flow-canvas.component';
 				<!--
 				  Remount lf-flow-canvas when the active workflow id changes so
 				  hydrateConsumed / provideNgDiagram lifecycle reset. Same-id
-				  reseeds still reset the gate inside FlowCanvasComponent.
+				  Save snapshots keep the live model (no initializeModel reseed).
 				-->
 				@for (_ of [activeWorkflow.workflowId]; track _) {
 					<lf-flow-canvas

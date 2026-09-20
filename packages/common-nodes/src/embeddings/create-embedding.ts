@@ -9,7 +9,7 @@
  * field — this is embeddings-only.
  */
 import OpenAI from 'openai';
-import type { OpenAiProviderCredentials } from '../ai/features/openai/create-chat-completion-stream.js';
+import type { OpenAiProviderCredentials } from '../ai/features/openai/openai-credentials.js';
 
 export type CreateEmbeddingArgs = {
 	readonly providerId: string;
@@ -102,38 +102,8 @@ const defaultCreateClient = (
 			: {}),
 	}) as unknown as EmbeddingsClient;
 
-const first8 = (value: unknown): readonly unknown[] => {
-	if (Array.isArray(value) || ArrayBuffer.isView(value)) {
-		const list = value as ArrayLike<unknown>;
-		const out: unknown[] = [];
-		const n = Math.min(8, list.length);
-		for (let i = 0; i < n; i += 1) {
-			out.push(list[i]);
-		}
-		return out;
-	}
-	return [];
-};
-
-const embeddingSnapshot = (embedding: unknown): string => {
-	const embeddingLen =
-		Array.isArray(embedding) || ArrayBuffer.isView(embedding)
-			? (embedding as ArrayLike<unknown>).length
-			: undefined;
-	return JSON.stringify({
-		embeddingIsArray: Array.isArray(embedding),
-		embeddingType: embedding === null ? 'null' : typeof embedding,
-		embeddingCtor:
-			typeof embedding === 'object' && embedding !== null
-				? embedding.constructor.name
-				: undefined,
-		embeddingLen,
-		embeddingFirst8: first8(embedding),
-	});
-};
-
-const missingNumericMessage = (embedding: unknown): string =>
-	`Embedding item is missing a numeric embedding array (is a chat model loaded instead of an embedding model?). ${embeddingSnapshot(embedding)}`;
+const missingNumericMessage =
+	'Embedding item is missing a numeric embedding array (is a chat model loaded instead of an embedding model?).';
 
 const asNumericVector = (embedding: unknown): ArrayLike<number> => {
 	if (
@@ -148,11 +118,11 @@ const asNumericVector = (embedding: unknown): ArrayLike<number> => {
 				typeof item === 'number' && Number.isFinite(item),
 		);
 		if (numbers.length !== embedding.length) {
-			throw new Error(missingNumericMessage(embedding));
+			throw new Error(missingNumericMessage);
 		}
 		return numbers;
 	}
-	throw new Error(missingNumericMessage(embedding));
+	throw new Error(missingNumericMessage);
 };
 
 const l2Norm = (values: ArrayLike<number>): number => {

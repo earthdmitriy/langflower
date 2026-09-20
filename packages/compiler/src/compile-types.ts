@@ -1,5 +1,6 @@
 import type { ReactiveNodeDefinition } from '@langflower/node-sdk';
 
+/** Filesystem compile diagnostic. WS snapshot copy is ADR-039. */
 export type CompileDiagnostic = {
 	readonly file?: string;
 	readonly line?: number;
@@ -7,6 +8,7 @@ export type CompileDiagnostic = {
 	readonly message: string;
 };
 
+/** Pack/entry failure. Shared `CustomPalettePackError` is ADR-039. */
 export type CompilePackError = {
 	readonly packageName: string;
 	readonly message: string;

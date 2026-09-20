@@ -3,8 +3,12 @@ import type {
 	StatefulConnection,
 	StatefulObservable,
 } from '@rx-evo/stateful-observable';
+import type {
+	CapsFor,
+	LlmRequiredCapabilityId,
+	NodeCapabilityId,
+} from './capabilities.js';
 import type { ResolveSecret } from './resolve-secret.js';
-import type { ToolHandle } from '../define-tool-registrations/tool-handle.js';
 import type { CtxError } from './ctx-error.js';
 import {
 	configureOutput,
@@ -16,34 +20,49 @@ import type { PortMeta, WireType } from './port-meta.js';
 import type {
 	AssertConstUISchema,
 	ParamsFromUISchema,
-	TypedUISchema,
 	UISchemaConstItem,
 } from './ui-schema-inference.js';
 
-/**
- * Identity + panel + keyed secret lookup. Host I/O (files/kb/crawl/…) is
- * owned by specialized common-nodes internally — not part of the author
- * ExecutionContext API. LLM inventory arrives via {@link LlmExecutionCaps}
- * (`toolHandles`). {@link resolveSecret} looks up one id (`lf_secret:ID` /
- * `env:ID`); authors cannot list the bag.
- */
-export type ExecutionContext<
+type ExecutionContextHostFields<
 	UI extends readonly UISchemaConstItem[] = readonly UISchemaConstItem[],
-	Caps extends object = Record<string, never>,
 > = {
 	readonly projectDir: string;
 	readonly runId: string;
 	readonly nodeId: string;
 	readonly params: ParamsFromUISchema<UI>;
-	readonly uiSchema: TypedUISchema<UI>;
+	readonly uiSchema: UI;
 	readonly resolveSecret: ResolveSecret;
-	readonly amendInput?: (patch: Readonly<Record<string, unknown>>) => void;
-} & Caps;
-
-/** Caps for {@link defineLlmNode} — outside world via ToolHandle only. */
-export type LlmExecutionCaps = {
-	readonly toolHandles?: readonly ToolHandle[];
 };
+
+/**
+ * Identity + panel + keyed secret lookup. Host I/O (files/kb/crawl/…) is
+ * owned by specialized common-nodes internally — not part of the author
+ * ExecutionContext API. Declared capabilities arrive via {@link CapsFor}
+ * (`requires` on the definition). {@link resolveSecret} looks up one id
+ * (`lf_secret:ID` / `env:ID`); authors cannot list the bag.
+ * Do not restore `amendInput` or other host-mutation / I/O fields here —
+ * keyed by `assertExecutionContextHostKeys` below.
+ */
+export type ExecutionContext<
+	UI extends readonly UISchemaConstItem[] = readonly UISchemaConstItem[],
+	Caps extends object = Record<string, never>,
+> = ExecutionContextHostFields<UI> & Caps;
+
+type ExecutionContextHostKey =
+	'projectDir' | 'runId' | 'nodeId' | 'params' | 'uiSchema' | 'resolveSecret';
+
+type AssertExecutionContextHostKeys =
+	keyof ExecutionContextHostFields extends ExecutionContextHostKey
+		? ExecutionContextHostKey extends keyof ExecutionContextHostFields
+			? true
+			: never
+		: never;
+
+const assertExecutionContextHostKeys: AssertExecutionContextHostKeys = true;
+void assertExecutionContextHostKeys;
+
+/** Caps for {@link defineLlmNode} — LLM set from {@link CapsFor}. */
+export type LlmExecutionCaps = CapsFor<readonly LlmRequiredCapabilityId[]>;
 
 type ReactiveNodeBindResult = {
 	readonly inputs: InputConfig[];
@@ -57,8 +76,9 @@ export type DefinedReactiveNodeConfig<
 > = {
 	/**
 	 * Stable catalog / persisted workflow id (`WorkflowNodePersisted.type`).
-	 * Server resolves the definition with `resolveDefinition({ type })` and
-	 * keys the common-nodes catalog by this string.
+	 * Server resolves the definition with
+	 * `resolveDefinition({ type, params })` and keys the common-nodes
+	 * catalog by `type`.
 	 */
 	readonly type: string;
 	/**
@@ -87,10 +107,21 @@ export type DefinedReactiveNodeConfig<
 	 */
 	readonly description?: string;
 	/**
-	 * Optional string copied onto the returned definition (and thus
-	 * `PaletteNodeDefinition`). No current UI or runtime consumer reads it.
+	 * Canvas box used when the node has no persisted width: the editor locks
+	 * both axes instead of auto-sizing, so payload cannot grow the node.
+	 * Omitted → canvas auto-sizes. Persisted operator resize always wins.
 	 */
-	readonly icon?: string;
+	readonly defaultCanvasSize?: {
+		readonly width: number;
+		readonly height: number;
+	};
+	/**
+	 * When `true`, the first work-log frame from this node **closes the
+	 * previous visit**, so a delegating node gets its own feed card instead of
+	 * continuing the caller's. Omitted/`false` → frames follow the normal
+	 * `feed.streaming` visit rules. Used by `common-sub-agent`.
+	 */
+	readonly feedVisitBoundary?: boolean;
 	/**
 	 * When `true` on the live instance, the first **value** emission on any
 	 * watched output schedules `RuntimeRunner.finishRun` (`done` → `idle`).
@@ -111,6 +142,12 @@ export type DefinedReactiveNodeConfig<
 	 * `false`. Used by `common-chat-input`.
 	 */
 	readonly chatEntry?: boolean;
+	/**
+	 * Host capabilities this node needs. Copied onto
+	 * {@link ReactiveNodeDefinition.requires} (default `[]`). `bind` sees
+	 * {@link CapsFor} fields as non-optional.
+	 */
+	readonly requires?: readonly NodeCapabilityId[];
 	/**
 	 * Router bypass base port id → wire type. Runtime materializes each key
 	 * as a multi-input base; channel outputs (`ch`, `ch@1`, …) are slot views
@@ -159,8 +196,8 @@ export type ReactiveNodeInstance<
 	readonly bypassPorts: Record<string, WireType>;
 	readonly stopsRun?: boolean;
 	readonly chatEntry?: boolean;
+	readonly feedVisitBoundary?: boolean;
 	readonly emitOncePerActivation?: boolean;
-	readonly skipExecutionTelemetry?: boolean;
 	readonly ctxConnection: StatefulConnection<
 		ExecutionContext<UI, Caps>,
 		CtxError,

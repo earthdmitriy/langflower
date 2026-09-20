@@ -59,9 +59,9 @@ const listSkeletonPackIds = async (
 };
 
 /**
- * Copy skeleton workflows, skills, custom-node packs, and instructions into
- * `.langflower/`. Create mode skips existing paths; force overwrites
- * skeleton-owned files (extra project-only files stay).
+ * Copy skeleton workflows, skills, custom-node packs, instructions, and
+ * `.gitignore` into `.langflower/`. Create mode skips existing paths; force
+ * overwrites skeleton-owned files (extra project-only files stay).
  */
 export const seedSkeletonContent = async (
 	skeletonRoot: string,
@@ -87,6 +87,10 @@ export const seedSkeletonContent = async (
 	await copyFile(
 		path.join(skeletonRoot, 'instructions.md'),
 		path.join(langflowerDir, 'instructions.md'),
+	);
+	await copyFile(
+		path.join(skeletonRoot, '.gitignore'),
+		path.join(langflowerDir, '.gitignore'),
 	);
 
 	await copyDir(

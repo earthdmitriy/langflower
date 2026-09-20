@@ -25,9 +25,9 @@ See [MECHANICS-tool-execution.md](MECHANICS-tool-execution.md).
 2. **`common-sub-agent`** (`packages/common-nodes/src/ai/sub-agent/`) — landed as
    single external map-collect delegate (`task` → body → `result`). **Target
    evolution** (registration + spawn tool + skills + `nodeId` filter):
-   [ADR-021](../../ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter).
+   [ADR-021](../../architecture/ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter).
    Layers (serial swarm default, nested, Loop MC):
-   [ADR-022](../../ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo).
+   [ADR-022](../../architecture/ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo).
    Loop covers dynamic N≥2 list fan-out without registration.
 3. **Memory landed later** — run-scoped store + `common-memory-tools` pack
    (`.langflower/runs/{runId}/memory/`); Loop/Sub-Agent handoff via

@@ -5,7 +5,9 @@ import { deleteTool } from './delete/tool.js';
 import { editTool } from './edit/tool.js';
 import { globTool } from './glob/tool.js';
 import { grepTool } from './grep/tool.js';
+import { moveTool } from './move/tool.js';
 import { readTool } from './read/tool.js';
+import { sleepTool } from './sleep/tool.js';
 import type { BuiltinToolRegistration, HandlerContext } from './types.js';
 import { writeTool } from './write/tool.js';
 
@@ -18,6 +20,8 @@ export const BUILTIN_TOOLS = [
 	writeTool,
 	createTool,
 	deleteTool,
+	moveTool,
+	sleepTool,
 	bashTool,
 	askUserTool,
 ] as const;

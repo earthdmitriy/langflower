@@ -31,11 +31,6 @@ export type WalkFilesOptions = {
 	readonly yieldEvery?: number;
 };
 
-const normalizeOptions = (
-	options: boolean | WalkFilesOptions,
-): WalkFilesOptions =>
-	typeof options === 'boolean' ? { respectGitignore: options } : options;
-
 const yieldEventLoop = (): Promise<void> =>
 	new Promise((resolve) => {
 		setImmediate(resolve);
@@ -48,17 +43,15 @@ const throwIfAborted = (signal: AbortSignal | undefined): void => {
 };
 
 /**
- * Async recursive file walk. Third arg may be `respectGitignore` boolean
- * (legacy) or {@link WalkFilesOptions}.
+ * Async recursive file walk.
  */
 export const walkFiles = async (
 	root: string,
 	dir: string,
-	options: boolean | WalkFilesOptions = true,
+	options: WalkFilesOptions = {},
 ): Promise<readonly string[]> => {
-	const opts = normalizeOptions(options);
-	const respectGitignore = opts.respectGitignore !== false;
-	const yieldEvery = opts.yieldEvery ?? 32;
+	const respectGitignore = options.respectGitignore !== false;
+	const yieldEvery = options.yieldEvery ?? 32;
 	const matcher = respectGitignore
 		? await loadGitIgnoreMatcher(root)
 		: { ignores: () => false };
@@ -67,7 +60,7 @@ export const walkFiles = async (
 	let steps = 0;
 
 	const visit = async (absoluteDir: string): Promise<void> => {
-		throwIfAborted(opts.signal);
+		throwIfAborted(options.signal);
 
 		let realDir: string;
 
@@ -92,12 +85,12 @@ export const walkFiles = async (
 		}
 
 		for (const entry of entries) {
-			throwIfAborted(opts.signal);
+			throwIfAborted(options.signal);
 			steps += 1;
 
 			if (steps % yieldEvery === 0) {
 				await yieldEventLoop();
-				throwIfAborted(opts.signal);
+				throwIfAborted(options.signal);
 			}
 
 			if (
@@ -129,8 +122,8 @@ export const walkFiles = async (
 				out.push(relative);
 
 				if (
-					opts.maxFiles !== undefined &&
-					out.length >= opts.maxFiles
+					options.maxFiles !== undefined &&
+					out.length >= options.maxFiles
 				) {
 					return;
 				}

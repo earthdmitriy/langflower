@@ -36,6 +36,8 @@ export const HARNESS_BUILTIN_TOOL_IDS = [
 	'write',
 	'create',
 	'delete',
+	'move',
+	'sleep',
 	'bash',
 	'ask_user',
 ] as const;
@@ -52,6 +54,8 @@ export const PLAN_AGENT_SYSTEM_PROMPT = [
 	'sees the current plan in the work log. There is no separate Plan mode.',
 	'',
 	'When requirements are ambiguous, use ask_user before finalizing the plan.',
+	'You may pass ordered questions with options; the operator can pick chips or type.',
+	'To wait without bash, call sleep with seconds from 1 to 300. Do not busy-loop. Stop aborts the wait.',
 ].join('\n');
 
 export const CODER_AGENT_SYSTEM_PROMPT = [
@@ -64,6 +68,8 @@ export const CODER_AGENT_SYSTEM_PROMPT = [
 	'in your final response.',
 	'',
 	'If you are not sure, call ask_user instead of guessing.',
+	'You may pass ordered questions with options; the operator can pick chips or type.',
+	'To wait without bash, call sleep with seconds from 1 to 300. Do not busy-loop. Stop aborts the wait.',
 ].join('\n');
 
 const EXPLORER_AGENT_SYSTEM_PROMPT = [
@@ -75,6 +81,8 @@ const EXPLORER_AGENT_SYSTEM_PROMPT = [
 	'Cite URLs. Separate facts from inference.',
 	'',
 	'If you are not sure, call ask_user instead of guessing.',
+	'You may pass ordered questions with options; the operator can pick chips or type.',
+	'To wait without bash, call sleep with seconds from 1 to 300. Do not busy-loop. Stop aborts the wait.',
 ].join('\n');
 
 const allAllow = (): ToolPermissionsMap =>
@@ -88,6 +96,7 @@ const CODER_TOOL_PERMISSIONS: ToolPermissionsMap = {
 	...allAllow(),
 	bash: 'ask',
 	delete: 'ask',
+	move: 'ask',
 };
 
 const PLAN_TOOL_PERMISSIONS: ToolPermissionsMap = {
@@ -96,6 +105,7 @@ const PLAN_TOOL_PERMISSIONS: ToolPermissionsMap = {
 	create: 'ask',
 	edit: 'deny',
 	delete: 'deny',
+	move: 'deny',
 	bash: 'deny',
 };
 
@@ -108,6 +118,7 @@ const EXPLORER_TOOL_PERMISSIONS: ToolPermissionsMap = {
 	grep: 'deny',
 	edit: 'deny',
 	delete: 'deny',
+	move: 'deny',
 	bash: 'deny',
 };
 
@@ -178,41 +189,12 @@ export const parseToolPermissions = (value: unknown): ToolPermissionsMap => {
 };
 
 /**
- * Migrate legacy `enabledToolIds` allowlist → coarse toolPermissions.
- * Listed → allow (bash/delete → ask); unlisted builtins → deny.
- */
-export const migrateEnabledToolIdsToPermissions = (
-	enabledToolIds: readonly string[],
-): ToolPermissionsMap => {
-	const allowed = new Set(enabledToolIds);
-	const next: Record<string, ToolPermissionDecision> = {};
-
-	for (const id of HARNESS_BUILTIN_TOOL_IDS) {
-		if (!allowed.has(id)) {
-			next[id] = 'deny';
-			continue;
-		}
-
-		next[id] = id === 'bash' || id === 'delete' ? 'ask' : 'allow';
-	}
-
-	for (const id of enabledToolIds) {
-		if (!(id in next)) {
-			next[id] = 'allow';
-		}
-	}
-
-	return next;
-};
-
-/**
- * Resolve node toolPermissions: explicit map, else migrate enabledToolIds,
- * else preset defaults for the current role.
+ * Resolve node toolPermissions: explicit map, else preset defaults for the
+ * current role.
  */
 export const resolveEffectiveToolPermissions = (
 	rolePreset: LlmRolePreset,
 	toolPermissionsParam: unknown,
-	enabledToolIdsParam?: unknown,
 ): ToolPermissionsMap => {
 	const parsed = parseToolPermissions(toolPermissionsParam);
 
@@ -220,61 +202,20 @@ export const resolveEffectiveToolPermissions = (
 		return parsed;
 	}
 
-	if (Array.isArray(enabledToolIdsParam)) {
-		return migrateEnabledToolIdsToPermissions(
-			enabledToolIdsParam.map(String),
-		);
-	}
-
 	return LLM_ROLE_PRESET_DEFAULTS[rolePreset].toolPermissions;
-};
-
-/**
- * Inventory ids whose decision is not deny.
- * Missing harness builtin ids default to allow so newly shipped builtins
- * (e.g. `ask_user`) appear without re-applying a role preset.
- */
-export const toolPermissionsToEnabledIds = (
-	toolPermissions: ToolPermissionsMap,
-): readonly string[] => {
-	const enabled: string[] = [];
-	const seen = new Set<string>();
-
-	for (const id of HARNESS_BUILTIN_TOOL_IDS) {
-		if (toolPermissions[id] !== 'deny') {
-			enabled.push(id);
-			seen.add(id);
-		}
-	}
-
-	for (const [toolId, decision] of Object.entries(toolPermissions)) {
-		if (decision === 'deny' || seen.has(toolId)) {
-			continue;
-		}
-
-		enabled.push(toolId);
-		seen.add(toolId);
-	}
-
-	return enabled;
 };
 
 /**
  * Params patch when the author selects a role preset in the Inspector.
  *
  * - Writes `rolePreset` + materializes `toolPermissions`.
- * - Removes legacy `enabledToolIds`.
  * - Does **not** touch `skillId` / `systemPrompt`.
  */
 export const paramsAfterRolePresetApply = (
 	currentParams: Readonly<Record<string, unknown>>,
 	rolePreset: LlmRolePreset,
 ): Readonly<Record<string, unknown>> => {
-	const {
-		enabledToolIds: _legacy,
-		toolPermissions: _previous,
-		...rest
-	} = currentParams;
+	const { toolPermissions: _previous, ...rest } = currentParams;
 	const defaults = LLM_ROLE_PRESET_DEFAULTS[rolePreset];
 
 	return {
@@ -305,6 +246,8 @@ const DEFAULT_HARNESS_PERMISSION: ProjectPermissionConfig = {
 	write: { '*': 'allow' },
 	create: { '*': 'allow' },
 	delete: { '*': 'allow' },
+	move: { '*': 'allow' },
+	sleep: { '*': 'allow' },
 	bash: { '*': 'allow' },
 	ask_user: { '*': 'allow' },
 };
@@ -420,24 +363,4 @@ export const isHarnessToolAlwaysDenied = (
 		decisions.length > 0 &&
 		decisions.every((decision) => decision === 'deny')
 	);
-};
-
-/** Opt-in: newly wired tool ids default to allow when missing. */
-export const mergeToolPermissionsOnNewWires = (
-	toolPermissions: ToolPermissionsMap,
-	wiredToolIds: readonly string[],
-): ToolPermissionsMap => {
-	const next: Record<string, ToolPermissionDecision> = {
-		...toolPermissions,
-	};
-	let changed = false;
-
-	for (const id of wiredToolIds) {
-		if (next[id] === undefined) {
-			next[id] = 'allow';
-			changed = true;
-		}
-	}
-
-	return changed ? next : toolPermissions;
 };

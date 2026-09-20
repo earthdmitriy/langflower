@@ -1,5 +1,5 @@
 import type { ReactiveNodeDefinition } from '@langflower/node-sdk';
-import type { WorkflowLoadedPayload } from '@langflower/shared/langflower.js';
+import type { WorkflowLoadedPayload } from '@langflower/shared/types/langflower-workflow.js';
 import type { ResolveNodeDefinition } from './workflow-document.js';
 
 /**

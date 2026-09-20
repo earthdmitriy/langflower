@@ -1,4 +1,4 @@
-import type { WorkflowSavePayload } from '@langflower/shared/langflower.js';
+import type { WorkflowSavePayload } from '@langflower/shared/types/langflower-workflow.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
 
 export function buildSaveCurrentPayload(

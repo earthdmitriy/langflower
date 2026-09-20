@@ -10,11 +10,14 @@ Web fetch, link extraction, and local page storage under
 | `save-page/node.ts`     | `common-save-page`     | Persist page JSON under crawl run         |
 | `crawl/node.ts`         | `common-crawl`         | BFS via `@langflower/tools/run-bfs-crawl` |
 
-Fetch URL uses `ctx.harness.webFetch` (SSRF guards on the server). Save/Crawl
-use `ctx.crawl` injected at run time. Default crawl run id = workflow `runId`.
-BFS algorithm is shared with agent `crawl_bfs` under `@langflower/tools`.
-Budget control: `maxPages` / `maxDepth` / `maxBytes` / timeouts — not a global
-QPS limiter. Unit tests mock `webFetch` / `crawl` (offline).
+Fetch URL uses `createWebFetch` (SSRF guards in `@langflower/tools`).
+Save/Crawl use `createCrawlContext` / `runBfsCrawl`. Optional host
+allowlist: `getRunHostServices(ec)?.allowedHosts` — not `ctx.harness` /
+`ctx.crawl` on public `ExecutionContext`. Default crawl run id = workflow
+`runId`. BFS algorithm is shared with agent `crawl_bfs` under
+`@langflower/tools`. Budget control: `maxPages` / `maxDepth` / `maxBytes` /
+timeouts — not a global QPS limiter. Unit tests mock the tools modules
+(offline).
 
 Demo: `demo-project/.langflower/workflows/crawl-research.json`.
 

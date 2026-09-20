@@ -1,10 +1,8 @@
-import {
-	waitBusEvent,
-	waitSessionReady,
-} from '@langflower/shared/langflower-ws-waits';
+import { waitBusEvent } from '@langflower/shared/langflower-ws-waits';
 import type { McpToolDefinition } from './build-tool-catalog.js';
 import type { BridgeSession } from './create-bridge-session.js';
 import {
+	resolveLoadFailedPredicate,
 	resolveResumeFailedPredicate,
 	resolveWaitPredicate,
 } from './intent-wait-predicate.js';
@@ -76,6 +74,59 @@ const emitAction = async (
 	}
 
 	const predicate = resolveWaitPredicate(tool.intent, payload);
+
+	// Load can fail on a unicast `workflow.load.failed`, then broadcast the
+	// unchanged current snapshot — race so agents do not hang on id match.
+	if (tool.intent === 'workflow.load.requested') {
+		const failedPredicate = resolveLoadFailedPredicate(payload);
+		const loadedOutcome = waitBusEvent(
+			observeEvent$(session.client, asObserveEventKey(waitEvent)),
+			{
+				timeoutMs,
+				...(predicate !== undefined ? { predicate } : {}),
+			},
+		).then((result) => ({
+			outcome: 'loaded' as const,
+			result,
+		}));
+		const failedOutcome = waitBusEvent(
+			observeEvent$(session.client, 'workflow.load.failed'),
+			{
+				timeoutMs,
+				...(failedPredicate !== undefined
+					? { predicate: failedPredicate }
+					: {}),
+			},
+		).then((result) => ({
+			outcome: 'failed' as const,
+			result,
+		}));
+		void loadedOutcome.catch(() => undefined);
+		void failedOutcome.catch(() => undefined);
+		const failedEmit = emit();
+		if (failedEmit !== null) {
+			return failedEmit;
+		}
+		const raced = await Promise.race([loadedOutcome, failedOutcome]);
+		if (raced.outcome === 'failed') {
+			return {
+				ok: false,
+				text: jsonText({
+					emitted: tool.intent,
+					waitEvent: 'workflow.load.failed',
+					result: raced.result,
+				}),
+			};
+		}
+		return {
+			ok: true,
+			text: jsonText({
+				emitted: tool.intent,
+				waitEvent,
+				result: raced.result,
+			}),
+		};
+	}
 
 	// Resume can fail on a unicast `runner.resume.failed` — race so agents
 	// do not hang on the success-only wait until timeout.
@@ -170,11 +221,6 @@ const handleCurated = async (
 					status: 'ready',
 				}),
 			};
-		}
-		case 'wait_session_ready': {
-			await session.ensureReady();
-			await waitSessionReady(session.client);
-			return { ok: true, text: jsonText({ status: 'ready' }) };
 		}
 		case 'wait_event': {
 			await session.ensureReady();

@@ -1,9 +1,8 @@
-import type {
-	EditorSettingsSnapshotPayload,
-	SessionStateSnapshotPayload,
-} from '@langflower/shared/langflower.js';
+import type { EditorSettingsSnapshotPayload } from '@langflower/shared/types/langflower-editor.js';
+import type { SessionStateSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap.js';
 import type { LangflowerConfigService } from '../config/langflower-config.service.js';
 import { redactLangflowerConfigForBridge } from '../config/redact-langflower-config.js';
+import type { CustomNodeRegistry } from '../palette/custom-node-registry.js';
 import { withSkillsCatalog } from '../skills/with-skills-catalog.js';
 import type { ResolveNodeDefinition } from '../workflow/workflow-document.js';
 import { buildSelectedNodePayload } from './build-selected-node-payload.js';
@@ -25,6 +24,7 @@ export async function buildSessionBootstrap(
 	langflowerConfigService: LangflowerConfigService,
 	resolveDefinition: ResolveNodeDefinition,
 	projectDir: string,
+	customNodeRegistry: CustomNodeRegistry,
 ): Promise<SessionStateSnapshotPayload> {
 	const langflowerConfig = redactLangflowerConfigForBridge(
 		await withSkillsCatalog(
@@ -43,7 +43,11 @@ export async function buildSessionBootstrap(
 		langflowerConfig,
 		dividerPositions: session.dividerPositions,
 		paletteVisible: session.paletteVisible,
-		selectedNode: buildSelectedNodePayload(session, resolveDefinition).node,
+		selectedNode: buildSelectedNodePayload(
+			session,
+			resolveDefinition,
+			customNodeRegistry,
+		).node,
 		settings: session.settings,
 	};
 }

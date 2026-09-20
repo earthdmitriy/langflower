@@ -3,7 +3,8 @@ import type { CreateChatCompletionStreamArgs } from '../../features/chat-complet
 import { RuntimeFacade } from '@langflower/runtime';
 import { describe, expect, it } from 'vitest';
 import { BehaviorSubject, filter, firstValueFrom, of } from 'rxjs';
-import { attachRunHostServices } from '../../features/run-host-services.js';
+import { attachRunHostServices } from '../../../run-host/run-host-services.js';
+import { testLlmCapFields } from '../../features/test-llm-caps.js';
 import { mergeNode } from '../../../flow/merge/node.js';
 import { stringNode } from '../../../primitives/string/node.js';
 import { openAiLlmNode } from './node.js';
@@ -45,6 +46,9 @@ const llmContext = (
 				nodeId,
 				params,
 				uiSchema: openAiLlmNode.uiSchema,
+				...testLlmCapFields({
+					chat: createChatCompletionStream,
+				}),
 			},
 			{
 				skillMarkdown: '',

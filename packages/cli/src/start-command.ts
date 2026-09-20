@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import type { Command } from 'commander';
 import open from 'open';
 import { DEFAULT_PORT } from '@langflower/shared/constants/defaults.js';
-import { formatRunSettleLine } from '@langflower/shared/langflower.js';
+import { formatRunSettleLine } from '@langflower/shared/execution/derive-run-settle-outcome.js';
 import {
 	bootstrapProject,
 	hasLangflowerProject,
@@ -60,6 +60,23 @@ type StartOpts = {
 	readonly dev?: boolean;
 	readonly port?: number;
 	readonly noOpen?: boolean;
+};
+
+export type CommanderStartOpts = {
+	readonly dev?: boolean;
+	readonly port?: string;
+	readonly open?: boolean;
+};
+
+/** Map Commander flags (`--no-open` → `open: false`) onto start options. */
+export const toStartOpts = (opts: CommanderStartOpts): StartOpts => {
+	const port =
+		opts.port !== undefined ? parseListenPort(opts.port) : undefined;
+	return {
+		dev: opts.dev === true,
+		noOpen: opts.open === false,
+		...(port !== undefined ? { port } : {}),
+	};
 };
 
 /** Machine-readable listen fact for the launcher (and other supervisors). */
@@ -141,13 +158,7 @@ const runStartAction = async (
 	},
 ): Promise<void> => {
 	try {
-		const port =
-			opts.port !== undefined ? parseListenPort(opts.port) : undefined;
-		await startProject(projectDir, {
-			dev: opts.dev === true,
-			noOpen: opts.open === false,
-			...(port !== undefined ? { port } : {}),
-		});
+		await startProject(projectDir, toStartOpts(opts));
 	} catch (error) {
 		const message =
 			error instanceof Error

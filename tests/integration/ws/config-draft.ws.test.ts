@@ -16,8 +16,8 @@ import {
 	waitSessionReady,
 	type LangflowerWsClient,
 } from '@langflower/shared/langflower-ws-waits';
-import type { LangflowerConfigDraftSnapshotPayload } from '@langflower/shared/langflower.js';
-import { draftToSavePayload } from '@langflower/shared/langflower.js';
+import type { LangflowerConfigDraftSnapshotPayload } from '@langflower/shared/types/langflower-config.js';
+import { draftToSavePayload } from '@langflower/shared/langflower-config/settings-draft.js';
 
 const waitDraft = (
 	client: LangflowerWsClient,
@@ -109,7 +109,7 @@ describe('settings config draft (WS bridge)', () => {
 		const [a, b] = await Promise.all([nextA$, nextB$]);
 		expect(a.draft.providers[0]?.name).toBe('Draft A');
 		expect(b.draft.providers[0]?.name).toBe('Draft A');
-		expect(a.connections['0']?.state).toBe('idle');
+		expect(a.connections['draft-a']?.state).toBe('idle');
 
 		clientB.close();
 	});
@@ -119,14 +119,14 @@ describe('settings config draft (WS bridge)', () => {
 			client,
 			(snap) =>
 				snap.scope === 'project' &&
-				snap.connections['0']?.state === 'checking',
+				snap.connections['draft-a']?.state === 'checking',
 		);
 		const settled$ = waitDraft(
 			client,
 			(snap) =>
 				snap.scope === 'project' &&
-				(snap.connections['0']?.state === 'ok' ||
-					snap.connections['0']?.state === 'error'),
+				(snap.connections['draft-a']?.state === 'ok' ||
+					snap.connections['draft-a']?.state === 'error'),
 		);
 
 		client['langflower.config.draft.patch.requested'].next({
@@ -153,7 +153,9 @@ describe('settings config draft (WS bridge)', () => {
 
 		await checking$;
 		const settled = await settled$;
-		expect(['ok', 'error']).toContain(settled.connections['0']?.state);
+		expect(['ok', 'error']).toContain(
+			settled.connections['draft-a']?.state,
+		);
 	});
 
 	it('discard restores pristine draft', async () => {
@@ -478,25 +480,22 @@ describe('settings config draft seed probe (WS bridge)', () => {
 		});
 
 		const withProvider = await withProvider$;
-		const rowIndex = withProvider.draft.providers.findIndex(
+		const local = withProvider.draft.providers.find(
 			(row) => row.id === 'local',
 		);
-		expect(rowIndex).toBeGreaterThanOrEqual(0);
-		expect(
-			withProvider.draft.providers[rowIndex]?.baseURL.length,
-		).toBeGreaterThan(0);
+		expect(local).toBeDefined();
+		expect(local?.baseURL.length).toBeGreaterThan(0);
 
 		// Seed must not leave the empty-URL idle hint when Base URL is set.
-		const key = String(rowIndex);
-		expect(withProvider.connections[key]?.state).not.toBe('idle');
+		expect(withProvider.connections['local']?.state).not.toBe('idle');
 
 		const terminal = await waitDraft(
 			client,
 			(snap) =>
 				snap.scope === 'project' &&
-				(snap.connections[key]?.state === 'ok' ||
-					snap.connections[key]?.state === 'error'),
+				(snap.connections['local']?.state === 'ok' ||
+					snap.connections['local']?.state === 'error'),
 		);
-		expect(['ok', 'error']).toContain(terminal.connections[key]?.state);
+		expect(['ok', 'error']).toContain(terminal.connections['local']?.state);
 	}, 30_000);
 });

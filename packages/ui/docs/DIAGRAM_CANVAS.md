@@ -30,20 +30,18 @@ order). **Interrupt execution** instead of trying random fixes.
 | Node template (ports, inline fields, preview layout) | `src/app/features/canvas/components/lf-node.component.ts`                                                                                    |
 | Shared port row (single in/out)                      | `src/app/features/canvas/components/lf-node-port-row.component.ts`                                                                           |
 | Shared port pair row (router)                        | `src/app/features/canvas/components/lf-node-bypass-port-row.component.ts`                                                                    |
-| Port layout CSS contract                             | `src/app/features/canvas/styles/node-port-layout.css`                                                                                        |
-| Port hover info popover                              | `src/app/features/canvas/lf-port-info-popover.component.ts`, `lf-port-hover-zone.component.ts`                                               |
+| Port layout CSS contract                             | `src/app/components/node-port-layout.css`                                                                                                    |
 | Multi-input / bypass / output port row resolution    | `src/app/diagram/resolve-diagram-node-ports.ts` (`resolveNodePorts`)                                                                         |
-| Inline editors (port-attached)                       | `src/app/features/canvas/components/lf-inline-field.component.ts`, `.../node-preview-values.service.ts`                                      |
-| Diagram config (`validateConnection`)                | `src/app/diagram/diagram.config.ts`                                                                                                          |
-| Middleware (palette defaults, single-input edges)    | `src/app/diagram/connection-validation.middleware.ts`                                                                                        |
-| One edge per input port                              | `src/app/diagram/single-input-edge.ts`                                                                                                       |
-| Find incoming edge (disconnect)                      | `src/app/diagram/find-incoming-edge.ts`                                                                                                      |
+| Inline editors (port-attached)                       | `src/app/components/lf-inline-field.component.ts`, `src/app/features/canvas/services/node-preview-values.service.ts`                         |
+| Static port row (palette drag ghost + palette card)  | `src/app/components/lf-node-port-row-static.component.ts` (drag: stacked; card: pairing wrapper over `resolveNodePorts`)                     |
+| Palette → canvas drag MIME                           | `src/app/diagram/palette-drag.ts`                                                                                                            |
+| Workflow ↔ diagram projection                        | `src/app/services/bridge-diagram.service.ts` (`persistedNodeToDiagram`)                                                                      |
 | Port ID prefix (`in:` / `out:`) + bypass slot handle | `src/app/diagram/diagram-port-id.ts` (bypass `@n` via `@langflower/runtime` `bypassOutputPortId` / `parseBypassOutputPortId`)                |
 | Dynamic port rows (multi-input / bypass growth)      | `src/app/features/canvas/components/lf-node.component.ts` — derived **live** from `NgDiagramModelService.edges()`, not cached on node `data` |
-| Diagram init / viewport fit                          | `src/app/diagram/diagram-viewport-fit.service.ts`                                                                                            |
+| Viewport publish gate                                | `src/app/features/canvas/utils/canvas-viewport-sync.ts`                                                                                      |
 | Canvas host                                          | `src/app/features/canvas/components/flow-canvas.component.ts`                                                                                |
 | Edge chrome (select / hover / execution colours)     | `src/app/features/canvas/components/lf-edge-chrome.component.ts` + global `lf-edge.*` rules in `src/styles.scss`                             |
-| Back-edge route (two-node return wires)              | `back-edge-aware-orthogonal-routing.ts` + `is-back-edge.ts` / `build-below-route-points.ts`                                                  |
+| Back-edge route (two-node return wires)              | `features/canvas/utils/back-edge-aware-orthogonal-routing.ts` + `is-back-edge.ts` / `build-below-route-points.ts`                            |
 | Editor shell (side panels + composer resize)         | `src/app/features/editor/components/editor-shell.component.ts`, `.../editor/utils/clamp-divider-positions.ts`                                |
 | Right sidebar (work log / node params)               | work log: `src/app/features/feed/`; inspector/settings: `src/app/features/sidebar/`                                                          |
 | Node definitions (shared)                            | `packages/common-nodes/src/**/node.ts` (`@langflower/common-nodes`)                                                                          |
@@ -62,8 +60,14 @@ order). **Interrupt execution** instead of trying random fixes.
   `editor.nodeSelected` (mirrors what `lf-inspector-panel.component.ts` already does)
   and swaps the two components in its right `<aside>` — see
   `packages/ui/src/app/features/editor/components/editor-shell.component.ts`.
+  Same-id `workflow.current.snapshot` (Save) must **not** reseed
+  `initializeModel` — persisted edges have no path points, so a reseed
+  drops orthogonal routing. `modelAdapter` keeps the first seed on this
+  canvas instance; Load of another workflow remounts on `workflowId`.
+  Inspector **Close** (and a belt re-apply of `lastConfirmedSelectedNodeId`)
+  still emit / restore `editor.selectNode.requested`.
 - Work log source: `ExecutionFeedService` (`packages/ui/src/app/features/feed-folding/`),
-  an append-only fold of `runner.output-emitted` + `executionFeed.snapshot` replay —
+  an append-only fold of `runner.port` frames + `executionFeed.snapshot` replay —
   see `packages/ui/src/app/features/feed-folding/README.md` and
   [docs/features/feed-panel.md](../../../docs/features/feed-panel.md).
   Node params surface: [docs/features/inspector.md](../../../docs/features/inspector.md).
@@ -179,7 +183,7 @@ absolute `right: -20px` anchors).
 
 **Fix:** Unified port layout — `.lf-port-row` with `position: relative` and
 `.lf-port-anchor--out { position: absolute; right: calc(-1 * var(--lf-node-chrome-padding-x)) }`.
-Shared components: `lf-node-port-row` (stacked in/out), `lf-node-port-pair-row`
+Shared components: `lf-node-port-row` (stacked in/out), `lf-node-bypass-port-row`
 (router).
 
 **Prevention:** Do not position port dots via grid columns or margin hacks.
@@ -224,7 +228,7 @@ topology first, then project it to ngDiagram from the workflow.
 **Fix:**
 
 - Preview-specific row: port anchor **left of** textarea (same row).
-- `autoSize: true` for `common-preview` in `workflow-diagram.mapper.ts`.
+- `autoSize: true` for `common-preview` in `bridge-diagram.ts`.
 
 **Prevention:** See [Node sizing](#node-sizing) and [Preview pattern](#preview-node-pattern).
 
@@ -272,8 +276,8 @@ inherited `--edge-stroke` / host classes.
 
 ## Port layout rules (ng-diagram)
 
-Shared contract: [`node-port-layout.css`](../src/app/features/canvas/node-port-layout.css),
-[`lf-node-port-row.component.ts`](../src/app/features/canvas/lf-node-port-row.component.ts),
+Shared contract: [`node-port-layout.css`](../src/app/components/node-port-layout.css),
+[`lf-node-port-row.component.ts`](../src/app/features/canvas/components/lf-node-port-row.component.ts),
 [`lf-node-bypass-port-row.component.ts`](../src/app/features/canvas/components/lf-node-bypass-port-row.component.ts).
 
 ng-diagram port hosts use **absolute** positioning:
@@ -306,7 +310,7 @@ Implications:
 | Mode        | Component                                  | When                                    |
 | ----------- | ------------------------------------------ | --------------------------------------- |
 | **SideRow** | `lf-node-port-row` (`side="in"` / `"out"`) | Stacked inputs then outputs (`lf-node`) |
-| **PairRow** | `lf-node-port-pair-row`                    | Input + output on same Y (`lf-router`)  |
+| **PairRow** | `lf-node-bypass-port-row`                  | Input + output on same Y (`lf-router`)  |
 
 ### Input port checklist
 
@@ -349,12 +353,13 @@ Same as [Input port checklist](#input-port-checklist) — one row per slot handl
 | N    | `lines@N`               | `in:lines@N`    |
 
 Slot list is stored on the node as `data.multiInputSlots.lines` (ordered handles).
-Palette drop and mapper init one slot per multi port; middleware appends the next
-handle when **all** current slots are wired.
+Palette drop and `persistedNodeToDiagram` init one slot per multi port. Extra
+slots appear when the live edge list grows (`resolveNodePorts`).
 
-`diagram.config.ts` → `validateConnection` parses prefixed ids before calling
-`NodeDefinitionIndexService.getInputPortType` / `getOutputPortType` (base name
-resolved via `resolveInputPortBaseName`).
+There is **no** `diagram.config.ts` / `connection-validation.middleware.ts`.
+Do not restore them. Type rules stay in `@langflower/shared`
+`canConnectPorts`; canvas topology is projected from the server workflow
+(`BridgeDiagramService`).
 
 ---
 
@@ -374,8 +379,9 @@ get wired. This is computed **reactively**, not patched imperatively:
 2. **Growth rule** — for each base port, the highest wired slot index + 1 is
    always rendered as a free row (`maxInputSlot` / `maxBypassSlot` in
    `resolve-diagram-node-ports.ts`).
-3. **One edge per slot** — `single-input-edge` still applies per **slot** handle
-   (`lines` vs `lines@1` are independent).
+3. **One edge per slot** — each slot handle is a distinct target
+   (`lines` vs `lines@1`). The server graph is the source of truth; do not
+   restore `single-input-edge.ts`.
 4. **Disconnect** — hover `×` removes the edge; the trailing empty row
    disappears on its own next time `connectedEdges()` recomputes (no separate
    trim step needed).
@@ -404,6 +410,11 @@ via `untracked` for the initial `portsConfig` only. Later `palette` input
 changes patch live node `data.portsConfig` through `updateNodes` — they must
 **not** re-call `initializeModel` (BUG-2026-07-22a).
 
+**Same-id Save must not reseed.** A later `workflow.current.snapshot` with a
+new `graph` object (Save) still binds `[graphInput]`. `modelAdapter` returns
+the first `initializeModel` result so live auto-routing stays. Viewport
+hydrate uses the first seed graph only.
+
 Manual check: drop Collect → wire two Constants → third empty slot visible
 below. Wire an edge to a router's bypass port → drag the router → the empty
 slot must still be there afterwards (regression for the bug above).
@@ -413,12 +424,12 @@ slot must still be there afterwards (regression for the bug above).
 ## Node sizing
 
 Sizing is **width-gated** in
-[`persistedNodeToDiagram`](../src/app/services/bridge-diagram.service.ts)
+[`persistedNodeToDiagram`](../src/app/services/bridge-diagram.ts)
 (see `docs/DONE/UI/00-bridge-and-persistence.md` § Sizing):
 
 | Mode             | Condition                                          | `autoSize` | Behavior                                                                                                                 |
 | ---------------- | -------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
-| A — content auto | `ui.position.width` unset                          | `true`     | Both axes follow content (`common-preview` is excepted: default 320×280, mode B)                                         |
+| A — content auto | `ui.position.width` unset                          | `true`     | Both axes follow content, unless the definition declares `defaultCanvasSize` (then mode B; `common-preview` is 320×280)  |
 | B — width locked | `ui.position.width` set (SE resize / paste / load) | `false`    | Width sticky; on **port row-count** change, height is re-fitted and persisted via `updateNode` `{ ui: { height } }` only |
 
 - All custom nodes are `resizable: true` and wrap content in
@@ -442,13 +453,15 @@ Sizing is **width-gated** in
   enter mode B).
 - ng-diagram has no height-only `autoSize` — do not re-enable `autoSize: true`
   after width is set.
-- **Multiline fill (ADR-017):** **canvas-only** — `text-multiline` has **no**
-  native textarea grip (`resize: none`, 100px floor). Authors opt fields into
-  sharing leftover node height via `InlineConfig`
-  `{ type: 'text-multiline', flex?, minHeightPx? }` (shorthand
-  `'text-multiline'` ⇒ `flex: 1`). Persist **node** height only — never
-  per-field `ui.inlineHeights`. Inspector multiline (no `fill`) uses
-  `resize: vertical` without persistence.
+- **Multiline fill (ADR-017):** **canvas-only** — `text-multiline` /
+  `markdown` have **no** native textarea grip (`resize: none`, 100px floor).
+  Authors opt fields into sharing leftover node height via `InlineConfig`
+  `{ type: 'text-multiline' | 'markdown', flex?, minHeightPx? }` (shorthand
+  `'text-multiline'` / `'markdown'` ⇒ `flex: 1`). Persist **node** height
+  only — never per-field `ui.inlineHeights`. Inspector multiline (no `fill`)
+  uses `resize: vertical` without persistence. `'markdown'` idles as
+  rendered markdown and edits as a textarea (author-time, not
+  `preview-markdown`).
 
 **Rule:** In mode B, if content exceeds `size.height` before the next
 row-count sync, bottom ports may be unreachable until height re-fits (or the
@@ -474,11 +487,11 @@ node:
   floor is 16px, not live `offsetHeight` / `max-height: 10rem`. Inspector
   (no `fill`) still caps at `max-height: 10rem`.
 - Operator SE-resize still changes the node; extra height goes to the pane.
-  Incoming `runner.input-received` must not change width or height.
+  Incoming `runner.port` `'in'` frames must not change width or height.
   Default drop / unset size is **320×280** (mode B) so markdown cannot
   autoSize the node wider.
 - Live value: `NodePreviewValuesService` (`node-preview-values.service.ts`)
-  subscribes to `runner.input-received` and keys values by
+  subscribes to `runner.port` `'in'` frames and keys values by
   `${nodeId}:${portId}`; `LfNodeComponent.previewValueFor(basePortId)` feeds
   it into the row's `previewValue` input. Before a run starts (or after a
   reload) there is no live value yet — the row falls back to the port's
@@ -488,13 +501,11 @@ node:
 
 ## Edge & connection behaviour
 
-| Rule                    | Where                                                     |
-| ----------------------- | --------------------------------------------------------- |
-| Type compatibility      | `canConnectPorts` in `diagram.config.ts`                  |
-| Passthrough output type | `resolveEffectiveOutputPortType` before `canConnectPorts` |
-| One wire per input      | `single-input-edge` middleware                            |
-| Workflow sync           | `WorkflowSyncService` on `model.onChange`                 |
-| Temporary edges ignored | `diagramModelToWorkflow` filters `temporary !== true`     |
+| Rule               | Where                                                              |
+| ------------------ | ------------------------------------------------------------------ |
+| Type compatibility | `canConnectPorts` in `@langflower/shared` (server/runtime also)    |
+| Canvas topology    | `BridgeDiagramService` projects the authoritative workflow graph   |
+| One wire per input | Server workflow + reconcile; do not restore `single-input-edge.ts` |
 
 Default `portSnapDistance` is **10px** — users must drop near the visible dot.
 If connections feel “impossible”, check port position first, not validation.
@@ -503,32 +514,14 @@ If connections feel “impossible”, check port position first, not validation.
 
 ## Port info popover
 
-Hover a canvas port dot to open a metadata panel **over the node body**:
+**Removed.** Canvas ports have no hover metadata panel. Do not restore
+`lf-port-info-popover` / `lf-port-hover-zone`. Port rows are
+`lf-node-port-row` and `lf-node-bypass-port-row` only.
 
-| Side   | Popover position           | Fields                                                                   |
-| ------ | -------------------------- | ------------------------------------------------------------------------ |
-| Input  | Right of dot (inside node) | Disconnect (when wired), name, wire type, description                    |
-| Output | Left of dot (inside node)  | Disconnect all (when wired), name, wire type, stream + help, description |
-
-Components: `lf-port-hover-zone` wraps each `<ng-diagram-port>` inside
-`lf-node-port-row` / `lf-node-port-pair-row`. Popover content:
-`lf-port-info-popover`.
-
-- **Input disconnect** — removes the single incoming edge
-  (`findIncomingDiagramEdge`).
-- **Output disconnect** — removes **all** outgoing edges from that port
-  (`findOutgoingDiagramEdges`).
-- **Stream help** — `?` icon on stream outputs explains live chunks vs final
-  downstream value.
-- **Touch** — tap port zone toggles pinned popover; Escape or outside tap
-  dismisses.
-- **Link drag** — popover uses `pointerdown.stopPropagation()`; port dot remains
-  draggable (no overlay blocking the port).
-- **Vertical anchor** — popover `top` is the port dot center
-  (`--lf-port-dot-center-y` on `.lf-port-hover-host`); `transform: translateY`
-  shifts by the Disconnect button center (`--lf-port-popover-button-center-y`
-  on `.lf-port-info-popover`). Both vars must be set on the **same elements**
-  that receive those CSS properties (not the Angular component host).
+Historical 2026-06-17 alignment work targeted those deleted components; see
+[FOUND_BUGS](../../../docs/FOUND_BUGS.md) BUG-2026-06-17 (popover). Current
+disconnect UX is whatever the inspector / edge chrome exposes — not a port
+hover overlay.
 
 ---
 
@@ -629,17 +622,17 @@ Click an edge, then press Delete. No Langflower code required.
 1. **Definition** — `packages/common-nodes/src/<category>/<name>/node.ts`,
    registered in `packages/common-nodes/src/catalog.ts` (no barrel `index.ts`).
 2. **Distinct port names** across inputs and outputs on the same node.
-3. **Mapper size** — add branch in `workflowNodeToDiagramNode` if layout is
-   taller than default.
+3. **Node size** — `persistedNodeToDiagram` / `bridge-diagram.service.ts`
+   (`autoSize` vs locked width).
 4. **Template** — use `lf-node-port-row` for port rows; it renders inline
    editors on its own from `InputPortMeta.inline` — no custom body needed.
 5. **On-canvas value display** — set `inline: 'preview' | 'preview-markdown' |
 'preview-code'` on the input if the node should show upstream data flowing
    through it during a run (`NodePreviewValuesService` supplies the value).
-6. **Example workflow** — `packages/server/templates/example-workflow.json.tpl`
-   and `demo-project/.langflower/workflows/example.json`.
-7. **Tests** — validator/mapper tests; add cases to `single-input-edge.test.ts`
-   only if port wiring rules change.
+6. **Example workflow** — `packages/server/skeleton/` samples and
+   `demo-project/.langflower/workflows/example.json`.
+7. **Tests** — `canConnectPorts` unit tests; canvas port-row tests if wiring
+   UX changes. Do not add `single-input-edge.test.ts`.
 
 ---
 
@@ -670,12 +663,12 @@ After canvas changes:
 
 Canvas node/edge UI must use theme tokens from [`THEMES.md`](THEMES.md):
 
-| Component                         | Tokens / classes                                                                                                                          |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `lf-node.component.ts`            | `--lf-bg-surface`, `--lf-border`, `--lf-node-glow-*`, `--lf-node-border-*`, `.lf-btn`, `.lf-node-chrome`                                  |
-| `node-port-layout.css`            | `--lf-node-chrome-padding-x`, `.lf-port-row`, `.lf-port-anchor`                                                                           |
-| `lf-edge-chrome.component.ts`     | select / idle hover / pending / value / error via `--edge-stroke`; `lf-edge--pulse` / `--back` (path `stroke:` fallback in `styles.scss`) |
-| `node-inline-inputs.component.ts` | `.lf-input`, `.lf-textarea`                                                                                                               |
+| Component                      | Tokens / classes                                                                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `lf-node.component.ts`         | `--lf-bg-surface`, `--lf-border`, `--lf-node-glow-*`, `--lf-node-border-*`, `.lf-btn`, `.lf-node-chrome`                                  |
+| `node-port-layout.css`         | `--lf-node-chrome-padding-x`, `.lf-port-row`, `.lf-port-anchor`                                                                           |
+| `lf-edge-chrome.component.ts`  | select / idle hover / pending / value / error via `--edge-stroke`; `lf-edge--pulse` / `--back` (path `stroke:` fallback in `styles.scss`) |
+| `lf-inline-field.component.ts` | `.lf-input`, `.lf-textarea`                                                                                                               |
 
 Node UI states (`inactive`, `pending`, `value`, `error`, `hitl`) apply via
 `lf-node-chrome--pending` / `--value` / `--error` / `--hitl` classes
@@ -728,20 +721,17 @@ clears the per-node fold (same reset as edge chrome).
 
 | Test file                                | Covers                                                                        |
 | ---------------------------------------- | ----------------------------------------------------------------------------- |
-| `diagram-port-id.test.ts`                | `in:` / `out:` prefix round-trip                                              |
-| `single-input-edge.test.ts`              | Superseded edges on reconnect                                                 |
-| `find-incoming-edge.test.ts`             | Incoming edge lookup for disconnect                                           |
-| `find-outgoing-diagram-edges.test.ts`    | Outgoing edges for output disconnect all                                      |
-| `diagram-canvas-highlight.test.ts`       | Node UI state / highlight resolution                                          |
+| `diagram-port-id.ts` (no dedicated test) | `in:` / `out:` prefix helpers                                                 |
 | `lf-node-chrome.test.ts`                 | `lf-node-chrome--*` from `CanvasNodeStatusService` + pulse + select/hover     |
 | `canvas-node-status-projection.test.ts`  | Streaming-aware per-node status append / snapshot parity                      |
 | `canvas-node-hitl-projection.test.ts`    | Node-scoped chrome HITL open/close from port events                           |
+| `fold-canvas-node-hitl.test.ts`          | Feed snapshot before palette still opens the node HITL ring                   |
 | `lf-edge-chrome.test.ts`                 | `lf-edge--*` from `wireStatus` + pulse + host pointer-events + back-edge dash |
 | `lf-node-port-row-pulse.test.ts`         | Port-anchor `--pulse` from output-emitted / input-received                    |
 | `value-pulse-active.test.ts`             | Pure `pulseOn` / `pulseOff` command stream + boolean projection               |
 | `is-back-edge.test.ts`                   | Lower-source (return wire) heuristic                                          |
 | `build-below-route-points.test.ts`       | Below U-route + `resolveNodeBounds`                                           |
 | `compute-back-edge-aware-points.test.ts` | Below vs forward points for replaced `orthogonal`                             |
-| `diagram-viewport-fit.test.ts`           | Viewport fit helpers                                                          |
-| `feed-section.test.ts`                   | Work log fold/new-section/error/trim reducer                                  |
+| `canvas-viewport-sync.test.ts`           | Viewport publish gate (`gateCanvasViewportPublish`)                           |
+| `flatten-feed-rows.test.ts`              | Work-log header + per-bubble rows from `feed-folding`                         |
 | `format-port-value.test.ts`              | Port value display formatters                                                 |

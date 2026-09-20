@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 import { BehaviorSubject, filter, firstValueFrom, of } from 'rxjs';
 import { stringNode } from '../../../primitives/string/node.js';
 import { REVIEW_TOOL_REMINDER } from '../../features/path-choice/control-tools.js';
-import { attachRunHostServices } from '../../features/run-host-services.js';
+import { attachRunHostServices } from '../../../run-host/run-host-services.js';
+import { testLlmCapFields } from '../../features/test-llm-caps.js';
 import { reviewNode } from './node.js';
 
 const reviewNodeContext = (
@@ -30,6 +31,10 @@ const reviewNodeContext = (
 			nodeId,
 			params,
 			uiSchema: reviewNode.uiSchema,
+			...testLlmCapFields({
+				chat: factory,
+				agentsMarkdown: hostExtras.agentsMarkdown,
+			}),
 		},
 		{
 			skillMarkdown: '',

@@ -6,7 +6,7 @@ import { PaletteService, toPaletteDefinition } from './palette.service.js';
 describe('toPaletteDefinition / PaletteService', () => {
 	it('system palette JSON has no Observable junk and stays compact', async () => {
 		const service = new PaletteService();
-		const { payload } = await service.reload('/unused');
+		const { payload } = await service.reload();
 		const json = JSON.stringify(payload);
 
 		expect(json).not.toContain('currentObservers');

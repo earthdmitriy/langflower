@@ -1,17 +1,12 @@
-# Runtime v2 specification
+# Runtime editor/runner specification
 
-Status: **prototype** — no backward-compatibility guarantees; API may break freely.
-
-Replaces the run-centric v1 model (`WorkflowRuntime`, `HitlChannel`, per-run
-materialization) with a **persistent StatefulObservable graph** and
-{@link Runtime} class.
+Status: **production** — `RuntimeFacade` (`RuntimeEditor` + `RuntimeRunner`).
+Older Phase 1 / `WorkflowRuntime` names in this file are historical.
 
 Related:
 
-- v1 contracts: [`../contracts.ts`](../contracts.ts), [`../workflow-runner.ts`](../workflow-runner.ts)
-- Product execution docs: [`docs/REACTIVE_NODES.md`](../../../../docs/REACTIVE_NODES.md)
-- v1 refactor plan: [`docs/TODO/runtime-refactor.md`](../../../../docs/TODO/runtime-refactor.md)
-- **ADR — run until stopped:** [`ADR.md`](./ADR.md)
+- Product execution docs: [`docs/architecture/EXECUTION_ARCHITECTURE.md`](../../docs/architecture/EXECUTION_ARCHITECTURE.md)
+- **ADR — editor/runner split:** [`ADR.md`](./ADR.md)
 
 ---
 
@@ -245,7 +240,8 @@ Same rules are duplicated in UI (`canConnectPorts`) and server — intentional.
    `runner.started` on the same stack (server: `start()` then
    `bridgeEmit('runner.started')`).
 5. On a **microtask**, wire **all edges** and watch **all nodes** (full scope),
-   then apply `initialPayload` (seed open input slots via `connect(of(value))`).
+   then apply `initialPayload` (plain values via `connect(of(value))`;
+   Observables are connected as the stream).
    `interrupt` / `dispose` cancel a pending wire so a stopped run does not
    connect.
 6. Port telemetry on `events$` begins only after that microtask.

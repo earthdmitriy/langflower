@@ -138,6 +138,18 @@ const matchResumeFailed =
 		return failedRunId === undefined || failedRunId === runId;
 	};
 
+const matchLoadFailed =
+	(workflowId: string): WaitPredicate =>
+	(event) => {
+		if (!isRecord(event)) {
+			return false;
+		}
+		const failedWorkflowId = event['workflowId'];
+		return (
+			failedWorkflowId === undefined || failedWorkflowId === workflowId
+		);
+	};
+
 /**
  * Resolve a wait predicate for an action intent + outbound payload.
  * Returns `undefined` when the intent has nothing safe to correlate on
@@ -210,4 +222,12 @@ export const resolveResumeFailedPredicate = (
 ): WaitPredicate | undefined => {
 	const runId = readStringField(payload, 'runId');
 	return runId !== undefined ? matchResumeFailed(runId) : undefined;
+};
+
+/** Predicate for `workflow.load.failed` when racing with current snapshot. */
+export const resolveLoadFailedPredicate = (
+	payload: unknown,
+): WaitPredicate | undefined => {
+	const workflowId = readStringField(payload, 'workflowId');
+	return workflowId !== undefined ? matchLoadFailed(workflowId) : undefined;
 };

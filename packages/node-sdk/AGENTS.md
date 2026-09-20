@@ -1,9 +1,10 @@
 # @langflower/node-sdk
 
 Public SDK for Langflower node authors (`defineNode` + `defineReactiveNode`).
+Independent npm publish: [RELEASE.md](../../docs/RELEASE.md#publishing-langflowernode-sdk).
 
 **No `index.ts`** — published paths only via `package.json` `exports`
-([PRINCIPLES.md](../../docs/PRINCIPLES.md) § Module exports).
+([PRINCIPLES.md](../../docs/architecture/PRINCIPLES.md) § Module exports).
 
 ## Factory layout (important)
 
@@ -62,7 +63,7 @@ Out of scope: `defineAgentNode`, second batch execution engine.
 **Peer deps for custom packs:** `defineNode`-only authors peer on
 `@langflower/node-sdk`. Reactive authors also need `rxjs` and
 `@rx-evo/stateful-observable`. Pack layout / default seed `my-nodes`:
-[ADR-030](../../docs/ADR.md#adr-030--custom-node-pack-layout--npm-model),
+[ADR-030](../../docs/architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model),
 [skeleton README](../server/skeleton/nodes/my-nodes/README.md).
 Pack `tsc --noEmit` uses the pack `tsconfig.json`. `.ts` suffix imports need
 `allowImportingTsExtensions` + `noEmit` (hello-embed seed).
@@ -73,19 +74,19 @@ This package is the **author contract**. Keep it identity + ports + caps —
 not a host service bag. Prefer extending `@langflower/tools` or private
 common-nodes/server bags over growing these facades.
 
-| Type                 | Allowed                                                                                             | Forbidden (put elsewhere)                                                              |
-| -------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `ExecutionContext`   | `projectDir`, `runId`, `params` / panel, `resolveSecret` (keyed lookup only), optional typed `Caps` | `files`, `crawl`, chat stream, skills, harness, authorize, `webFetch`, listing secrets |
-| `LlmExecutionCaps`   | `toolHandles` only                                                                                  | Any host hook or I/O facade                                                            |
-| `ToolHandlerContext` | `projectDir`, `runId` only                                                                          | `authorize`, `webFetch`, `denyPaths`, `allowedHosts`, harness                          |
+| Type                 | Allowed                                                                                             | Forbidden (put elsewhere)                                                                            |
+| -------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `ExecutionContext`   | `projectDir`, `runId`, `params` / panel, `resolveSecret` (keyed lookup only), optional typed `Caps` | `amendInput`, `files`, `crawl`, chat stream, skills, harness, authorize, `webFetch`, listing secrets |
+| `LlmExecutionCaps`   | `toolHandles` only                                                                                  | Any host hook or I/O facade                                                                          |
+| `ToolHandlerContext` | `projectDir`, `runId` only                                                                          | `authorize`, `webFetch`, `denyPaths`, `allowedHosts`, harness                                        |
 
 **Rules for agents / PRs**
 
 1. **Do not add fields** to SDK `ToolHandlerContext`, base `ExecutionContext`, or
    `LlmExecutionCaps` “for convenience” so shell/common-nodes can pass one object.
-   Exception: `ExecutionContext.resolveSecret` is the keyed Global KV / env
-   lookup (`lf_secret:ID` / `env:ID`) — not a secrets bag and not a host I/O
-   facade.
+   Do **not restore** `ExecutionContext.amendInput`. Exception:
+   `ExecutionContext.resolveSecret` is the keyed Global KV / env lookup
+   (`lf_secret:ID` / `env:ID`) — not a secrets bag and not a host I/O facade.
 2. Host hooks for domain tools live on **tools**
    `@langflower/tools/domain-tool-configs` `ToolHandlerContext` (wider bag).
    Shells that need them import **tools**, not the SDK type.
@@ -96,6 +97,7 @@ common-nodes/server bags over growing these facades.
    base types.
 5. Parity locks stay intentional twins, not an excuse to grow the SDK:
     - ports: `runtime-parity.types.test.ts`
+    - EC host keys: `types.ts` (`assertExecutionContextHostKeys`; no `amendInput`)
     - tool ctx: tools `tool-handler-context.parity.types.test.ts`
       (SDK identity ↔ tools widened bag; **SDK side stays identity-only**)
 
@@ -106,7 +108,7 @@ almost always a misplaced host concern.
 
 Production: `rxjs`, `@rx-evo/stateful-observable` — **no** `@langflower/runtime`,
 no `@langflower/shared`. Port / instance contracts are owned here
-([ADR-027](../../docs/ADR.md#adr-027--author-sdk-owns-port-types-no-production-runtime-dep));
+([ADR-027](../../docs/architecture/ADR.md#adr-027--author-sdk-owns-port-types-no-production-runtime-dep));
 structural parity with runtime is locked by `runtime-parity.types.test.ts`.
 
 `@langflower/runtime` is a **devDependency** only (sample/parity tests).
@@ -217,7 +219,7 @@ Tests: `define-node/test/samples/samples.test.ts`,
 
 ## Anti dead-code gates
 
-Follow [PRINCIPLES.md](../../docs/PRINCIPLES.md) § Feature-sliced structure and § Module exports.
+Follow [PRINCIPLES.md](../../docs/architecture/PRINCIPLES.md) § Feature-sliced structure and § Module exports.
 
 1. **No export without a consumer** — every `package.json` `exports` entry must have at
    least one importer in the same PR: sample node, unit test, server, or `common-nodes`.

@@ -18,7 +18,7 @@ describe('listenHttpServer', () => {
 		);
 	});
 
-	it('rejects with порт занят when the port is taken', async () => {
+	it('rejects with port in use when the port is taken', async () => {
 		const holder = http.createServer();
 		servers.push(holder);
 		await listenHttpServer(holder, 0, '127.0.0.1');
@@ -32,7 +32,7 @@ describe('listenHttpServer', () => {
 		servers.push(contender);
 		await expect(
 			listenHttpServer(contender, address.port, '127.0.0.1'),
-		).rejects.toThrow(`порт занят: 127.0.0.1:${String(address.port)}`);
+		).rejects.toThrow(`port in use: 127.0.0.1:${String(address.port)}`);
 	});
 
 	it('resolves when the port is free', async () => {

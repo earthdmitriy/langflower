@@ -30,9 +30,7 @@ export const createServerContext = async (
 			return custom;
 		}
 
-		return resolveWorkflowNodeDefinition({
-			type: node.type,
-		});
+		return resolveWorkflowNodeDefinition(node);
 	};
 
 	return {

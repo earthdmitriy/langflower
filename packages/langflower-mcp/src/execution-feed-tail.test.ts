@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import type { NodeId } from '@langflower/runtime';
 import {
 	appendEventLogFrame,
 	applyFeedSnapshot,
@@ -12,15 +11,8 @@ import {
 } from './execution-feed-tail.js';
 import type { RuntimeRunnerEvent } from './runtime-event-types.js';
 
-const output = (): RuntimeRunnerEvent => [
-	'out',
-	'n1' as NodeId,
-	'out',
-	{ value: 'x' },
-	0,
-	[],
-	null,
-];
+const output = (): RuntimeRunnerEvent =>
+	['out', 'n1', 'out', { value: 'x' }, 0, [], null] as RuntimeRunnerEvent;
 
 const done = (runId: string): RuntimeRunnerEvent => ['done', runId];
 
@@ -31,13 +23,13 @@ describe('execution-feed-tail', () => {
 		expect(
 			isEventLogAppendKind([
 				'in',
-				'n1' as NodeId,
+				'n1',
 				'in',
 				{ value: true },
 				0,
 				[],
 				null,
-			]),
+			] as RuntimeRunnerEvent),
 		).toBe(true);
 	});
 

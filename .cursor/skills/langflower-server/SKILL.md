@@ -13,8 +13,8 @@ disable-model-invocation: true
 ## Start here
 
 1. `packages/server/AGENTS.md` — **thin server boundary (read first)**
-2. `docs/PRINCIPLES.md` § Thin server
-3. `docs/ARCHITECTURE.md` — API table + startup sequence
+2. `docs/architecture/PRINCIPLES.md` § Thin server
+3. `docs/architecture/ARCHITECTURE.md` — API table + startup sequence
 4. `docs/STATUS.md`
 
 ## Thin server (do not grow domain)
@@ -31,7 +31,7 @@ disable-model-invocation: true
 - **WebSocket default** for UI commands/events; REST only for ADR-approved bulk
   escape hatches.
 - localhost binding only.
-- Inbound WS uses `@langflower/shared/langflower` with
+- Inbound WS uses `@langflower/shared/langflower-bus-config` with
   `@langflower/websocket-bridge`.
 - Agent runtime: inject from `@langflower/tools` — never reimplement in server.
 

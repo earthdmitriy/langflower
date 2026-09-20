@@ -1,4 +1,5 @@
 import {
+	afterNextRender,
 	ChangeDetectionStrategy,
 	Component,
 	computed,
@@ -10,11 +11,9 @@ import {
 	untracked,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import type {
-	EditorPasteRequestedPayload,
-	PaletteConfigPayload,
-	WorkflowPersistedGraph,
-} from '@langflower/shared/langflower';
+import type { EditorPasteRequestedPayload } from '@langflower/shared/types/langflower-editor';
+import type { PaletteConfigPayload } from '@langflower/shared/types/langflower-palette';
+import type { WorkflowPersistedGraph } from '@langflower/shared/types/langflower-workflow';
 import type { NodeId } from '@langflower/runtime';
 import {
 	ClipboardPastedEvent,
@@ -38,7 +37,7 @@ import {
 	SelectionRemovedEvent,
 	type Node,
 } from 'ng-diagram';
-import { combineLatest, Observable, ObservedValueOf } from 'rxjs';
+import { Observable, ObservedValueOf } from 'rxjs';
 import {
 	debounceTime,
 	distinctUntilChanged,
@@ -55,21 +54,24 @@ import {
 	splitSlotHandle,
 } from '../../../diagram/diagram-port-id.js';
 import {
-	paletteByType,
 	persistedEdgeToDiagram,
 	persistedNodeToDiagram,
 	portsConfigForType,
-} from '../../../services/bridge-diagram.service';
+	type LfNodeData,
+} from '../../../services/bridge-diagram.js';
+import { paletteByType } from '../../../services/execution-catalog.js';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
-import { PALETTE_DRAG_ANCHOR_OFFSET_PX } from '../../palette/utils/palette-drag-layout.js';
-import { PALETTE_DRAG_MIME } from '../../palette/utils/palette-drag-mime.js';
+import {
+	PALETTE_DRAG_ANCHOR_OFFSET_PX,
+	PALETTE_DRAG_MIME,
+} from '../../../diagram/palette-drag.js';
 import { NodeContentMinSizeService } from '../services/node-content-min-size.service.js';
 import { createBackEdgeAwareOrthogonalRouting } from '../utils/back-edge-aware-orthogonal-routing.js';
 import { getBuiltinOrthogonalRouting } from '../utils/get-builtin-orthogonal-routing.js';
-import { withPreviewDefaultDropPosition } from '../utils/preview-node-default-size.js';
+import { withDefaultDropSize } from '../utils/default-canvas-size.js';
 import { LfEdgeChromeComponent } from './lf-edge-chrome.component.js';
-import { LfNodeComponent, type LfNodeData } from './lf-node.component.js';
+import { LfNodeComponent } from './lf-node.component.js';
 
 type AddEdgeRequestedPayload = {
 	readonly fromNodeId: NodeId;
@@ -212,10 +214,11 @@ export class FlowCanvasComponent {
 	 *
 	 * Bound from `workflow.current.snapshot` — not from incremental
 	 * `editor.*` deltas — so it does not track live topology after init.
-	 * Parent remounts this component when the active workflow id changes;
-	 * same-id snapshot reseeds still re-run `modelAdapter` and reset the
-	 * viewport hydrate gate. Do NOT read `graphInput()` for live edges/nodes
-	 * — those live in `NgDiagramModelService`.
+	 * Parent remounts this component when the active workflow id changes.
+	 * Same-id Save snapshots must not re-run `initializeModel` (persisted
+	 * edges have no path points — a reseed drops orthogonal routing).
+	 * Do NOT read `graphInput()` for live edges/nodes — those live in
+	 * `NgDiagramModelService`.
 	 *
 	 * Palette is **not** a model-seed dependency: catalog refresh patches
 	 * live `portsConfig` only (see constructor).
@@ -245,6 +248,8 @@ export class FlowCanvasComponent {
 	 * selected") so the very first deselect is never mistakenly swallowed.
 	 */
 	private lastConfirmedSelectedNodeId: string | null | undefined = undefined;
+	/** First `initializeModel` for this canvas instance. Save snapshots reuse it. */
+	private seedModel: ReturnType<typeof initializeModel> | undefined;
 
 	config = {
 		zoom: {
@@ -276,8 +281,11 @@ export class FlowCanvasComponent {
 		// Palette must not reseed the ng-diagram model — catalog refresh
 		// patches `portsConfig` on live nodes (constructor subscription).
 		const palette = untracked(() => this.palette());
+		if (this.seedModel !== undefined) {
+			return this.seedModel;
+		}
 
-		return initializeModel(
+		this.seedModel = initializeModel(
 			{
 				nodes: graph.nodes.map((node) =>
 					persistedNodeToDiagram(node, paletteByType(palette.nodes)),
@@ -289,16 +297,16 @@ export class FlowCanvasComponent {
 			},
 			this.injector,
 		);
+		return this.seedModel;
 	});
 
 	constructor() {
 		// Seed graph identity for hydrate gating. Live pan lives in
-		// NgDiagramViewportService. When parent reseeds the graph (same
-		// canvas instance), reset the gate so the first post-reseed
-		// viewport is never published as a user pan (BUG-2026-07-20 /
-		// 06-26i). Palette-only refreshes must not reset this gate.
-		// Do not read required inputs() in the constructor (NG8118) — seed
-		// on the first viewport tick inside the pipe.
+		// NgDiagramViewportService. Only the first `graphInput` on this
+		// instance is the seed — same-id Save snapshots must not reset
+		// the gate (BUG-2026-07-20 / 06-26i). Palette-only refreshes
+		// must not reset it either. Do not read required inputs() in the
+		// constructor (NG8118) — seed on the first viewport tick.
 		let hydrateConsumed = false;
 		let seedGraph: ReturnType<typeof this.graphInput> | undefined;
 
@@ -309,13 +317,12 @@ export class FlowCanvasComponent {
 				distinctUntilChanged(sameCanvasViewport),
 				filter((viewport) => {
 					const graph = this.graphInput();
-					if (seedGraph === undefined || graph !== seedGraph) {
+					if (seedGraph === undefined) {
 						seedGraph = graph;
-						hydrateConsumed = false;
 					}
 					const gate = gateCanvasViewportPublish(
 						viewport,
-						graph.viewport,
+						seedGraph.viewport,
 						hydrateConsumed,
 					);
 					hydrateConsumed = gate.hydrateConsumed;
@@ -340,13 +347,13 @@ export class FlowCanvasComponent {
 				arg: ObservedValueOf<(typeof this.bridge)['raw'][T]>,
 			) => void,
 		) =>
-			combineLatest([
+			(
 				this.bridge.raw[key] as Observable<
 					ObservedValueOf<(typeof this.bridge)['raw'][T]>
-				>,
-			])
+				>
+			)
 				.pipe(takeUntilDestroyed())
-				.subscribe(([payload]) => callback(payload));
+				.subscribe(callback);
 
 		subscribe('editor.addEdges', (edges) => {
 			this.diagramModel.addEdges(edges.map(persistedEdgeToDiagram));
@@ -432,6 +439,27 @@ export class FlowCanvasComponent {
 			host.removeEventListener('dragover', handleDragOver, options);
 			host.removeEventListener('drop', handleDrop, options);
 		});
+
+		// Same-id Save / current snapshot reseeds `initializeModel` and
+		// wipes ngDiagram selection without `selectionChanged`. Inspector
+		// still follows server `selectedNode`. Re-apply after the new model
+		// commits so a later empty-canvas click can deselect. Watch
+		// `graphInput` (not `modelAdapter`) so required inputs are bound
+		// first — constructor `toObservable` would throw NG0950.
+		toObservable(this.graphInput, { injector: this.injector })
+			.pipe(skip(1), takeUntilDestroyed(this.destroyRef))
+			.subscribe(() => {
+				const confirmed = this.lastConfirmedSelectedNodeId;
+				if (confirmed === undefined) {
+					return;
+				}
+				afterNextRender(
+					() => {
+						this.applyConfirmedSelection(confirmed);
+					},
+					{ injector: this.injector },
+				);
+			});
 	}
 
 	readonly hostHandlers = {
@@ -474,7 +502,11 @@ export class FlowCanvasComponent {
 
 			this.bridge.raw['editor.addNode.requested'].next({
 				type: nodeType,
-				position: withPreviewDefaultDropPosition(nodeType, position),
+				position: withDefaultDropSize(
+					nodeType,
+					position,
+					paletteByType(this.palette().nodes),
+				),
 			});
 		},
 	} as const;
@@ -619,13 +651,6 @@ export class FlowCanvasComponent {
 	} as const;
 
 	/**
-	 * Applies a server-confirmed selection id — sets the loop guard first,
-	 * then reconciles ng-diagram's own selection only when it actually
-	 * differs (avoids `selectionChanged` → request → broadcast → apply →
-	 * `selectionChanged` ping-pong; also makes this tab's canvas highlight
-	 * a node selected from another tab).
-	 */
-	/**
 	 * Apply a refreshed palette catalog to live diagram nodes without
 	 * reseeding `modelAdapter` / `initializeModel`.
 	 */
@@ -657,6 +682,13 @@ export class FlowCanvasComponent {
 		}
 	}
 
+	/**
+	 * Applies a server-confirmed selection id — sets the loop guard first,
+	 * then reconciles ng-diagram's own selection only when it actually
+	 * differs (avoids `selectionChanged` → request → broadcast → apply →
+	 * `selectionChanged` ping-pong; also makes this tab's canvas highlight
+	 * a node selected from another tab).
+	 */
 	private applyConfirmedSelection(nodeId: string | null): void {
 		this.lastConfirmedSelectedNodeId = nodeId;
 

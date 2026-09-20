@@ -49,14 +49,14 @@ Wave-1 agent runtime (epics **01–05**) landed:
    `langflower.jsonc`).
 2. **Tool registration mechanics** — internal tool loop + `@langflower/tools`
    builtins (`read` / `glob` / `grep` / `edit` / `write` / `create` / `delete` /
-   `bash` / `ask_user`) via `ExecutionContext.harness` (epic 01).
+   `move` / `bash` / `ask_user`) via `ExecutionContext.harness` (epic 01).
 3. **Runtime `permission.ask`** — Allow/Deny in feed/composer (epic 02).
 4. **LLM Review** — `common-review` port-routed `accept`/`feedback` (epic 03).
 5. **Role tool profiles** — Plan/Coder/Explorer presets (epic 04).
 6. **Partial pilots** — demo workflows + CI fake paths (epic 05).
 7. **Swarm primitives** — `common-loop` / `common-sub-agent` interim
    map-collect (epic 07). Sub-Agent **registration+spawn** is target
-   ([ADR-021](../ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter)).
+   ([ADR-021](../architecture/ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter)).
 
 Also landed (not wave-1 prerequisites, but available): hard harness (06),
 Memory + KB + Obsidian helpers + crawl (10–12), eval gate (09), multi-gate
@@ -110,17 +110,17 @@ Further gaps = use-case Missing parts (esp. real-LLM Implementable bars).
 
 ### Core scenarios
 
-| Doc                                                            | Focus                                                                                                                                              |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [coding-agent.md](coding-agent.md)                             | Multi-loop coding pipeline (full = target); smoke = `basic-coder` (Plan⇄HITL→Coder⇄HITL→Finish)                                                    |
-| [skill-refining.md](skill-refining.md)                         | Iterate a skill/instruction `.md` against fixtures                                                                                                 |
-| [article-writing.md](article-writing.md)                       | Topic → draft file → tone/fact HITL → revise (research = extend later)                                                                             |
-| [agent-swarm.md](agent-swarm.md)                               | L0 Sub-Agent spawn on canvas (Main→Explorer); fan-out → research-fanout-merge                                                                      |
-| [plan-refine-code-review-qa.md](plan-refine-code-review-qa.md) | Plan → assert → refine → implement → review → QA                                                                                                   |
-| [skill-refining.md](skill-refining.md)                         | Refine a skill file with eval + harness                                                                                                            |
-| ~~[project-kb.md](project-kb.md)~~                             | **Superseded** by markdown memory ([ADR-033](../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)); skeleton `kb-create` / `kb-navigate` |
-| ~~[obsidian-kb.md](obsidian-kb.md)~~                           | **Deferred** — [TBD-007](../TBD.md#tbd-007--obsidian-vault-helpers)                                                                                |
-| [prompt-refining.md](prompt-refining.md)                       | Draft → QA → improve loop; output is a text prompt file                                                                                            |
+| Doc                                                            | Focus                                                                                                                                                           |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [coding-agent.md](coding-agent.md)                             | Multi-loop coding pipeline (full = target); smoke = `basic-coder` (Plan⇄HITL→Coder⇄HITL→Finish)                                                                 |
+| [skill-refining.md](skill-refining.md)                         | Iterate a skill/instruction `.md` against fixtures                                                                                                              |
+| [article-writing.md](article-writing.md)                       | Topic → draft file → tone/fact HITL → revise (research = extend later)                                                                                          |
+| [agent-swarm.md](agent-swarm.md)                               | L0 Sub-Agent spawn on canvas (Main→Explorer); fan-out → research-fanout-merge                                                                                   |
+| [plan-refine-code-review-qa.md](plan-refine-code-review-qa.md) | Plan → assert → refine → implement → review → QA                                                                                                                |
+| [skill-refining.md](skill-refining.md)                         | Refine a skill file with eval + harness                                                                                                                         |
+| ~~[project-kb.md](project-kb.md)~~                             | **Superseded** by markdown memory ([ADR-033](../architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)); skeleton `kb-create` / `kb-navigate` |
+| ~~[obsidian-kb.md](obsidian-kb.md)~~                           | **Deferred** — [TBD-007](../TBD.md#tbd-007--obsidian-vault-helpers)                                                                                             |
+| [prompt-refining.md](prompt-refining.md)                       | Draft → QA → improve loop; output is a text prompt file                                                                                                         |
 
 ### Canvas / graph organisation
 

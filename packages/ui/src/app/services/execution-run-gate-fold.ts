@@ -1,14 +1,20 @@
 import type { RunId } from '@langflower/runtime';
-import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
+import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap';
 import { merge, type Observable } from 'rxjs';
-import { map, scan, shareReplay, startWith } from 'rxjs/operators';
+import {
+	map,
+	scan,
+	shareReplay,
+	startWith,
+	distinctUntilChanged,
+} from 'rxjs/operators';
 
-type RunGateState = {
+export type RunGateState = {
 	readonly running: boolean;
 	readonly currentRunId: RunId | null;
 };
 
-type RunGateAction =
+export type RunGateAction =
 	| {
 			readonly type: 'snapshot';
 			readonly running: boolean;
@@ -17,7 +23,7 @@ type RunGateAction =
 	| { readonly type: 'start'; readonly runId: RunId }
 	| { readonly type: 'stop' };
 
-const foldRunGate = (
+export const foldRunGate = (
 	state: RunGateState,
 	action: RunGateAction,
 ): RunGateState => {
@@ -64,6 +70,7 @@ export const createIsRunning$ = (deps: {
 	return merge(snapshotAction$, startAction$, stopAction$).pipe(
 		scan(foldRunGate, { running: false, currentRunId: null }),
 		map((s) => s.running),
+		distinctUntilChanged(),
 		startWith(false),
 		shareReplay(1),
 	);

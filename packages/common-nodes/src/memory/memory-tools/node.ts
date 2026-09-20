@@ -1,6 +1,7 @@
 import {
 	defineReactiveNode,
 	TOOL_HANDLE_WIRE_TYPE,
+	toToolHandles,
 	type ToolHandle,
 } from '@langflower/node-sdk';
 import {
@@ -12,8 +13,34 @@ import { MEMORY_TOOL_CONFIGS } from '@langflower/tools/domain-tool-configs';
 import {
 	statefulConnection,
 	statefulObservable,
+	type StatefulConnection,
 } from '@rx-evo/stateful-observable';
 import { of } from 'rxjs';
+
+const wrapUpdatePlan = (
+	handle: ToolHandle,
+	planOut: StatefulConnection<string>,
+): ToolHandle => {
+	if (handle.toolId !== 'update_plan') {
+		return handle;
+	}
+
+	return {
+		...handle,
+		invoke: async (args, ctx) => {
+			const result = await handle.invoke(args, ctx);
+			try {
+				const markdown = await createMemoryStore(
+					ctx.projectDir,
+				).readSection(MEMORY_PLAN_FILE, MEMORY_PLAN_HEADING);
+				planOut.connect(of(markdown));
+			} catch {
+				// Keep the tool result; skip feed emit.
+			}
+			return result;
+		},
+	};
+};
 
 /**
  * Emits Memory ToolHandles for `.langflower/memory/` markdown tools, plus a
@@ -36,38 +63,9 @@ Wire **tools** into an LLM. Notes live under the project's memory folder. Call *
 		const tools$ = statefulObservable({
 			loader: () =>
 				of(
-					MEMORY_TOOL_CONFIGS.map((tool): ToolHandle => {
-						const handle: ToolHandle = {
-							toolId: tool.toolId,
-							name: tool.name ?? tool.toolId,
-							description: tool.description,
-							inputSchema: tool.inputSchema,
-							invoke: tool.handler,
-						};
-
-						if (tool.toolId !== 'update_plan') {
-							return handle;
-						}
-
-						return {
-							...handle,
-							invoke: async (args, ctx) => {
-								const result = await tool.handler(args, ctx);
-								try {
-									const markdown = await createMemoryStore(
-										ctx.projectDir,
-									).readSection(
-										MEMORY_PLAN_FILE,
-										MEMORY_PLAN_HEADING,
-									);
-									planOut.connect(of(markdown));
-								} catch {
-									// Keep the tool result; skip feed emit.
-								}
-								return result;
-							},
-						};
-					}),
+					toToolHandles(MEMORY_TOOL_CONFIGS).map((handle) =>
+						wrapUpdatePlan(handle, planOut),
+					),
 				),
 		});
 

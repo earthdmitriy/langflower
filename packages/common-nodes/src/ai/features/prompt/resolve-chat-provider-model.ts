@@ -1,8 +1,7 @@
 /**
  * Resolve chat provider/model from node params with optional host default
- * (`LangflowerConfig.model` parsed into {@link RunHostServices.defaultChat}).
+ * (`LangflowerConfig.model` parsed into promptContext `defaultChat`).
  */
-import type { RunHostServices } from '../run-host-services.js';
 
 export type ResolvedChatProviderModel = {
 	readonly providerId: string;
@@ -11,12 +10,15 @@ export type ResolvedChatProviderModel = {
 
 export const resolveChatProviderModel = (
 	params: Readonly<Record<string, unknown>>,
-	host: RunHostServices | undefined,
+	defaultChat?: {
+		readonly providerId: string;
+		readonly model: string;
+	},
 ): ResolvedChatProviderModel => {
 	const fromParamsProvider = String(params['providerId'] ?? '').trim();
 	const fromParamsModel = String(params['model'] ?? '').trim();
 	return {
-		providerId: fromParamsProvider || host?.defaultChat?.providerId || '',
-		model: fromParamsModel || host?.defaultChat?.model || '',
+		providerId: fromParamsProvider || defaultChat?.providerId || '',
+		model: fromParamsModel || defaultChat?.model || '',
 	};
 };

@@ -1,8 +1,8 @@
 # Testing Strategy
 
 How Langflower is tested: **unit tests** for pure logic, **WebSocket tests** for
-default UI transport (commands + push), **REST tests** for bulk workflow payloads only,
-and **integration tests** with a temp project folder.
+default UI transport (commands + push), and **integration tests** with a temp
+project folder. REST is an ADR-012 bulk escape hatch, not a test layer.
 
 **Status:** strategy defined; runner and suites are added incrementally with
 [DONE/EPICS/README.md](DONE/EPICS/README.md) and
@@ -15,14 +15,14 @@ and **integration tests** with a temp project folder.
 | Goal                          | Approach                                                              |
 | ----------------------------- | --------------------------------------------------------------------- |
 | Fast feedback on domain rules | Unit tests in `packages/shared`, pure server helpers                  |
-| API contract stability        | WS tests for commands/push; REST only for bulk workflow graphs        |
+| API contract stability        | WS tests for commands/push (ADR-012); no REST test tree               |
 | Real filesystem + bootstrap   | Integration harness with temp dir under `tests/tmp/`                  |
 | No pollution of user machines | Temp projects live only in repo test tmp; always deleted              |
-| CI-friendly                   | No browser for API/integration; unit + API run headless               |
+| CI-friendly                   | No browser for WS/integration; unit + WS run headless                 |
 | Regressions traceable         | Link tests to [FOUND_BUGS.md](FOUND_BUGS.md) entries when fixing bugs |
 
 **Out of scope (initially):** E2E browser tests (Playwright/Cypress). Add later if
-needed; API tests cover server + contract that UI relies on.
+needed; WS tests cover server + contract that UI relies on.
 
 ### Bug fixes and the found-bugs log
 
@@ -41,22 +41,22 @@ When a bug is fixed after reproduction:
 ```mermaid
 flowchart TB
 	Unit[Unit tests — ms]
-	API[API tests — UI-shaped HTTP]
-	Int[Integration — temp project + server + API]
+	WS[WS integration — temp project + server]
+	Int[Filesystem + bootstrap on the same harness]
 
-	Unit --> API
-	API --> Int
+	Unit --> WS
+	WS --> Int
 
 	style Unit fill:#e8f5e9
-	style API fill:#fff3e0
+	style WS fill:#fff3e0
 	style Int fill:#e3f2fd
 ```
 
-| Layer           | Speed   | Isolation                | What it proves                                        |
-| --------------- | ------- | ------------------------ | ----------------------------------------------------- |
-| **Unit**        | Fastest | Full mock                | Algorithms, validators, mappers, executor graph logic |
-| **API**         | Fast    | In-memory or test server | REST handlers, status codes, JSON shapes              |
-| **Integration** | Slower  | Real FS in `tests/tmp/`  | Bootstrap, workflows on disk, full request path       |
+| Layer           | Speed   | Isolation               | What it proves                                        |
+| --------------- | ------- | ----------------------- | ----------------------------------------------------- |
+| **Unit**        | Fastest | Full mock               | Algorithms, validators, mappers, executor graph logic |
+| **WS**          | Fast    | Test server + WS client | `workflow.*` / `runner.*` / `editor.*` facts          |
+| **Integration** | Slower  | Real FS in `tests/tmp/` | Bootstrap, workflows on disk, full request path       |
 
 ---
 
@@ -119,8 +119,8 @@ HTTP/WS server on a random port; no browser, no port 4010.
 **Re-run one failing file:**
 
 ```bash
-npx vitest run tests/integration/ws/execute-llm-hitl.ws.test.ts
-node build/test.mjs --integration -- tests/integration/ws/execute-streaming.ws.test.ts
+npx vitest run tests/integration/ws/execute-fake-llm.ws.test.ts
+node build/test.mjs --integration -- tests/integration/ws/execute-ask-user.ws.test.ts
 ```
 
 ---
@@ -131,9 +131,9 @@ node build/test.mjs --integration -- tests/integration/ws/execute-streaming.ws.t
 
 ```
 packages/shared/src/validators/connection-validator.test.ts
-packages/shared/src/define-node.test.ts
-packages/ui/src/app/diagram/workflow-diagram.mapper.test.ts
-packages/server/src/services/workflow-executor.service.test.ts
+packages/ui/src/app/services/tests/bridge-diagram.service.test.ts
+packages/runtime/src/runtime.test.ts
+packages/ui/src/app/features/feed-folding/tests/execution-feed.service-replay.test.ts
 ```
 
 ### Rules
@@ -170,13 +170,13 @@ assertTypeEqual<
 
 ### Priority targets (from implementation plan)
 
-| Module                                   | Why                             |
-| ---------------------------------------- | ------------------------------- |
-| `canConnectPorts`                        | Single source of port rules     |
-| `supportsInlinePortInput`                | UI + executor input resolution  |
-| `extractNodeDefinition`                  | Registry metadata               |
-| `workflow-diagram.mapper`                | High bug risk; round-trip tests |
-| `WorkflowExecutorService` (pure helpers) | Topological sort, input merge   |
+| Module                    | Why                             |
+| ------------------------- | ------------------------------- |
+| `canConnectPorts`         | Single source of port rules     |
+| `supportsInlinePortInput` | UI + executor input resolution  |
+| `extractNodeDefinition`   | Registry metadata               |
+| `bridge-diagram.service`  | Workflow → ngDiagram projection |
+| `RuntimeRunner`           | Start / startNode / interrupt   |
 
 ### Example shape
 
@@ -232,7 +232,7 @@ REST remains a bulk escape hatch (ADR-012) if/when needed.
 
 ## 3. Integration tests (temporary project folder)
 
-Integration tests prove **bootstrap + filesystem + API** together. Each run uses a
+Integration tests prove **bootstrap + filesystem + WS** together. Each run uses a
 **fresh directory** under the repo — never `demo-project/` or the developer’s home.
 
 ### Temp directory convention
@@ -287,27 +287,27 @@ Integration suites use the **WS client** (`@langflower/shared/langflower-ws-wait
 
 ### LLM chain integration tests
 
-Prove full chains via `LangflowerWsClient` (no browser). Matrix below; product
-roadmap is use-case Status — [PRODUCT.md](PRODUCT.md).
+Prove full chains via `LangflowerWsClient` (no browser). Matrix below lists
+**live** runtime suites. Product roadmap is use-case Status —
+[PRODUCT.md](PRODUCT.md).
 
-| Test file                                                   | Chain                                                                    |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `tests/integration/ws/execute-llm-hitl.ws.test.ts`          | Feedback loop: 2 LLM calls after `execute.user_input`                    |
-| `tests/integration/ws/execute-hitl-complete.ws.test.ts`     | HITL without feedback → `execution.progress` **completed**               |
-| `tests/integration/ws/execute-simple-bootstrap.ws.test.ts`  | Bootstrap `simple.json` + mock → `execution.awaiting_input`              |
-| `tests/integration/bootstrap-sample-workflows.test.ts`      | Bootstrap seeds `simple`, `plan`, `coder`, `explorer` when missing       |
-| `tests/integration/bootstrap-plan-mock.test.ts`             | Seeded `plan.json` + mock script → agent tool loop completes             |
-| `tests/integration/ws/execute-simple.ws.test.ts`            | String → LLM with in-process mock (no HTTP sidecar)                      |
-| `tests/integration/ws/execute-streaming.ws.test.ts`         | Mock `reasoning` + `content` → `execution.output.stream` on both ports   |
-| `tests/integration/ws/execute-structured-output.ws.test.ts` | LLM `structuredOutput` param → node failed on invalid JSON               |
-| `tests/integration/ws/execute-agent-mock.ws.test.ts`        | Plan/Coder agent mock `toolCalls` loop, HITL `ask_user`, permission deny |
-| `tests/integration/ws/execute-ask-user.ws.test.ts`          | Fake LLM `ask_user` → composer reply text → tool loop continues          |
-| `tests/integration/ws/execute-cancel-hitl.ws.test.ts`       | `execute.stop` during HITL → cancelled; late `user_input` rejected       |
+Do **not** add `it.todo` under `execute-*.ws.test.ts` names. Registered
+scenarios must use types in `getCommonReactiveNodeCatalog()`;
+`scenarioReadyById` **throws** if a type is missing (no `skipIf` graveyard).
+Composer self-test asserts every `WORKFLOW_SCENARIO_COMPOSER` row is
+catalog-ready.
 
-**Feedback scope regression (unit):** `packages/server/src/services/workflow-executor.service.test.ts` — “does not feedback-rerun LLM outside partial run scope” ([FOUND_BUGS.md](FOUND_BUGS.md) BUG-2026-06-16).
+| Test file                                                     | What it actually proves                                                                          |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `tests/integration/ws/execute-*.ws.test.ts`                   | Live runtime suites (Fake LLM, HITL, Chat Input, smoke, agents, checkpoint, delay, eval gate, …) |
+| `tests/integration/ws/custom-palette-compile-tool.ws.test.ts` | Custom-node esbuild / palette compile                                                            |
+| `tests/integration/bootstrap-sample-workflows.test.ts`        | Skeleton seed files (`starter.json`, `agents-dialog.json`, …)                                    |
 
-Fixture: `tests/fixtures/workflows/llm-hitl.json` and seeded `simple.json` template.
-Mock LLM: in-process `provider.mock` + `.langflower/mock-llm.json` (see spec §14).
+**Feedback / settle (unit, current stack):** `packages/runtime/src/runtime.test.ts`
+(`stopsRun` finish → done); `packages/shared/src/execution/derive-run-settle-outcome.test.ts`.
+There is no `workflow-executor.service.test.ts`.
+
+Fake LLM: `common-fake-llm` + `.langflower/mock-llm.json` (see node-library §14).
 
 ### Live OpenAI-compatible + MCP tool calling (gap)
 
@@ -315,12 +315,12 @@ Mock LLM: in-process `provider.mock` + `.langflower/mock-llm.json` (see spec §1
 `tool_calls`, and **fixture MCP stdio** (echo server). They do **not** prove that a
 **real** OpenAI-compatible model chooses tools / MCP tools correctly.
 
-| Covered today (no cloud key)                                                      | Not covered without a live provider                                            |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `common-fake-llm` WS demos + Fake tool-loop                                       | Model-authored `tool_calls` / multi-round loops                                |
-| `openai-mcp-tool-loop.test.ts` — **injected** `tool_calls` → MCP transport invoke | Same path with a **real** chat-completions stream                              |
-| MCP stdio/http clients + system/wire `ToolHandle[]` fixtures                      | Live inventory → model selects `<mcp_name>__<tool>` → result back into context |
-| Builtin harness invoke with Fake / scripted loops                                 | Live builtin `read`…`bash` (and MCP) under role budgets + `permission.ask`     |
+| Covered today (no cloud key)                                                      | Not covered without a live provider                                               |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `common-fake-llm` WS demos + Fake tool-loop                                       | Model-authored `tool_calls` / multi-round loops                                   |
+| `openai-mcp-tool-loop.test.ts` — **injected** `tool_calls` → MCP transport invoke | Same path with a **real** chat-completions stream                                 |
+| MCP stdio/http clients + system/wire `ToolHandle[]` fixtures                      | Live inventory → model selects `<mcp_name>__<tool>` → result back into context    |
+| Builtin harness invoke with Fake / scripted loops                                 | Live builtin `read`…`move`/`bash` (and MCP) under role budgets + `permission.ask` |
 
 **Maintainer constraint:** no reliable access to an OpenAI-compatible **cloud** API
 right now, so tool/MCP calling on MCP-wired `common-openai-llm` nodes cannot be
@@ -361,39 +361,48 @@ MCP). Record date + provider/model in the PR or a short note under
 
 ### Example lifecycle
 
+There is **no** `tests/integration/api/` tree and no `saveWorkflowBulk`
+helper. Workflow CRUD is WS (`workflow.list.snapshot`,
+`workflow.current.snapshot`). Copy the harness from
+`tests/integration/ws/workflows.ws.test.ts`.
+
 ```typescript
-import { afterAll, beforeAll, describe, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createLangflowerWsClient } from './ws/langflower-ws-client.js';
+import {
+	requestWorkflowList,
+	waitSessionReady,
+} from '@langflower/shared/langflower-ws-waits';
 import {
 	createTempProject,
 	removeTempProject,
 } from './helpers/temp-project.js';
 import { startTestServer, stopTestServer } from './helpers/test-server.js';
-import { LangflowerWsClient } from './ws/langflower-ws-client.js';
-import { saveWorkflowBulk, loadWorkflowBulk } from './api/workflow-bulk.js';
 
 describe('workflow CRUD (integration)', () => {
 	let projectDir: string;
-	let ws: LangflowerWsClient;
-	let httpBaseUrl: string;
+	let urls: Awaited<ReturnType<typeof startTestServer>>;
+	let client: ReturnType<typeof createLangflowerWsClient>;
 
 	beforeAll(async () => {
 		projectDir = await createTempProject();
-		const urls = await startTestServer({ projectDir });
-		httpBaseUrl = urls.httpBaseUrl;
-		ws = new LangflowerWsClient(urls.wsUrl);
+		urls = await startTestServer({ projectDir });
+		client = createLangflowerWsClient(urls.wsUrl);
+		await waitSessionReady(client);
 	});
 
 	afterAll(async () => {
-		await stopTestServer();
+		client.close();
+		await stopTestServer(urls);
 		await removeTempProject(projectDir);
 	});
 
-	it('lists workflows over WS and loads graph over REST', async () => {
-		await saveWorkflowBulk(httpBaseUrl, fixtureGraph);
-		const list = await ws.request('workflows.list', {});
-		expect(list.length).toBeGreaterThan(0);
-		const loaded = await loadWorkflowBulk(httpBaseUrl, fixtureGraph.id);
-		expect(loaded.id).toBe(fixtureGraph.id);
+	it('lists workflows over WS', async () => {
+		const { workflows } = await requestWorkflowList(
+			client,
+			(list) => list.workflows.length > 0,
+		);
+		expect(workflows.length).toBeGreaterThan(0);
 	});
 });
 ```
@@ -406,7 +415,7 @@ describe('workflow CRUD (integration)', () => {
 | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | ngDiagram drag/drop                     | API + mapper unit tests cover data; E2E later                                                                          |
 | Browser open (`open` package)           | CLI smoke manual / optional subprocess test                                                                            |
-| User custom node esbuild                | Integration with fixture package when bundler ships                                                                    |
+| User custom node esbuild                | Covered by `custom-palette-compile-tool.ws.test.ts`                                                                    |
 | Browser WebSocket UI                    | E2E later; integration uses WS client harness                                                                          |
 | Live OpenAI-compatible tool + MCP loops | No cloud API access in maintainer env; Fake/scripted only — [checklist](#live-openai-compatible--mcp-tool-calling-gap) |
 
@@ -418,14 +427,13 @@ Committed static data only under `tests/fixtures/` (not `tests/tmp/`).
 
 ```
 tests/fixtures/
-├── workflows/
-│   ├── example-graph.json
-│   └── minimal-constant-echo.json
-└── nodes/                    # optional stub packages for bundler tests
+├── eval/                     # golden eval packs
+├── mcp/echo-server.mjs       # fixture MCP stdio
+└── static/index.html         # static HTTP smoke
 ```
 
-Load fixtures in unit and API tests; integration tests may copy into temp project
-via bootstrap or explicit seed helper.
+Graph fixtures live in `tests/integration/helpers/scenarios/*.ts` (composer
+factories). Do **not** add a parallel `tests/fixtures/workflows/` tree.
 
 ---
 
@@ -454,12 +462,12 @@ resetting dependencies.
 
 ## Adding tests with implementation phases
 
-| Phase           | Tests to add                                             |
-| --------------- | -------------------------------------------------------- |
-| 1 Server + CLI  | `bootstrap.integration.test.ts`, `config.ws.test.ts`     |
-| 2 Common nodes  | unit: common node metadata; `nodes.ws.test.ts`           |
-| 4 Workflow CRUD | mapper unit; `workflow-bulk.api.test.ts`; WS list/delete |
-| 5 Demo execute  | executor unit; `execute.ws.test.ts`; push `execution.*`  |
+| Phase         | Tests that exist today                                    |
+| ------------- | --------------------------------------------------------- |
+| Server + CLI  | `project-bootstrap.ws.test.ts`, `config-draft.ws.test.ts` |
+| Common nodes  | catalog unit tests; `editor-palette-visible.ws.test.ts`   |
+| Workflow CRUD | `workflows.ws.test.ts` (list/load/save/delete over WS)    |
+| Demo execute  | live `tests/integration/ws/execute-*.ws.test.ts`          |
 
 Update epic / use-case Status in [DONE/EPICS/](DONE/EPICS/README.md) and
 [use-cases/](use-cases/README.md) when suites
@@ -486,9 +494,9 @@ CI: `.github/workflows/launcher-ci.yml` (`cargo test --locked`).
 
 ## Related docs
 
-- [TODO/EPICS/README.md](TODO/EPICS/README.md) — active product epic queue (17+)
-- [DONE/EPICS/README.md](DONE/EPICS/README.md) — archived epics 00–16
-- [ARCHITECTURE.md](ARCHITECTURE.md) — API table
-- [PRINCIPLES.md](PRINCIPLES.md) — immutability, strict types in tests
+- [TODO/EPICS/README.md](TODO/EPICS/README.md) — active product epic queue
+- [DONE/EPICS/README.md](DONE/EPICS/README.md) — archived epics 00–46
+- [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) — API table
+- [architecture/PRINCIPLES.md](architecture/PRINCIPLES.md) — immutability, strict types in tests
 - [tests/README.md](../tests/README.md) — folder layout pointer
 - [DONE/EPICS/16-mcp-optional.md](DONE/EPICS/16-mcp-optional.md) — MCP landed; live model proof still open

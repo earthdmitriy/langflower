@@ -1,6 +1,6 @@
 # Epics — use-case readiness roadmap (completed)
 
-**Archived** under [`docs/DONE/`](../README.md). Epics **00–45** are
+**Archived** under [`docs/DONE/`](../README.md). Epics **00–48** are
 landed. Active queue: see [`docs/TODO/EPICS/`](../../TODO/EPICS/README.md).
 Further work also follows use-case Missing parts
 and [`docs/code-regression/`](../../code-regression/SUMMARY.md) Critical
@@ -25,6 +25,8 @@ Status only after `verify`.
 | Feed sanity (43)             | **Landed** — hide unmarked / `'none'`; Finish `done`; Preview bubble + size               |
 | CLI startup (44)             | **Landed** — heartbeat, incremental custom-node cache, product bundle                     |
 | Global KV secrets (45)       | **Landed** — workspace-hidden secrets + MCP HTTP `headers` proof                          |
+| Feed frames (47)             | **Landed** — `runner.port` slot 6 authoritative; work-log fold drops catalog fallback     |
+| Node capabilities (48)       | **Landed** — `requires` on definitions; execution ctx built per declared caps             |
 
 ## Order
 
@@ -96,7 +98,7 @@ Status only after `verify`.
 | 34  | [34-feed-timeline-visual-contract.md](34-feed-timeline-visual-contract.md)             | UI     | **landed** — feed draft/tool segments + streaming chrome                                      |
 | 35  | [35-composer-shell-layout-contract.md](35-composer-shell-layout-contract.md)           | UI     | **landed** — composer shell (no labels / pills / tabs-only-2+)                                |
 | 36  | [36-stop-pause-steer-controls.md](36-stop-pause-steer-controls.md)                     | UI+RT  | **landed** — rose Stop + amber Pause/`steerControl` (ADR-031/032)                             |
-| 37  | [37-deterministic-feed-fold.md](37-deterministic-feed-fold.md)                         | UI     | **landed** — TDD `feed-folding` nested fold; live work-log switch is a follow-up              |
+| 37  | [37-deterministic-feed-fold.md](37-deterministic-feed-fold.md)                         | UI     | **landed** — TDD `feed-folding`; live work-log uses `ExecutionFeedService` / `feedRows$`      |
 | 38  | [38-llm-autokick.md](38-llm-autokick.md)                                               | LLM    | **landed** — default autokick, dead-loop, HTTP join, pinned feed retry banner                 |
 | 40  | [40-custom-node-recompile-reload.md](40-custom-node-recompile-reload.md)               | CN     | **landed** — stable cache, hot-swap, `compile_custom_nodes`, same-turn `getTools`             |
 | 41  | [41-uniform-tool-shape.md](41-uniform-tool-shape.md)                                   | Tools  | **landed** — MCP + Sub-Agent + optional Tool collection as `ToolHandle[]`                     |
@@ -105,6 +107,8 @@ Status only after `verify`.
 | 44  | [44-startup-optimization.md](44-startup-optimization.md)                               | CLI    | **landed** — heartbeat, pack cache hit/miss, product CLI esbuild                              |
 | 45  | [45-global-kv-secrets.md](45-global-kv-secrets.md)                                     | Config | **landed** — user-global KV secrets + MCP HTTP `headers` / `{lf_secrets:}`                    |
 | 46  | [46-launcher.md](46-launcher.md)                                                       | Desk   | **landed** — thin Slint supervisor (Tauri then FLTK tried and rejected)                       |
+| 47  | [47-self-describing-feed-frames.md](47-self-describing-feed-frames.md)                 | Feed   | **landed** — self-describing `runner.port` frames; fold drops catalog + rebuild state         |
+| 48  | [48-declared-node-capabilities.md](48-declared-node-capabilities.md)                   | SDK    | **landed** — declared `requires`; ctx built on demand (pack `chat`/`embed` = TBD-012)         |
 
 ## Contracts
 
@@ -129,11 +133,11 @@ dependency DAG):
   spawn tool → dedicated main **output**, result → dedicated main **input**
   (not HITL/`feedback`) as tool result; single spawn out + `nodeId` filter;
   skills sequential per Sub-Agent node.
-  [ADR-021](../../ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter).
+  [ADR-021](../../architecture/ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter).
 - **Sub-Agent layers** — swarm spawn default **serial** (local LLM); nested =
   recursive registration ports; same-model MC via Loop; cross-model ensemble
   **pending**.
-  [ADR-022](../../ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo).
+  [ADR-022](../../architecture/ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo).
 - **UX rule:** canvas shows topology and contracts; feed (+ `toolLog`) shows
   in-step world changes (`permission.ask` stays in feed, not per-call edges).
 - Builtins never require per-call `toolCall` / `toolResult` canvas edges.
@@ -142,9 +146,10 @@ dependency DAG):
   mutating tools and `bash` do not. Patterns:
   [MECHANICS-tool-execution.md](MECHANICS-tool-execution.md#file-ops-patterns-normative-for-epic-01).
 - No third-party harness pack as product API — **`@langflower/tools`** owns
-  tool ids/schemas/handlers; server only binds `ExecutionContext.harness`.
+  tool ids/schemas/handlers; server attaches `RunHostServices` on a private
+  bag (not public `ExecutionContext.harness`).
 - Domain/custom tools attach **`registration.handler`** (import configs from
-  tools); no closed harness `toolId` registry ([ADR-019](../../ADR.md#adr-019--tool-handlers-on-registration-not-harness-toolid-registry)).
+  tools); no closed harness `toolId` registry ([ADR-019](../../architecture/ADR.md#adr-019--tool-handlers-on-registration-not-harness-toolid-registry)).
 - Builtin tools are a **separate package** (`packages/tools`) — not grown as
   permanent bodies under `packages/server` or `@langflower/runtime`.
 

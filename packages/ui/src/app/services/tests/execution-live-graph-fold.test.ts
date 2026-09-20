@@ -3,7 +3,7 @@ import type {
 	WorkflowCurrentSnapshotPayload,
 	WorkflowNodePersisted,
 	WorkflowPersistedGraph,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-workflow';
 import { Subject } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { createLiveGraph$ } from '../execution-live-graph-fold.js';
@@ -104,6 +104,32 @@ describe('createLiveGraph$', () => {
 		expect(
 			graphs.at(-1)?.nodes.find((node) => node.id === 'chat')?.inputs,
 		).toEqual({});
+
+		subscription.unsubscribe();
+	});
+
+	it('adds nodes after an empty snapshot', () => {
+		const workflowSnapshot$ = new Subject<WorkflowCurrentSnapshotPayload>();
+		const addNodes$ = new Subject<readonly WorkflowNodePersisted[]>();
+		const updateNodes$ = new Subject<readonly WorkflowNodePersisted[]>();
+		const deleteNodes$ = new Subject<readonly WorkflowNodePersisted[]>();
+		const addEdges$ = new Subject<readonly RuntimeEdge[]>();
+		const deleteEdges$ = new Subject<readonly RuntimeEdge[]>();
+		const graphs: (WorkflowPersistedGraph | null)[] = [];
+		const subscription = createLiveGraph$({
+			workflowSnapshot$,
+			addNodes$,
+			updateNodes$,
+			deleteNodes$,
+			addEdges$,
+			deleteEdges$,
+		}).subscribe((graph) => graphs.push(graph));
+
+		workflowSnapshot$.next(snapshotOf(graphOf([])));
+		expect(graphs.at(-1)?.nodes).toEqual([]);
+
+		addNodes$.next([chatNode('')]);
+		expect(graphs.at(-1)?.nodes.length).toBe(1);
 
 		subscription.unsubscribe();
 	});

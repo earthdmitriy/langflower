@@ -7,10 +7,8 @@ describe('resolveChatProviderModel', () => {
 			resolveChatProviderModel(
 				{ providerId: 'openai', model: 'gpt-4o' },
 				{
-					defaultChat: {
-						providerId: 'lmstudio',
-						model: 'local',
-					},
+					providerId: 'lmstudio',
+					model: 'local',
 				},
 			),
 		).toEqual({ providerId: 'openai', model: 'gpt-4o' });
@@ -21,10 +19,8 @@ describe('resolveChatProviderModel', () => {
 			resolveChatProviderModel(
 				{ providerId: '', model: '' },
 				{
-					defaultChat: {
-						providerId: 'lmstudio',
-						model: 'local-model',
-					},
+					providerId: 'lmstudio',
+					model: 'local-model',
 				},
 			),
 		).toEqual({ providerId: 'lmstudio', model: 'local-model' });
@@ -35,10 +31,8 @@ describe('resolveChatProviderModel', () => {
 			resolveChatProviderModel(
 				{ providerId: 'openai', model: '' },
 				{
-					defaultChat: {
-						providerId: 'lmstudio',
-						model: 'gpt-4o-mini',
-					},
+					providerId: 'lmstudio',
+					model: 'gpt-4o-mini',
 				},
 			),
 		).toEqual({ providerId: 'openai', model: 'gpt-4o-mini' });

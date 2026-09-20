@@ -2,10 +2,8 @@
  * Resolve OpenAI-compatible credentials for a Settings draft row probe.
  * Prefer pending draft apiKey; else fall back to the saved layer provider.
  */
-import type {
-	LangflowerConfig,
-	ProviderDraft,
-} from '@langflower/shared/langflower.js';
+import type { LangflowerConfig } from '@langflower/shared/types/langflower-config.js';
+import type { ProviderDraft } from '@langflower/shared/langflower-config/settings-draft.js';
 import { resolveProviderCredentials } from './resolve-provider-credentials.js';
 
 type ResolvedCredentials = {

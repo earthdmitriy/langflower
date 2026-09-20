@@ -14,16 +14,25 @@ import {
 import {
 	configToDraft,
 	defaultProviderStaticModelIds,
+	draftAfterLayerSnapshot,
 	draftToSavePayload,
 	draftToSecretsSavePayload,
-	isValidSecretId,
-	mergeProviderModelOptions,
+	mergeDraftPatch,
+	sameDraft,
 	staticModelIdsForProvider,
-	type LangflowerConfigScope,
-	type LangflowerProviderModelsCatalog,
-	type ProviderConnectionStatus,
-	type ProviderModelEntry,
-} from '@langflower/shared/langflower';
+	type ProviderDraft,
+	type SecretDraft,
+	type ServerLogsDraft,
+	type SettingsDraft,
+} from '@langflower/shared/langflower-config/settings-draft';
+import { isValidSecretId } from '@langflower/shared/langflower-config/secret-id';
+import { mergeProviderModelOptions } from '@langflower/shared/langflower-config/merge-provider-model-options';
+import type {
+	LangflowerConfigScope,
+	LangflowerProviderModelsCatalog,
+	ProviderConnectionStatus,
+	ProviderModelEntry,
+} from '@langflower/shared/types/langflower-config';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { firstValueFrom, take } from 'rxjs';
 import { ConfigDraftProjectionService } from '../../../services/config-draft-projection.service';
@@ -31,17 +40,6 @@ import { EditorSettingsProjectionService } from '../../../services/editor-settin
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { LangflowerConfigProjectionService } from '../../../services/langflower-config-projection.service';
 import { ModelsCatalogProjectionService } from '../../../services/models-catalog-projection.service';
-import type {
-	ProviderDraft,
-	SecretDraft,
-	ServerLogsDraft,
-	SettingsDraft,
-} from '../utils/settings-draft';
-import {
-	draftAfterLayerSnapshot,
-	mergeDraftPatch,
-	sameDraft,
-} from '../utils/settings-draft';
 
 const DRAFT_PATCH_DEBOUNCE_MS = 250;
 
@@ -968,8 +966,8 @@ export class LfSettingsPanelComponent implements OnDestroy {
 			untracked(() => {
 				const previous = this.draft();
 				const previousBaseline = this.syncedBaseline();
-				const incomingDraft = snap.draft as SettingsDraft;
-				const incomingBaseline = snap.baseline as SettingsDraft;
+				const incomingDraft = snap.draft;
+				const incomingBaseline = snap.baseline;
 
 				const next = sameDraft(previousBaseline, incomingBaseline)
 					? mergeDraftPatch(previous, incomingDraft)
@@ -1258,6 +1256,9 @@ export class LfSettingsPanelComponent implements OnDestroy {
 		this.bootstrapMessage.set(null);
 		this.bootstrapMessageIsError.set(false);
 
+		// Unicast `project.bootstrap.result` is not in CACHED_BRIDGE_EVENTS.
+		// Subscribe before emitting so this client cannot miss the reply
+		// (requestThenWait: wait first, then intent).
 		const resultPromise = firstValueFrom(
 			this.bridge.raw['project.bootstrap.result'].pipe(take(1)),
 		);

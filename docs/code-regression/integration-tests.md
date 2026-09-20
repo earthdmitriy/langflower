@@ -3,102 +3,75 @@
 ## Meta
 
 - Paths: `tests/integration/`
-- Date: 2026-07-22
-- Coverage: Helpers fully sampled (`repo-paths.ts`, `temp-project.ts`, `test-server.ts`, `workflow-scenario-builders.ts`, `workflow-scenario-registry.ts`, `workflow-scenarios.ts`, `helpers/scenarios/*`); WS harness (`ws/langflower-ws-client.ts`); composer self-test; representative suites — smoke, session sync, pending-events, detachable-long-run, fake-llm debate loop, hitl-inputs, eval-regression-gate (CLI + WS), langflower-mcp-bridge, bootstrap-sample-workflows; inventory of all 42 `*.test.ts` files; grep for barrels / `interface` / adapters / `export function` / re-export blocks / `it.todo`. Not every execute-* assertion body line-by-line.
+- Date: 2026-09-20
+- Mode: delta
+- Coverage: Reconciled every 2026-09-19 finding against the live tree. Re-read harness (`helpers/temp-project.ts`, `test-server.ts`, `workflow-scenarios.ts`, `workflow-scenario-registry.ts`, `workflow-scenario-builders.ts`, `workflow-scenario-composer.test.ts`) and WS client (`ws/langflower-ws-client.ts`). Sampled `helpers/scenarios/{smoke,fake-llm,hitl,eval,agents-pilots}.ts` and live suites: `execute-coding-agent.ws.test.ts`, `execute-permission-escalation-ops.ws.test.ts`, `execute-research-fanout.ws.test.ts`, `ws-session-sync.ws.test.ts`, `workflows.ws.test.ts`, `custom-palette-compile-tool.ws.test.ts`. Cross-checked [TESTING.md](../TESTING.md), [tests/README.md](../../tests/README.md), FOUND_BUGS encodings cited last run, LEDGER Closed/Wontfix (none for this chunk). `tests/integration/` has no `tsconfig.json`; ts-scan `resolve_symbol` / `list_exports` fail with “No tsconfig.json found above …”. Consumer checks used ripgrep on known paths (degraded fallback). Not a line-by-line pass of every `execute-*.ws.test.ts` assertion or the full `agents-pilots.ts` graphs.
+- Previous report: 2026-09-19 — Critical=0 Important=2 Suggestion=4 (numbered items; no `id`/`class` fields — ids assigned here)
+
+## Previous findings (delta mode)
+
+| id                              | severity   | status     | evidence                                                                                                                                                                                                                               |
+| ------------------------------- | ---------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `integration-docs-ghost-matrix` | Important  | fixed      | Closed 2026-09-20 — see LEDGER.                                                                                                                                                                                                        |
+| `integration-concat-node-dead`  | Suggestion | still-open | `helpers/workflow-scenario-builders.ts` still exports `concatNode`. Ripgrep: only that definition under `tests/integration/`. Catalog `concatNode` in `packages/common-nodes` is a different symbol. No new importer since 2026-09-19. |
 
 ## Principles check
 
 - **PASS — no `index.ts` barrels** under `tests/integration/`.
-- **PASS — `type` not `interface`** — harness types use `type` (`TestServerUrls`, `WorkflowScenarioComposerEntry`, local event extracts).
-- **PASS — domain types reused** — graphs built as `WorkflowSavePayload` / `WorkflowNodePersisted` / `RuntimeEdge` from shared/runtime; no local mirror graph DTO layer.
-- **PASS — thin server** — suites call `createServer` / `bootstrapProject` as composers; no domain logic grown under server from this tree.
-- **PASS — subscribe-before-start** — `runAndWaitForOutput` / pending-events / multi-tab tests subscribe (or `firstValueFrom`) before `runner.start.requested` (BUG-2026-07-14 lesson).
-- **PASS — Windows teardown durability** — `removeTempProject` retry loop for `ENOTEMPTY`/`EBUSY`/`EPERM`/`EACCES` (`temp-project.ts`).
-- **PASS — arrow exports in helpers** — `temp-project`, `test-server`, builders, registry, scenario composer use `export const` arrows (re-verified 2026-07-22).
-- **PASS — single scenario composer** — `WORKFLOW_SCENARIO_COMPOSER` owns id → factory; `workflowScenarioById` / `scenarioReadyById` derive from it; unknown ids throw; parity self-test in `workflow-scenario-composer.test.ts` (re-verified 2026-07-22).
-- **PASS — feature-sliced helpers** — domain factories under `helpers/scenarios/`; thin `workflow-scenarios.ts` composer only (re-verified 2026-07-22).
-- **PASS — suite-scoped test server** — `startTestServer` returns `TestServerHandle`; `stopTestServer(handle)` closes that instance; no module singleton (re-verified 2026-07-22).
-- **PASS — WS wait ownership** — re-export block removed from `langflower-ws-client.ts`; suites import waits from `@langflower/shared/langflower-ws-waits` (re-verified 2026-07-22).
-- **FAIL — runtime coverage vs documented matrix** — several files named in [TESTING.md](../TESTING.md) § LLM chain matrix are graph-shape tests + `it.todo` runtime shells only (see Findings).
-- **N/A — `withLatestFrom` / product RxJS folds** — test harness uses `.subscribe` / `firstValueFrom` at the WS edge only (appropriate).
+- **PASS — `type` not `interface`** — harness types stay `type` (`TestServerUrls`, `TestServerHandle`, `WorkflowScenarioComposerEntry`, `CreateTempProjectOptions`).
+- **PASS — no `any`** in sampled helpers / suites; FS/JSON edges use `unknown` + narrow casts.
+- **PASS — domain types reused** — graphs are `WorkflowSavePayload` / `WorkflowNodePersisted` / `RuntimeEdge`; waits import `LangflowerWsClient` from `@langflower/shared/langflower-ws-waits`.
+- **PASS — composer entry point** — one `WORKFLOW_SCENARIO_COMPOSER`; `scenarioReadyById` throws on unknown id and missing catalog types (no `skipIf`).
+- **PASS — delete-obsolete leftovers from U stayed gone** — no `it.todo` / `skipIf`, no `mock-agent` factories, no `execute-simple` / `execute-llm-hitl` / `execute-review` shells, no `tests/fixtures/workflows/`, no `getWorkflowFixturesDir`, no `tests/integration/api/` / `saveWorkflowBulk`.
+- **PASS — suite-scoped server** — `startTestServer` returns `TestServerHandle`; `stopTestServer(handle)` closes that instance.
+- **PASS — subscribe-before-start** — `runAndWaitForOutput` and sampled execute suites subscribe before `runner.start.requested` (BUG-2026-07-14).
+- **PASS — WS wait ownership** — suites import waits from `@langflower/shared/langflower-ws-waits`; local file is emit/seed/run + `autoAllowPermissions`.
+- **PASS — no `withLatestFrom`** in this chunk.
+- **PASS — `docs-ghost` matrix.** TESTING.md / `tests/README.md` match live `execute-*.ws.test.ts` and fixtures (LEDGER `integration-docs-ghost-matrix`, 2026-09-20).
+- **FAIL — `dead-export`** — unused builder `concatNode` (`integration-concat-node-dead`).
 
 ## FOUND_BUGS signals
 
-- **BUG-2026-07-14** (bridge subscribe timing / hot `events$`) — **covered** by `pending-events-bridge.ws.test.ts` and harness comment on `runAndWaitForOutput`.
-- **BUG-2026-07-21f** (lifecycle unicast vs broadcast) — **covered** by `ws-session-sync.ws.test.ts`.
-- **BUG-2026-07-21** (live settle vs reconnect chrome/feed) — **partially covered** by `detachable-long-run.ws.test.ts`; UI chrome stays in unit tests.
-- **BUG-2026-07-19d** (Windows `ENOTEMPTY` teardown) — **mitigated** in `temp-project.ts`; no dedicated regression assertion.
-- **BUG-2026-07-19c** (preset glob braces) — **covered** by `execute-basic-coder.ws.test.ts`.
-- **BUG-2026-07-19** (wired feedback cycle primer) — **covered** by `execute-fake-llm-debate-loop.ws.test.ts`.
-- **BUG-2026-06-26h / BUG-2026-06-26d** (reconnect disk reload / multi-tab deltas) — **covered** by `ws-session-sync.ws.test.ts`.
-- **Catalog/id false-ready (prior Critical)** — **mitigated 2026-07-22** (composer id alignment + throw on unknown); still rhyme with **BUG-2026-07-21b** if a future gate returns false for “missing” instead of throwing.
+none
+
+Sampled suites still encode the cited regressions (subscribe-before-start, session broadcast, detach settle, Plan-write ask, debate loop, pending fan-out, Fake LLM path). Those are locks, not same-mechanism recurrences. No new BUG id applies to this harness.
 
 ## Glue / adapters / parallel types
 
-- **No `*Adapter` / `*Mapper` classes** in this chunk.
-- **Re-export shim — resolved (2026-07-22).** Pure wait re-exports removed from `langflower-ws-client.ts`; file keeps integration-local emit/seed/run helpers only. `export type { LangflowerWsClient }` is a type alias for local ergonomics — acceptable.
-- **Dual registries — resolved (2026-07-22).** One `WORKFLOW_SCENARIO_COMPOSER`; gates derived via `scenarioNodeTypes(factory())`.
-- **Ad-hoc JSON parse shapes** — several suites `JSON.parse(...) as { … }` for demo/fixture docs instead of shared workflow document types (loose parallel types at FS boundary).
-- **Harness-only types OK** — `WorkflowScenarioComposerEntry`, `TestServerUrls`, `TestServerHandle` are test infrastructure, not domain mirrors.
+none
+
+Not glue: `autoAllowPermissions` (CI Allow for ask-gated tools); emit/wait helpers that pair intent + fact; `createLangflowerWsClient` wrapping `createClient`. Thin type re-exports (`LangflowerWsClient`, `WorkflowScenarioComposerEntry`) are aliases, not barrels. Fake CI graphs vs demo real-LLM JSON are an intentional provider substitution, not an ADR-039 twin (see Previous findings). `waitViewportSnapshot` remains one connect helper next to shared session waits — do not grow a second wait library here.
 
 ## Streamlining & simplifications
 
-- Implement or delete `it.todo` runtime shells in core LLM/HITL matrix files so file names and TESTING.md rows match actual WS proof (see Findings #1).
-- Refresh [TESTING.md](../TESTING.md) integration tree, example lifecycle, and LLM matrix to match disk (no `api/` tree, no `openai-mcp-tool-loop.test.ts`, no REST bulk example) — docs-only.
-- Optional `withIntegrationHarness` composer for repeated `createTempProject` → `startTestServer` → `createLangflowerWsClient` → `waitSessionReady` → teardown (sibling steps, ~25 files copy the pattern).
-- Replace loose `JSON.parse(...) as { … }` in bootstrap/pilot suites with shared load helpers or `satisfies` against known payloads where available.
-- Convert module-local `function splitHandle` to `const splitHandle = …` in `workflow-scenario-builders.ts` for style consistency.
+Delete unused `concatNode` in `helpers/workflow-scenario-builders.ts` (no integration importer). That is the open `dead-export` finding.
 
 ## Design-flaw fixes
 
-1. **Scenario catalog identity — addressed 2026-07-22.** One composer id string; `scenarioReadyById` throws on unknown; parity self-test prevents permanent `skipIf` false negatives.
-2. **Test server global slot — addressed 2026-07-22.** Handle returned to suite; teardown closes that instance.
-3. **Coverage honesty gap (open).** Many execute-* files exist primarily as graph factories + `describe.skipIf` + `it.todo` runtime blocks while TESTING.md and use-case Status readers infer full-chain proof. **Fix direction:** either land runtime assertions (subscribe-before-start harness already exists) or rename/split “graph contract” tests and downgrade TESTING.md matrix rows to “scaffold only”.
-4. **Docs vs tree drift (open).** TESTING.md still describes obsolete `api/` REST paths and missing files; misleads agents scaffolding new suites.
+none
 
 ## Findings
 
-1. **Severity:** Important  
-   **Path / symbol:** `tests/integration/ws/execute-simple.ws.test.ts`, `execute-streaming.ws.test.ts`, `execute-llm-hitl.ws.test.ts`, `execute-hitl-complete.ws.test.ts`, `execute-cancel-hitl.ws.test.ts`, `execute-simple-bootstrap.ws.test.ts`, `execute-structured-output.ws.test.ts`, `execute-agent-mock.ws.test.ts` — runtime `describe.skipIf` blocks contain only `it.todo`  
-   **Problem:** [TESTING.md](../TESTING.md) § LLM chain matrix lists these files as proving full execution chains (mock LLM, streaming, HITL feedback, cancel, bootstrap HITL, structured output, agent mock). On disk they assert graph shape only; runtime WS behaviour is unproven. Creates false confidence for use-case Status and regressions.  
-   **Proposed fix:** Implement runtime cases using existing harness (`runAndWaitForOutput`, `seedWorkflowFromDisk`, `sendHitlInput`, `interruptRunner`) or mark matrix rows / filenames as scaffold-only until implemented.
+1.  - id: `integration-concat-node-dead`
 
-2. **Severity:** Important  
-   **Path / symbol:** [docs/TESTING.md](../TESTING.md) § Integration tree / example (~L206–215, ~L350–386) vs `tests/integration/` on disk  
-   **Problem:** Doc still shows `tests/integration/api/`, `config.ws.test.ts`, `nodes.ws.test.ts`, REST `saveWorkflowBulk` / `loadWorkflowBulk` example, and `openai-mcp-tool-loop.test.ts` — none exist. Agents following the doc invent obsolete layout parallel to the WS-first harness.  
-   **Proposed fix:** Rewrite tree, example, and matrix to current `ws/` + helpers layout; drop or relocate REST-bulk example to ADR-012 escape hatch note only.
-
-3. **Severity:** Suggestion  
-   **Path / symbol:** repeated `beforeAll` / `afterAll` in ~25 `ws/*.ws.test.ts` (e.g. `execute-smoke.ws.test.ts` L27–37)  
-   **Problem:** Same four-step lifecycle copy-pasted; easy to forget `client.close` / handle pass-through / temp rm (some suites already vary `afterEach` interrupt).  
-   **Proposed fix:** Optional `withIntegrationHarness` composer listing create → start → connect → ready and reverse teardown — only if it shrinks call sites without hiding per-suite options (`onRunSettled`, multi-client).
-
-4. **Severity:** Suggestion  
-   **Path / symbol:** `bootstrap-sample-workflows.test.ts` L28–52; `execute-coding-agent.ws.test.ts` L107; `execute-kb-contradiction-curation.ws.test.ts` L77/L186; `execute-research-fanout.ws.test.ts` L84; `execute-permission-escalation-ops.ws.test.ts` L90 — `JSON.parse(raw) as { … }`  
-   **Problem:** Parallel structural types at the FS boundary instead of shared workflow/config parsers or `satisfies` against known payloads.  
-   **Proposed fix:** Reuse shared load/validate helpers where they exist, or narrow with bootstrap document types.
-
-5. **Severity:** Suggestion  
-   **Path / symbol:** `tests/integration/ws/ws-session-sync.ws.test.ts` L131–132; `execute-review.ws.test.ts`; `execute-router.ws.test.ts`; `execute-resilient.ws.test.ts`; `bootstrap-plan-mock.test.ts` — remaining `it.todo`  
-   **Problem:** Honest stubs are fine where runtime is hard; mixed files (some real tests + todos) still leave documented multi-tab / router / resilient behaviours unproven.  
-   **Proposed fix:** Implement todos or trim empty runtime shells so Status/docs do not imply WS coverage that is not there.
-
-6. **Severity:** Suggestion  
-   **Path / symbol:** `tests/integration/helpers/workflow-scenario-builders.ts` `splitHandle` (~L437)  
-   **Problem:** Sole remaining `function` declaration in helpers (module-local, not exported) — inconsistent with project arrow style.  
-   **Proposed fix:** `const splitHandle = (handle: string): [string, number] => { … }`.
+- class: dead-export
+- severity: Suggestion
+- first-seen: 2026-09-19
+- status: open
+- path: `tests/integration/helpers/workflow-scenario-builders.ts` `concatNode`
+- evidence: Exported builder has no importer under `tests/integration/` (ripgrep: definition only). Catalog `concatNode` in common-nodes is a different symbol. Dead after the “delete obsolete” pass.
+- proposed fix: Delete it until a scenario needs `common-concat`.
 
 ## Non-issues / looked OK
 
-- No `index.ts` barrels; no `interface` keyword in sampled helpers; no `any`.
-- Domain payloads (`WorkflowSavePayload`, `RuntimeEdge`) used directly in builders / scenarios.
-- `runAndWaitForOutput` / multi-client pending fan-out correctly treat the bus as hot.
-- `autoAllowPermissions` is intentional CI glue for ask-gated tools, not a product adapter.
-- Eval CLI gate (`eval-regression-gate.test.ts`) is a clean spawn boundary; WS eval gate suite (`execute-eval-regression-gate.ws.test.ts`) exercises graph assert path in-process.
-- MCP bridge test hits real `@langflower/mcp` tools without inventing a second protocol.
-- Pilot suites with real runtime proof (`execute-hitl-inputs.ws.test.ts`, `execute-fake-llm-debate-loop.ws.test.ts`, `execute-smoke.ws.test.ts`, `execute-basic-coder.ws.test.ts`, `pending-events-bridge.ws.test.ts`, `detachable-long-run.ws.test.ts`) align with FOUND_BUGS regression intent.
-- Prior Critical/Important harness findings (scenario id mismatch, dual registries, wait re-exports, module singleton server, mega `workflow-scenarios.ts`) — **re-verified fixed.**
-
-## Status
-
-Critical=0 Important=2 Suggestion=4
+- Historical U leftovers stayed deleted: no `it.todo` / `skipIf` graveyard, no mock-agent modules, no `tests/fixtures/workflows/`, no REST `api/` tree.
+- Composer + catalog gate still throw (unknown id and missing types). Self-test still rejects deleted palette types (`common-agent` / `common-dialog` / `common-throw` / `common-triple`).
+- `workflowScenarioById` is used by the composer self-test.
+- Fake CI vs demo real-LLM graphs are an explicit substitution, not an ADR-039 twin.
+- Local Vitest timeouts and copied harness / `GREET_SOURCE` are working copies, not listed classes.
+- Handle-scoped `stopTestServer`; Windows `removeTempProject` retry for `ENOTEMPTY`/`EBUSY`/`EPERM`/`EACCES`.
+- `createTempProject` writing harness-only `example.json` (skeleton does not seed it) is documented and used by editor/session suites.
+- Eval CLI gate vs in-process WS gate remain different edges (spawn vs graph).
+- MCP bridge uses `@langflower/mcp` tools in-process; no second protocol.
+- Sampled FOUND_BUGS pilots (Fake LLM, ask_user, Review Gate, pending fan-out, detach settle, basic-coder Plan write, session broadcast) still match their cited paths.
+- LEDGER Closed 2026-09-20: `integration-docs-ghost-matrix`. Do not reopen without a new mechanism.

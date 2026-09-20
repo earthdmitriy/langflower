@@ -1,4 +1,4 @@
-import type { WorkflowSavePayload } from '@langflower/shared/langflower.js';
+import type { WorkflowSavePayload } from '@langflower/shared/types/langflower-workflow.js';
 import {
 	assertNode,
 	booleanNode,
@@ -11,7 +11,6 @@ import {
 	savePayload,
 	scenarioMetadata,
 	stringNode,
-	ui,
 } from '../workflow-scenario-builders.js';
 
 // ─── Runnable today (catalog: string, delay, preview, finish) ───────────────
@@ -74,7 +73,6 @@ export const stringFinishWorkflow = (
 
 /**
  * @see execute-delay.ws.test.ts
- * Ref: tests/fixtures/workflows/delay-preview.json
  * User: run, wait ≥50ms, read preview "through-delay".
  */
 export const delayPreviewWorkflow = (): WorkflowSavePayload => {
@@ -158,89 +156,5 @@ export const hardHarnessAssertIfWorkflow = (): WorkflowSavePayload => {
 			edge('e-cond-if', 'cond-1', 'value', 'if-1', 'condition'),
 			edge('e-if-preview', 'if-1', 'true', 'preview-1', 'text'),
 		],
-	);
-};
-
-// ─── Runtime primitives (await catalog: router, triple, throw) ───────────────
-
-/**
- * @see execute-router.ws.test.ts
- * Ref: tests/fixtures/workflows/router-two-channels.json
- * User: global run — preview-a shows "alpha", preview-b shows "beta".
- * Partial rerun: change one string, startNode on that branch.
- */
-export const routerTwoChannelsWorkflow = (): WorkflowSavePayload => {
-	return savePayload(
-		'router-two-channels',
-		scenarioMetadata('Router Two Channels'),
-		[
-			stringNode('string-a', 'alpha', { x: 40, y: 80 }, 'String A'),
-			stringNode('string-b', 'beta', { x: 40, y: 200 }, 'String B'),
-			{
-				id: 'router-1',
-				type: 'common-router',
-				params: {},
-				inputs: {},
-				ui: ui(240, 140, 'Router'),
-			},
-			previewNode('preview-a', { x: 420, y: 80 }, 'Preview A'),
-			previewNode('preview-b', { x: 420, y: 200 }, 'Preview B'),
-		],
-		[
-			edge('edge-a', 'string-a', 'value', 'router-1', 'ch'),
-			edge('edge-b', 'string-b', 'value', 'router-1', 'ch@1'),
-			edge('edge-pa', 'router-1', 'ch', 'preview-a', 'text'),
-			edge('edge-pb', 'router-1', 'ch@1', 'preview-b', 'text'),
-		],
-	);
-};
-
-/**
- * @see execute-triple.ws.test.ts
- * Ref: tests/fixtures/workflows/triple-emit.json
- * User: run reactive triple — preview receives three "triple-me" emissions.
- */
-export const tripleEmitWorkflow = (): WorkflowSavePayload => {
-	return savePayload(
-		'triple-emit',
-		scenarioMetadata('Triple Emit'),
-		[
-			stringNode('string-1', 'triple-me', { x: 40, y: 80 }),
-			{
-				id: 'triple-1',
-				type: 'common-triple',
-				params: {},
-				inputs: { delay: 30 },
-				ui: ui(240, 80, 'Triple'),
-			},
-			previewNode('preview-1', { x: 440, y: 80 }),
-		],
-		[
-			edge('edge-c-t', 'string-1', 'value', 'triple-1', 'value'),
-			edge('edge-t-p', 'triple-1', 'value', 'preview-1', 'text'),
-		],
-	);
-};
-
-/**
- * @see execute-resilient.ws.test.ts
- * Ref: tests/fixtures/workflows/throw-preview.json
- * User: run — throw node fails; preview never receives value; run ends with errors.
- */
-export const throwPreviewWorkflow = (): WorkflowSavePayload => {
-	return savePayload(
-		'throw-preview',
-		scenarioMetadata('Throw Preview'),
-		[
-			{
-				id: 'throw-1',
-				type: 'common-throw',
-				params: {},
-				inputs: {},
-				ui: ui(80, 120, 'Throw'),
-			},
-			previewNode('preview-1', { x: 320, y: 120 }),
-		],
-		[edge('edge-1', 'throw-1', 'done', 'preview-1', 'text')],
 	);
 };

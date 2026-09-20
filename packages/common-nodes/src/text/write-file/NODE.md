@@ -5,7 +5,8 @@
 
 ## Summary
 
-Overwrites a **project-relative** file with `content` via `ctx.files` (creates
+Overwrites a **project-relative** file with `content` through the declared
+`paths` capability (`ec.denyPaths` → `createProjectFilesContext`; creates
 parent directories). Absolute paths are rejected. No permission ask.
 
 ## Inputs

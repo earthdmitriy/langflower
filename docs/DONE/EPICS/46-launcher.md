@@ -40,10 +40,10 @@ The launcher is a **supervisor**, not a new runtime. The npm CLI remains
 the product process. The canvas stays in the browser the user already
 has.
 
-**Pre-phase (CLI, before the window):** a single **Last event:** stdout line so
-an operator (terminal or later launcher log) can see **what the workflow
-is doing** while the browser is closed. Settle lines from epic 19 stay;
-this is live progress, not only the outcome.
+**Pre-phase (CLI, before the window):** specified a **Last event:** stdout
+line for closed-browser operators. **Not shipped** — CLI writer, server
+reporter, and launcher parser were never wired and were deleted. Live
+progress is the UI feed; CLI still prints `Run settled:` (epic 19).
 
 ## Problem
 
@@ -131,30 +131,11 @@ langflower@latest` with live log. Never auto-update.
 11. **Recents** live in the user-global Langflower dir (ADR-002:
     `%APPDATA%\langflower\`, `~/Library/Application Support/langflower/`),
     e.g. `launcher.json` — never in the project tree.
-12. **Last event line (pre-phase, CLI).** While a run is live, stdout shows
-    one human line prefixed `Last event:` so a closed-browser operator
-    (and the launcher log) can see current graph activity. Project from
-    existing `runner.events$` (same subscription as `onRunSettled`) —
-    do not fork a second settle/feed fold ([FOUND_BUGS](../../FOUND_BUGS.md)
-    BUG-2026-07-21). Format + identity throttle live in server
-    `observability/`; CLI only writes the resulting string.
-    Shape (one line, ~120 cols):
-
-    ```text
-    Last event: <node name> · <portId> · pending|value|error
-    ```
-
-    Optional short preview on `value`/`error` (objects → `JSON`, strings
-    truncated). **Not** one line per LLM token: rewrite only when
-    `(nodeId, portId, kind)` changes, or pending→value/error, or at most
-    ~4 Hz on the same streaming port. HITL waits MUST appear
-    (`waiting · permission.ask · <tool>` / `ask_user` / canvas HITL) so
-    a detached operator does not think the process hung.
-    **TTY:** overwrite in place (`\r` + pad). **Non-TTY** (pipe, launcher,
-    CI): newline only when the formatted text changes after throttle —
-    no `\r` in pipes. Epic 19 `Run settled: …` remains a **new** line
-    after the last-event row. Idle (no run): no last-event line until
-    `runner.started`.
+12. **Last event line (pre-phase, CLI) — not shipped.** Specified a live
+    `Last event:` stdout line from `runner.events$`. Never wired
+    (`createServer` still has only `onRunSettled`); the unused CLI writer,
+    server reporter, and launcher parser were deleted rather than kept
+    “for later.” Epic 19 `Run settled:` remains.
 
 ## UI (normative)
 
@@ -165,9 +146,6 @@ One window (~480×640):
 - **Start** / **Stop** + status (`idle` / `starting` / `running` /
   `error`).
 - Clickable **Open UI** URL (disabled until `LANGFLOWER_READY`).
-- Optional pinned **Last event** row (parse the latest child line that
-  starts with `Last event:`) — slice B; pre-phase already prints it on
-  CLI stdout.
 - Log pane: child + installer stdout/stderr, autoscroll, last ~2000
   lines.
 
@@ -181,23 +159,8 @@ does not reimplement bootstrap.
 
 ### Pre-phase — CLI last-event line
 
-Lands **before** window slices. Terminal-only observability for
-[detachable-long-run](../../use-cases/detachable-long-run.md) (new S5)
-and for the future launcher log.
-
-- `formatLastEventLine` in
-  `packages/server/src/observability/` (not `@langflower/shared` — not a
-  domain/WS type); unit tests for pending / value / error / HITL wait /
-  truncation / throttle identity. CLI receives a ready string via
-  `createServer({ onLastEventLine })`.
-- CLI / `createServer` hook on `runner.events$` (+ permission /
-  `askUser` facts already on the bridge) writes the last-event line.
-  Do not import UI feed-folding.
-- TTY `\r` vs non-TTY newline per locked decision 12.
-- `Run settled:` still prints on natural `done` (epic 19). Interrupt
-  may update last-event to stopped; do not invent a second settle
-  vocabulary.
-- Docs: detachable-long-run S5 + STATUS CLI row.
+**Not shipped.** Specified here; never wired. Deleted unused formatter /
+writer / parser rather than keep a parallel stdout protocol for later.
 
 ### Slice A — ADR + CLI contract
 
@@ -216,8 +179,6 @@ and for the future launcher log.
   Details log, Open Langflower via OS browser.
 - Spawn/kill helpers in Rust; PATH
   after Node install must be refreshed (Windows registry Path).
-- Pin the latest `Last event:` line from child stdout (pre-phase) above
-  the scrolling log.
 - Dogfood: optional env/config to spawn the workspace
   `packages/cli/bin/langflower.js` instead of global npm (dev only).
 
@@ -269,16 +230,12 @@ langflower version`.
 - Rewriting `@langflower/server` bind/auth for LAN (ADR-006 still
   localhost).
 - Dumping the work-log / `executionFeed` to stdout; token-level CLI
-  streaming; duplicating `serverLogs` JSONL as the last-event line.
+  streaming.
 
 ## Acceptance criteria
 
-0. **Pre-phase:** with `langflower` running and the browser closed, a live
-   run updates a single `Last event:` stdout line (node + port +
-   pending/value/error or HITL wait). Streaming does not flood the
-   terminal. Natural settle still prints `Run settled: …` on a new line.
-   Unit tests cover the formatter + throttle identity. Detachable-long-run
-   S5 documented.
+0. **Pre-phase last-event — not shipped.** Unused CLI/server/launcher
+   pieces deleted. Natural settle still prints `Run settled: …` (epic 19).
 1. On a machine **without** Node, the launcher explains the gap, installs
    current Node.js LTS from an official channel **after consent**, then
    can install global `langflower` the same way. It never ships a Node
@@ -299,9 +256,9 @@ langflower version`.
 
 ## Verify
 
-- Intermediate (optional): focused vitest on last-event formatter /
-  throttle, `--no-open` / READY / semver gate; `npm run launcher:dev`
-  smoke of the window; `verify --quick` while iterating CLI.
+- Intermediate (optional): focused vitest on `--no-open` / READY /
+  semver gate; `npm run launcher:dev` smoke of the window;
+  `verify --quick` while iterating CLI.
 - **Close-out (required):** `npm run typecheck` (or
   `node build/tools/agent-run.mjs typecheck`) **and** `npm run test` or
   full `verify` (unit **and** integration). Do not mark the epic done on
@@ -314,12 +271,9 @@ langflower version`.
 
 Likely touch:
 
-- [`packages/server/src/observability/format-last-event-line.ts`](../../../packages/server/src/observability/format-last-event-line.ts)
-  — `formatLastEventLine`; keep settle formatter in shared unchanged.
 - [`packages/cli/src/start-command.ts`](../../../packages/cli/src/start-command.ts)
   / [`packages/server/src/bridge/attach-langflower-bridge.ts`](../../../packages/server/src/bridge/attach-langflower-bridge.ts)
-  — last-event writer on `events$`; later `--no-open`, READY line, keep
-  `open()` as default.
+  — `--no-open`, READY line, keep `open()` as default.
 - New [`launcher/`](../../../launcher/) — Slint Cargo
   bin (`ui/app-window.slint` + `src/ui.rs`).
 - Docs listed in slice E.
@@ -334,8 +288,7 @@ macOS launcher must use the official Node pkg, not nvm.
   (horizon only — not the launcher path)
 - [install/README.md](../../../install/README.md)
 - [packages/cli/AGENTS.md](../../../packages/cli/AGENTS.md)
-- [ADR-006](../../ADR.md#adr-006--express--ws-localhost-only-no-auth-stage-1)
+- [ADR-006](../../architecture/ADR.md#adr-006--express--ws-localhost-only-no-auth-stage-1)
   (localhost bind)
 - [getting-started](../../features/getting-started.md)
-- [detachable-long-run](../../use-cases/detachable-long-run.md) S4 settle /
-  S5 last-event
+- [detachable-long-run](../../use-cases/detachable-long-run.md) S4 settle

@@ -27,11 +27,12 @@ folder. Langflower:
   alias.
 - On first run (no `.langflower/` yet), creates a hidden `.langflower/` folder
   containing default config, **all** packaged skeleton workflows (default open:
-  **`starter`**), authoring **`instructions.md`**, skills
+  **`starter`**), authoring **`instructions.md`**, **`.gitignore`** (compiled
+  node cache, bridge logs, pack `node_modules/`), skills
   **`langflower-helper`**, **`langflower-node-writer`**,
   **`langflower-workflow-writer`**, **`spec-architect`**, and the
   **`nodes/my-nodes`** seed pack. Seed _content_ contract:
-  [skeleton](skeleton.md) / [ADR-030](../ADR.md#adr-030--custom-node-pack-layout--npm-model).
+  [skeleton](skeleton.md) / [ADR-030](../architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model).
   Source tree:
   [`packages/server/skeleton/`](../../packages/server/skeleton/).
   Existing projects are left as-is on start; refresh templates via Settings →
@@ -84,7 +85,7 @@ which project they are editing.
   project scaffolding in `packages/server/src/bootstrap/project-bootstrap.service.ts`.
 - Startup sequence (parse args → bootstrap `.langflower/` if missing →
   compile custom packs via `@langflower/compiler` → start Express +
-  WebSocket → open browser): [docs/ARCHITECTURE.md](../ARCHITECTURE.md).
+  WebSocket → open browser): [docs/architecture/ARCHITECTURE.md](../architecture/ARCHITECTURE.md).
 - `.langflower/` layout and stack: [spec.md](../../spec.md) §1-2, §4, §7; pack
-  contract [ADR-030](../ADR.md#adr-030--custom-node-pack-layout--npm-model).
+  contract [ADR-030](../architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model).
 - Default port and other CLI-visible behavior: `spec.md` §1 (`langflower start [project-dir]`, default port 4010; CLI `--port` / `-p` overrides for one run).

@@ -10,7 +10,7 @@ import { DestroyRef, Injectable, OnDestroy, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { createClient } from '@langflower/websocket-bridge/create-client';
 import type { WsBridgeClientApi } from '@langflower/websocket-bridge';
-import { langflowerWsConfig } from '@langflower/shared/langflower';
+import { langflowerWsConfig } from '@langflower/shared/langflower-bus-config';
 import { type Observable, shareReplay } from 'rxjs';
 
 export type LangflowerBridgeClient = WsBridgeClientApi<

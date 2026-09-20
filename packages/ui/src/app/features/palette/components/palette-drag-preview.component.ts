@@ -4,9 +4,9 @@ import {
 	computed,
 	input,
 } from '@angular/core';
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import { resolveNodePorts } from '../../../diagram/resolve-diagram-node-ports.js';
-import { LfNodePortRowStaticComponent } from '../../canvas/components/lf-node-port-row-static.component.js';
+import { LfNodePortRowStaticComponent } from '../../../components/lf-node-port-row-static.component.js';
 
 @Component({
 	selector: 'lf-palette-drag-preview',
@@ -43,7 +43,7 @@ import { LfNodePortRowStaticComponent } from '../../canvas/components/lf-node-po
 			}
 		</div>
 	`,
-	styleUrl: './../../canvas/styles/node-port-layout.css',
+	styleUrl: '../../../components/node-port-layout.css',
 	changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PaletteDragPreviewComponent {

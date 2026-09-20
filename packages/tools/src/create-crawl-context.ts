@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-/** Structural match for node-sdk `CrawlSavedPage`. */
+/** Page saved under `.langflower/crawl/{runId}/`. */
 export type CrawlSavedPage = {
 	readonly url: string;
 	readonly html: string;
@@ -10,7 +10,7 @@ export type CrawlSavedPage = {
 	readonly savedPath: string;
 };
 
-/** Structural match for node-sdk `CrawlContext`. */
+/** Host crawl I/O owned by `@langflower/tools`. */
 export type CrawlContext = {
 	readonly runId: string;
 	readonly savePage: (page: {

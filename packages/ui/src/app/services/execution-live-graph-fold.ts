@@ -3,7 +3,7 @@ import type {
 	WorkflowCurrentSnapshotPayload,
 	WorkflowNodePersisted,
 	WorkflowPersistedGraph,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-workflow';
 import { merge, type Observable } from 'rxjs';
 import { filter, map, scan, shareReplay, startWith } from 'rxjs/operators';
 

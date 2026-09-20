@@ -39,4 +39,42 @@ describe('finish test node', () => {
 		expect(done[1]).toBe(runId);
 		expect(await firstValueFrom(runtime.runner.status$)).toBe('idle');
 	});
+
+	it('emits finish output-emitted before done', async () => {
+		const runtime = createRuntimeHarness();
+
+		runtime.editor.addNode(
+			createConstantTestNode({ nodeId: 'A', value: 'hello' }),
+		);
+		runtime.editor.addNode(createFinishTestNode({ nodeId: 'finish' }));
+
+		wireEdge(runtime.editor, {
+			fromNodeId: 'A',
+			fromPort: ['value', 0],
+			toNodeId: 'finish',
+			toPort: ['value', 0],
+		});
+
+		const order: string[] = [];
+		const donePromise = firstValueFrom(
+			runtime.runner.events$.pipe(
+				filter(
+					(event): event is ['done', RunId] => event[0] === 'done',
+				),
+			),
+		);
+		runtime.runner.events$.subscribe((event) => {
+			if (event[0] === 'out' && event[1] === 'finish') {
+				order.push('out');
+			}
+			if (event[0] === 'done') {
+				order.push('done');
+			}
+		});
+
+		runtime.runner.start();
+		await donePromise;
+
+		expect(order).toEqual(['out', 'done']);
+	});
 });

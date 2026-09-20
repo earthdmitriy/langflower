@@ -100,7 +100,8 @@ jobs:
               working-directory: launcher
               run: cargo build --release --locked --target ${{ matrix.target }}
 
-            - name: Package zip
+            - name: Package Windows zip
+              if: runner.os == 'Windows'
               shell: bash
               env:
                   BIN: launcher/target/${{ matrix.target }}/release/${{ matrix.bin }}
@@ -110,9 +111,6 @@ jobs:
                   if [ ! -f "${BIN}" ]; then
                     echo "Missing binary ${BIN}"
                     exit 1
-                  fi
-                  if [ "${{ runner.os }}" != "Windows" ]; then
-                    chmod +x "${BIN}"
                   fi
                   mkdir -p dist
                   python - <<'PY'
@@ -127,6 +125,26 @@ jobs:
                       zf.write(src, src.name)
                   print(f"packed {src} -> {dest} ({dest.stat().st_size} bytes)")
                   PY
+                  ls -l "${BIN}" "${ZIP}"
+
+            - name: Package macOS app zip
+              if: runner.os == 'macOS'
+              shell: bash
+              env:
+                  BIN: launcher/target/${{ matrix.target }}/release/${{ matrix.bin }}
+                  ZIP: dist/${{ matrix.asset }}.zip
+              run: |
+                  set -euo pipefail
+                  if [ ! -f "${BIN}" ]; then
+                    echo "Missing binary ${BIN}"
+                    exit 1
+                  fi
+                  chmod +x "${BIN}"
+                  mkdir -p dist
+                  python launcher/scripts/package-macos-app.py \
+                    --bin "${BIN}" \
+                    --app-dir dist/Langflower.app \
+                    --zip "${ZIP}"
                   ls -l "${BIN}" "${ZIP}"
 
             - name: Upload zip
@@ -204,11 +222,11 @@ jobs:
                       dist/langflower-launcher-macos-x64.zip
                       dist/SHA256SUMS.txt
                   body: |
-                      Unsigned desktop supervisor ([ADR-038](https://github.com/${{ github.repository }}/blob/master/docs/ADR.md#adr-038--launcher-is-a-cli-supervisor)).
+                      Unsigned desktop supervisor ([ADR-038](https://github.com/${{ github.repository }}/blob/master/docs/architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor)).
 
-                      This zip is **not** the Langflower product. It does not include Node.js or the `langflower` CLI. Install Node.js ≥ 22 and `npm install -g langflower`, then run the binary.
+                      This zip is **not** the Langflower product. It does not include Node.js or the `langflower` CLI. Install Node.js ≥ 22 and `npm install -g langflower`, then run the Windows `.exe` or the macOS `Langflower.app`.
 
-                      **Unsigned (v1).** Windows SmartScreen and macOS Gatekeeper will warn. On macOS, right-click the binary → Open.
+                      **Unsigned (v1).** Windows SmartScreen and macOS Gatekeeper will warn. On macOS, right-click **Langflower.app** → Open.
 
                       | Asset | Target |
                       | --- | --- |

@@ -4,7 +4,13 @@ import {
 	statefulConnection,
 	StatefulObservable,
 } from '@rx-evo/stateful-observable';
-import { configureOutput, InputPortMeta, makeInput } from './io-helpers.js';
+import {
+	configureOutput,
+	InputPortMeta,
+	makeInput,
+	type OutputPortMeta,
+} from './io-helpers.js';
+import type { CapsFor, NodeCapabilityId } from './capabilities.js';
 import type { CtxError } from './ctx-error.js';
 import type { PortMeta, WireType } from './port-meta.js';
 import type {
@@ -15,6 +21,21 @@ import type {
 import type { UISchemaConstItem } from './ui-schema-inference.js';
 
 export type { CtxError } from './ctx-error.js';
+export {
+	LLM_REQUIRED_CAPABILITIES,
+	NODE_CAPABILITY_IDS,
+	isNodeCapabilityId,
+	uniqueCapabilityIds,
+	type CapabilityAuthorize,
+	type CapabilityChat,
+	type CapabilityEditorBus,
+	type CapabilityEmbed,
+	type CapabilityFields,
+	type CapabilityPermissionAsk,
+	type CapsFor,
+	type LlmRequiredCapabilityId,
+	type NodeCapabilityId,
+} from './capabilities.js';
 export type {
 	HitlButtonControl,
 	HitlControl,
@@ -31,6 +52,7 @@ export {
 	configureOutput,
 	DEFAULT_MULTILINE_MIN_HEIGHT_PX,
 	InlineConfig,
+	InlineMarkdownConfig,
 	InlineSelectOption,
 	InlineTextMultilineConfig,
 	InputConfig,
@@ -70,8 +92,9 @@ export type {
 	ExecutionContext,
 	ReactiveNodeInstance,
 } from './types.js';
+export type { UISchemaConstItem } from './ui-schema-inference.js';
 
-export const contextSymbol = Symbol('node context');
+export const contextSymbol = Symbol.for('langflower.node.context');
 
 const bindHelpers = {
 	makeInput,
@@ -87,22 +110,27 @@ const bindHelpers = {
  */
 export const defineReactiveNode = <
 	UI extends readonly UISchemaConstItem[],
-	Caps extends object = Record<string, never>,
+	const Requires extends readonly NodeCapabilityId[] = [],
+	Caps extends object = CapsFor<Requires>,
 >(
-	config: DefinedReactiveNodeConfig<UI, Caps>,
-) => {
+	config: DefinedReactiveNodeConfig<UI, Caps> & {
+		readonly requires?: Requires;
+	},
+): ReactiveNodeDefinition => {
 	const {
 		bypassPorts,
 		type,
 		category,
 		paletteSecondary,
-		icon,
 		displayName,
 		description,
+		defaultCanvasSize,
+		feedVisitBoundary,
 		uiSchema,
 		emitOncePerActivation,
 		stopsRun,
 		chatEntry,
+		requires,
 	} = config;
 
 	const probeCtx = statefulConnection<
@@ -124,23 +152,30 @@ export const defineReactiveNode = <
 		mode: 'single',
 	};
 
-	const res = {
+	const res: ReactiveNodeDefinition = {
 		type,
 		displayName,
-		category,
-		icon,
+		...(category !== undefined ? { category } : {}),
 		...(description !== undefined ? { description } : {}),
 		...(paletteSecondary === true
 			? { paletteSecondary: true as const }
 			: {}),
+		...(defaultCanvasSize !== undefined ? { defaultCanvasSize } : {}),
+		...(feedVisitBoundary === true
+			? { feedVisitBoundary: true as const }
+			: {}),
 		emitOncePerActivation: emitOncePerActivation ?? false,
 		stopsRun: stopsRun ?? false,
 		chatEntry: chatEntry ?? false,
+		requires: requires ?? [],
 		uiSchema,
 		bypassPorts: bypassPorts ?? ({} as Record<string, WireType>),
 		inputsConfigs: [contextConfig, ...inputsConfigs.map((x) => x.meta)],
 		outputsConfigs: outputsConfigs.map((x) => x.meta),
-		getInstance: (): ReactiveNodeInstance<UI, Caps> => {
+		getInstance: (): ReactiveNodeInstance<
+			readonly UISchemaConstItem[],
+			object
+		> => {
 			const ctxConnection = statefulConnection<
 				ExecutionContext<UI, Caps>,
 				CtxError,
@@ -178,17 +213,45 @@ export const defineReactiveNode = <
 				emitOncePerActivation: emitOncePerActivation ?? false,
 				stopsRun: stopsRun ?? false,
 				chatEntry: chatEntry ?? false,
+				...(feedVisitBoundary === true
+					? { feedVisitBoundary: true as const }
+					: {}),
 				bypassPorts: bypassPorts ?? ({} as Record<string, WireType>),
 				inputs,
 				outputs,
-			};
+			} as ReactiveNodeInstance<readonly UISchemaConstItem[], object>;
 		},
-	} as const satisfies Record<string, unknown>;
+	};
 
 	return res;
 };
 
-export type ReactiveNodeDefinition = ReturnType<typeof defineReactiveNode>;
+export type ReactiveNodeDefinition = {
+	readonly type: string;
+	readonly displayName: string;
+	readonly category?: string;
+	readonly description?: string;
+	readonly paletteSecondary?: true;
+	/** Canvas box for a node without persisted width (see config docs). */
+	readonly defaultCanvasSize?: {
+		readonly width: number;
+		readonly height: number;
+	};
+	/** First work-log frame closes the previous visit (see config docs). */
+	readonly feedVisitBoundary?: true;
+	readonly emitOncePerActivation: boolean;
+	readonly stopsRun: boolean;
+	readonly chatEntry: boolean;
+	readonly requires: readonly NodeCapabilityId[];
+	readonly uiSchema: readonly UISchemaConstItem[];
+	readonly bypassPorts: Record<string, WireType>;
+	readonly inputsConfigs: readonly InputPortMeta<unknown>[];
+	readonly outputsConfigs: readonly OutputPortMeta[];
+	readonly getInstance: () => ReactiveNodeInstance<
+		readonly UISchemaConstItem[],
+		object
+	>;
+};
 
 export {
 	createResolveSecret,
@@ -197,7 +260,10 @@ export {
 	type ResolveSecret,
 	type ResolveSecretResult,
 } from './resolve-secret.js';
-export { defineToolRegistrations } from '../define-tool-registrations/define-tool-registrations.js';
+export {
+	defineToolRegistrations,
+	toToolHandles,
+} from '../define-tool-registrations/define-tool-registrations.js';
 export { defineNode } from '../define-node/define-node.js';
 export type {
 	DefineNodeConfig,

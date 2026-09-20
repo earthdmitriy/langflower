@@ -57,7 +57,7 @@ import { valuePulseActive$ } from '../utils/value-pulse-active.js';
 			</div>
 		</div>
 	`,
-	styleUrl: './../styles/node-port-layout.css',
+	styleUrl: '../../../components/node-port-layout.css',
 	changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LfNodeBypassPortRowComponent {

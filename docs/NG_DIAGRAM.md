@@ -158,7 +158,7 @@ pipeline has called `updateNodes()`.
 ## Conversion functions — one direction only
 
 `persistedNodeToDiagram` and `persistedEdgeToDiagram` in
-`packages/ui/src/app/services/bridge-diagram.service.ts` convert server-originated
+`packages/ui/src/app/services/bridge-diagram.ts` convert server-originated
 persisted data into ng-diagram model objects.
 
 **These functions must ONLY be called when the input comes directly from a server
@@ -279,7 +279,7 @@ const ngNode = this.modelService.getNodeById<LfNodeData>(nodeId);
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `packages/ui/src/app/diagram/resolve-diagram-node-ports.ts`               | `resolveNodePorts` — pure port-row math over live `Edge[]`                                    |
 | `packages/ui/src/app/features/canvas/components/lf-node.component.ts`     | Reactive `connectedEdges` / `inputPortRows` / `bypassPortRows` `computed()`s                  |
-| `packages/ui/src/app/services/bridge-diagram.service.ts`                  | `persistedNodeToDiagram` / `persistedEdgeToDiagram` — one-way server → diagram mapping only   |
+| `packages/ui/src/app/services/bridge-diagram.ts`                          | `persistedNodeToDiagram` / `persistedEdgeToDiagram` — one-way server → diagram mapping only   |
 | `packages/ui/src/app/features/canvas/components/flow-canvas.component.ts` | Thin `editor.*` delta → `NgDiagramModelService` pass-through; `graphInput` init-only snapshot |
 | `packages/ui/src/app/features/canvas/tests/dynamic-port-update.test.ts`   | Regression tests for multi-input / bypass grow/shrink, incl. the `graphInput` staleness race  |
 | `node_modules/ng-diagram/fesm2022/ng-diagram.mjs`                         | `NgDiagramModelService`, `SignalModelAdapter`, `FlowCore`                                     |

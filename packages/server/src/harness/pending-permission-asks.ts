@@ -1,12 +1,15 @@
 import type {
 	RunnerPermissionAskPayload,
 	RunnerPermissionReplyPayload,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-config.js';
 import type { PermissionAskRequest } from '@langflower/tools/permission';
 
 type PendingAsk = {
 	readonly payload: RunnerPermissionAskPayload;
-	readonly resolve: (decision: 'allow' | 'deny') => void;
+	readonly settle: (
+		decision: 'allow' | 'deny',
+		emitAccepted: boolean,
+	) => void;
 };
 
 /**
@@ -25,6 +28,8 @@ export class PendingPermissionAsks {
 		nodeId: string,
 		request: PermissionAskRequest,
 		emitAsk: (payload: RunnerPermissionAskPayload) => void,
+		emitAccepted?: (payload: RunnerPermissionReplyPayload) => void,
+		signal?: AbortSignal,
 	): Promise<'allow' | 'deny'> => {
 		const askId = crypto.randomUUID();
 		const payload: RunnerPermissionAskPayload = {
@@ -37,7 +42,37 @@ export class PendingPermissionAsks {
 		};
 
 		return new Promise<'allow' | 'deny'>((resolve) => {
-			this.pending.set(askId, { payload, resolve });
+			const onAbort = (): void => {
+				const entry = this.pending.get(askId);
+				entry?.settle('deny', true);
+			};
+
+			const settle = (
+				decision: 'allow' | 'deny',
+				shouldEmitAccepted: boolean,
+			): void => {
+				if (!this.pending.has(askId)) {
+					return;
+				}
+
+				this.pending.delete(askId);
+				signal?.removeEventListener('abort', onAbort);
+
+				if (shouldEmitAccepted && emitAccepted !== undefined) {
+					emitAccepted({ runId, askId, decision });
+				}
+
+				resolve(decision);
+			};
+
+			this.pending.set(askId, { payload, settle });
+
+			if (signal?.aborted) {
+				settle('deny', true);
+				return;
+			}
+
+			signal?.addEventListener('abort', onAbort);
 			emitAsk(payload);
 		});
 	};
@@ -53,20 +88,18 @@ export class PendingPermissionAsks {
 			return false;
 		}
 
-		this.pending.delete(payload.askId);
-		entry.resolve(payload.decision === 'allow' ? 'allow' : 'deny');
+		entry.settle(payload.decision === 'allow' ? 'allow' : 'deny', false);
 		return true;
 	};
 
 	/** Fail closed all outstanding asks (interrupt / run end). */
 	denyAll = (runId?: string): void => {
-		const entries = [...this.pending.entries()].filter(
-			([, entry]) => runId === undefined || entry.payload.runId === runId,
+		const entries = [...this.pending.values()].filter(
+			(entry) => runId === undefined || entry.payload.runId === runId,
 		);
 
-		for (const [askId, entry] of entries) {
-			this.pending.delete(askId);
-			entry.resolve('deny');
+		for (const entry of entries) {
+			entry.settle('deny', false);
 		}
 	};
 }

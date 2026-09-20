@@ -1,15 +1,15 @@
 import type {
-	PortTelemetry,
 	RunId,
+	RuntimeFeedRole,
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
 import { isPortTelemetry, isPortValueTelemetry } from '@langflower/runtime';
+import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap';
 import type {
-	ExecutionFeedSnapshotPayload,
 	PaletteConfigPayload,
 	PaletteNodeDefinition,
-	WorkflowCurrentSnapshotPayload,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-palette';
+import type { WorkflowCurrentSnapshotPayload } from '@langflower/shared/types/langflower-workflow';
 import { combineLatest, merge, type Observable, type Subject } from 'rxjs';
 import {
 	filter,
@@ -19,30 +19,26 @@ import {
 	startWith,
 	switchMap,
 } from 'rxjs/operators';
-import { paletteByType as paletteNodesByType } from '../../services/bridge-diagram.service';
+import { paletteByType as paletteNodesByType } from '../../services/execution-catalog';
 import {
 	definitionForNode,
 	nodeTypeByIdFromWorkflow,
-	resolveOutputFeedRole,
 } from '../../services/execution-catalog';
+import { frameFeedRole } from '../../services/frame-feed-meta';
 import {
 	isLlmRecoverySuspended,
 	RECOVERY_PORT_ID,
 	STEER_CONTROL_PORT_ID,
 } from '@langflower/node-sdk/llm';
-import type { FeedRole } from '@langflower/node-sdk';
 import {
 	hitlReplyReceived,
 	nonHitlInputReceived,
 	steerControlHitlTransition,
 } from '../../services/hitl-projection';
-import type { OutputPortTelemetry } from '../../services/execution-chrome-fold';
-
-type InputPortTelemetry = PortTelemetry & {
-	readonly 0: 'in';
-	readonly 2: string;
-	readonly 3: { readonly value: unknown };
-};
+import type {
+	InputPortTelemetry,
+	OutputPortTelemetry,
+} from '../../services/execution-chrome-fold';
 
 type HitlFoldEvent =
 	| {
@@ -58,13 +54,14 @@ type HitlFoldEvent =
 			readonly nodeId: string;
 			readonly portId: string;
 			readonly value: unknown;
-			readonly feedRole: FeedRole | undefined;
+			readonly feedRole: RuntimeFeedRole | undefined;
 	  }
 	| { readonly type: 'open'; readonly nodeId: string }
 	| { readonly type: 'resolve'; readonly nodeId: string }
 	| {
 			readonly type: 'hydrate';
 			readonly events: ExecutionFeedSnapshotPayload['events'];
+			readonly feedRunId: RunId | null;
 			readonly palette: ReadonlyMap<string, PaletteNodeDefinition>;
 			readonly nodeTypes: ReadonlyMap<string, string>;
 	  }
@@ -75,6 +72,13 @@ type HitlFoldState = {
 	readonly runId: RunId | null;
 	/** Once live input/resolve has touched the set, ignore non-clear hydrates. */
 	readonly live: boolean;
+	/**
+	 * Last feed `events` array identity. After settle / new-run reset, a
+	 * catalog-only `combineLatest` tick re-emits the same cached snap — do
+	 * not restore awaiting ids from that array.
+	 */
+	readonly lastEvents: ExecutionFeedSnapshotPayload['events'] | null;
+	readonly lastFeedRunId: RunId | null;
 };
 
 const applySteerTransition = (
@@ -117,12 +121,7 @@ const computeHitlFromEvents = (
 			if (typeof portId !== 'string' || !('value' in response)) {
 				continue;
 			}
-			const role = resolveOutputFeedRole(
-				paletteByType,
-				nodeTypeById,
-				nodeId,
-				portId,
-			);
+			const role = frameFeedRole(event);
 			if (
 				(role === 'recovery' || portId === RECOVERY_PORT_ID) &&
 				isLlmRecoverySuspended(response.value)
@@ -177,6 +176,8 @@ const foldAwaitingHitl = (
 			ids: new Set(),
 			runId: event.runId ?? null,
 			live: false,
+			lastEvents: state.lastEvents,
+			lastFeedRunId: state.lastFeedRunId,
 		};
 	}
 
@@ -186,7 +187,26 @@ const foldAwaitingHitl = (
 		// are not wiped. Hard reset (interrupt / done / new runId) clears
 		// instead.
 		if (state.live) {
+			return {
+				...state,
+				lastEvents: event.events,
+				lastFeedRunId: event.feedRunId,
+			};
+		}
+		if (state.lastEvents !== null && event.events === state.lastEvents) {
 			return state;
+		}
+		const afterReset =
+			!state.live && state.ids.size === 0 && state.lastEvents !== null;
+		if (
+			afterReset &&
+			event.feedRunId !== null &&
+			event.feedRunId === state.lastFeedRunId
+		) {
+			return {
+				...state,
+				lastEvents: event.events,
+			};
 		}
 		return {
 			ids: computeHitlFromEvents(
@@ -196,6 +216,8 @@ const foldAwaitingHitl = (
 			),
 			runId: state.runId,
 			live: false,
+			lastEvents: event.events,
+			lastFeedRunId: event.feedRunId,
 		};
 	}
 
@@ -204,6 +226,8 @@ const foldAwaitingHitl = (
 			ids: applySteerTransition(state.ids, event.nodeId, 'open'),
 			runId: state.runId,
 			live: true,
+			lastEvents: state.lastEvents,
+			lastFeedRunId: state.lastFeedRunId,
 		};
 	}
 
@@ -212,6 +236,8 @@ const foldAwaitingHitl = (
 			ids: applySteerTransition(state.ids, event.nodeId, 'close'),
 			runId: state.runId,
 			live: true,
+			lastEvents: state.lastEvents,
+			lastFeedRunId: state.lastFeedRunId,
 		};
 	}
 
@@ -225,6 +251,8 @@ const foldAwaitingHitl = (
 				ids: applySteerTransition(state.ids, event.nodeId, 'open'),
 				runId: state.runId,
 				live: true,
+				lastEvents: state.lastEvents,
+				lastFeedRunId: state.lastFeedRunId,
 			};
 		}
 		return state;
@@ -240,6 +268,8 @@ const foldAwaitingHitl = (
 			ids: applySteerTransition(state.ids, event.nodeId, steer),
 			runId: state.runId,
 			live: true,
+			lastEvents: state.lastEvents,
+			lastFeedRunId: state.lastFeedRunId,
 		};
 	}
 	if (event.portId === STEER_CONTROL_PORT_ID) {
@@ -250,6 +280,8 @@ const foldAwaitingHitl = (
 			ids: applySteerTransition(state.ids, event.nodeId, 'close'),
 			runId: state.runId,
 			live: true,
+			lastEvents: state.lastEvents,
+			lastFeedRunId: state.lastFeedRunId,
 		};
 	}
 	if (nonHitlInputReceived(def, event.nodeId, event.portId)) {
@@ -257,6 +289,8 @@ const foldAwaitingHitl = (
 			ids: applySteerTransition(state.ids, event.nodeId, 'open'),
 			runId: state.runId,
 			live: true,
+			lastEvents: state.lastEvents,
+			lastFeedRunId: state.lastFeedRunId,
 		};
 	}
 	return state;
@@ -301,23 +335,14 @@ export const createHitlTriggeredNodes$ = (deps: {
 		),
 	);
 
-	const output$ = catalog$.pipe(
-		switchMap(({ palette, nodeTypes }) =>
-			deps.outputEmitted$.pipe(
-				map((event): HitlFoldEvent => ({
-					type: 'output',
-					nodeId: String(event[1]),
-					portId: event[2],
-					value: 'value' in event[3] ? event[3].value : undefined,
-					feedRole: resolveOutputFeedRole(
-						palette,
-						nodeTypes,
-						event[1],
-						event[2],
-					),
-				})),
-			),
-		),
+	const output$ = deps.outputEmitted$.pipe(
+		map((event): HitlFoldEvent => ({
+			type: 'output',
+			nodeId: String(event[1]),
+			portId: event[2],
+			value: 'value' in event[3] ? event[3].value : undefined,
+			feedRole: frameFeedRole(event),
+		})),
 	);
 
 	const open$ = deps.hitlOpenLocal$.pipe(
@@ -344,6 +369,7 @@ export const createHitlTriggeredNodes$ = (deps: {
 		map(([snap, workflow, palette]): HitlFoldEvent => ({
 			type: 'hydrate',
 			events: snap === null ? [] : snap.events,
+			feedRunId: snap === null ? null : snap.runId,
 			palette: paletteNodesByType(palette.nodes),
 			nodeTypes: nodeTypeByIdFromWorkflow(workflow),
 		})),
@@ -376,6 +402,8 @@ export const createHitlTriggeredNodes$ = (deps: {
 			ids: new Set<string>(),
 			runId: null,
 			live: false,
+			lastEvents: null,
+			lastFeedRunId: null,
 		}),
 		map((s) => s.ids),
 		startWith(new Set<string>()),

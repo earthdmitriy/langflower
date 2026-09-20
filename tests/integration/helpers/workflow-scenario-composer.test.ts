@@ -25,14 +25,20 @@ describe('WORKFLOW_SCENARIO_COMPOSER', () => {
 		}
 	});
 
-	it('derived node-type gates match catalog for every scenario', () => {
+	it('every registered scenario is catalog-ready', () => {
 		for (const entry of WORKFLOW_SCENARIO_COMPOSER) {
 			const types = scenarioNodeTypes(entry.factory());
 			expect(types.length).toBeGreaterThan(0);
-			expect(scenarioReadyById(entry.id)).toBe(
-				catalogHasNodeTypes(types),
-			);
+			expect(catalogHasNodeTypes(types)).toBe(true);
+			expect(scenarioReadyById(entry.id)).toBe(true);
 		}
+	});
+
+	it('catalogHasNodeTypes fails for deleted palette types', () => {
+		expect(catalogHasNodeTypes(['common-agent'])).toBe(false);
+		expect(catalogHasNodeTypes(['common-dialog'])).toBe(false);
+		expect(catalogHasNodeTypes(['common-throw'])).toBe(false);
+		expect(catalogHasNodeTypes(['common-triple'])).toBe(false);
 	});
 
 	it('scenarioReadyById throws on unknown id', () => {

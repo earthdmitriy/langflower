@@ -3,7 +3,7 @@ import { getCommonReactiveNodeCatalog } from '@langflower/common-nodes';
 import type {
 	PaletteConfigPayload,
 	PaletteNodeDefinition,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-palette.js';
 
 const omitInferTypeFrom = <T extends object>(meta: T): T => {
 	if (!('inferTypeFrom' in meta)) {
@@ -35,9 +35,10 @@ export class PaletteService {
 	 * System catalog only. Custom packs are owned by
 	 * {@link CustomPaletteService} / `customPalette.snapshot`.
 	 */
-	async reload(
-		_projectDir: string,
-	): Promise<{ readonly ok: true; readonly payload: PaletteConfigPayload }> {
+	async reload(): Promise<{
+		readonly ok: true;
+		readonly payload: PaletteConfigPayload;
+	}> {
 		const catalog = getCommonReactiveNodeCatalog();
 		const nodes = Object.values(catalog).map((node) =>
 			toPaletteDefinition(node, 'system'),

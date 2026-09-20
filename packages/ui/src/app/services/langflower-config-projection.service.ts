@@ -14,7 +14,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import type {
 	LangflowerConfig,
 	LangflowerConfigSnapshotPayload,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-config';
 import { map, merge, scan, shareReplay, startWith } from 'rxjs';
 import { LangflowerBridgeService } from './langflower-bridge.service';
 

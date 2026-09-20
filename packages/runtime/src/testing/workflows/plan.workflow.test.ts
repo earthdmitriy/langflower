@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { graphHasCycle } from '../../runtime-helpers.js';
 import { createAgentTestNode } from '../nodes/agent-node.js';
 import { createConstantTestNode } from '../nodes/constant-node.js';
 import {
@@ -63,8 +62,6 @@ function createPlanScenario(): {
 describe('plan workflow (events$)', () => {
 	it('emits agent response and draft chunks for the run', async () => {
 		const { runtime } = createPlanScenario();
-
-		expect(graphHasCycle(runtime.editor.getEdges())).toBe(true);
 
 		const { runId, events } = await runAndCollectEvents(runtime, () =>
 			runtime.runner.start(),

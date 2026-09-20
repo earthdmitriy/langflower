@@ -29,6 +29,8 @@ Typical uses:
 - Debug a mid-pipeline value
 - A human-readable end of a small graph
 `.trim(),
+	// Locked box: markdown payload must not auto-size the node wider.
+	defaultCanvasSize: { width: 320, height: 280 },
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {
 		const text = makeInput('text', {

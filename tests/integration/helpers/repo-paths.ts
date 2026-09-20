@@ -11,6 +11,3 @@ export const getRepoRoot = (): string =>
 
 export const getTestsTmpDir = (): string =>
 	path.join(getRepoRoot(), 'tests', 'tmp');
-
-export const getWorkflowFixturesDir = (): string =>
-	path.join(getRepoRoot(), 'tests', 'fixtures', 'workflows');

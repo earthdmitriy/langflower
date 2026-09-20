@@ -22,6 +22,7 @@ export type ToolHandlerContext = {
 	readonly authorize?: (call: {
 		readonly toolId: string;
 		readonly args: Readonly<Record<string, unknown>>;
+		readonly signal?: AbortSignal;
 	}) => Promise<'allow' | 'deny'>;
 	readonly webFetch?: (request: WebFetchRequest) => Promise<WebFetchResult>;
 	readonly denyPaths?: readonly string[];
@@ -305,6 +306,7 @@ export const MEMORY_TOOL_CONFIGS: readonly DomainToolConfig[] = [
 			const query = requireString(args, 'query');
 			const hits = await createMemoryStore(ctx.projectDir).searchGrep(
 				query,
+				ctx.signal === undefined ? undefined : { signal: ctx.signal },
 			);
 			return json({
 				query,

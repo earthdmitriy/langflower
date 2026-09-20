@@ -1,5 +1,5 @@
 /**
- * Canonical package DAG from docs/PRINCIPLES.md / docs/NAVIGATION.md.
+ * Canonical package DAG from docs/architecture/PRINCIPLES.md / docs/architecture/NAVIGATION.md.
  * Keys are packages/<dir> folder names. Values are allowed @langflower/*
  * dependency package names (npm name without scope for cli is not used).
  */

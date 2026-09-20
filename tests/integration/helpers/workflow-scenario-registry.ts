@@ -1,5 +1,5 @@
 import { getCommonReactiveNodeCatalog } from '@langflower/common-nodes';
-import type { WorkflowSavePayload } from '@langflower/shared/langflower.js';
+import type { WorkflowSavePayload } from '@langflower/shared/types/langflower-workflow.js';
 import {
 	WORKFLOW_SCENARIO_COMPOSER,
 	type WorkflowScenarioComposerEntry,
@@ -14,18 +14,20 @@ export const scenarioNodeTypes = (
 	...new Set(payload.graph.nodes.map((node) => node.type)),
 ];
 
-export const catalogHasNodeTypes = (types: readonly string[]): boolean => {
+export const missingCatalogNodeTypes = (
+	types: readonly string[],
+): readonly string[] => {
 	const catalog = getCommonReactiveNodeCatalog();
 
-	return types.every((type) => catalog[type] !== undefined);
+	return types.filter((type) => catalog[type] === undefined);
 };
 
-export const scenarioReady = (entry: WorkflowScenarioComposerEntry): boolean =>
-	catalogHasNodeTypes(scenarioNodeTypes(entry.factory()));
+export const catalogHasNodeTypes = (types: readonly string[]): boolean =>
+	missingCatalogNodeTypes(types).length === 0;
 
 /**
- * Catalog gate for `describe.skipIf(!scenarioReadyById(id))`.
- * Unknown ids throw — never treat “missing row” as “not ready” (permanent skip).
+ * Catalog gate for registered scenarios.
+ * Unknown ids and missing catalog types throw — never skip.
  * Id must match `WORKFLOW_SCENARIO_COMPOSER` / factory `workflowId`.
  */
 export const scenarioReadyById = (scenarioId: string): boolean => {
@@ -41,5 +43,15 @@ export const scenarioReadyById = (scenarioId: string): boolean => {
 		);
 	}
 
-	return scenarioReady(entry);
+	const missing = missingCatalogNodeTypes(scenarioNodeTypes(entry.factory()));
+
+	if (missing.length > 0) {
+		throw new Error(
+			`Integration scenario ${scenarioId} uses node types ` +
+				`missing from catalog: ${missing.join(', ')}. ` +
+				'Remove the composer row or restore the types — do not skip.',
+		);
+	}
+
+	return true;
 };

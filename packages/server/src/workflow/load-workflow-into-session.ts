@@ -1,4 +1,4 @@
-import type { WorkflowLoadFailedCode } from '@langflower/shared/langflower.js';
+import type { WorkflowLoadFailedCode } from '@langflower/shared/types/langflower-workflow.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
 import {
 	activateWorkflowInSession,
@@ -27,7 +27,6 @@ const uniqueIds = (ids: readonly string[]): readonly string[] => [
 export const loadWorkflowIntoSession = async (
 	session: LangflowerSession,
 	workflowService: WorkflowService,
-	projectDir: string,
 	workflowId: string,
 	resolveDefinition: ResolveNodeDefinition,
 ): Promise<LoadWorkflowResult> => {
@@ -54,7 +53,6 @@ export const loadWorkflowIntoSession = async (
 
 	const activated: ActivateWorkflowResult = activateWorkflowInSession(
 		session,
-		projectDir,
 		result.document,
 		{ dirty: result.repaired },
 		resolveDefinition,

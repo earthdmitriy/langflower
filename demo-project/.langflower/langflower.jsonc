@@ -1,8 +1,8 @@
 {
 	"$schema": "./schemas/langflower-config.schema.json",
 	"dividerPositions": {
-		"leftWidth": 277,
-		"rightWidth": 500.4000244140625,
+		"leftWidth": 257.8666687011719,
+		"rightWidth": 251.1998291015625,
 		"composerHeight": 120,
 	},
 	"provider": {
@@ -41,4 +41,5 @@
 		},
 	},
 	"currentWorkflowId": "starter",
+	"paletteVisible": false,
 }

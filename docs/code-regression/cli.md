@@ -3,74 +3,75 @@
 ## Meta
 
 - Paths: `packages/cli/src/`
-- Date: 2026-07-22
-- Coverage: Full package (6 files): `index.ts`, `cli.ts`, `start-command.ts`, `eval-command.ts`, `create-fake-skill-case-runner.ts`, `create-fake-skill-case-runner.test.ts`. Cross-checked `packages/cli/AGENTS.md`, `package.json`, `bin/langflower.js`, server `createServer` / `ConfigService` port ownership, eval `EvalSuiteResult` boundary. No RxJS — REACTIVITY.md N/A.
+- Date: 2026-09-20
+- Mode: delta
+- Coverage: Full re-read of the same five production modules as 2026-09-19 (`index.ts`, `cli.ts`, `start-command.ts`, `eval-command.ts`, `create-fake-skill-case-runner.ts`) plus the three colocated tests. No new files under `src/`. ts-scan: `list_exports` on `cli.ts` / `start-command.ts` / `eval-command.ts`; `CreateServerOptions` (server) has only `onRunSettled`; `listenHttpServer` still resolves after TCP `listen` with no `address()` check; `onLastEventLine` and `createLastEventWriter` unresolved. Glob `**/last-event-writer*` is empty. Grep in `packages/cli` for `last-event` / `Last event:` / `onLastEventLine` is empty. Cross-checked root `package.json` (`0.1.3`) vs workspace `@langflower/cli` (`0.1.0`) vs `cli.ts` `.version('0.1.0')`. No RxJS — REACTIVITY.md N/A. Sample is the whole `src/` tree, not a line-by-line commentary.
+- Previous report: 2026-09-19 — Critical=0 Important=1 Suggestion=4 (numbered items; kebab ids assigned here for ledger stability)
+
+## Previous findings (delta mode)
+
+| id                                         | severity   | status     | evidence                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------ | ---------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cli-ready-default-port-fallback` (was #2) | Suggestion | still-open | `start-command.ts` `startProject` still does `address !== null && typeof address === 'object' ? address.port : DEFAULT_PORT`, then prints the URL and (non-`--dev`) writes `LANGFLOWER_READY` with that port. `listenHttpServer` still resolves on the listen callback without checking `address()`. |
 
 ## Principles check
 
-- **Thin CLI / no HTTP domain — PASS.** Delegates bootstrap + listen to `@langflower/server`; eval gate in `@langflower/eval`; CLI owns commander, browser open, stdout/stderr, exit codes only.
-- **Composer entry points — PASS.** `startProject` lists bootstrap → createServer → log/open; `resolveCaseRunner` documents Fake vs `--replay` sibling composition; steps do not call each other.
-- **Immutability — PASS.** Fake runner builds `ranked` via `map` + fresh `sort`; no in-place domain mutation.
-- **Feature-sliced / colocation — PASS.** Fake runner + vitest beside eval command; small vertical package.
-- **No adapters / glue — PASS.** No `*Adapter` / `*Mapper`; `EvalCaseRunner` injection matches eval package boundary.
-- **`type` + arrow functions — PASS.** No `interface`, no `function` declarations, no `any`.
-- **Reuse domain types — PASS (re-verified).** `printSuiteSummary(result: EvalSuiteResult)` imports from `@langflower/eval/run-eval-suite`.
-- **Port ownership — PASS (re-verified).** `readPort` deleted; `start-command.ts` passes only `projectDir` / `uiDistPath` / `onRunSettled`; listen port resolved inside `createServer` via `ConfigService`; CLI logs `httpServer.address().port`.
-- **Barrels (`index.ts`) — MIXED (documented exception).** `src/index.ts` is npm process bootstrap (`runCli(process.argv)`), not a re-export aggregator. `AGENTS.md` documents the exception; repo-wide PRINCIPLES tension remains by filename only.
-- **RxJS / `withLatestFrom` — N/A.**
+- **PASS — thin CLI / package DAG.** `startProject` still delegates bootstrap + listen to `@langflower/server/bootstrap` and `@langflower/server/create-server`. Eval gate stays in `@langflower/eval`. No `@langflower/compiler` import, no HTTP/WS domain under `src/`.
+- **PASS — composer entry points.** `startProject` lists resolve → optional bootstrap → `createServer` → address / open / READY. `runEvalCommand` lists resolve runner → `runEvalSuite` → print → gate. Siblings do not call the next sibling.
+- **PASS — no barrels.** `src/index.ts` is `runCli(process.argv)` process bootstrap, not `export *`. `packages/cli/AGENTS.md` records the exception. No second aggregator.
+- **PASS — `type` + arrows; no `any`.** Production modules use `type`, `const` arrows, `as const` only on Commander option tuples. No `function` / `interface` / `any`.
+- **PASS — reuse owner types.** Settle stdout uses shared `formatRunSettleLine` via `onRunSettled`. Eval uses `EvalCaseRunner` / `EvalSuiteResult` from `@langflower/eval/run-eval-suite`.
+- **PASS — delete obsolete last-event path.** `last-event-writer.ts` stayed deleted. LEDGER `legacy-last-event-protocol` must not reopen: no file, no `onLastEventLine`, no `Last event:` string, server `CreateServerOptions` still has only `onRunSettled`.
+- **PASS — no named adapters.** No `*Adapter` / `*Mapper`. `toStartOpts` is a Commander-polarity helper, not a package-boundary shim.
+- **PASS — functional errors at the process I/O edge.** `parseListenPort` and start failures throw; `runStartAction` maps to `process.exit(1)`. Eval maps throws and gate failure to `process.exitCode = 1`. `resolveUiDistPath` tries candidates then throws. Fake runner throws on missing skill / no match.
+- **FAIL — `false-ready`.** After a successful `listenHttpServer`, a non-`AddressInfo` `address()` still becomes a READY/URL line with `DEFAULT_PORT` (`cli-ready-default-port-fallback`).
+- **PASS — RxJS / `withLatestFrom`.** N/A.
 
 ## FOUND_BUGS signals
 
-- **BUG-2026-07-21** (settle must not fork live vs reconnect) — **adjacent consumer, not recurrence.** CLI prints settle via `onRunSettled` → shared `formatRunSettleLine` (`start-command.ts`); does not re-derive progress from a second projection. Risk only if a future CLI path invents its own settle status from partial events.
-- _*Other BUG-* (WS fan-out, HITL, canvas, reactive ports, false-ready)_* — **none** apply to this chunk.
+- **BUG-2026-08-30** (product CLI bundle: dynamic `require` of `node:events`) — **adjacent, not in this chunk.** Root cause was esbuild + bundled CJS `commander`. `packages/cli/src/` has no `require` shim.
+- **BUG-2026-07-21** (settle must not fork live vs reconnect) — **consumer only, not recurrence.** CLI still prints settle solely via `onRunSettled` → shared `formatRunSettleLine`.
+- **BUG-2026-07-21b / BUG-2026-09-18** (false-ready: missing fact → successful ready) — **same class, not the same mechanism.** Those entries are empty `startWith` / catalog-before-events. The remaining CLI hole is a listen `address()` fallback to `DEFAULT_PORT` (Finding `cli-ready-default-port-fallback`), not a hydrate replay.
+- Other BUG-* (WS fan-out, HITL, canvas, reactive ports) — **none** apply.
 
 ## Glue / adapters / parallel types
 
-- **No named adapter layers.** Commander registration + `EvalCaseRunner` composition are the intended product surface.
-- **Parallel config read — resolved (2026-07-22).** Former `readPort` duplicate removed; server owns port resolution.
-- **Parallel eval summary type — resolved (2026-07-22).** `printSuiteSummary` uses exported `EvalSuiteResult`.
-- **Not glue:** `createFakeSkillCaseRunner` is deliberate agent-under-test ownership outside `@langflower/eval` (documented in AGENTS).
-- **ADR-backed adapters:** none in this package.
+none
+
+ADR-backed copies noted and skipped: `formatReadyLine` JSON `{ url, port, projectDir }` is the supervisor protocol (ADR-038); the Rust launcher parses it. Do not merge the two. Launcher `spawn_cli` is spawn + READY parse + `--no-open -p`, not a second `createServer`. `createFakeSkillCaseRunner` is documented agent-under-test ownership outside `@langflower/eval`.
 
 ## Streamlining & simplifications
 
-- Read Commander `--version` from `package.json` via `packageRoot()` (same pattern as UI dist resolution) instead of hardcoded `'0.1.0'` (`cli.ts`).
-- Optional: tiny local helper to apply shared `.argument` / `.option` / `.action` to default program + `start` alias (`registerStartCommand`).
-- Prefer concrete shared export for `formatRunSettleLine` only if/when `package.json` adds a narrower path than `@langflower/shared/langflower` — no local re-export shim.
+none
 
 ## Design-flaw fixes
 
-1. **None open in product code.** Prior port-ownership split and eval summary type drift are fixed; remaining items are optional CLI polish (version string, alias wiring dedup).
+none
 
 ## Findings
 
-1. **Severity:** Suggestion  
-   **Path / symbol:** `packages/cli/src/cli.ts` `.version('0.1.0')` (~L11); `packages/cli/package.json` `"version"`  
-   **Problem:** Commander version is a hardcoded string that can drift from `package.json` on release bumps.  
-   **Proposed fix:** Read version from adjacent `package.json` in `packageRoot()`, or inject at build time.
+1.  - id: `cli-ready-default-port-fallback`
 
-2. **Severity:** Suggestion  
-   **Path / symbol:** `packages/cli/src/start-command.ts` `registerStartCommand` (~L91–102)  
-   **Problem:** Default program action and `start` alias duplicate `.argument` / `.option` / `.action` wiring. Harmless but noisy when options change.  
-   **Proposed fix:** Local helper that applies shared wiring to a `Command` instance (only if it shortens the file).
-
-3. **Severity:** Suggestion  
-   **Path / symbol:** `packages/cli/src/index.ts`; `docs/PRINCIPLES.md` § Module exports  
-   **Problem:** Repo rule forbids `index.ts`; CLI keeps one as npm `main`/bin bootstrap (side-effect entry, not `export *`). Correctly documented in AGENTS, but filename still triggers false positives in audits.  
-   **Proposed fix:** Accept documented exception, or rename npm entry to `main.ts` / `bootstrap.ts` with matching `package.json` `main` (needs release/build coordination).
+- class: false-ready
+- severity: Suggestion
+- first-seen: 2026-09-19
+- status: open
+- path: `packages/cli/src/start-command.ts` `startProject` (`httpServer.address()` → `DEFAULT_PORT`)
+- evidence: After `createServer` returns, `address` is read and a non-object / `null` result is replaced with `DEFAULT_PORT`. Non-`--dev` then `writeSync`s `formatReadyLine({ url, port, projectDir })`. `listenHttpServer` resolves on the listen callback and does not guarantee `address()` is `AddressInfo`. A missing listen fact becomes a successful READY line (closed-list `false-ready`: fallback port). Branch is likely dead after a TCP listen on `127.0.0.1`; if it runs it lies.
+- proposed fix: Require `typeof address === 'object' && address !== null && 'port' in address`; otherwise throw. Do not substitute `DEFAULT_PORT`.
 
 ## Non-issues / looked OK
 
-- Commander surface: `runCli` → start + eval only; no hidden command chains.
-- Eval composition: Fake primary / `--replay` optional; `runEvalSuite({ runCase })` injection matches eval AGENTS.
-- Fake skill runner fail-closed paths + colocated vitest (greet/farewell/missing skill).
-- Settle stdout: `onRunSettled` + shared `formatRunSettleLine` — thin CLI hook; does not fork settle projection.
-- UI asset resolution (`ui-dist` vs monorepo `../ui/dist/browser`) with actionable error — packaging, not glue.
-- Dev mode (`--dev`) API-only + ng serve message — appropriate CLI UX.
-- No RxJS anti-patterns, no `any`, no extra re-export files under `src/`.
-- Alias `langflower start` sharing `runStartAction` — intentional, not a parallel API.
-- Prior Important findings (port read duplicate, inline eval summary type, AGENTS stub wording) — **re-verified fixed.**
-
-## Status
-
-Critical=0 Important=0 Suggestion=3
+- **LEDGER `legacy-last-event-protocol`:** re-confirmed deleted. No `last-event-writer.ts`, no `last_event_line.rs` consumer in this chunk, no `Last event:` parse, no `onLastEventLine`. Do not restore.
+- **Stale `--version` (`0.1.0` vs published `0.1.3`):** still true; not re-filed because it has no closed class. Product identity lives in root `package.json` / `docs/RELEASE.md`.
+- Commander polarity invert, parallel option types, and local `.sort` are working code, not listed classes.
+- **Launcher vs CLI start:** one `createServer` path; supervisor is spawn + READY + `--no-open -p`.
+- **No leftover bundler / `langflower compile` in `src/`.** Dynamic `import('./eval-command.js')` + `cli.import-graph.test.ts` still match the product split.
+- Commander surface: default `[project-dir]` + `start` alias share `runStartAction` via `applyStartOptions`.
+- `--dev` skips `LANGFLOWER_READY` and browser open. Launcher does not pass `--dev`.
+- Eval composition: Fake primary / `--replay` optional; `loadReplayMap` / `createReplayCaseRunner` stay in `@langflower/eval`.
+- Fake skill runner fail-closed paths + colocated vitest (greet / farewell / missing skill).
+- UI asset resolution (`ui-dist` vs `../ui/dist/browser`) throws after both candidates fail.
+- `src/index.ts` side-effect entry (documented exception).
+- `parseListenPort` throw + colocated range tests — I/O-edge validation.
+- Prior July leftovers (duplicate `readPort`, inline eval summary type, last-event writer) — still gone.

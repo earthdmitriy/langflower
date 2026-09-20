@@ -1,8 +1,8 @@
 import type {
 	ExecutionFeedSnapshotPayload,
 	RunnerSnapshotPayload,
-} from '@langflower/shared/langflower.js';
-import { langflowerWsConfig } from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-bootstrap.js';
+import { langflowerWsConfig } from '@langflower/shared/langflower-bus-config.js';
 import {
 	waitSessionReady,
 	type LangflowerWsClient,

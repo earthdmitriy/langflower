@@ -14,7 +14,8 @@ import type {
 } from './harness-types.js';
 import {
 	DEFAULT_PERMISSION_CONFIG,
-	permissionDetailForCall,
+	permissionDetailsForCall,
+	resolvePermission,
 	type PermissionAskRequest,
 	type PermissionConfig,
 	type PermissionDecision,
@@ -46,6 +47,7 @@ export type CreateHarnessOptions = {
 	 */
 	readonly requestPermission?: (
 		request: PermissionAskRequest,
+		signal?: AbortSignal,
 	) => Promise<PermissionDecision>;
 	/**
 	 * Called by the `ask_user` builtin. Missing hook → invoke fails closed.
@@ -74,23 +76,40 @@ export const createProjectHarness = (
 	};
 	const grants = new Set<string>();
 
-	const gate = (toolId: string, detail: string) =>
+	const deniedDetail = (
+		toolId: string,
+		details: readonly string[],
+	): string => {
+		const denied = details.find(
+			(detail) =>
+				resolvePermission(permission, toolId, detail) === 'deny',
+		);
+
+		return denied ?? details.join(' → ');
+	};
+
+	const gate = (
+		toolId: string,
+		details: readonly string[],
+		signal?: AbortSignal,
+	) =>
 		gateToolCall({
 			toolId,
-			detail,
+			details,
 			grants,
 			permission,
 			...(options.requestPermission !== undefined
 				? { requestPermission: options.requestPermission }
 				: {}),
+			...(signal !== undefined ? { signal } : {}),
 		});
 
 	return {
 		listBuiltinRegistrations: () => BUILTIN_REGISTRATIONS,
 		authorize: async (call) => {
 			const toolId = call.toolId.trim();
-			const detail = permissionDetailForCall(toolId, call.args);
-			return gate(toolId, detail);
+			const details = permissionDetailsForCall(toolId, call.args);
+			return gate(toolId, details, call.signal);
 		},
 		invoke: async (call) => {
 			const toolId = call.toolId.trim();
@@ -102,11 +121,11 @@ export const createProjectHarness = (
 				};
 			}
 
-			const detail = permissionDetailForCall(toolId, call.args);
-			const access = await gate(toolId, detail);
+			const details = permissionDetailsForCall(toolId, call.args);
+			const access = await gate(toolId, details, call.signal);
 
 			if (access === 'deny') {
-				return deniedToolResult(toolId, detail);
+				return deniedToolResult(toolId, deniedDetail(toolId, details));
 			}
 
 			try {
@@ -129,4 +148,5 @@ export const createProjectHarness = (
 	};
 };
 
+export { wrapBuiltinToolHandles } from './wrap-builtin-tool-handles.js';
 export { BUILTIN_TOOL_IDS, isBuiltinToolId } from './builtins/catalog.js';

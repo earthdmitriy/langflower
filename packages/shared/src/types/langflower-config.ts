@@ -133,7 +133,7 @@ export type LangflowerConfig = {
 	 */
 	readonly paletteVisible?: boolean;
 	/**
-	 * Runtime allow/ask/deny for harness tools (≠ author-time `enabledToolIds`).
+	 * Runtime allow/ask/deny for harness tools (≠ node `toolPermissions`).
 	 */
 	readonly permission?: LangflowerPermissionConfig;
 	/** Project-root sandbox extras (deny path globs, …). */
@@ -243,13 +243,28 @@ export type RunnerPermissionReplyPayload = {
 
 /**
  * Server → client: agent `ask_user` builtin waiting for operator text
- * (composer textarea — not Allow/Deny, not a canvas HITL port).
+ * (composer textarea and optional option chips — not Allow/Deny, not a
+ * canvas HITL port).
  */
+export type AskUserOption = {
+	readonly id: string;
+	readonly label: string;
+};
+
+export type AskUserQuestion = {
+	readonly id: string;
+	readonly prompt: string;
+	readonly options: readonly AskUserOption[];
+	readonly allowMultiple: boolean;
+};
+
 export type RunnerAskUserAskPayload = {
 	readonly runId: string;
 	readonly askId: string;
 	readonly nodeId: string;
 	readonly question: string;
+	/** Present when the agent sent an ordered question list. */
+	readonly questions?: readonly AskUserQuestion[];
 };
 
 /** Client → server: operator text for a pending {@link RunnerAskUserAskPayload}. */
@@ -299,6 +314,8 @@ export type ProviderConnectionStatus =
  * LLM/embed nodes do not read this payload: they call host stream/embed
  * factories whose closures resolve keys on the server from jsonc
  * (`resolveProviderCredentials`). `ExecutionContext` has no `apiKey`.
+ * Form helpers live in `langflower-config/settings-draft` (`SettingsDraft`
+ * is this type).
  */
 export type LangflowerConfigDraft = {
 	readonly defaultProviderId: string;

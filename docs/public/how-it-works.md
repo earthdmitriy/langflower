@@ -42,5 +42,5 @@ See [Extending](extending.md) and [Configuration](configuration.md).
 
 ## Monorepo deep dives
 
-In the Langflower source tree (not shipped here): `docs/ARCHITECTURE.md`,
-`docs/EXECUTION_ARCHITECTURE.md`, and `docs/PRINCIPLES.md`.
+In the Langflower source tree (not shipped here): `docs/architecture/ARCHITECTURE.md`,
+`docs/architecture/EXECUTION_ARCHITECTURE.md`, and `docs/architecture/PRINCIPLES.md`.

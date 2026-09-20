@@ -1,12 +1,9 @@
 /**
  * Allowlist for which `langflowerWsConfig` keys become MCP tools.
- * Editor canvas mutations stay excluded until this policy expands.
+ * Namespace is `workflow.*` / `runner.*` only — `editor.*` never matches.
  */
 
 export const ACTION_NAMESPACE_GLOBS = ['workflow.*', 'runner.*'] as const;
-
-/** Client→server keys matching these globs are never exposed. */
-export const ACTION_EXCLUDE_GLOBS = ['editor.*'] as const;
 
 /**
  * Server→client events agents may wait on / read via observe tools.
@@ -20,9 +17,12 @@ export const OBSERVE_EVENT_KEYS = [
 	'toolConfig.snapshot',
 	'workflow.list.snapshot',
 	'workflow.current.snapshot',
+	'workflow.load.failed',
 	'workflow.currentStatus.snapshot',
 	'langflower.config.snapshot',
 	'palette.snapshot',
+	'customPalette.snapshot',
+	'langflower.models.catalog.snapshot',
 	'runner.started',
 	'runner.startNode.started',
 	'runner.resume.started',
@@ -31,6 +31,9 @@ export const OBSERVE_EVENT_KEYS = [
 	'runner.port',
 	'runner.done',
 	'runner.permission.ask',
+	'runner.permission.accepted',
+	'runner.askUser.ask',
+	'runner.askUser.accepted',
 	'runner.checkpoints.snapshot',
 	'runner.checkpointed',
 ] as const;

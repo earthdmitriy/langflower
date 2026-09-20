@@ -35,6 +35,14 @@ wrapper if you need a filter:
 node ./launcher/scripts/with-portable-rust.mjs cargo test detect_log_line
 ```
 
+Packaging (no Slint, no cargo):
+
+```bash
+python launcher/scripts/package-macos-app.py --self-test
+```
+
+Launcher CI runs that self-test on Windows and macOS before `cargo test`.
+
 ## What “a test file” is
 
 Each `tests/*.rs` is its own binary:
@@ -59,18 +67,17 @@ Vitest for these tests.
 
 ## Map of suites
 
-| File                 | Style              | Why it exists                                                        |
-| -------------------- | ------------------ | -------------------------------------------------------------------- |
-| `ui_state.rs`        | Pure               | Button chrome, hints, detect wording, `[install]` vs `[launcher]`    |
-| `instances.rs`       | In-memory manager  | Two projects, reserved ports hidden until READY, stop isolation      |
-| `ports.rs`           | Real `TcpListener` | Skip bound + reserved ports                                          |
-| `recents.rs`         | Pure JSON          | Cap 8, unique prepend, remove, bad JSON → empty                      |
-| `ready_line.rs`      | Pure               | Ignore human logs; parse READY JSON                                  |
-| `node_semver.rs`     | Pure               | `v` prefix, `engines.node` `>=`, compare                             |
-| `last_event_line.rs` | Pure               | `Last event:` + TTY `\r`                                             |
-| `open_url.rs`        | Pure               | Localhost allow-list + exact GitHub help URL                         |
-| `path_env.rs`        | Pure               | PATH merge keeps session entries                                     |
-| `multi_instance.rs`  | Process            | Two `stub-langflower.mjs` children, distinct ports, independent stop |
+| File                | Style              | Why it exists                                                        |
+| ------------------- | ------------------ | -------------------------------------------------------------------- |
+| `ui_state.rs`       | Pure               | Button chrome, hints, detect wording, `[install]` vs `[launcher]`    |
+| `instances.rs`      | In-memory manager  | Two projects, reserved ports hidden until READY, stop isolation      |
+| `ports.rs`          | Real `TcpListener` | Skip bound + reserved ports                                          |
+| `recents.rs`        | Pure JSON          | Cap 8, unique prepend, remove, bad JSON → empty                      |
+| `ready_line.rs`     | Pure               | Ignore human logs; parse READY JSON                                  |
+| `node_semver.rs`    | Pure               | `v` prefix, `engines.node` `>=`, compare                             |
+| `open_url.rs`       | Pure               | Localhost allow-list + exact GitHub help URL                         |
+| `path_env.rs`       | Pure               | PATH merge keeps session entries                                     |
+| `multi_instance.rs` | Process            | Two `stub-langflower.mjs` children, distinct ports, independent stop |
 
 `stub-langflower.mjs` is a tiny Node HTTP server that prints
 `LANGFLOWER_READY` — it is **not** the product CLI. The test sets

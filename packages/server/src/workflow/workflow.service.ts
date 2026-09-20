@@ -5,7 +5,7 @@ import type {
 	WorkflowLoadPayload,
 	WorkflowLoadedPayload,
 	WorkflowSavePayload,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-workflow.js';
 import {
 	parseWorkflowDocument,
 	validateWorkflowStructure,
@@ -13,6 +13,12 @@ import {
 } from './workflow-document.js';
 import { normalizeWorkflowDocumentInputs } from './workflow-persisted-inputs.js';
 import { repairWorkflowGraph } from './repair-workflow-graph.js';
+
+const isEnoent = (error: unknown): boolean =>
+	typeof error === 'object' &&
+	error !== null &&
+	'code' in error &&
+	(error as { readonly code: unknown }).code === 'ENOENT';
 
 const workflowIdFromFileName = (fileName: string): string =>
 	path.basename(fileName, '.json');
@@ -77,9 +83,13 @@ export class WorkflowService {
 									path.join(this.workflowsDir(), file),
 									'utf8',
 								);
-								const { metadata } = parseWorkflowDocument(
+								const parsed = parseWorkflowDocument(
 									JSON.parse(raw),
 								);
+								if (!parsed.ok) {
+									return undefined;
+								}
+								const { metadata } = parsed.document;
 
 								return {
 									workflowId,
@@ -121,12 +131,50 @@ export class WorkflowService {
 				readonly message: string;
 		  }
 	> {
+		let raw: string;
 		try {
-			const raw = await fs.readFile(
+			raw = await fs.readFile(
 				this.workflowPath(payload.workflowId),
 				'utf8',
 			);
-			const disk = parseWorkflowDocument(JSON.parse(raw));
+		} catch (error) {
+			if (isEnoent(error)) {
+				return {
+					ok: false,
+					code: 'NOT_FOUND',
+					message: `Workflow ${payload.workflowId} not found`,
+				};
+			}
+
+			return {
+				ok: false,
+				code: 'INVALID_GRAPH',
+				message: error instanceof Error ? error.message : String(error),
+			};
+		}
+
+		let parsedJson: unknown;
+		try {
+			parsedJson = JSON.parse(raw);
+		} catch (error) {
+			return {
+				ok: false,
+				code: 'INVALID_GRAPH',
+				message: error instanceof Error ? error.message : String(error),
+			};
+		}
+
+		const parsed = parseWorkflowDocument(parsedJson);
+		if (!parsed.ok) {
+			return {
+				ok: false,
+				code: 'INVALID_GRAPH',
+				message: parsed.message,
+			};
+		}
+
+		const disk = parsed.document;
+		try {
 			const normalized = normalizeWorkflowDocumentInputs(
 				{
 					workflowId: payload.workflowId,
@@ -167,11 +215,11 @@ export class WorkflowService {
 				droppedNodeIds: repair.droppedNodeIds,
 				droppedEdgeIds: repair.droppedEdgeIds,
 			};
-		} catch {
+		} catch (error) {
 			return {
 				ok: false,
-				code: 'NOT_FOUND',
-				message: `Workflow ${payload.workflowId} not found`,
+				code: 'INVALID_GRAPH',
+				message: error instanceof Error ? error.message : String(error),
 			};
 		}
 	}

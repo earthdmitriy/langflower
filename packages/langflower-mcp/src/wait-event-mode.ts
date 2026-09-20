@@ -14,6 +14,6 @@ export const resolveWaitEventMode = (
 	}
 
 	// Default latest — agents usually want "current state", not "future frame".
-	// Hot `runner.output-emitted` with mode=next easily hangs after the stream ends.
+	// Hot `runner.port` with mode=next easily hangs after the stream ends.
 	return 'latest';
 };

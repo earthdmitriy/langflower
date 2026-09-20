@@ -6,7 +6,7 @@ import {
 	BrowserTestingModule,
 	platformBrowserTesting,
 } from '@angular/platform-browser/testing';
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import { of, Subject } from 'rxjs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
@@ -123,5 +123,81 @@ describe('LfInspectorPanelComponent run lock', () => {
 		fixture.componentInstance.onToolPermissionChange('grep', 'deny');
 
 		expect(spy).not.toHaveBeenCalled();
+	});
+});
+
+describe('LfInspectorPanelComponent provider inspect', () => {
+	let raw: ReturnType<typeof createRaw>;
+	let persistSpy: ReturnType<typeof vi.spyOn>;
+
+	beforeEach(async () => {
+		TestBed.resetTestingModule();
+		raw = createRaw();
+		persistSpy = vi.spyOn(raw['editor.updateNode.requested'], 'next');
+
+		const unsetProviderNode = {
+			...selectedNode,
+			type: 'common-llm',
+			params: { providerId: '', label: 'seed' },
+		};
+
+		await TestBed.configureTestingModule({
+			imports: [LfInspectorPanelComponent],
+			providers: [
+				{
+					provide: LangflowerBridgeService,
+					useValue: { raw, cached: raw },
+				},
+				{
+					provide: WorkflowExecutionService,
+					useValue: {
+						isRunning: signal(false),
+						activeGraph: signal(null),
+						latestOutputValue: () => undefined,
+					},
+				},
+				{
+					provide: SelectedNodeProjectionService,
+					useValue: {
+						selectedNode: signal(unsetProviderNode),
+						selectedNode$: of(unsetProviderNode),
+					},
+				},
+				{
+					provide: LangflowerConfigProjectionService,
+					useValue: {
+						config: signal({
+							provider: {
+								openai: {
+									name: 'OpenAI',
+									models: ['gpt-4o-mini'],
+								},
+							},
+						}),
+						config$: of({
+							provider: {
+								openai: {
+									name: 'OpenAI',
+									models: ['gpt-4o-mini'],
+								},
+							},
+						}),
+					},
+				},
+				{
+					provide: ModelsCatalogProjectionService,
+					useValue: {
+						catalogs$: of({}),
+					},
+				},
+			],
+		}).compileComponents();
+
+		const fixture = TestBed.createComponent(LfInspectorPanelComponent);
+		fixture.detectChanges();
+	});
+
+	it('does not persist providerId on inspect when only one provider exists', () => {
+		expect(persistSpy).not.toHaveBeenCalled();
 	});
 });

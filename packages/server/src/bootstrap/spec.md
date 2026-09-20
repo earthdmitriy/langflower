@@ -11,7 +11,7 @@
 - **External Context:**
   [bootstrap-new-project](../../../../docs/use-cases/bootstrap-new-project.md),
   [skeleton](../../../../docs/use-cases/skeleton.md),
-  [ADR-030](../../../../docs/ADR.md#adr-030--custom-node-pack-layout--npm-model).
+  [ADR-030](../../../../docs/architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model).
 
 ## 2. Codebase Guardrails & Local Alignment
 

@@ -15,7 +15,7 @@ import { NgDiagramPortComponent } from 'ng-diagram';
 import { combineLatest, switchMap } from 'rxjs';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import { valuePulseActive$ } from '../utils/value-pulse-active.js';
-import { LfInlineFieldComponent } from './lf-inline-field.component';
+import { LfInlineFieldComponent } from '../../../components/lf-inline-field.component';
 
 const PREVIEW_PANE_FLOOR_PX = 16;
 
@@ -106,7 +106,7 @@ const isPreviewInline = (config: InlineConfig | null): boolean => {
 			}
 		</div>
 	`,
-	styleUrl: './../styles/node-port-layout.css',
+	styleUrl: '../../../components/node-port-layout.css',
 	changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LfNodePortRowComponent {

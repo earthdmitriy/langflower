@@ -1,39 +1,8 @@
+import { flattenToolHandles } from '@langflower/common-nodes/tools/collect-agent-tool-handles';
 import type { ToolHandle } from '@langflower/node-sdk';
 import type { RuntimeNode } from '@langflower/runtime';
 import type { Observable } from 'rxjs';
 import type { LangflowerSession } from '../session/langflower-session.js';
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-	typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const isToolHandle = (value: unknown): value is ToolHandle => {
-	if (!isRecord(value)) {
-		return false;
-	}
-
-	return (
-		typeof value.toolId === 'string' &&
-		typeof value.name === 'string' &&
-		typeof value.description === 'string' &&
-		typeof value.inputSchema === 'object' &&
-		value.inputSchema !== null &&
-		typeof value.invoke === 'function'
-	);
-};
-
-/** Flatten multi-wire values that may be single handles or arrays (packs). */
-const flattenToolHandles = (wired: readonly unknown[]): readonly ToolHandle[] =>
-	wired.flatMap((item) => {
-		if (Array.isArray(item)) {
-			return item.filter(isToolHandle);
-		}
-
-		if (isToolHandle(item)) {
-			return [item];
-		}
-
-		return [];
-	});
 
 const resolveToolsOutput = (
 	outputs: RuntimeNode['outputs'],

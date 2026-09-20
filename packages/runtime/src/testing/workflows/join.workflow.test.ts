@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { graphHasCycle } from '../../runtime-helpers.js';
 import { createConstantTestNode } from '../nodes/constant-node.js';
 import { createDelayTestNode } from '../nodes/delay-node.js';
 import { createJoinTestNode } from '../nodes/join-node.js';
@@ -68,8 +67,6 @@ function createJoinScenario(): RuntimeHarness {
 describe('join workflow (events$)', () => {
 	it('emits preview text after join', async () => {
 		const runtime = createJoinScenario();
-
-		expect(graphHasCycle(runtime.editor.getEdges())).toBe(false);
 
 		const runId = runtime.runner.start();
 

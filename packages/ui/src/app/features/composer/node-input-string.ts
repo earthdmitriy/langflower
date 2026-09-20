@@ -1,4 +1,4 @@
-import type { WorkflowPersistedGraph } from '@langflower/shared/langflower';
+import type { WorkflowPersistedGraph } from '@langflower/shared/types/langflower-workflow';
 
 /** Graph `node.inputs[portId]` as a string — same SSOT as canvas / inspector. */
 export const nodeInputString = (

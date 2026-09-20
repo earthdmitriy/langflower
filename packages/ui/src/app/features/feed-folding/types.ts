@@ -4,16 +4,16 @@ import type {
 	RunId,
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
+import type { CustomPaletteSnapshotPayload } from '@langflower/shared/types/langflower-custom-palette';
+import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap';
+import type { PaletteConfigPayload } from '@langflower/shared/types/langflower-palette';
 import type {
-	CustomPaletteSnapshotPayload,
-	ExecutionFeedSnapshotPayload,
-	PaletteConfigPayload,
 	RunnerAskUserAskPayload,
 	RunnerAskUserReplyPayload,
 	RunnerPermissionAskPayload,
 	RunnerPermissionReplyPayload,
-	WorkflowCurrentSnapshotPayload,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-config';
+import type { WorkflowCurrentSnapshotPayload } from '@langflower/shared/types/langflower-workflow';
 import type { Observable } from 'rxjs';
 
 type FeedPresentation =
@@ -43,7 +43,7 @@ type ToolInteractionMeta = {
 	readonly presentation: 'tool-request' | 'tool-response';
 	readonly interactionId: string;
 	readonly visitBoundary?: FeedVisitBoundary;
-	/** Set at normalize when this node is `common-sub-agent`. */
+	/** Stamped when the `runner.port` frame carries `closesPreviousVisit`. */
 	readonly closesPreviousVisit?: true;
 };
 
@@ -63,7 +63,7 @@ type OrdinaryPortFrameMeta = {
 	>;
 	/** Derived from author `feed.streaming !== true` at normalize time. */
 	readonly visitBoundary?: FeedVisitBoundary;
-	/** Set at normalize when this node is `common-sub-agent`. */
+	/** Stamped when the `runner.port` frame carries `closesPreviousVisit`. */
 	readonly closesPreviousVisit?: true;
 };
 

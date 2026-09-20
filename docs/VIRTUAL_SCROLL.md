@@ -3,9 +3,9 @@
 Why the work log does **not** mount the full execution history as HTML,
 why Angular CDK `autosize` virtual scroll failed, and what we ship instead.
 
-Canonical decision: [ADR-037](ADR.md#adr-037--work-log-sliding-measured-window)
+Canonical decision: [ADR-037](architecture/ADR.md#adr-037--work-log-sliding-measured-window)
 (shipped sliding window). Failed attempt:
-[ADR-036](ADR.md#adr-036--work-log-cdk-virtual-scroll-row-grain--frozen-spacer)
+[ADR-036](architecture/ADR.md#adr-036--work-log-cdk-virtual-scroll-row-grain--frozen-spacer)
 (CDK `autosize`, superseded). User-facing behaviour:
 [feed-panel.md](features/feed-panel.md). Fold grain (unchanged):
 [`feed-folding/README.md`](../packages/ui/src/app/features/feed-folding/README.md).
@@ -46,7 +46,7 @@ We still need:
 
 ## Attempt — CDK virtual scroll + autosize
 
-[ADR-036](ADR.md#adr-036--work-log-cdk-virtual-scroll-row-grain--frozen-spacer)
+[ADR-036](architecture/ADR.md#adr-036--work-log-cdk-virtual-scroll-row-grain--frozen-spacer)
 put the work log on `@angular/cdk` `cdk-virtual-scroll-viewport` with
 experimental **`autosize`** (`@angular/cdk-experimental`).
 

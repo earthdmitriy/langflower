@@ -30,7 +30,7 @@ prefer live `docs/PRODUCT.md` / ADRs).
 ## Doc targets used
 
 - `docs/PRODUCT.md`
-- `docs/ADR.md` — ADR-021 (spawn), ADR-022 (layers + pending)
+- `docs/architecture/ADR.md` — ADR-021 (spawn), ADR-022 (layers + pending)
 - `docs/DONE/EPICS/MECHANICS-tool-execution.md`
 - `docs/use-cases/coding-agent.md`, `bootstrap-new-project.md`
 - `packages/common-nodes/src/ai/sub-agent/NODE.md`

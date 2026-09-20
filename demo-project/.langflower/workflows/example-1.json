@@ -1,0 +1,98 @@
+{
+	"metadata": {
+		"name": "Example 1",
+		"createdAt": "2026-09-20T18:34:44.930Z",
+		"updatedAt": "2026-09-20T18:48:54.170Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 342.39996337890625,
+			"y": -294.40000915527344,
+			"scale": 1,
+			"width": 1015.390625,
+			"height": 661.328125
+		},
+		"nodes": [
+			{
+				"id": "0d217b11-e079-4f5d-9b2e-f7667a732cd0",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "custom",
+					"includeAgentsMd": false,
+					"maxIterations": 100,
+					"maxFeedbackTurns": 50,
+					"contextSize": 200000,
+					"compactOnError": false,
+					"streamIdleTimeoutMs": 90000,
+					"toolTimeoutMs": 60000,
+					"subagentTimeoutMs": 0,
+					"maxTransientRetries": 2,
+					"autokickOnIdle": true,
+					"deadLoopEnabled": true,
+					"maxAutokickAttempts": 0,
+					"autokickBackoffMs": 60000,
+					"autokickMaxBackoffMs": 960000,
+					"autokickUserMessage": "I notice you are repeating yourself. Please stop and provide a concise answer.",
+					"autokickPenaltyFrequency": 0.3,
+					"autokickPenaltyPresence": 0.3,
+					"deadLoopMaxWindowTokens": 1000,
+					"deadLoopConsecutiveThreshold": 5,
+					"deadLoopMinRepetitions": 3,
+					"deadLoopMinPatternTokens": 2,
+					"deadLoopStructuralRunCap": 128
+				},
+				"inputs": {
+					"systemPrompt": "You're helpful assistant"
+				},
+				"ui": {
+					"position": {
+						"x": 160,
+						"y": 440
+					}
+				}
+			},
+			{
+				"id": "b5b28b82-acd0-4bc6-b2f1-a17385a8e9a9",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 442.6667175292969,
+						"y": 699.9332847595215
+					}
+				}
+			},
+			{
+				"id": "51c3e36b-82c6-4091-b43d-b273194893a6",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {
+					"message": "hi"
+				},
+				"ui": {
+					"position": {
+						"x": -166.59994506835938,
+						"y": 497.7332420349121
+					}
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "cb4d43da-61c6-4212-aeb6-7dd97ed1af4c",
+				"fromNodeId": "0d217b11-e079-4f5d-9b2e-f7667a732cd0",
+				"fromPort": ["response", 0],
+				"toNodeId": "b5b28b82-acd0-4bc6-b2f1-a17385a8e9a9",
+				"toPort": ["value", 0]
+			},
+			{
+				"edgeId": "ed50f1ff-de6f-40dd-ba10-427b9fd1e3c0",
+				"fromNodeId": "51c3e36b-82c6-4091-b43d-b273194893a6",
+				"fromPort": ["message", 0],
+				"toNodeId": "0d217b11-e079-4f5d-9b2e-f7667a732cd0",
+				"toPort": ["userPrompt", 0]
+			}
+		]
+	}
+}

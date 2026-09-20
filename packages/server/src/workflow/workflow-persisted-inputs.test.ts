@@ -6,34 +6,31 @@ import {
 	prunePersistedInputs,
 } from './workflow-persisted-inputs.js';
 
-const resolveDefinition: ResolveNodeDefinition = (node) =>
-	resolveWorkflowNodeDefinition({ type: node.type });
+const resolveDefinition: ResolveNodeDefinition = resolveWorkflowNodeDefinition;
+
+const definitionOf = (type: string) => {
+	const definition = resolveDefinition({ type, params: {} });
+	if (definition === undefined) {
+		throw new Error(`missing catalog type: ${type}`);
+	}
+	return definition;
+};
 
 describe('prunePersistedInputs', () => {
 	it('keeps visible overrides that differ from defaultValue', () => {
-		const definition = resolveDefinition({
-			type: 'common-string',
-			params: {},
-		});
-		expect(definition).toBeDefined();
-		expect(prunePersistedInputs({ value: 'Hello' }, definition!)).toEqual({
+		const definition = definitionOf('common-string');
+		expect(prunePersistedInputs({ value: 'Hello' }, definition)).toEqual({
 			value: 'Hello',
 		});
 	});
 
 	it('strips values equal to defaultValue', () => {
-		const definition = resolveDefinition({
-			type: 'common-string',
-			params: {},
-		});
-		expect(prunePersistedInputs({ value: '' }, definition!)).toEqual({});
+		const definition = definitionOf('common-string');
+		expect(prunePersistedInputs({ value: '' }, definition)).toEqual({});
 	});
 
 	it('strips wire-only LLM inventory defaults', () => {
-		const definition = resolveDefinition({
-			type: 'common-fake-llm',
-			params: {},
-		});
+		const definition = definitionOf('common-fake-llm');
 		expect(
 			prunePersistedInputs(
 				{
@@ -42,37 +39,38 @@ describe('prunePersistedInputs', () => {
 					tools: [],
 					mcp: [],
 				},
-				definition!,
+				definition,
 			),
 		).toEqual({});
 	});
 
 	it('keeps visible systemPrompt when non-default', () => {
-		const definition = resolveDefinition({
-			type: 'common-fake-llm',
-			params: {},
-		});
+		const definition = definitionOf('common-fake-llm');
 		expect(
 			prunePersistedInputs(
 				{ systemPrompt: 'Be brief', tools: [] },
-				definition!,
+				definition,
 			),
 		).toEqual({ systemPrompt: 'Be brief' });
 	});
 
 	it('keeps Chat Input message overrides and omits empty text', () => {
-		const definition = resolveDefinition({
-			type: 'common-chat-input',
-			params: {},
-		});
-		expect(definition).toBeDefined();
+		const definition = definitionOf('common-chat-input');
 		expect(
-			prunePersistedInputs({ message: 'Hello from chat' }, definition!),
+			prunePersistedInputs({ message: 'Hello from chat' }, definition),
 		).toEqual({ message: 'Hello from chat' });
-		expect(prunePersistedInputs({ message: '' }, definition!)).toEqual({});
-		expect(prunePersistedInputs({ message: '   ' }, definition!)).toEqual(
+		expect(prunePersistedInputs({ message: '' }, definition)).toEqual({});
+		expect(prunePersistedInputs({ message: '   ' }, definition)).toEqual(
 			{},
 		);
+	});
+
+	it('keeps Hint note overrides (markdown is author-time, not preview)', () => {
+		const definition = definitionOf('common-hint');
+		expect(
+			prunePersistedInputs({ note: 'Read **this** first' }, definition),
+		).toEqual({ note: 'Read **this** first' });
+		expect(prunePersistedInputs({ note: '' }, definition)).toEqual({});
 	});
 });
 

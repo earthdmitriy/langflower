@@ -47,6 +47,29 @@ describe('defineNode samples', () => {
 		expect(gateSampleNode.emitOncePerActivation).toBe(true);
 	});
 
+	it('forwards presentation metadata to the definition', () => {
+		const sizedNode = defineNode({
+			type: 'sample-sized',
+			displayName: 'Sized',
+			defaultCanvasSize: { width: 320, height: 280 },
+			feedVisitBoundary: true,
+			uiSchema: [] as const,
+			inputs: { value: { wireType: 'string', required: true } },
+			outputs: { result: { wireType: 'string' } },
+			execute(_ctx, inputs) {
+				return { result: String(inputs.value ?? '') };
+			},
+		});
+
+		expect(sizedNode.defaultCanvasSize).toEqual({
+			width: 320,
+			height: 280,
+		});
+		expect(sizedNode.feedVisitBoundary).toBe(true);
+		expect('defaultCanvasSize' in gateSampleNode).toBe(false);
+		expect('feedVisitBoundary' in gateSampleNode).toBe(false);
+	});
+
 	it('execute maps inputs to outputs without author rxjs', async () => {
 		const harness = createNodeHarness(gateSampleNode, {
 			nodeId: 'gate-1',

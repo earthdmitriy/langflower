@@ -4,6 +4,7 @@ import { openAiLlmNode } from './ai/nodes/openai-llm/node.js';
 import { mcpHttpNode } from './mcp/mcp-http/node.js';
 import { mcpStdioNode } from './mcp/mcp-stdio/node.js';
 import { chatInputNode } from './hitl/chat-input/node.js';
+import { chatLoopNode } from './hitl/chat-loop/node.js';
 import { reviewNode } from './ai/nodes/review/node.js';
 import { critiqueNode } from './ai/nodes/critique/node.js';
 import { subAgentNode } from './ai/nodes/sub-agent/node.js';
@@ -20,6 +21,7 @@ import { gateNode } from './logic/gate/node.js';
 import { ifNode } from './logic/if/node.js';
 import { switchNode } from './logic/switch/node.js';
 import { finishNode } from './output/finish/node.js';
+import { hintNode } from './output/hint/node.js';
 import { previewNode } from './output/preview/node.js';
 import { toolInspectNode } from './output/tool-inspect/node.js';
 import { booleanNode } from './primitives/boolean/node.js';
@@ -56,6 +58,7 @@ const COMMON_REACTIVE_NODES = [
 	repeatNode,
 	routerNode,
 	previewNode,
+	hintNode,
 	toolInspectNode,
 	finishNode,
 	concatNode,
@@ -64,6 +67,7 @@ const COMMON_REACTIVE_NODES = [
 	writeFileNode,
 	appendFileNode,
 	hitlReviewGateNode,
+	chatLoopNode,
 	chatInputNode,
 	fakeLlmNode,
 	openAiLlmNode,
@@ -108,10 +112,7 @@ export function getCommonReactiveNode(
 	return COMMON_REACTIVE_NODE_CATALOG[type];
 }
 
-export {
-	COMMON_ROUTER_TYPE,
-	DEFAULT_ROUTER_CHANNELS,
-} from './flow/router/router-constants.js';
+export { COMMON_ROUTER_TYPE } from './flow/router/router-constants.js';
 export {
 	resolveWorkflowNodeDefinition,
 	type ResolveWorkflowNodeInstance,

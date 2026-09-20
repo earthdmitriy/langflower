@@ -81,8 +81,8 @@ be configured to retry automatically before being marked failed.
 **Stopping vs pausing vs steering:** three distinct operator intents — product
 scenarios in [run-interruption](../use-cases/run-interruption.md); layout in
 [feed-panel.md](feed-panel.md) § Composer layout; product chrome
-[ADR-031](../ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer);
-mechanism [ADR-032](../ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port).
+[ADR-031](../architecture/ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer);
+mechanism [ADR-032](../architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port).
 
 | Control         | Meaning                                                                                                             | Encoding                                                             | Today                                                                  |
 | --------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -102,7 +102,7 @@ Hard Stop without crossing a boundary does not create a resume point. Soft
 Pause / Steer MUST NOT invent auto-checkpoints. Fingerprint mismatch → clear
 error + Discard. See
 [resumable-checkpoint-jobs](../use-cases/resumable-checkpoint-jobs.md) and
-[ADR-018](../ADR.md#adr-018--durable-workflow-checkpoints).
+[ADR-018](../architecture/ADR.md#adr-018--durable-workflow-checkpoints).
 
 Browser disconnect / reopen while the process stays up is
 [detachable-long-run](../use-cases/detachable-long-run.md) — **not** Pause.
@@ -111,31 +111,31 @@ Browser disconnect / reopen while the process stays up is
 
 - End-to-end run lifecycle (start intent → runtime → WebSocket telemetry →
   UI projection), package responsibilities, and the WS event catalog:
-  [docs/EXECUTION_ARCHITECTURE.md](../EXECUTION_ARCHITECTURE.md).
+  [docs/architecture/EXECUTION_ARCHITECTURE.md](../architecture/EXECUTION_ARCHITECTURE.md).
 - Reactive node activity model, pending/value/error state derivation, and
   per-port state machine: [docs/REACTIVE_NODES.md](../REACTIVE_NODES.md).
 - Partial-run planning (`buildWorkflowRunPlan`, selective downstream reuse):
   `packages/shared/src/execution/partial-run-plan.ts`, summarized in
-  [EXECUTION_ARCHITECTURE.md](../EXECUTION_ARCHITECTURE.md) § Partial runs.
+  [EXECUTION_ARCHITECTURE.md](../architecture/EXECUTION_ARCHITECTURE.md) § Partial runs.
 - Run-control resolution (plain Run vs Run-from-node vs chat composer,
   cluster selection when several clusters have their own Chat Input node)
   belongs beside the run action in `packages/ui/src/app/features/composer/`;
   the single-active-run rule is enforced session-wide by
   `WorkflowExecutorService` (server), see
-  [EXECUTION_ARCHITECTURE.md](../EXECUTION_ARCHITECTURE.md) § Run lifecycle
+  [EXECUTION_ARCHITECTURE.md](../architecture/EXECUTION_ARCHITECTURE.md) § Run lifecycle
   ("One active run").
 - UI execution state projection:
   `packages/ui/src/app/services/workflow-execution.service.ts` (run gate,
   live graph, labels, chrome);
   composer HITL / drafts / Pause: `packages/ui/src/app/features/composer/`.
 - WebSocket protocol (namespaces, snapshot vs event-sourcing model):
-  [docs/ARCHITECTURE.md](../ARCHITECTURE.md) § WebSocket Protocol.
+  [docs/architecture/ARCHITECTURE.md](../architecture/ARCHITECTURE.md) § WebSocket Protocol.
 - Runtime engine internals (v2 `Runtime`, StatefulObservable graph):
   `packages/runtime/spec.md`, `packages/runtime/ADR.md`.
 - Durable checkpoints + resume (Epic 14):
-  [EXECUTION_ARCHITECTURE.md](../EXECUTION_ARCHITECTURE.md) § Durable
+  [EXECUTION_ARCHITECTURE.md](../architecture/EXECUTION_ARCHITECTURE.md) § Durable
   checkpoints; `packages/server/src/checkpoint/`;
   `RuntimeRunner.resume` in `@langflower/runtime`.
 - Hard Stop: `runner.interrupt.requested` / `'cancel'` only.
-- Soft Pause: [ADR-032](../ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port)
+- Soft Pause: [ADR-032](../architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port)
   — `runner.hitl.event` → `pushIntoInput` on `steerControl` (`pause` / `steer`).

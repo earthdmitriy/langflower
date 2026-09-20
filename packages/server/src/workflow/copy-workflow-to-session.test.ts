@@ -8,17 +8,7 @@ import { copyWorkflowToSession } from './copy-workflow-to-session.js';
 import type { ResolveNodeDefinition } from './workflow-document.js';
 import { WorkflowService } from './workflow.service.js';
 
-const resolveDefinition: ResolveNodeDefinition = (node) => {
-	const definition = resolveWorkflowNodeDefinition({
-		type: node.type,
-	});
-
-	if (definition === undefined) {
-		return undefined;
-	}
-
-	return definition;
-};
+const resolveDefinition: ResolveNodeDefinition = resolveWorkflowNodeDefinition;
 
 describe('copyWorkflowToSession', () => {
 	let projectDir: string;
@@ -48,7 +38,6 @@ describe('copyWorkflowToSession', () => {
 		const ok = await copyWorkflowToSession(
 			session,
 			service,
-			projectDir,
 			'example',
 			resolveDefinition,
 		);
@@ -85,7 +74,6 @@ describe('copyWorkflowToSession', () => {
 		await copyWorkflowToSession(
 			session,
 			service,
-			projectDir,
 			'example',
 			resolveDefinition,
 		);

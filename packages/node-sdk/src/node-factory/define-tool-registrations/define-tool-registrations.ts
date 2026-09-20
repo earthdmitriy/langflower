@@ -7,6 +7,26 @@ import {
 	type ToolHandler,
 } from './tool-handle.js';
 
+type RegistrationTool = {
+	readonly toolId: string;
+	readonly name?: string;
+	readonly description: string;
+	readonly inputSchema: object;
+	readonly handler: ToolHandler;
+};
+
+/** Map domain registrations onto wire {@link ToolHandle}s. */
+export const toToolHandles = (
+	tools: readonly RegistrationTool[],
+): readonly ToolHandle[] =>
+	tools.map((tool) => ({
+		toolId: tool.toolId,
+		name: tool.name ?? tool.toolId,
+		description: tool.description,
+		inputSchema: tool.inputSchema,
+		invoke: tool.handler,
+	}));
+
 /**
  * Purpose utility atop {@link defineReactiveNode}: emit a `tools` pack as
  * {@link ToolHandle}[]. Config still takes domain `handler`s; factory maps
@@ -29,14 +49,7 @@ export const defineToolRegistrations = (config: {
 	readonly displayName: string;
 	readonly category?: string;
 	readonly description?: string;
-	readonly icon?: string;
-	readonly tools: readonly {
-		readonly toolId: string;
-		readonly name?: string;
-		readonly description: string;
-		readonly inputSchema: object;
-		readonly handler: ToolHandler;
-	}[];
+	readonly tools: readonly RegistrationTool[];
 }) =>
 	defineReactiveNode({
 		type: config.type,
@@ -45,20 +58,10 @@ export const defineToolRegistrations = (config: {
 		...(config.description !== undefined
 			? { description: config.description }
 			: {}),
-		...(config.icon !== undefined ? { icon: config.icon } : {}),
 		uiSchema: [] as const,
 		bind(_ctx, { configureOutput }) {
 			const tools$ = statefulObservable({
-				loader: () =>
-					of(
-						config.tools.map((tool): ToolHandle => ({
-							toolId: tool.toolId,
-							name: tool.name ?? tool.toolId,
-							description: tool.description,
-							inputSchema: tool.inputSchema,
-							invoke: tool.handler,
-						})),
-					),
+				loader: () => of(toToolHandles(config.tools)),
 			});
 
 			return {

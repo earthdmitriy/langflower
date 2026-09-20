@@ -1,7 +1,7 @@
 import type {
 	ExecutionFeedSnapshotPayload,
 	RunnerSnapshotPayload,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-bootstrap.js';
 
 /** Runner event frame — via shared feed payload (no direct runtime dep). */
 export type RuntimeRunnerEvent = ExecutionFeedSnapshotPayload['events'][number];

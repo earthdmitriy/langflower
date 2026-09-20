@@ -4,15 +4,15 @@
 		"name": "Starter",
 		"description": "Chat loop with an onboarding agent (skill langflower-helper) plus a Writer Sub-Agent (workflow-writer + node-writer). After bootstrap — product capabilities, workflows, editor chrome, and custom nodes.",
 		"createdAt": "2026-07-24T00:00:00.000Z",
-		"updatedAt": "2026-08-15T00:00:00.000Z"
+		"updatedAt": "2026-09-20T18:54:53.078Z"
 	},
 	"graph": {
 		"viewport": {
-			"x": -117.86676025390625,
-			"y": -161.066650390625,
+			"x": 311.46661376953125,
+			"y": -193.0666961669922,
 			"scale": 0.85,
-			"width": 719.0625,
-			"height": 1005.328125
+			"width": 1015.390625,
+			"height": 661.328125
 		},
 		"nodes": [
 			{
@@ -22,8 +22,8 @@
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 40,
-						"y": 40
+						"x": -220,
+						"y": 500
 					},
 					"label": "Langflower Tools"
 				}
@@ -32,7 +32,9 @@
 				"id": "chat",
 				"type": "common-chat-input",
 				"params": {},
-				"inputs": {},
+				"inputs": {
+					"message": "Can you write custom node for me?"
+				},
 				"ui": {
 					"position": {
 						"x": 40,
@@ -59,6 +61,7 @@
 						"write": "allow",
 						"create": "allow",
 						"delete": "ask",
+						"move": "ask",
 						"bash": "ask"
 					}
 				},
@@ -97,6 +100,7 @@
 						"write": "allow",
 						"create": "allow",
 						"delete": "ask",
+						"move": "ask",
 						"bash": "ask"
 					}
 				},
@@ -105,8 +109,8 @@
 				},
 				"ui": {
 					"position": {
-						"x": 320,
-						"y": 1060
+						"x": -20,
+						"y": 660
 					},
 					"label": "Writer"
 				}
@@ -118,8 +122,8 @@
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 640,
-						"y": 720
+						"x": 500,
+						"y": 800
 					},
 					"label": "Review"
 				}

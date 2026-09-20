@@ -344,8 +344,10 @@ Authoritative types: `LlmRecoveryPolicy` in
 `llmRecoveryUiSchema`.
 
 Shipped today: `streamIdleTimeoutMs`, `maxTransientRetries`,
-`toolTimeoutMs` (ordinary tools only; does **not** apply to `*_subagent` /
-`(subagent)` calls), `subagentTimeoutMs` (`0` = unlimited, **default**),
+`toolTimeoutMs` (hung-watchdog for **bash** and non-harness inventory only;
+does **not** apply to `permission.ask`, `ask_user`, `sleep`, filesystem
+builtins, or `*_subagent` / `(subagent)` calls), `subagentTimeoutMs` (`0` =
+unlimited, **default**),
 result caps, plus the autokick / dead-loop Inspector fields below. HTTP 429 /
 5xx / network join the autokick wait after the transient budget (wait-only:
 no kick, no penalty).
@@ -391,7 +393,7 @@ No ENV vars and no new WS event types. Recovery stays on the existing
 - [feed-panel](features/feed-panel.md) — recovery banner chrome
 - [run-interruption](use-cases/run-interruption.md) S6 — recoverable failure
   must not kill Steer
-- [ADR-032](ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port) —
+- [ADR-032](architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port) —
   Pause / Steer port
 - [TBD-008](TBD.md#tbd-008--node-local-reactive-recovery) — graph node reload
 - [epic 38](DONE/EPICS/38-llm-autokick.md) — autokick implementation contract

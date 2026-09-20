@@ -2,13 +2,14 @@ import { contextSymbol } from '@langflower/node-sdk';
 import { RuntimeFacade } from '@langflower/runtime';
 import { describe, expect, it } from 'vitest';
 import { filter, firstValueFrom, of } from 'rxjs';
-import { attachRunHostServices } from '../../features/run-host-services.js';
+import { attachRunHostServices } from '../../../run-host/run-host-services.js';
+import { testLlmCapFields } from '../../features/test-llm-caps.js';
 import { stringNode } from '../../../primitives/string/node.js';
 import { fakeLlmNode } from './node.js';
 
 /**
  * Soft↔Hard smoke (fake imitates LLM — not a history oracle).
- * @see docs/ADR.md ADR-016
+ * @see docs/architecture/ADR.md ADR-016
  */
 const llmContext = (
 	nodeId: string,
@@ -24,6 +25,7 @@ const llmContext = (
 				nodeId,
 				params,
 				uiSchema: fakeLlmNode.uiSchema,
+				...testLlmCapFields(),
 			},
 			{ skillMarkdown: '' },
 		),

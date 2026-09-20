@@ -1,7 +1,9 @@
 # Releasing `langflower` (npm)
 
-Manual release of the **root** package `langflower`. Workspace packages
-(`@langflower/*`, including `@langflower/cli`) are **not** published separately.
+Manual release of the **root** package `langflower`. Other workspace packages
+(`@langflower/cli`, `@langflower/runtime`, …) are **not** published separately.
+`@langflower/node-sdk` is the exception — see
+[Publishing `@langflower/node-sdk`](#publishing-langflowernode-sdk).
 Product `dist/` is the bundled CLI (server, catalog, compiler concatenated).
 Host peers and the bootstrap skeleton ship under `vendor/`.
 
@@ -47,6 +49,75 @@ Host peers and the bootstrap skeleton ship under `vendor/`.
     git push origin vX.Y.Z
     ```
 
+## Publishing `@langflower/node-sdk`
+
+Independent registry release of the author SDK. Semver and git tags are **not**
+tied to root `langflower` (`vX.Y.Z`) or the launcher (`launcher-v*`).
+
+Product `langflower` still vendors `vendor/node-sdk` for host `file://`
+identity (BUG-2026-07-28). Do **not** switch that peer to the registry in the
+same change. Revisit only if the host later resolves the SDK from npm instead
+of `vendor/`.
+
+1. Bump `version` in [`packages/node-sdk/package.json`](../packages/node-sdk/package.json)
+   when the public API changes. First registry cut is `0.1.0`. Then update the
+   skeleton pack manifests to the same exact version (see
+   [Pack ↔ SDK compatibility](#pack--sdk-compatibility)) —
+   `tests/unit/release/skeleton-sdk-pin.test.ts` fails until they match.
+2. From the repo root (clean tree, npm auth, Node matching `engines`):
+
+    ```bash
+    npm run typecheck
+    npm run test
+    node build/tools/agent-run.mjs build-package nodeSdk
+    npm pack -w @langflower/node-sdk --dry-run
+    npm publish -w @langflower/node-sdk --access public
+    ```
+
+    Tarball `files` is `dist` only. Emit excludes `src/**/test/**` fixtures.
+    Reject sources, tests, and a production `@langflower/runtime` dependency.
+    Workspace `tsc` may include `.map` files; product `pack-release` still
+    strips maps from `vendor/node-sdk`.
+
+3. Tag (suffix must match the SDK version):
+
+    ```bash
+    git tag node-sdk-vX.Y.Z
+    git push origin node-sdk-vX.Y.Z
+    ```
+
+Do **not** publish `@langflower/runtime` or other workspace packages this way.
+
+### Pack ↔ SDK compatibility
+
+Three versions can disagree: the SDK in the product install tree
+(`vendor/node-sdk`), the range a custom pack declares, and the version the pack
+was authored against.
+
+**Resolution rule:** the compiler always resolves `@langflower/node-sdk`,
+`rxjs`, and `@rx-evo/stateful-observable` from the **Langflower install tree**
+(`HOST_PEER_PACKAGES` in
+[`resolve-host-types.ts`](../packages/compiler/src/resolve-host-types.ts)) — for
+tsc `paths` and as esbuild externals. The pack manifest entry is an
+editor/documentation hint; it never selects the implementation, and a pack-local
+`node_modules/@langflower/node-sdk` is not loaded.
+
+Consequences of an upgrade:
+
+| Situation                                            | Result                                                                                                                                                                                                                      |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product SDK newer than the pack's declared version   | Pack compiles and loads against the **new** SDK. `hostRuntimeStamp()` includes peer versions, so the compile cache is invalidated and every pack is recompiled after the upgrade.                                           |
+| New SDK is backward compatible                       | Nothing to do; the stale manifest range is cosmetic.                                                                                                                                                                        |
+| New SDK removed or changed API the pack used         | That pack fails typecheck: errors land in the pack's `COMPILATION_ERRORS.md`, the pack is skipped, and the palette keeps working with the remaining nodes. Fix the pack source (agent or author), then **Custom → Update**. |
+| Pack declares a newer SDK than the installed product | Not enforced — no version gate. Missing API surfaces as a normal compile error in the same place.                                                                                                                           |
+
+Therefore: **keep the seeded skeleton on the exact current SDK version** so new
+projects start aligned (`packages/server/skeleton/nodes/*/package.json`,
+asserted by `tests/unit/release/skeleton-sdk-pin.test.ts`). Never mass-rewrite
+pins in existing user projects — they are inert. Treat an SDK removal or rename
+as a breaking change for packs: bump the SDK minor/major and note the migration,
+because already-authored packs will fail to compile after the upgrade.
+
 ## Launcher binary (GitHub Release)
 
 The Slint supervisor is **not** part of `npm publish`. Do **not** attach
@@ -66,9 +137,9 @@ launcher zips to npm tags `vX.Y.Z`.
     [launcher-release.yml](../.github/workflows/launcher-release.yml)
     can publish the current SHA to a `launcher-v*` tag without that check.
 
-Assets: Windows x64 / ARM64 and macOS arm64 / x64 zips plus
-`SHA256SUMS.txt`. Unsigned — SmartScreen / Gatekeeper will warn. Node.js
-and `npm install -g langflower` remain required. See
+Assets: Windows x64 / ARM64 (`.exe`) and macOS arm64 / x64 (`Langflower.app`
+inside the zip) plus `SHA256SUMS.txt`. Unsigned — SmartScreen / Gatekeeper
+will warn. Node.js and `npm install -g langflower` remain required. See
 [launcher/README.md](../launcher/README.md) and
 [launcher/docs/build-and-release.md](../launcher/docs/build-and-release.md).
 
@@ -83,7 +154,8 @@ Builds the same product shape under `.local-install/langflower` and
 
 ## Notes
 
-- Do **not** publish `@langflower/node-sdk` or other workspace packages separately.
+- Do **not** publish workspace packages other than `@langflower/node-sdk`
+  (see above). Product `pre-release` / root `npm publish` is unchanged.
 - Do **not** raise Vitest `testTimeout` to green-wash slow suites.
 - After a bad publish, prefer a patch version; npm unpublish policy is limited.
 - `pack-release` hoists production registry dependencies of the inlined

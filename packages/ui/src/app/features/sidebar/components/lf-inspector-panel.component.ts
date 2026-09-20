@@ -3,7 +3,6 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	computed,
-	effect,
 	inject,
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
@@ -13,35 +12,29 @@ import type { NodeId } from '@langflower/runtime';
 import type {
 	LangflowerConfig,
 	LangflowerProviderModelsCatalog,
-	PaletteNodeDefinition,
 	ProviderModelEntry,
-	WorkflowPersistedGraph,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-config';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
+import type { WorkflowPersistedGraph } from '@langflower/shared/types/langflower-workflow';
 import {
 	clampToolPermissionForUi,
-	isHarnessToolAlwaysDenied,
-	mergeToolPermissionsOnNewWires,
 	paramsAfterRolePresetApply,
 	parseLlmRolePreset,
 	resolveEffectiveToolPermissions,
 	toolFloorDecisionForUi,
 	type ToolPermissionDecision,
 } from '@langflower/common-nodes/ai/llm-role-preset';
-import {
-	defaultChatModelEmptyTitle,
-	displayEnabledToolIds,
-	mergeProviderModelOptions,
-	resolveEnabledToolOptions,
-	resolveUiSchemaOptions,
-	resolveWiredToolOptions,
-} from '@langflower/shared/langflower';
+import { defaultChatModelEmptyTitle } from '@langflower/shared/langflower-config/parse-default-chat-model';
+import { mergeProviderModelOptions } from '@langflower/shared/langflower-config/merge-provider-model-options';
+import { resolveEnabledToolOptions } from '@langflower/shared/langflower-config/resolve-wired-tool-options';
+import { resolveUiSchemaOptions } from '@langflower/shared/langflower-config/resolve-ui-schema-options';
 import { combineLatest, map } from 'rxjs';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { LangflowerConfigProjectionService } from '../../../services/langflower-config-projection.service';
 import { ModelsCatalogProjectionService } from '../../../services/models-catalog-projection.service';
 import { SelectedNodeProjectionService } from '../../../services/selected-node-projection.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
-import { LfInlineFieldComponent } from '../../canvas/components/lf-inline-field.component';
+import { LfInlineFieldComponent } from '../../../components/lf-inline-field.component';
 import { renderNodeDescriptionMarkdown } from '../../../utils/render-markdown.js';
 import { formatPortValue } from '../../../utils/format-port-value';
 import {
@@ -242,8 +235,7 @@ const outputWireType = (config: OutputPortConfig): string => {
 
 const panelUiSchema = (
 	definition: PaletteNodeDefinition,
-): readonly UISchemaConstItem[] =>
-	definition.uiSchema as readonly UISchemaConstItem[];
+): readonly UISchemaConstItem[] => definition.uiSchema;
 
 const buildPanelRows = (
 	node: SelectedInspectorNode,
@@ -253,124 +245,115 @@ const buildPanelRows = (
 ): readonly InspectorPanelRow[] => {
 	const fetchedModels = fetchedModelsFromCatalogs(catalogs);
 
-	return panelUiSchema(node.definition)
-		.filter((item) => item.placement !== 'inline')
-		.map((item) => {
-			const options = resolveInspectorPanelOptions(
+	return panelUiSchema(node.definition).map((item) => {
+		const options = resolveInspectorPanelOptions(
+			item,
+			config,
+			node.params,
+			graph,
+			node.id,
+			fetchedModels,
+		);
+
+		if (item.type === 'tool-permission-table') {
+			const rolePreset = parseLlmRolePreset(node.params['rolePreset']);
+			const toolPermissions = resolveEffectiveToolPermissions(
+				rolePreset,
+				node.params['toolPermissions'],
+			);
+			const permissionRows = buildToolPermissionTableRows(
+				options,
+				toolPermissions,
+				config.permission,
+			);
+
+			return {
+				field: item.field,
+				label: item.label ?? item.field,
+				config: 'text' as const,
+				value: toolPermissions,
+				kind: 'tool-permission-table' as const,
+				permissionRows,
+				...(permissionRows.length === 0
+					? {
+							emptyHint:
+								options.length === 0
+									? WIRED_TOOLS_EMPTY_HINT
+									: 'All tools are denied by project floor',
+						}
+					: {}),
+			};
+		}
+
+		const storedValue = node.params[item.field] ?? item.default;
+		const value =
+			item.optionsSource === 'langflower.mcpServers'
+				? Array.isArray(storedValue)
+					? storedValue.map(String)
+					: []
+				: storedValue;
+		const providerId =
+			item.optionsSource === 'langflower.models'
+				? nonEmptyProviderId(node.params['providerId'])
+				: undefined;
+		const modelsPresentation =
+			item.optionsSource === 'langflower.models'
+				? providerId === undefined
+					? {
+							disabled: false,
+							emptyHint: SELECT_PROVIDER_HINT,
+						}
+					: resolveModelsFieldPresentation(
+							options.length,
+							modelsFieldState(providerId, catalogs),
+						)
+				: undefined;
+
+		const catalogEmptyHint =
+			options.length === 0
+				? item.optionsSource === 'node.wiredTools'
+					? WIRED_TOOLS_EMPTY_HINT
+					: item.optionsSource === 'langflower.mcpServers'
+						? MCP_SERVERS_EMPTY_HINT
+						: item.optionsSource === 'langflower.skills'
+							? SKILLS_EMPTY_HINT
+							: item.optionsSource === 'langflower.providers'
+								? PROVIDERS_EMPTY_HINT
+								: undefined
+				: undefined;
+
+		return {
+			field: item.field,
+			label: item.label ?? item.field,
+			config: toInlineConfig(
 				item,
 				config,
 				node.params,
 				graph,
 				node.id,
 				fetchedModels,
-			);
-
-			if (item.type === 'tool-permission-table') {
-				const rolePreset = parseLlmRolePreset(
-					node.params['rolePreset'],
-				);
-				const toolPermissions = resolveEffectiveToolPermissions(
-					rolePreset,
-					node.params['toolPermissions'],
-					node.params['enabledToolIds'],
-				);
-				const permissionRows = buildToolPermissionTableRows(
-					options,
-					toolPermissions,
-					config.permission,
-				);
-
-				return {
-					field: item.field,
-					label: item.label ?? item.field,
-					config: 'text' as const,
-					value: toolPermissions,
-					kind: 'tool-permission-table' as const,
-					permissionRows,
-					...(permissionRows.length === 0
-						? {
-								emptyHint:
-									options.length === 0
-										? WIRED_TOOLS_EMPTY_HINT
-										: 'All tools are denied by project floor',
-							}
-						: {}),
-				};
-			}
-
-			const wiredToolIds = options.map((option) => String(option.value));
-			const storedValue = node.params[item.field] ?? item.default;
-			const value =
-				item.optionsSource === 'node.wiredTools'
-					? displayEnabledToolIds(storedValue, wiredToolIds)
-					: item.optionsSource === 'langflower.mcpServers'
-						? Array.isArray(storedValue)
-							? storedValue.map(String)
-							: []
-						: storedValue;
-			const providerId =
-				item.optionsSource === 'langflower.models'
-					? nonEmptyProviderId(node.params['providerId'])
-					: undefined;
-			const modelsPresentation =
-				item.optionsSource === 'langflower.models'
-					? providerId === undefined
-						? {
-								disabled: false,
-								emptyHint: SELECT_PROVIDER_HINT,
-							}
-						: resolveModelsFieldPresentation(
-								options.length,
-								modelsFieldState(providerId, catalogs),
-							)
-					: undefined;
-
-			const catalogEmptyHint =
-				options.length === 0
-					? item.optionsSource === 'node.wiredTools'
-						? WIRED_TOOLS_EMPTY_HINT
-						: item.optionsSource === 'langflower.mcpServers'
-							? MCP_SERVERS_EMPTY_HINT
-							: item.optionsSource === 'langflower.skills'
-								? SKILLS_EMPTY_HINT
-								: item.optionsSource === 'langflower.providers'
-									? PROVIDERS_EMPTY_HINT
-									: undefined
-					: undefined;
-
-			return {
-				field: item.field,
-				label: item.label ?? item.field,
-				config: toInlineConfig(
-					item,
-					config,
-					node.params,
-					graph,
-					node.id,
-					fetchedModels,
-					defaultChatModelEmptyTitle(config.model),
-				),
-				value,
-				...(modelsPresentation !== undefined
-					? {
-							disabled: modelsPresentation.disabled,
-							...(modelsPresentation.fieldError !== undefined
-								? {
-										fieldError:
-											modelsPresentation.fieldError,
-									}
-								: {}),
-							...(modelsPresentation.emptyHint !== undefined
-								? {
-										emptyHint: modelsPresentation.emptyHint,
-									}
-								: {}),
-						}
-					: catalogEmptyHint !== undefined
-						? { emptyHint: catalogEmptyHint }
-						: {}),
-			};
-		});
+				defaultChatModelEmptyTitle(config.model),
+			),
+			value,
+			...(modelsPresentation !== undefined
+				? {
+						disabled: modelsPresentation.disabled,
+						...(modelsPresentation.fieldError !== undefined
+							? {
+									fieldError: modelsPresentation.fieldError,
+								}
+							: {}),
+						...(modelsPresentation.emptyHint !== undefined
+							? {
+									emptyHint: modelsPresentation.emptyHint,
+								}
+							: {}),
+					}
+				: catalogEmptyHint !== undefined
+					? { emptyHint: catalogEmptyHint }
+					: {}),
+		};
+	});
 };
 
 @Component({
@@ -385,11 +368,21 @@ const buildPanelRows = (
 		@if (selectedNode(); as node) {
 			<div class="flex flex-col gap-4">
 				<div>
-					<h2
-						class="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
-					>
-						{{ node.ui.label ?? node.definition.displayName }}
-					</h2>
+					<div class="flex items-start justify-between gap-2">
+						<h2
+							class="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+						>
+							{{ node.ui.label ?? node.definition.displayName }}
+						</h2>
+						<button
+							type="button"
+							class="rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+							aria-label="Close inspector"
+							(click)="onClose()"
+						>
+							Close
+						</button>
+					</div>
 					<p
 						class="mt-0.5 text-[10px] text-zinc-500 dark:text-zinc-400"
 					>
@@ -652,115 +645,6 @@ export class LfInspectorPanelComponent {
 			});
 	});
 
-	constructor() {
-		// Skeleton LLM nodes ship `providerId: ""`. With one configured
-		// provider, bind it so Model can resolve against the live catalog
-		// (HTML <select> otherwise paints the first label while params stay "").
-		effect(() => {
-			const node = this.selectedNode();
-			const config = this.langflowerConfig();
-
-			if (node === null || this.execution.isRunning()) {
-				return;
-			}
-
-			if (nonEmptyProviderId(node.params['providerId']) !== undefined) {
-				return;
-			}
-
-			const providerIds = Object.keys(config.provider ?? {});
-
-			if (providerIds.length !== 1) {
-				return;
-			}
-
-			const onlyProviderId = providerIds[0];
-
-			if (onlyProviderId === undefined) {
-				return;
-			}
-
-			this.bridge.raw['editor.updateNode.requested'].next({
-				nodeId: node.id as NodeId,
-				params: { ...node.params, providerId: onlyProviderId },
-			});
-		});
-
-		effect(() => {
-			const node = this.selectedNode();
-			const graph = this.activeGraph();
-			const config = this.langflowerConfig();
-
-			if (node === null || graph === null || this.execution.isRunning()) {
-				return;
-			}
-
-			const hasToolPermissionField = panelUiSchema(node.definition).some(
-				(item) => item.field === 'toolPermissions',
-			);
-
-			if (!hasToolPermissionField) {
-				return;
-			}
-
-			const rolePreset = parseLlmRolePreset(node.params['rolePreset']);
-			const current = resolveEffectiveToolPermissions(
-				rolePreset,
-				node.params['toolPermissions'],
-				node.params['enabledToolIds'],
-			);
-			const wiredToolIds = resolveWiredToolOptions(graph, node.id)
-				.map((option) => String(option.value))
-				.filter(
-					(toolId) =>
-						!isHarnessToolAlwaysDenied(config.permission, toolId),
-				);
-			const merged = mergeToolPermissionsOnNewWires(
-				current,
-				wiredToolIds,
-			);
-
-			const clamped: Record<string, ToolPermissionDecision> = {};
-
-			for (const [toolId, decision] of Object.entries(merged)) {
-				if (isHarnessToolAlwaysDenied(config.permission, toolId)) {
-					continue;
-				}
-
-				const floor = toolFloorDecisionForUi(config.permission, toolId);
-				clamped[toolId] = clampToolPermissionForUi(floor, decision);
-			}
-
-			const storedRaw = node.params['toolPermissions'];
-			const storedIsObject =
-				storedRaw !== null &&
-				typeof storedRaw === 'object' &&
-				!Array.isArray(storedRaw);
-			const hasLegacy = Array.isArray(node.params['enabledToolIds']);
-			const stored = storedIsObject
-				? (storedRaw as Record<string, unknown>)
-				: {};
-			const same =
-				!hasLegacy &&
-				storedIsObject &&
-				Object.keys(clamped).length === Object.keys(stored).length &&
-				Object.entries(clamped).every(
-					([toolId, decision]) => stored[toolId] === decision,
-				);
-
-			if (same) {
-				return;
-			}
-
-			const { enabledToolIds: _legacy, ...rest } = node.params;
-
-			this.bridge.raw['editor.updateNode.requested'].next({
-				nodeId: node.id as NodeId,
-				params: { ...rest, toolPermissions: clamped },
-			});
-		});
-	}
-
 	readonly formatValue = formatPortValue;
 
 	onToolPermissionChange(
@@ -777,21 +661,25 @@ export class LfInspectorPanelComponent {
 		const current = resolveEffectiveToolPermissions(
 			rolePreset,
 			node.params['toolPermissions'],
-			node.params['enabledToolIds'],
 		);
 		const floor = toolFloorDecisionForUi(
 			this.langflowerConfig().permission,
 			toolId,
 		);
 		const nextDecision = clampToolPermissionForUi(floor, decision);
-		const { enabledToolIds: _legacy, ...rest } = node.params;
 
 		this.bridge.raw['editor.updateNode.requested'].next({
 			nodeId: node.id as NodeId,
 			params: {
-				...rest,
+				...node.params,
 				toolPermissions: { ...current, [toolId]: nextDecision },
 			},
+		});
+	}
+
+	onClose(): void {
+		this.bridge.raw['editor.selectNode.requested'].next({
+			nodeId: null,
 		});
 	}
 

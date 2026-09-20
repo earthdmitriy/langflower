@@ -17,7 +17,7 @@ import { LangflowerConfigProjectionService } from '../../../services/langflower-
 import { ModelsCatalogProjectionService } from '../../../services/models-catalog-projection.service';
 import { SelectedNodeProjectionService } from '../../../services/selected-node-projection.service';
 import { ThemeService } from '../../../services/theme.service';
-import { EditorPaletteVisibleProjectionService } from '../../palette/services/editor-palette-visible-projection.service';
+import { EditorPaletteVisibleProjectionService } from '../../../services/editor-palette-visible-projection.service';
 import { EditorShellComponent } from '../components/editor-shell.component';
 
 @Component({

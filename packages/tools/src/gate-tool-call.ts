@@ -11,17 +11,14 @@ import {
 
 export type GateToolCallOptions = {
 	readonly toolId: string;
-	readonly detail: string;
+	readonly details: readonly string[];
 	readonly grants: Set<string>;
 	readonly permission: PermissionConfig;
 	readonly requestPermission?: (
 		request: PermissionAskRequest,
+		signal?: AbortSignal,
 	) => Promise<PermissionDecision>;
-	/**
-	 * When the tool id has no entry in `permission`, use this decision
-	 * instead of {@link resolvePermission} (MCP tools → `'ask'`).
-	 */
-	readonly whenMissingToolConfig?: PermissionDecision;
+	readonly signal?: AbortSignal;
 };
 
 export const deniedToolResult = (
@@ -32,49 +29,54 @@ export const deniedToolResult = (
 	text: formatPermissionDeniedText(toolId, detail),
 });
 
-/** Shared ask/grant/deny sequencing for project harness + MCP runtime. */
+/** Shared ask/grant/deny sequencing for project harness builtins. */
 export const gateToolCall = async (
 	options: GateToolCallOptions,
 ): Promise<'allow' | 'deny'> => {
-	const {
-		toolId,
-		detail,
-		grants,
-		permission,
-		requestPermission,
-		whenMissingToolConfig,
-	} = options;
-	const key = grantKeyForCall(toolId, detail);
+	const { toolId, grants, permission, requestPermission } = options;
+	const details = options.details.length > 0 ? options.details : ['*'];
 
-	if (grants.has(key)) {
-		return 'allow';
+	const pendingAsk: string[] = [];
+
+	for (const detail of details) {
+		if (grants.has(grantKeyForCall(toolId, detail))) {
+			continue;
+		}
+
+		const decision = resolvePermission(permission, toolId, detail);
+
+		if (decision === 'deny') {
+			return 'deny';
+		}
+
+		if (decision === 'ask') {
+			pendingAsk.push(detail);
+		}
 	}
 
-	const decision =
-		whenMissingToolConfig !== undefined && permission[toolId] === undefined
-			? whenMissingToolConfig
-			: resolvePermission(permission, toolId, detail);
-
-	if (decision === 'allow') {
+	if (pendingAsk.length === 0) {
 		return 'allow';
-	}
-
-	if (decision === 'deny') {
-		return 'deny';
 	}
 
 	if (requestPermission === undefined) {
 		return 'deny';
 	}
 
-	const reply = await requestPermission({
-		toolId,
-		detail,
-		summary: permissionAskSummary(toolId, detail),
-	});
+	const combined = details.join(' → ');
+	const reply = await requestPermission(
+		{
+			toolId,
+			detail: combined,
+			summary: permissionAskSummary(toolId, combined),
+		},
+		options.signal,
+	);
 
 	if (reply === 'allow') {
-		grants.add(key);
+		for (const detail of pendingAsk) {
+			grants.add(grantKeyForCall(toolId, detail));
+		}
+
 		return 'allow';
 	}
 

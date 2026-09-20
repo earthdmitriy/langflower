@@ -1,8 +1,8 @@
 # Glossary
 
 Short definitions of Langflower vocabulary. This file does **not** replace
-[PRODUCT](PRODUCT.md), [features](features/README.md), [ADR](ADR.md), or
-[EXECUTION_ARCHITECTURE](EXECUTION_ARCHITECTURE.md) — each entry is 1–3
+[PRODUCT](PRODUCT.md), [features](features/README.md), [ADR](architecture/ADR.md), or
+[EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md) — each entry is 1–3
 sentences plus a See link.
 
 **Status words are namespaced** (catalog vs use-case vs package vs TBD). See
@@ -35,9 +35,10 @@ same `langflower` CLI (one child per folder, several at once), and opens
 the editor in the **system browser** after the instance is listening. It
 does not embed the canvas and does not use WebView. The window is
 **Slint** (accepted) after **Tauri** (WebView, large exe) and **FLTK**
-(moderate size, ugly UI) were tried.
+(moderate size, ugly UI) were tried. macOS Release zips contain
+`Langflower.app` (not a naked binary).
 
-See [ADR-038](ADR.md#adr-038--launcher-is-a-cli-supervisor), the
+See [ADR-038](architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor), the
 [user manual](public/launcher.md), and the
 [launcher author guide](../launcher/docs/README.md).
 
@@ -173,7 +174,7 @@ See [feed-panel](features/feed-panel.md), [hitl-chat](features/hitl-chat.md).
 #### HITL
 
 Human-in-the-loop: the graph waits for your review or input on a human gate
-(Review Gate, Review, HITL-marked inputs). Separate from
+(Review Gate, Chat Loop, Review, HITL-marked inputs). Separate from
 [Permission ask](#permission-ask) and from [Steer](#steer), even when they
 share the composer area.
 
@@ -306,7 +307,7 @@ There is no idle-settle completion heuristic: a run ends on `stopsRun`, empty
 graph, or interrupt. Interactive HITL / feedback graphs stay alive between
 turns because of that explicit lifecycle.
 
-See [EXECUTION_ARCHITECTURE](EXECUTION_ARCHITECTURE.md),
+See [EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md),
 [REACTIVE_NODES](REACTIVE_NODES.md).
 
 #### Reactive node
@@ -340,22 +341,22 @@ Product meaning: [Checkpoint](#checkpoint).
 
 Mechanics: author boundary via `common-checkpoint` / `createCheckpoint`
 metadata; continue-from picker. See
-[EXECUTION_ARCHITECTURE](EXECUTION_ARCHITECTURE.md).
+[EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md).
 
 #### Cluster
 
 Product meaning: [Cluster](#cluster).
 
 Mechanics: weakly connected component; scopes `start` / `startNode` / cold
-HITL. See [EXECUTION_ARCHITECTURE](EXECUTION_ARCHITECTURE.md).
+HITL. See [EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md).
 
 #### Custom node pack
 
 Product meaning: [Custom node pack](#custom-node-pack).
 
-Mechanics: pack layout [ADR-030](ADR.md#adr-030--custom-node-pack-layout--npm-model);
+Mechanics: pack layout [ADR-030](architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model);
 discover/esbuild via `@langflower/compiler`; load split vs built-ins
-[ADR-020](ADR.md#adr-020--built-in-vs-custom-node-loading).
+[ADR-020](architecture/ADR.md#adr-020--built-in-vs-custom-node-loading).
 
 #### Feed / execution feed
 
@@ -363,7 +364,7 @@ Product meaning: [Feed](#feed).
 
 Mechanics: `executionFeed.snapshot` plus live `runner.*` projected into the
 sidebar. See [feed-panel](features/feed-panel.md),
-[EXECUTION_ARCHITECTURE](EXECUTION_ARCHITECTURE.md).
+[EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md).
 
 #### Harness
 
@@ -377,9 +378,9 @@ package implements project I/O used as **tools** inside the product harness
 
 Product meaning: [HITL](#hitl).
 
-Mechanics: HITL-marked ports / Review Gate / Review / `config.hitl`;
+Mechanics: HITL-marked ports / Review Gate / Chat Loop / Review / `config.hitl`;
 `runner.hitl` path. Distinct from permission asks and `steerControl`. See
-[EXECUTION_ARCHITECTURE](EXECUTION_ARCHITECTURE.md).
+[EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md).
 
 #### MCP (in-run)
 
@@ -415,8 +416,8 @@ skill text.
 
 Product meaning: [Run lifecycle](#run-lifecycle).
 
-Mechanics: [ADR-031](ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer),
-[ADR-032](ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port);
+Mechanics: [ADR-031](architecture/ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer),
+[ADR-032](architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port);
 lifecycle intents on `runner.*`; Pause/Steer use the hidden `steerControl`
 HITL-class port.
 
@@ -438,7 +439,7 @@ Mechanics: catalog over WS; body loaded at run seed; frontmatter in
 
 Product meaning: [Sub-Agent](#sub-agent).
 
-Mechanics: [ADR-021](ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter)
+Mechanics: [ADR-021](architecture/ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter)
 — canvas Sub-Agent node + one `subagent-registration` `ToolHandle`;
 `invoke` runs the in-node loop. Deeper swarm / nesting still open in
 product docs.
@@ -464,7 +465,7 @@ Product meaning: [Workflow](#workflow).
 
 Mechanics: live graph owned by RuntimeEditor; identity and persist path =
 filename stem under `.langflower/workflows/`
-([ADR-029](ADR.md#adr-029--workflow-identity-is-the-filename-stem)).
+([ADR-029](architecture/ADR.md#adr-029--workflow-identity-is-the-filename-stem)).
 
 ### Runtime & protocol
 
@@ -475,22 +476,22 @@ and snapshots between UI and session/runtime. Not a second execution engine.
 Same protocol idea spans `@langflower/websocket-bridge`, server `bridge/`, and
 the UI bridge service.
 
-See [EXECUTION_ARCHITECTURE](EXECUTION_ARCHITECTURE.md),
-[ADR-012](ADR.md#adr-012--internal-websocket-bus-rest-for-bulk-escape-hatches).
+See [EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md),
+[ADR-012](architecture/ADR.md#adr-012--internal-websocket-bus-rest-for-bulk-escape-hatches).
 
 #### Demand / seed
 
 **Demand** activates lazy port subscriptions so the graph runs. **Seed**
 pushes start values onto ports at start/resume.
 
-See [EXECUTION_ARCHITECTURE](EXECUTION_ARCHITECTURE.md).
+See [EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md).
 
 #### ExecutionContext
 
 Per-run injected context: tools, permissions, LLM binds, caps. Host I/O is
 composed on the server, not owned as domain inside the thin server package.
 
-See [EXECUTION_ARCHITECTURE](EXECUTION_ARCHITECTURE.md).
+See [EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md).
 
 #### Intent / fact / snapshot
 
@@ -498,13 +499,13 @@ Clients emit `*.requested` **intents**. The server broadcasts authoritative
 **facts** and full-slice **snapshots**. Intents are not yet authoritative
 state.
 
-See [ADR-012](ADR.md#adr-012--internal-websocket-bus-rest-for-bulk-escape-hatches),
-[REACTIVITY](REACTIVITY.md).
+See [ADR-012](architecture/ADR.md#adr-012--internal-websocket-bus-rest-for-bulk-escape-hatches),
+[REACTIVITY](architecture/REACTIVITY.md).
 
 #### Internal WebSocket bus
 
 Primary live protocol (`/ws`). REST is for bulk escape hatches only
-([ADR-012](ADR.md#adr-012--internal-websocket-bus-rest-for-bulk-escape-hatches)).
+([ADR-012](architecture/ADR.md#adr-012--internal-websocket-bus-rest-for-bulk-escape-hatches)).
 
 #### Langflower MCP
 
@@ -512,35 +513,35 @@ Dev stdio control plane over the internal WS bus (Cursor agents). Not the
 same as in-run [MCP](#mcp).
 
 See [LANGFLOWER_MCP](LANGFLOWER_MCP.md),
-[ADR-024](ADR.md#adr-024--dev-mcp-control-plane-over-internal-ws-bus).
+[ADR-024](architecture/ADR.md#adr-024--dev-mcp-control-plane-over-internal-ws-bus).
 
 #### Runner / RuntimeRunner
 
 Owns demand wiring, start / resume / interrupt, status, and telemetry; WS
 namespace `runner.*`.
 
-See [EXECUTION_ARCHITECTURE](EXECUTION_ARCHITECTURE.md).
+See [EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md).
 
 #### RuntimeEditor
 
 In-memory executable graph (nodes, edges, ports, clusters). Locked while a
 run is active.
 
-See [EXECUTION_ARCHITECTURE](EXECUTION_ARCHITECTURE.md).
+See [EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md).
 
 #### RuntimeFacade
 
 Session-owned pair: `editor` (RuntimeEditor) + `runner` (RuntimeRunner). The
 entry point to the [reactive runtime](#reactive-runtime) for one session.
 
-See [EXECUTION_ARCHITECTURE](EXECUTION_ARCHITECTURE.md).
+See [EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md).
 
 #### Session
 
 `LangflowerSession`: process-side owner of the active workflow document and
 one RuntimeFacade.
 
-See [NAVIGATION](NAVIGATION.md) (session state owner).
+See [NAVIGATION](architecture/NAVIGATION.md) (session state owner).
 
 ### Node authoring
 
@@ -570,7 +571,7 @@ receive `Float32Array[]`. Not agent inventory — do not use `ToolHandle` for fl
 vectors.
 
 See [CONFIG § Embeddings](CONFIG.md#embeddings), `@langflower/node-sdk`,
-[ADR-033](ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base).
+[ADR-033](architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base).
 
 #### Default embedding model
 
@@ -596,7 +597,7 @@ See [NODES](NODES.md), [inspector](features/inspector.md).
 
 ### Packages
 
-One-line roles (DAG lives in [NAVIGATION](NAVIGATION.md)). Package
+One-line roles (DAG lives in [NAVIGATION](architecture/NAVIGATION.md)). Package
 `@langflower/tools` ≠ product term [Harness](#harness).
 
 | Package                        | Role                                                          |
@@ -644,8 +645,8 @@ Scenario readiness: Authorable → Mock-testable → **Implementable** (real LLM
 
 ### Coding principles (short)
 
-Pointers only — full rules in [PRINCIPLES](PRINCIPLES.md) and
-[REACTIVITY](REACTIVITY.md).
+Pointers only — full rules in [PRINCIPLES](architecture/PRINCIPLES.md) and
+[REACTIVITY](architecture/REACTIVITY.md).
 
 #### Edge effect
 
@@ -656,21 +657,21 @@ Named I/O after a pure fold (WS, FS, canvas mutation).
 Feature-sliced structure: build boundary, domain capability, colocated
 cluster, non-feature platform.
 
-See [PRINCIPLES](PRINCIPLES.md#feature-sliced-structure).
+See [PRINCIPLES](architecture/PRINCIPLES.md#feature-sliced-structure).
 
 #### Result
 
 Expected failure as a value (`{ ok: true | false }`), not a throw for normal
 control flow.
 
-See [PRINCIPLES](PRINCIPLES.md#functional-error-handling).
+See [PRINCIPLES](architecture/PRINCIPLES.md#functional-error-handling).
 
 #### Scan fold
 
 Pure `(state, action) → state` reducer; one concern per fold. Do not hide
 reduction in `subscribe` / `tap` / Angular `effect`.
 
-See [REACTIVITY](REACTIVITY.md).
+See [REACTIVITY](architecture/REACTIVITY.md).
 
 #### Tagged action
 
@@ -681,4 +682,4 @@ Closed union that normalizes bridge/local events for a fold.
 `@langflower/server` stays transport, composition, and secrets. Domain I/O
 belongs in `@langflower/tools`; node implementations in `common-nodes`.
 
-See [PRINCIPLES](PRINCIPLES.md#thin-server--do-not-grow-domain-here).
+See [PRINCIPLES](architecture/PRINCIPLES.md#thin-server--do-not-grow-domain-here).

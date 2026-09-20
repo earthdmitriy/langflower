@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { graphHasCycle } from '../../runtime-helpers.js';
 import { createAgentTestNode } from '../nodes/agent-node.js';
 import { createConstantTestNode } from '../nodes/constant-node.js';
 import {
@@ -60,8 +59,6 @@ function createSimpleScenario(): {
 describe('simple workflow (events$)', () => {
 	it('emits ask-user prompt and never done on feedback loop', async () => {
 		const { runtime } = createSimpleScenario();
-
-		expect(graphHasCycle(runtime.editor.getEdges())).toBe(true);
 
 		const runId = runtime.runner.start();
 

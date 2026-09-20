@@ -73,4 +73,37 @@ describe('ExecutionFeedService ask_user', () => {
 			['after', 2],
 		]);
 	});
+
+	it('uses joined prompts when the headline is empty', async () => {
+		const harness = createExecutionFeedHarness();
+		harness.seedCatalog({ agent: 'agent' }, [agent]);
+		const ask = {
+			runId: 'run-1',
+			askId: 'ask-2',
+			nodeId: 'agent',
+			question: '',
+			questions: [
+				{
+					id: 'q1',
+					prompt: 'Stack?',
+					allowMultiple: true,
+					options: [{ id: 'o1', label: 'React' }],
+				},
+				{
+					id: 'q2',
+					prompt: 'Ship it?',
+					allowMultiple: false,
+					options: [],
+				},
+			],
+		};
+
+		harness.raw.askUserAsk$.next(ask);
+
+		const items = await readItems(
+			harness.latestNodes()[0]!,
+			`askUser:${ask.askId}`,
+		);
+		expect(items.map((item) => item.value)).toEqual(['Stack?\nShip it?']);
+	});
 });

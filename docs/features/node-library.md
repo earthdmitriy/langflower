@@ -15,8 +15,8 @@ See [STATUS.md](../STATUS.md) for the current list.
 
 Much of this file is the **target** product catalog (ports, security model,
 rollout). Rows marked **done** historically overstated reality — treat
-**`catalog.ts` + STATUS** as truth. Many folders under `packages/common-nodes`
-have `NODE.md` stubs without `node.ts`.
+**`catalog.ts` + STATUS** as truth. A `NODE.md` next to `node.ts` describes
+that live node; do not treat a NODE.md footer as “implementation removed.”
 
 | Status word | Meaning here                                        |
 | ----------- | --------------------------------------------------- |
@@ -70,14 +70,14 @@ that does **not** make coding-agent Implementable.
   Template, one-shot Split (`parts[]`), Replace, … planned/stub.
 - **Primitives** — String, String (multiline), Number, Boolean **shipped**;
   JSON helpers planned.
-- **Output** — Preview + Tool inspect + Finish **shipped**.
+- **Output** — Preview + Hint + Tool inspect + Finish **shipped**.
 - **Harness (target)** — Read/List/Glob/Grep/Web Fetch/Write/Edit/Bash as
   palette nodes and/or agent tools — **not shipped** (epic 01).
 - **Embeddings** — Embed text, Embed similarity, Embed provider (`EmbedHandle`
   wire for custom packs) — epic 42 **landed**.
 - **Memory** — `common-memory-tools` → `.langflower/memory/` (markdown tools
   plus `update_plan` / `read_plan` and a `plan` work-log output; not vector KB —
-  [ADR-033](../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
+  [ADR-033](../architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
 - **Knowledge / Crawl** — vector KB pipeline **removed** (ADR-033); crawl nodes
   (epic 12) in catalog.
 
@@ -108,14 +108,14 @@ permission rules a user configures per project (see
   [packages/node-sdk/AGENTS.md](../../packages/node-sdk/AGENTS.md).
 - Harness sandbox and permission resolution: **planned** under
   `packages/server/src/harness/` (directory not present yet — epic 01);
-  summarized in [docs/ARCHITECTURE.md](../ARCHITECTURE.md) when landed.
+  summarized in [docs/architecture/ARCHITECTURE.md](../architecture/ARCHITECTURE.md) when landed.
 - Custom user-authored nodes (distinct from this built-in catalog): see
   [getting-started.md](getting-started.md) and `spec.md` §4.
 
 The rest of this document is the full built-in node catalog — per-node port
 reference, security model, rollout status, and design history — kept in one
 place instead of a separate spec file. Related background docs:
-[docs/EXECUTION_ARCHITECTURE.md](../EXECUTION_ARCHITECTURE.md) (runtime
+[docs/architecture/EXECUTION_ARCHITECTURE.md](../architecture/EXECUTION_ARCHITECTURE.md) (runtime
 execution), [docs/REACTIVE_NODES.md](../REACTIVE_NODES.md) (reactive SDK and
 port telemetry), [docs/CONFIG.md](../CONFIG.md) (LLM + embedding providers, harness
 permissions), [docs/TESTING.md](../TESTING.md) (integration harness, WS
@@ -128,13 +128,13 @@ client), [docs/STATUS.md](../STATUS.md) (implementation status).
 Langflower provides UX similar to [OpenCode](https://opencode.ai/docs/tools/), but
 with **explicit visual chaining** instead of a hidden tool loop.
 
-| OpenCode (CLI)                       | Langflower (visual)                                                                  |
-| ------------------------------------ | ------------------------------------------------------------------------------------ |
-| Agent modes (plan, build, review)    | Workflow phases wired as nodes + gates                                               |
-| Built-in tools (read, grep, glob, …) | **Harness** common nodes                                                             |
-| Permission config                    | `langflower.jsonc` `permission` + agent presets                                      |
-| Human questions                      | **Review Gate** + default agent builtin `ask_user` (question in feed; composer Send) |
-| Feedback in chat                     | **Feedback edges** → LLM rerun                                                       |
+| OpenCode (CLI)                       | Langflower (visual)                                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Agent modes (plan, build, review)    | Workflow phases wired as nodes + gates                                                                       |
+| Built-in tools (read, grep, glob, …) | **Harness** common nodes                                                                                     |
+| Permission config                    | `langflower.jsonc` `permission` + agent presets                                                              |
+| Human questions                      | **Review Gate** + default agent builtin `ask_user` (question in feed; composer Send + optional option chips) |
+| Feedback in chat                     | **Feedback edges** → LLM rerun                                                                               |
 
 ### Hard harness
 
@@ -172,6 +172,7 @@ subset is **production**; draft/test types stay out of the palette (see
 | Tool collection           | `common-tool-collection`                           | reactive | **done** |
 | Tool invoke               | `common-tool-invoke`                               | reactive | **done** |
 | HITL Review Gate          | `common-hitl-review-gate`                          | reactive | **done** |
+| Chat Loop                 | `common-chat-loop`                                 | reactive | **done** |
 | Chat Input                | `common-chat-input`                                | reactive | **done** |
 | Router                    | `common-router`                                    | reactive | **done** |
 | Merge                     | `common-merge`                                     | reactive | **done** |
@@ -186,6 +187,7 @@ subset is **production**; draft/test types stay out of the palette (see
 | String / Number / Boolean | `common-string`, `common-number`, `common-boolean` | reactive | **done** |
 | String (multiline)        | `common-string-multiline`                          | reactive | **done** |
 | Preview                   | `common-preview`                                   | reactive | **done** |
+| Hint                      | `common-hint`                                      | reactive | **done** |
 | Tool inspect              | `common-tool-inspect`                              | reactive | **done** |
 | Finish                    | `common-finish`                                    | reactive | **done** |
 
@@ -244,7 +246,7 @@ not the production catalog.
 4. **Typed ports** — primitives use `string` / `number` / `boolean` wire
    types; runtime/editor port metadata and canvas connection checks enforce
    compatibility.
-5. **Immutable definitions** — `readonly` ports and params per [PRINCIPLES.md](../PRINCIPLES.md).
+5. **Immutable definitions** — `readonly` ports and params per [PRINCIPLES.md](../architecture/PRINCIPLES.md).
 6. **Security lessons** — Flowise removed read/write file tools after path-traversal CVEs; Langflower validates every path (see [§10](#10-security--permissions)).
 
 ---
@@ -279,7 +281,7 @@ dynamic wire typing stay explicit.
 
 For `StatefulObservable` semantics, pure folds, subscription boundaries, and
 the `withLatestFrom` restriction, reference
-[REACTIVITY.md](../REACTIVITY.md) rather than duplicating those rules here.
+[REACTIVITY.md](../architecture/REACTIVITY.md) rather than duplicating those rules here.
 Full examples:
 [HOW_TO_WRITE_REACTIVE_NODES.md](../HOW_TO_WRITE_REACTIVE_NODES.md).
 
@@ -414,16 +416,37 @@ Do not add new references to the retired types.
 Review gate with **separate HITL inputs** for approve vs request-changes (not
 actions inside one config). Node handler routes inputs to outputs.
 
-| Direction | Port             | Type    | HITL control                                                       |
-| --------- | ---------------- | ------- | ------------------------------------------------------------------ |
-| In        | `result`         | string  | wire-only upstream content                                         |
-| In        | `approve`        | boolean | hidden; `kind: 'button'`, `payload: true`; `promptFrom: 'preview'` |
-| In        | `requestChanges` | string  | hidden; `kind: 'textarea'`; `promptFrom: 'preview'`                |
-| Out       | `preview`        | string  | passthrough of `result` (keeps upstream pulled; HITL context)      |
-| Out       | `response`       | string  | emitted when `approve === true` (reviewed content)                 |
-| Out       | `feedback`       | string  | emitted from `requestChanges` textarea                             |
+| Direction | Port             | Type    | HITL control                                       |
+| --------- | ---------------- | ------- | -------------------------------------------------- |
+| In        | `result`         | string  | wire-only upstream content                         |
+| In        | `approve`        | boolean | hidden; `kind: 'button'`, `payload: true`          |
+| In        | `requestChanges` | string  | hidden; `kind: 'textarea'`                         |
+| Out       | `response`       | string  | emitted when `approve === true` (reviewed content) |
+| Out       | `feedback`       | string  | emitted from `requestChanges` textarea             |
 
+`result.pipe` on both outs keeps the upstream edge live. No `preview` out.
 No panel params. Integration:
+[`execute-hitl-inputs.ws.test.ts`](../../tests/integration/ws/execute-hitl-inputs.ws.test.ts).
+
+---
+
+### 5.3c Chat Loop — `common-chat-loop`
+
+**Category:** HITL · **Mode:** reactive · **Status:** done
+
+Infinite agent chat turn. One HITL textarea, one `feedback` out — no Approve.
+
+Typical wiring: Chat Input.`message` → LLM.`userPrompt`; LLM.`response` →
+Chat Loop.`result`; Chat Loop.`feedback` → LLM.`feedback`. The run ends on
+**Stop**.
+
+| Direction | Port       | Type   | HITL control                                      |
+| --------- | ---------- | ------ | ------------------------------------------------- |
+| In        | `result`   | string | wire-only agent turn; opens the composer          |
+| In        | `message`  | string | hidden; `kind: 'textarea'`; `Send`; `role: reply` |
+| Out       | `feedback` | string | human reply                                       |
+
+No panel params. Integration: `hitl-chat-loop` in
 [`execute-hitl-inputs.ws.test.ts`](../../tests/integration/ws/execute-hitl-inputs.ws.test.ts).
 
 ---
@@ -467,7 +490,7 @@ objects).
 | Out       | `text` | string | formatted display text; `passthroughFrom` for connection typing |
 
 **UI:** read-only preview box on the `text` input port row shows the last
-value received during execution (`runner.input-received`). Work log mirrors
+value received during execution (`runner.port`, direction `'in'`). Work log mirrors
 completed preview output as an assistant message.
 
 **Use cases:**
@@ -546,7 +569,7 @@ Statuses below match [STATUS.md](../STATUS.md) / `catalog.ts` (2026-07-19).
 | ---------- | ------------------- | --- | -------- | ------------------------------------------------------------------------------------ |
 | Router     | `common-router`     | —   | **done** | Reactive channel routing                                                             |
 | Merge      | `common-merge`      | P1  | **done** | Fan-in / combine                                                                     |
-| Delay      | `common-delay`      | —   | **done** | Async delay                                                                          |
+| Delay      | `common-delay`      | —   | **done** | Canvas pacing delay (not the agent `sleep` builtin)                                  |
 | Checkpoint | `common-checkpoint` | —   | **done** | Explicit durable resume boundary                                                     |
 | Repeat     | `common-repeat`     | —   | **done** | Emit `value` N times (first ASAP, then on `trigger`), `index` (0-based), then `done` |
 | IF         | `common-if`         | P0  | **done** | Boolean condition → `true` / `false` outputs                                         |
@@ -582,23 +605,24 @@ Statuses below match [STATUS.md](../STATUS.md) / `catalog.ts` (2026-07-19).
 - HITL. **Not shipped:** separate agent palette types, Chat Input, role tool
   profiles (epic 04).
 
-| Node                  | Type                      | P   | Status      | Description                                                                                                                                          |
-| --------------------- | ------------------------- | --- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Fake LLM              | `common-fake-llm`         | —   | **done**    | Demo stream + scripted internal tool-loop                                                                                                            |
-| OpenAI-compatible LLM | `common-openai-llm`       | —   | **done**    | Real chat; role presets; internal tool-loop (epic 01)                                                                                                |
-| MCP stdio             | `common-mcp-stdio`        | —   | **done**    | Node-owned stdio MCP → `tools` (`ToolHandle[]`) ([node-local-mcp](../use-cases/node-local-mcp.md))                                                   |
-| MCP http              | `common-mcp-http`         | —   | **done**    | Node-owned HTTP MCP → `tools` (`ToolHandle[]`)                                                                                                       |
-| Review Gate           | `common-hitl-review-gate` | —   | **done**    | HITL approve / request-changes                                                                                                                       |
-| Review (LLM tools)    | `common-review`           | —   | **done**    | `accept` / `feedback` → ports — epic 03                                                                                                              |
-| Critique (LLM tools)  | `common-critique`         | —   | **done**    | attack framing `assignment`/`packet` — path-choice                                                                                                   |
-| Plan/Coder/Explorer   | _(presets on LLM)_        | —   | partial     | Prompts/skills today; tool profiles epic 04                                                                                                          |
-| `common-agent-*`      | —                         | —   | planned     | **Superseded** — do not implement as separate types                                                                                                  |
-| Chat Input            | `common-chat-input`       | P0  | **done**    | epic 13; see [hitl-chat.md](hitl-chat.md)                                                                                                            |
-| Sub-Agent             | `common-sub-agent`        | P2  | **partial** | OUT `subagent-registration` + in-node loop shipped; L1+ open — [ADR-021](../ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter) |
-| Memory Tools          | `common-memory-tools`     | P2  | **done**    | Pack → `tools` (`get_memory_tree`…`update_plan`/`read_plan`) + `plan` feed result; harness invoke not used                                           |
-| Tool collection       | `common-tool-collection`  | P2  | **done**    | Optional hub: combine many `tools` → one `ToolHandle[]` (last-wins) — [ADR-035](../ADR.md#adr-035--uniform-inventory-wire--optional-tool-collection) |
-| Tool invoke           | `common-tool-invoke`      | P2  | **done**    | Graph-side `handle.invoke` by `toolId` + JSON `args` (no LLM)                                                                                        |
-| Memory                | `common-memory`           | P2  | **done**    | Secondary graph I/O via `ctx.memory`                                                                                                                 |
+| Node                  | Type                      | P   | Status      | Description                                                                                                                                                       |
+| --------------------- | ------------------------- | --- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fake LLM              | `common-fake-llm`         | —   | **done**    | Demo stream + scripted internal tool-loop                                                                                                                         |
+| OpenAI-compatible LLM | `common-openai-llm`       | —   | **done**    | Real chat; role presets; internal tool-loop (epic 01)                                                                                                             |
+| MCP stdio             | `common-mcp-stdio`        | —   | **done**    | Node-owned stdio MCP → `tools` (`ToolHandle[]`) ([node-local-mcp](../use-cases/node-local-mcp.md))                                                                |
+| MCP http              | `common-mcp-http`         | —   | **done**    | Node-owned HTTP MCP → `tools` (`ToolHandle[]`)                                                                                                                    |
+| Review Gate           | `common-hitl-review-gate` | —   | **done**    | HITL approve / request-changes                                                                                                                                    |
+| Chat Loop             | `common-chat-loop`        | —   | **done**    | HITL reply only → `feedback`; run ends on Stop                                                                                                                    |
+| Review (LLM tools)    | `common-review`           | —   | **done**    | `accept` / `feedback` → ports — epic 03                                                                                                                           |
+| Critique (LLM tools)  | `common-critique`         | —   | **done**    | attack framing `assignment`/`packet` — path-choice                                                                                                                |
+| Plan/Coder/Explorer   | _(presets on LLM)_        | —   | partial     | Prompts/skills today; tool profiles epic 04                                                                                                                       |
+| `common-agent-*`      | —                         | —   | planned     | **Superseded** — do not implement as separate types                                                                                                               |
+| Chat Input            | `common-chat-input`       | P0  | **done**    | epic 13; see [hitl-chat.md](hitl-chat.md)                                                                                                                         |
+| Sub-Agent             | `common-sub-agent`        | P2  | **partial** | OUT `subagent-registration` + in-node loop shipped; L1+ open — [ADR-021](../architecture/ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter) |
+| Memory Tools          | `common-memory-tools`     | P2  | **done**    | Pack → `tools` (`get_memory_tree`…`update_plan`/`read_plan`) + `plan` feed result; harness invoke not used                                                        |
+| Tool collection       | `common-tool-collection`  | P2  | **done**    | Optional hub: combine many `tools` → one `ToolHandle[]` (last-wins) — [ADR-035](../architecture/ADR.md#adr-035--uniform-inventory-wire--optional-tool-collection) |
+| Tool invoke           | `common-tool-invoke`      | P2  | **done**    | Graph-side `handle.invoke` by `toolId` + JSON `args` (no LLM)                                                                                                     |
+| Memory                | `common-memory`           | P2  | **done**    | Secondary graph I/O via `ctx.memory`                                                                                                                              |
 
 ### 7.4 Harness (filesystem, shell, web)
 
@@ -638,6 +662,7 @@ Server module: `packages/server/src/harness/` — **not present** (epic 01).
 | Node         | Type                  | P   | Status   | Description                                                                             |
 | ------------ | --------------------- | --- | -------- | --------------------------------------------------------------------------------------- |
 | Preview      | `common-preview`      | —   | **done** | Display wired value on canvas + work log                                                |
+| Hint         | `common-hint`         | —   | **done** | Canvas markdown annotation — hidden `note`, no wires, no feed                           |
 | Tool inspect | `common-tool-inspect` | —   | **done** | Dump `tool-handle` as `toolId` + example args + `inputSchema`; optional `toolId` filter |
 | Finish       | `common-finish`       | —   | **done** | `stopsRun` sink                                                                         |
 
@@ -655,12 +680,12 @@ OpenAI-compatible embeddings via server-bound credentials. Settings default:
 **UC1:** `String → Embed text → Preview` on **`preview`**. **UC2:** one Embed
 provider, fan-out **`embed`** to pack ingest/search. Ingest:
 `embedTexts(..., { role: 'document' })`; search: `{ role: 'query' }`. Do **not**
-wire agent `tools` for float batches — use `EmbedHandle` ([ADR-033](../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
+wire agent `tools` for float batches — use `EmbedHandle` ([ADR-033](../architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
 
 ### 7.7b Removed — vector knowledge base
 
 Former `.langflower/kb/` pipeline and `common-kb-*` palette nodes are **removed**
-([ADR-033](../ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base),
+([ADR-033](../architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base),
 [STATUS](../STATUS.md)). Agent memory uses `common-memory-tools` under
 `.langflower/memory/`. Contradiction-curation use-case docs describe historical
 graph shapes only.
@@ -700,7 +725,9 @@ Demo: `demo-project/.langflower/workflows/obsidian-kb.json`.
 ### 7.8 Web crawl
 
 Storage root: `<project>/.langflower/crawl/{runId}/` — **done** (epic 12).
-Server injects `ctx.harness.webFetch` (SSRF) + `ctx.crawl` at run seed time.
+Nodes call `@langflower/tools` `createWebFetch` / `createCrawlContext` /
+`runBfsCrawl`; host allowlist via `getRunHostServices` (not `ctx.harness` /
+`ctx.crawl` on public `ExecutionContext`).
 
 | Node          | Type                   | P   | Status   | Description                                      |
 | ------------- | ---------------------- | --- | -------- | ------------------------------------------------ |
@@ -934,12 +961,12 @@ loop + role tool allowlist + permission posture overlay.
 
 #### Built-in role profiles
 
-| Preset       | Materialized `toolPermissions` (visible; no hidden overlay)   |
-| ------------ | ------------------------------------------------------------- |
-| **Plan**     | read/glob/grep allow; write/create ask; edit/delete/bash deny |
-| **Coder**    | all allow; bash/delete ask                                    |
-| **Explorer** | read allow; write/create ask; other builtins deny             |
-| **Custom**   | all builtins allow                                            |
+| Preset       | Materialized `toolPermissions` (visible; no hidden overlay)                       |
+| ------------ | --------------------------------------------------------------------------------- |
+| **Plan**     | read/glob/grep/sleep/ask_user allow; write/create ask; edit/delete/move/bash deny |
+| **Coder**    | all allow; bash/delete/move ask                                                   |
+| **Explorer** | read/sleep/ask_user allow; write/create ask; other builtins deny                  |
+| **Custom**   | all builtins allow                                                                |
 
 Selecting a preset in the Inspector **materializes** `toolPermissions`; further
 edits stick until the next preset apply. Project `permission` is the **floor**.
@@ -972,7 +999,7 @@ a composer with **Start** (not Run) for that node's cluster; submitting it
 emits `message`, which is what actually starts the run. Composer layout:
 [feed-panel.md](feed-panel.md) § Composer layout. Typically wired straight
 into an agent's `userPrompt`, optionally alongside a feedback edge from a
-Review or Review Gate node for multi-turn conversations (see
+Review, Review Gate, or Chat Loop node for multi-turn conversations (see
 [hitl-chat.md](hitl-chat.md)).
 
 ---
@@ -991,11 +1018,11 @@ sections of this file — treat `catalog.ts` + this table as the palette SoT.
 | **Primitives** | String, String (multiline), Number, Boolean, Set Fields, JSON Parse/Stringify |
 | **Flow**       | Router only (primary)                                                         |
 | **Text**       | Concat, Split (paced), Read/Write/Append File; Template, Split, Replace…      |
-| **Output**     | Preview, Tool inspect, Run Output                                             |
-| **HITL**       | Review Gate, Chat Input                                                       |
+| **Output**     | Preview, Hint, Tool inspect, Run Output                                       |
+| **HITL**       | Review Gate, Chat Loop, Chat Input                                            |
 | **Advanced**   | `paletteSecondary: true` — Logic (all), Flow except Router, Crawl graph I/O   |
 
-**Dual-surface / secondary (normative):** [ADR-023](../ADR.md#adr-023--palette-palettesecondary--collapsed-advanced).
+**Dual-surface / secondary (normative):** [ADR-023](../architecture/ADR.md#adr-023--palette-palettesecondary--collapsed-advanced).
 Primary **Tools** holds MCP wire nodes, tool registration packs
 (`memory-tools`, `crawl-tools`), optional **Tool collection**, and
 **Tool invoke**. Entire
@@ -1096,6 +1123,7 @@ Each harness node publishes a stable tool id:
 | Write File   | `write_file` | `write_file`          |
 | Edit File    | `edit_file`  | `edit_file`           |
 | Bash         | `bash`       | `bash`                |
+| sleep        | `sleep`      | `sleep` (default)     |
 | ask_user     | `ask_user`   | `ask_user` (default)  |
 
 Wiring: edge from harness output `toolRegistration` (`wireType: **tool-registration**`,
@@ -1117,7 +1145,7 @@ Pack/custom tools attach `handler` at authoring time (import from
 `@langflower/tools/domain-tool-configs` or define locally). The internal tool
 loop calls `registration.handler(args, toolCtx)`. Builtins omit `handler` and
 use `harness.invoke`. There is **no** closed harness `toolId` → handler map for
-domain tools ([ADR-019](../ADR.md#adr-019--tool-handlers-on-registration-not-harness-toolid-registry)).
+domain tools ([ADR-019](../architecture/ADR.md#adr-019--tool-handlers-on-registration-not-harness-toolid-registry)).
 
 Standalone harness nodes still run in batch order when not wired to an agent.
 
@@ -1284,7 +1312,7 @@ HITL projections without an API key:
 
 ```text
 workflow → RuntimeFacade → common-fake-llm
-         → runner.output-emitted → execution feed / canvas chrome
+         → runner.port ('out') → execution feed / canvas chrome
 ```
 
 Implementation and coverage:
@@ -1324,14 +1352,14 @@ exists. Runtime/editor and canvas validation must agree on any extension.
 Historical **Stage 1 / 2 / 3** rollout text was deleted — it was outdated after
 epics 00–16 landed.
 
-| Need                          | Where                                                                                   |
-| ----------------------------- | --------------------------------------------------------------------------------------- |
-| Product purpose / north star  | [PRODUCT.md](../PRODUCT.md)                                                             |
-| End-user readiness            | [use-cases/](../use-cases/README.md)                                                    |
-| Completed capability plans    | [DONE/EPICS/README.md](../DONE/EPICS/README.md)                                         |
-| Built-in vs custom node load  | [ADR-020](../ADR.md#adr-020--built-in-vs-custom-node-loading)                           |
-| Project-root harness I/O      | [ADR-014](../ADR.md#adr-014--project-root-harness-io)                                   |
-| Tool handlers on registration | [ADR-019](../ADR.md#adr-019--tool-handlers-on-registration-not-harness-toolid-registry) |
+| Need                          | Where                                                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Product purpose / north star  | [PRODUCT.md](../PRODUCT.md)                                                                          |
+| End-user readiness            | [use-cases/](../use-cases/README.md)                                                                 |
+| Completed capability plans    | [DONE/EPICS/README.md](../DONE/EPICS/README.md)                                                      |
+| Built-in vs custom node load  | [ADR-020](../architecture/ADR.md#adr-020--built-in-vs-custom-node-loading)                           |
+| Project-root harness I/O      | [ADR-014](../architecture/ADR.md#adr-014--project-root-harness-io)                                   |
+| Tool handlers on registration | [ADR-019](../architecture/ADR.md#adr-019--tool-handlers-on-registration-not-harness-toolid-registry) |
 
 ---
 
@@ -1413,6 +1441,8 @@ When memory tools are wired, call update_plan with that markdown so the operator
 sees the current plan in the work log. There is no separate Plan mode.
 
 When requirements are ambiguous, use ask_user before finalizing the plan.
+You may pass ordered questions with options; the operator can pick chips or type.
+To wait without bash, call sleep with seconds from 1 to 300. Do not busy-loop. Stop aborts the wait.
 ```
 
 **Default `skills`:**
@@ -1441,6 +1471,10 @@ edits. Prefer precise file edits over large rewrites.
 
 When tests are available, run them to verify your work. Summarize what you changed
 in your final response.
+
+If you are not sure, call ask_user instead of guessing.
+You may pass ordered questions with options; the operator can pick chips or type.
+To wait without bash, call sleep with seconds from 1 to 300. Do not busy-loop. Stop aborts the wait.
 ```
 
 **Default `skills`:**
@@ -1468,6 +1502,10 @@ Research the topic using web_fetch. Synthesize findings into clear Markdown note
 Do not modify application source code—only \*.md research notes.
 
 Cite URLs. Separate facts from inference.
+
+If you are not sure, call ask_user instead of guessing.
+You may pass ordered questions with options; the operator can pick chips or type.
+To wait without bash, call sleep with seconds from 1 to 300. Do not busy-loop. Stop aborts the wait.
 ```
 
 **Default `skills`:**

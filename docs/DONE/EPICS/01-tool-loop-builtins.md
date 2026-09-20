@@ -60,7 +60,7 @@ No `postProcess`.
 1. **Separate package `@langflower/tools`** (`packages/tools/`) owns builtin
    tool implementations, schemas, path-fence helpers, and read-class
    `postProcess`. Server injects a bound harness into
-   `ExecutionContext.harness` ([ADR-014](../../ADR.md#adr-014--project-root-harness-io)) —
+   `ExecutionContext.harness` ([ADR-014](../../architecture/ADR.md#adr-014--project-root-harness-io)) —
    do **not** grow a permanent tool body under `packages/server/src/harness/`
    (thin adapter / wiring only is OK).
 2. Keep **create / write / edit / delete** as distinct tools (do not merge).

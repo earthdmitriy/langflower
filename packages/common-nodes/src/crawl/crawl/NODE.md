@@ -7,9 +7,10 @@
 
 ## Summary
 
-BFS crawl with depth / page / same-host limits. Uses `ctx.harness.webFetch`
-(SSRF) and `ctx.crawl.savePage`. Budget control = hard caps, not QPS rate
-limiting. No browser automation / CAPTCHA.
+BFS crawl with depth / page / same-host limits. Uses
+`createWebFetch` (SSRF) and optionally `createCrawlContext.savePage`.
+Algorithm: `@langflower/tools/run-bfs-crawl`. Budget control = hard caps,
+not QPS rate limiting. No browser automation / CAPTCHA.
 
 ## Inputs
 

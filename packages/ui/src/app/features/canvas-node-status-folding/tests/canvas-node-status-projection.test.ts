@@ -4,7 +4,7 @@ import type {
 	RunId,
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import { describe, expect, it } from 'vitest';
 import type { FeedCatalog } from '../../../services/execution-catalog';
 import {

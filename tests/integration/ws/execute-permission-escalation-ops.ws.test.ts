@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { RuntimeRunnerEvent } from '@langflower/runtime';
-import type { RunnerPermissionAskPayload } from '@langflower/shared/langflower.js';
+import type { RunnerPermissionAskPayload } from '@langflower/shared/types/langflower-config.js';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { firstValueFrom, take } from 'rxjs';
 import {
@@ -45,17 +45,17 @@ describe('execute permission-escalation-ops (WS bridge)', () => {
 		);
 		const write = scenario.graph.nodes.find((node) => node.id === 'write');
 		const bash = scenario.graph.nodes.find((node) => node.id === 'bash');
-		const writeTools = write?.params.enabledToolIds as
-			readonly string[] | undefined;
+		const writeTools = write?.params.toolPermissions as
+			Readonly<Record<string, string>> | undefined;
 
 		expect(scenario.workflowId).toBe(SCENARIO_ID);
 		expect(explore?.params.rolePreset).toBe('plan');
 		expect(write?.params.rolePreset).toBe('coder');
 		expect(bash?.params.rolePreset).toBe('coder');
 		expect(writeTools).toBeDefined();
-		expect(writeTools).not.toContain('bash');
-		expect(writeTools).toContain('edit');
-		expect(bash?.params.enabledToolIds).toBeUndefined();
+		expect(writeTools?.bash).toBe('deny');
+		expect(writeTools?.edit).toBe('allow');
+		expect(bash?.params.toolPermissions).toBeUndefined();
 		expect(
 			scenario.graph.nodes.some(
 				(node) => node.type === 'common-fake-llm',
@@ -81,7 +81,8 @@ describe('execute permission-escalation-ops (WS bridge)', () => {
 		).toBe(true);
 	});
 
-	describe.skipIf(!scenarioReadyById(SCENARIO_ID))('runtime', () => {
+	describe('runtime', () => {
+		scenarioReadyById(SCENARIO_ID);
 		let projectDir: string;
 		let urls: TestServerHandle;
 		let client: LangflowerWsClient;

@@ -11,14 +11,15 @@ list.
 **[Epic 01](DONE/EPICS/01-tool-loop-builtins.md)** adds an **internal** tool-call
 loop: LLM nodes invoke allowlisted builtins through `ExecutionContext.harness`
 backed by `@langflower/tools` (path fence, read/glob/grep/edit/write/create/delete/
-bash/`ask_user`, read-class `postProcess`). Observability is feed + `toolLog` — not per-call
+move/bash/`ask_user`, read-class `postProcess`). Observability is feed + `toolLog` — not per-call
 canvas edges.
 
 **[Epic 02](DONE/EPICS/02-runtime-permissions.md)** adds the **runtime** permission
 ladder: OpenCode-style `permission.*` in `langflower.jsonc`, gated inside
 `harness.invoke`, with feed `permission.ask` + composer Allow/Deny (not canvas
-tool-call edges). Author-time `enabledToolIds` remains inventory binding only —
-not a security boundary.
+tool-call edges). Node `toolPermissions` binds inventory (non-deny tools) —
+not a security boundary. Runtime ask/deny is project `permission` plus the
+node map, gated inside `harness.invoke`.
 
 **[Epic 03](DONE/EPICS/03-review-node.md)** adds a dedicated **`common-review`**
 node: forced control tools `accept` / `feedback` **port-route** to output ports
@@ -134,7 +135,7 @@ and `session.state.snapshot.langflowerConfig` after provider redaction. There ar
 
 ## Agent session semantics (text-only)
 
-See [ADR-016](ADR.md#adr-016--llm-session-init-vs-feedback-defaultvalue-vs-turn-startwith).
+See [ADR-016](architecture/ADR.md#adr-016--llm-session-init-vs-feedback-defaultvalue-vs-turn-startwith).
 
 **All LLM nodes MUST use the shared session machine.**
 `createLlmSessionCycle$` is the thin bind composer;
@@ -231,9 +232,11 @@ error lane. Path-choice forced-tool protocol failure after max iterations
 remains fail-closed. Partial reasoning/draft remains feed telemetry but is not
 committed to history.
 
-Tool waits are sequential and bounded by `toolTimeoutMs` (`0` disables).
-Sub-Agent `invoke` is unlimited by default (`subagentTimeoutMs` `0`); parent
-`toolTimeoutMs` does not apply to `*_subagent` tools. Stuck specialists use
+Tool waits are sequential. `toolTimeoutMs` (`0` disables) is a hung-watchdog
+for **bash** and non-harness inventory (MCP / crawl / custom). It does **not**
+apply to `permission.ask`, `ask_user`, `sleep`, filesystem builtins, or
+`*_subagent` tools. Sub-Agent `invoke` is unlimited by default
+(`subagentTimeoutMs` `0`); stuck specialists use
 **that node's** LLM recovery (stream idle / autokick), not a required tool
 timeout. Tool results are capped before entering model history.
 Feed diagnostics are sanitized: raw HTML provider bodies, request secrets, and
@@ -316,21 +319,20 @@ the project. Floor-deny tools are hidden from the Inspector.
 
 ### Role preset merge rules
 
-| Concern                 | Rule                                                                                                                 |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Apply preset**        | Materializes `toolPermissions` (visible). Removes legacy `enabledToolIds`. Does not rewrite `skillId` / system text. |
-| **Override stickiness** | Edits to `toolPermissions` stick until the next preset apply.                                                        |
-| **Runtime**             | `mergeProjectAndNodePermissions(project, node)` — **no** hidden role posture overlay.                                |
-| **Legacy**              | `enabledToolIds` still migrates when `toolPermissions` is unset.                                                     |
+| Concern                 | Rule                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| **Apply preset**        | Materializes `toolPermissions` (visible). Does not rewrite `skillId` / system text.   |
+| **Override stickiness** | Edits to `toolPermissions` stick until the next preset apply.                         |
+| **Runtime**             | `mergeProjectAndNodePermissions(project, node)` — **no** hidden role posture overlay. |
 
 Recommended profiles (materialized `toolPermissions`):
 
-| Preset       | toolPermissions                                                     |
-| ------------ | ------------------------------------------------------------------- |
-| **Custom**   | all builtins `allow`                                                |
-| **Coder**    | all `allow`; `bash`/`delete` → `ask`                                |
-| **Plan**     | read/glob/grep `allow`; write/create `ask`; edit/delete/bash `deny` |
-| **Explorer** | read `allow`; write/create `ask`; other builtins `deny`             |
+| Preset       | toolPermissions                                                          |
+| ------------ | ------------------------------------------------------------------------ |
+| **Custom**   | all builtins `allow`                                                     |
+| **Coder**    | all `allow`; `bash`/`delete`/`move` → `ask`                              |
+| **Plan**     | read/glob/grep `allow`; write/create `ask`; edit/delete/move/bash `deny` |
+| **Explorer** | read `allow`; write/create `ask`; other builtins `deny`                  |
 
 ```text
 Project floor (jsonc)          Node toolPermissions (Inspector)
@@ -362,13 +364,13 @@ See [use-cases/node-local-mcp.md](use-cases/node-local-mcp.md) and
 [CONFIG.md](CONFIG.md) § MCP.
 
 MCP is an optional extension — **never** a substitute for built-in
-`read`…`bash`.
+`read`…`move`/`bash`.
 
 ## Port events: real facts only, fail visibly
 
 `StatefulObservable` carries **inactive / loading / value / error** as part of
 the dataflow — not only successful values. Runtime maps stream errors to
-`runner.output-emitted` / `runner.input-received` with `state: 'error'`. Authors
+`runner.port` frames carrying an `error` `ResponseDto`. Authors
 must use that channel; do **not** invent placeholder values or swallow failures
 with `EMPTY`.
 
@@ -402,7 +404,7 @@ Node type: `common-openai-llm` (`packages/common-nodes/src/ai/nodes/openai-llm/`
 | HTTP client | Official `openai` npm package — owned by `@langflower/server`                                                            |
 | Credentials | `ExecutionContext.createChatCompletionStream` — server injects factory; node never resolves secrets                      |
 | Streaming   | `delta.content` → `draftResponse`; `delta.reasoning` / `reasoning_content` → `reasoning`; assembled content → `response` |
-| Tools       | Internal tool loop via `ctx.harness` (epic 01); inventory + invoke                                                       |
+| Tools       | Internal tool loop via `ToolHandle.invoke` (epic 01 / ADR-019); inventory + invoke                                       |
 | Cancel      | `AbortSignal` on stream when run interrupts                                                                              |
 
 ## Review node (epic 03 / phase 7)

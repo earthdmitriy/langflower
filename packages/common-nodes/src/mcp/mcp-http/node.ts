@@ -11,7 +11,6 @@ import {
 	resolveMcpHttpHeaders,
 } from '@langflower/tools/mcp-http-client';
 import { distinctUntilChanged, filter, Observable, switchMap } from 'rxjs';
-import { getRunHostServices } from '../../ai/features/run-host-services.js';
 
 type HttpParams = {
 	readonly nodeId: string;
@@ -29,6 +28,7 @@ const paramsKey = (params: HttpParams): string =>
 		url: params.url,
 		command: params.command,
 		headers: params.headers,
+		secrets: params.secrets,
 	});
 
 /**
@@ -47,6 +47,7 @@ Connect to an MCP server over HTTP and give its tools to an agent.
 Paste a URL for a server that is already running, or set a launch command to start one first.
 Optional headers JSON may use {lf_secrets:ID} or {env:VAR}.
 `.trim(),
+	requires: ['secrets'] as const,
 	uiSchema: [] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
 		const url = makeInput<string>('url', {
@@ -78,7 +79,7 @@ Optional headers JSON may use {lf_secrets:ID} or {env:VAR}.
 					url: String(serverUrl ?? '').trim(),
 					command: String(cli ?? '').trim(),
 					headers: rawHeaders,
-					secrets: getRunHostServices(ec)?.secrets ?? {},
+					secrets: ec.secrets,
 				}) satisfies HttpParams,
 		).pipeValue(
 			distinctUntilChanged(

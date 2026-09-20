@@ -1,4 +1,4 @@
-import type { LangflowerModelsCatalogSnapshotPayload } from '@langflower/shared/langflower.js';
+import type { LangflowerModelsCatalogSnapshotPayload } from '@langflower/shared/types/langflower-config.js';
 import type { ServerContext } from '../server-context.js';
 import { listProviderModels } from './bind-llm-context.js';
 import { bridgeEmit, clientEmit } from './bridge-outbound.js';

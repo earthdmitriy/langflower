@@ -16,6 +16,7 @@ describe('PendingAskUserAsks', () => {
 
 		expect(asks.list()).toHaveLength(1);
 		expect(emitted).toEqual(['Name?']);
+		expect(asks.list()[0]?.questions).toBeUndefined();
 		expect(
 			asks.reply({
 				runId: 'run-1',
@@ -41,5 +42,43 @@ describe('PendingAskUserAsks', () => {
 		asks.failAll('run-1');
 		await expect(pending).rejects.toThrow(/aborted/i);
 		expect(asks.list()).toHaveLength(0);
+	});
+
+	it('copies questions onto the ask payload', async () => {
+		const asks = new PendingAskUserAsks();
+		const pending = asks.requestAskUser(
+			'run-1',
+			'node-1',
+			{
+				question: 'Need a stack',
+				questions: [
+					{
+						id: 'q1',
+						prompt: 'Stack?',
+						allowMultiple: true,
+						options: [
+							{ id: 'o1', label: 'React' },
+							{ id: 'o2', label: 'Vue' },
+						],
+					},
+				],
+			},
+			() => undefined,
+		);
+		const listed = asks.list()[0];
+		expect(listed?.question).toBe('Need a stack');
+		expect(listed?.questions).toEqual([
+			{
+				id: 'q1',
+				prompt: 'Stack?',
+				allowMultiple: true,
+				options: [
+					{ id: 'o1', label: 'React' },
+					{ id: 'o2', label: 'Vue' },
+				],
+			},
+		]);
+		asks.failAll('run-1');
+		await expect(pending).rejects.toThrow(/aborted/i);
 	});
 });

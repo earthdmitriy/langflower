@@ -41,6 +41,81 @@ describe('defineReactiveNode', () => {
 		});
 	});
 
+	it('carries presentation metadata into the definition', () => {
+		const declared = defineReactiveNode({
+			type: 'test-presentation',
+			displayName: 'Presentation',
+			defaultCanvasSize: { width: 320, height: 280 },
+			feedVisitBoundary: true,
+			uiSchema: [] as const,
+			bind(_ctx, { configureOutput }) {
+				return {
+					inputs: [],
+					outputs: [
+						configureOutput(
+							'out',
+							statefulObservable({ loader: () => of('ok') }),
+							{ wireType: 'string' },
+						),
+					],
+				};
+			},
+		});
+
+		expect(declared.defaultCanvasSize).toEqual({
+			width: 320,
+			height: 280,
+		});
+		expect(declared.feedVisitBoundary).toBe(true);
+		expect(declared.getInstance().feedVisitBoundary).toBe(true);
+
+		const plain = defineReactiveNode({
+			type: 'test-presentation-plain',
+			displayName: 'Plain',
+			uiSchema: [] as const,
+			bind(_ctx, { configureOutput }) {
+				return {
+					inputs: [],
+					outputs: [
+						configureOutput(
+							'out',
+							statefulObservable({ loader: () => of('ok') }),
+							{ wireType: 'string' },
+						),
+					],
+				};
+			},
+		});
+
+		expect('defaultCanvasSize' in plain).toBe(false);
+		expect('feedVisitBoundary' in plain).toBe(false);
+	});
+
+	it('copies requires onto the definition (default empty)', () => {
+		const declared = defineReactiveNode({
+			type: 'test-requires-chat',
+			displayName: 'Requires chat',
+			requires: ['chat'] as const,
+			uiSchema: [] as const,
+			bind() {
+				return { inputs: [], outputs: [] };
+			},
+		});
+
+		expect(declared.requires).toEqual(['chat']);
+
+		const plain = defineReactiveNode({
+			type: 'test-requires-none',
+			displayName: 'Plain',
+			uiSchema: [] as const,
+			bind() {
+				return { inputs: [], outputs: [] };
+			},
+		});
+
+		expect(plain.requires).toEqual([]);
+	});
+
 	it('infers params from uiSchema as const', () => {
 		const node = defineReactiveNode({
 			type: 'test-params',
@@ -243,8 +318,26 @@ describe('resolveMultilineInlineLayout', () => {
 		).toEqual({ flex: 0, minHeightPx: DEFAULT_MULTILINE_MIN_HEIGHT_PX });
 	});
 
+	it('maps shorthand markdown to the same default grow layout', () => {
+		expect(resolveMultilineInlineLayout('markdown')).toEqual({
+			flex: 1,
+			minHeightPx: DEFAULT_MULTILINE_MIN_HEIGHT_PX,
+		});
+	});
+
+	it('honors explicit markdown flex and minHeightPx', () => {
+		expect(
+			resolveMultilineInlineLayout({
+				type: 'markdown',
+				flex: 2,
+				minHeightPx: 160,
+			}),
+		).toEqual({ flex: 2, minHeightPx: 160 });
+	});
+
 	it('returns null for non-multiline kinds', () => {
 		expect(resolveMultilineInlineLayout('text')).toBeNull();
 		expect(resolveMultilineInlineLayout('boolean')).toBeNull();
+		expect(resolveMultilineInlineLayout('preview-markdown')).toBeNull();
 	});
 });

@@ -18,7 +18,7 @@ Prefill a message on the node or type in the composer. Stop then Start reuses it
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {
 		const message = makeInput<string>('message', {
-			name: 'Message',
+			name: 'message',
 			wireType: 'string',
 			hidden: true,
 			inline: 'text-multiline',

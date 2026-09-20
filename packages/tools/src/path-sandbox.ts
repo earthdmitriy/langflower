@@ -88,23 +88,11 @@ export const toHarnessDisplayPath = (
  * Resolve `userPath` under the project root, or under an allowlisted extra
  * root when the path escapes the project (absolute vault paths, …).
  */
-const isPathFenceOptions = (
-	value: readonly string[] | PathFenceOptions,
-): value is PathFenceOptions => !Array.isArray(value);
-
-const asPathFenceOptions = (
-	denyOrOptions: readonly string[] | PathFenceOptions,
-): PathFenceOptions =>
-	isPathFenceOptions(denyOrOptions)
-		? denyOrOptions
-		: { denyPaths: denyOrOptions };
-
 export const resolveProjectPath = (
 	projectRoot: string,
 	userPath: string,
-	denyOrOptions: readonly string[] | PathFenceOptions = {},
+	options: PathFenceOptions = {},
 ): string => {
-	const options = asPathFenceOptions(denyOrOptions);
 	const denyPaths = options.denyPaths ?? DEFAULT_DENY;
 	const allowedRoots = options.allowedRoots ?? [];
 	const trimmed = userPath.trim();

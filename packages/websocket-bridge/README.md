@@ -13,8 +13,9 @@ checks only validate JSON envelope routing.
 
 ## Used by
 
-Not wired into Langflower server/UI yet. Intended replacement for ad-hoc WS
-protocol code in `@langflower/server` and `@langflower/ui`.
+Langflower server attach, UI `LangflowerBridgeService`, MCP
+`createBridgeSession`, and WS integration tests. Product port/path live on
+`langflowerWsConfig.transport` (`@langflower/shared`), not in this kernel.
 
 ## Install (workspace)
 
@@ -92,8 +93,9 @@ import { createClient } from '@langflower/websocket-bridge/create-client';
 import { pingWsConfig } from './ping-ws-config.js';
 
 const client = createClient(pingWsConfig);
-// Browser: uses window.location + transport.path
-// Node/tests: pass explicit url
+// Browser: window.location.host + config.transport.path (path required)
+// Node: options.url, or both config.transport.port and path — no kernel
+// default to 4010 / /ws (product defaults live on langflowerWsConfig)
 
 client['pong.received'].subscribe((payload) => {
 	console.log(payload.serverTime);

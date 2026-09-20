@@ -3,22 +3,22 @@
 Practical authoring guide for `@langflower/node-sdk`.
 Prefer **`defineNode`** for sync/Promise nodes; use **`defineReactiveNode`**
 when you need RxJS streams. Project packs:
-[ADR-030](ADR.md#adr-030--custom-node-pack-layout--npm-model),
+[ADR-030](architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model),
 [seed README](../packages/server/skeleton/nodes/my-nodes/README.md).
 Multi-file packs that use `from './x.ts'` must set
 `allowImportingTsExtensions` + `noEmit` in pack `tsconfig.json` (see
 [hello-embed](../packages/server/skeleton/nodes/hello-embed/tsconfig.json));
 otherwise the pack does not compile.
 
-| Related doc                                                   | Role                                                                              |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| [NODES.md](NODES.md)                                          | Folder layout, categories, checklist                                              |
-| [REACTIVE_NODES.md](REACTIVE_NODES.md)                        | Runtime / UI activity model                                                       |
-| [EXECUTION_ARCHITECTURE.md](EXECUTION_ARCHITECTURE.md)        | How runs wire and complete                                                        |
-| [REACTIVITY.md](REACTIVITY.md)                                | RxJS fold rules (no stray `.subscribe`; **no `withLatestFrom` without human OK**) |
-| [packages/node-sdk/AGENTS.md](../packages/node-sdk/AGENTS.md) | SDK package boundaries + **factory folders**                                      |
-| SDK samples                                                   | `packages/node-sdk/.../test/samples/`                                             |
-| Production examples                                           | `packages/common-nodes/src/**/node.ts`                                            |
+| Related doc                                                                      | Role                                                                              |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [NODES.md](NODES.md)                                                             | Folder layout, categories, checklist                                              |
+| [REACTIVE_NODES.md](REACTIVE_NODES.md)                                           | Runtime / UI activity model                                                       |
+| [architecture/EXECUTION_ARCHITECTURE.md](architecture/EXECUTION_ARCHITECTURE.md) | How runs wire and complete                                                        |
+| [architecture/REACTIVITY.md](architecture/REACTIVITY.md)                         | RxJS fold rules (no stray `.subscribe`; **no `withLatestFrom` without human OK**) |
+| [packages/node-sdk/AGENTS.md](../packages/node-sdk/AGENTS.md)                    | SDK package boundaries + **factory folders**                                      |
+| SDK samples                                                                      | `packages/node-sdk/.../test/samples/`                                             |
+| Production examples                                                              | `packages/common-nodes/src/**/node.ts`                                            |
 
 ### SDK factory folders
 
@@ -192,7 +192,7 @@ Reusable value-lane logic → **custom RxJS operator** (`OperatorFunction`) pass
 into `pipeValue`, not a helper that accepts a `StatefulObservable` and calls
 `pipeValue` inside. Example: `demuxByKind` in `llm-session-shell.ts`. Operators
 may stay file-local; that is not a forbidden `utils/` extract. See
-[REACTIVITY.md](REACTIVITY.md) § Custom RxJS operators vs stream wrappers.
+[architecture/REACTIVITY.md](architecture/REACTIVITY.md) § Custom RxJS operators vs stream wrappers.
 
 `pipeValue` is variadic like `Observable.pipe` — pass operators as arguments
 (`session$.pipeValue(filter(…), map(…))`). Prefer that over
@@ -223,13 +223,12 @@ How an error gets into `error$`:
 
 Hidden node **ctx** is typed
 `StatefulObservable<ExecutionContext, CtxError, PortMeta>`. System MCP connect
-fail (S6): server builds a context seed whose `value` is
-`throwError(() => CtxError)`, then peels Observables and `connect`s them onto
-`contextSymbol` **before** `runner.start` — because runner value seeds use
-`of(value)` and would put an Observable into **value$**, not `error$`. Plain
-`ExecutionContext`seeds stay`{ value: ec }`as today. Do **not** add`RuntimeSeedPortValue.error`or sniff`CtxError` out of the value lane.
+fail (S6): seed `throwError(() => CtxError)` on `contextSymbol`. Runner
+`applySeeds` connects Observable values as the stream (plain
+`ExecutionContext` seeds stay `{ value: ec }`). Do **not** add
+`RuntimeSeedPortValue.error` or sniff `CtxError` out of the value lane.
 
-See also [REACTIVITY.md](REACTIVITY.md) § StatefulObservable error-lane.
+See also [architecture/REACTIVITY.md](architecture/REACTIVITY.md) § StatefulObservable error-lane.
 
 Reactive work is subscription-driven. Every dependency that must execute must
 remain reachable from a returned output. When a control output samples another
@@ -241,7 +240,7 @@ const preview = configureOutput('preview', result, {
 });
 ```
 
-Follow [REACTIVITY.md](REACTIVITY.md) for fold, subscription, and
+Follow [architecture/REACTIVITY.md](architecture/REACTIVITY.md) for fold, subscription, and
 `withLatestFrom` rules. Do not reproduce those rules locally.
 
 ---
@@ -373,8 +372,9 @@ makeInput<string[]>('value', {
 ### Inline editors
 
 Set `inline` on the input for on-node controls (`'text'`, `'text-multiline'`,
-`'boolean'`, `'number'`, select-family, preview kinds). See `InputParams` in
-`io-helpers.ts`.
+`'markdown'`, `'boolean'`, `'number'`, select-family, preview kinds). See
+`InputParams` in `io-helpers.ts`. `'markdown'` is an editable author-time
+field (rendered markdown when idle); `preview-*` kinds are read-only live.
 
 For numeric steppers with a domain floor/step, prefer the object form — not bare
 `'number'` / `'text'`:
@@ -548,6 +548,10 @@ Omit `feed`, or stamp `feed: { role: 'none' }`, to hide a port. Catalog
 (the `value` passthrough stays `'none'`). A `finish` **port** on other
 nodes that must not appear in the work log stays `'none'` or unmarked.
 
+`makeInput` accepts the same `feed` object. The runner stamps the **target**
+input's meta onto every `'in'` frame, so a marked input (`feed: { role:
+'result' }`) appears in the work log. Unmarked inputs stay hidden.
+
 **Waiting work (pending on outputs).** Delay, files, HTTP, MCP, and HITL Review
 Gate `response` / `feedback` must emit `{ pending: true }` on **outputs** when
 work starts. Use `.pipe(withLoading()).pipeValue(...)` — not `pipeValue` +
@@ -599,11 +603,19 @@ uiSchema: [
 
 ## 7. Special node flags
 
-| Flag                          | Effect                                               |
-| ----------------------------- | ---------------------------------------------------- |
-| `stopsRun: true`              | First output emission ends the run (`common-finish`) |
-| `emitOncePerActivation: true` | One shot per activation                              |
-| `bypassPorts`                 | Router-style channel materialization                 |
+| Flag                          | Effect                                                    |
+| ----------------------------- | --------------------------------------------------------- |
+| `stopsRun: true`              | First output emission ends the run (`common-finish`)      |
+| `emitOncePerActivation: true` | One shot per activation                                   |
+| `bypassPorts`                 | Router-style channel materialization                      |
+| `defaultCanvasSize`           | Locks the canvas box until the operator resizes (`{w,h}`) |
+| `feedVisitBoundary: true`     | First work-log frame closes the caller visit (own card)   |
+
+`defaultCanvasSize` is presentation metadata the UI reads off the resolved
+definition. `feedVisitBoundary` is forwarded onto the live instance and
+stamped onto every `runner.port` frame (`closesPreviousVisit`), so a custom
+pack node gets its own work-log card without the UI knowing its type. See
+[EXTENSION_POINT](architecture/EXTENSION_POINT.md#palette-grouping-and-ui-presentation).
 
 ---
 
@@ -648,23 +660,23 @@ Integration coverage: `tests/integration/` (build packages first).
 
 ## 10. Anti-patterns
 
-| Avoid                                           | Prefer                                                                                    |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Raw `combineLatest` + `startWith` on init ports | `combineInputs` + `defaultValue`                                                          |
-| `feedback` inside init `combineInputs`          | Init combine + `feedback.pipe(startWith(''), concatMap…)`                                 |
-| Dual `switchMap`/`take` per related out         | One session of `{ kind: '…' as const }` events; outs `pipeValue(filter, map)`             |
-| `shareReplay` on a `StatefulObservable` session | Unnecessary — SO is already hot; use one tagged session + demux outs                      |
-| `pipeValue(pipe(filter, map))` for demux        | `pipeValue(filter, map)`                                                                  |
-| Named event-union type for local demux          | Inline `{ kind: 'value' as const, … }` / `{ kind: 'done' as const }`                      |
-| Pacing `trigger` inside session `combineInputs` | Session key in `combineInputs`; pace with `trigger.value$` inside `switchMap`             |
-| Bare `inline: 'number'` when min/step matter    | `inline: { type: 'number', min, step }`                                                   |
-| `await readFile` / skill reads in custom nodes  | Private run-host / tools `create*` inside specialized nodes only                          |
-| Bare `makeInput('x', …)` / `unknown` ports      | `makeInput<T>` + domain types                                                             |
-| `.subscribe` inside `bind` for business logic   | `pipeValue` / `combineInputs` folds                                                       |
-| Hidden sampled input dependency                 | Explicit passthrough output so the input stays pulled; see [REACTIVITY.md](REACTIVITY.md) |
-| Sync read of `params` at define time            | `ctx` inside `combineInputs`                                                              |
-| Glue adapters for port mismatches               | Fix types / wire contracts at the source                                                  |
-| Barrel `index.ts` next to the node              | Single `node.ts` export                                                                   |
+| Avoid                                           | Prefer                                                                                                              |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Raw `combineLatest` + `startWith` on init ports | `combineInputs` + `defaultValue`                                                                                    |
+| `feedback` inside init `combineInputs`          | Init combine + `feedback.pipe(startWith(''), concatMap…)`                                                           |
+| Dual `switchMap`/`take` per related out         | One session of `{ kind: '…' as const }` events; outs `pipeValue(filter, map)`                                       |
+| `shareReplay` on a `StatefulObservable` session | Unnecessary — SO is already hot; use one tagged session + demux outs                                                |
+| `pipeValue(pipe(filter, map))` for demux        | `pipeValue(filter, map)`                                                                                            |
+| Named event-union type for local demux          | Inline `{ kind: 'value' as const, … }` / `{ kind: 'done' as const }`                                                |
+| Pacing `trigger` inside session `combineInputs` | Session key in `combineInputs`; pace with `trigger.value$` inside `switchMap`                                       |
+| Bare `inline: 'number'` when min/step matter    | `inline: { type: 'number', min, step }`                                                                             |
+| `await readFile` / skill reads in custom nodes  | Private run-host / tools `create*` inside specialized nodes only                                                    |
+| Bare `makeInput('x', …)` / `unknown` ports      | `makeInput<T>` + domain types                                                                                       |
+| `.subscribe` inside `bind` for business logic   | `pipeValue` / `combineInputs` folds                                                                                 |
+| Hidden sampled input dependency                 | Explicit passthrough output so the input stays pulled; see [architecture/REACTIVITY.md](architecture/REACTIVITY.md) |
+| Sync read of `params` at define time            | `ctx` inside `combineInputs`                                                                                        |
+| Glue adapters for port mismatches               | Fix types / wire contracts at the source                                                                            |
+| Barrel `index.ts` next to the node              | Single `node.ts` export                                                                                             |
 
 ---
 

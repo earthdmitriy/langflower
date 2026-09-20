@@ -26,13 +26,13 @@
 			"types": "./dist/types/config.d.ts",
 			"import": "./dist/types/config.js"
 		},
-		"./langflower": {
-			"types": "./dist/langflower.d.ts",
-			"import": "./dist/langflower.js"
+		"./langflower-bus-config": {
+			"types": "./dist/langflower-bus-config.d.ts",
+			"import": "./dist/langflower-bus-config.js"
 		},
-		"./langflower.js": {
-			"types": "./dist/langflower.d.ts",
-			"import": "./dist/langflower.js"
+		"./langflower-bus-config.js": {
+			"types": "./dist/langflower-bus-config.d.ts",
+			"import": "./dist/langflower-bus-config.js"
 		},
 		"./langflower-ws-waits": {
 			"types": "./dist/langflower-ws-waits.d.ts",
@@ -42,25 +42,37 @@
 			"types": "./dist/langflower-ws-waits.d.ts",
 			"import": "./dist/langflower-ws-waits.js"
 		},
-		"./types/langflower-server": {
-			"types": "./dist/types/langflower-server.d.ts",
-			"import": "./dist/types/langflower-server.js"
+		"./langflower-config/*": {
+			"types": "./dist/langflower-config/*.d.ts",
+			"import": "./dist/langflower-config/*.js"
 		},
-		"./types/langflower-workflow": {
-			"types": "./dist/types/langflower-workflow.d.ts",
-			"import": "./dist/types/langflower-workflow.js"
+		"./langflower-config/*.js": {
+			"types": "./dist/langflower-config/*.d.ts",
+			"import": "./dist/langflower-config/*.js"
 		},
-		"./types/langflower-bootstrap": {
-			"types": "./dist/types/langflower-bootstrap.d.ts",
-			"import": "./dist/types/langflower-bootstrap.js"
+		"./checkpoint/*": {
+			"types": "./dist/checkpoint/*.d.ts",
+			"import": "./dist/checkpoint/*.js"
 		},
-		"./types/langflower-config": {
-			"types": "./dist/types/langflower-config.d.ts",
-			"import": "./dist/types/langflower-config.js"
+		"./checkpoint/*.js": {
+			"types": "./dist/checkpoint/*.d.ts",
+			"import": "./dist/checkpoint/*.js"
 		},
-		"./types/langflower-palette": {
-			"types": "./dist/types/langflower-palette.d.ts",
-			"import": "./dist/types/langflower-palette.js"
+		"./execution/*": {
+			"types": "./dist/execution/*.d.ts",
+			"import": "./dist/execution/*.js"
+		},
+		"./execution/*.js": {
+			"types": "./dist/execution/*.d.ts",
+			"import": "./dist/execution/*.js"
+		},
+		"./types/*": {
+			"types": "./dist/types/*.d.ts",
+			"import": "./dist/types/*.js"
+		},
+		"./types/*.js": {
+			"types": "./dist/types/*.d.ts",
+			"import": "./dist/types/*.js"
 		}
 	},
 	"scripts": {

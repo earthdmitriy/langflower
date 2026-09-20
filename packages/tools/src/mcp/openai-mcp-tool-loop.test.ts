@@ -2,7 +2,7 @@
  * Fixture MCP tool invoked from openai-llm via wired ToolHandle[].
  */
 import { getCommonReactiveNode } from '@langflower/common-nodes';
-import { attachRunHostServices } from '@langflower/common-nodes/ai/run-host-services';
+import { attachRunHostServices } from '@langflower/common-nodes/run-host-services';
 import { contextSymbol } from '@langflower/node-sdk';
 import type { CreateChatCompletionStreamArgs } from '@langflower/common-nodes/ai/openai/create-chat-completion-stream';
 import { RuntimeFacade, type NodeId } from '@langflower/runtime';
@@ -170,6 +170,13 @@ describe('openai-llm + fixture MCP transport', () => {
 								maxIterations: 8,
 							},
 							uiSchema: openAiLlmNode!.uiSchema,
+							chat: factory,
+							toolHandles: [],
+							skillMarkdown: '',
+							agentsMarkdown: '',
+							requestPermission: async () => 'deny' as const,
+							getLiveWiredTools: () => [] as const,
+							authorize: async () => 'allow' as const,
 						},
 						{
 							createChatCompletionStream: factory,

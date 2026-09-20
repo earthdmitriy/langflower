@@ -1415,4 +1415,285 @@ describe('runAgentLoop recovery', () => {
 			),
 		).toBe(true);
 	});
+
+	it('does not apply toolTimeoutMs to permission.ask on a FS builtin', async () => {
+		let round = 0;
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async () => {
+					round += 1;
+					if (round === 1) {
+						return (async function* () {
+							yield {
+								kind: 'done' as const,
+								text: '',
+								tool_calls: [
+									{
+										id: 'c1',
+										name: 'read',
+										arguments: '{"path":"a.ts"}',
+									},
+								],
+							};
+						})();
+					}
+
+					return (async function* () {
+						yield {
+							kind: 'done' as const,
+							text: 'ok',
+						};
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [
+					{
+						toolId: 'read',
+						name: 'read',
+						description: 'read',
+						inputSchema: { type: 'object', properties: {} },
+						invoke: async () => 'file',
+					},
+				],
+				toolCtx: {
+					projectDir: '/tmp',
+					runId: 'test',
+					authorize: async () => {
+						await new Promise((resolve) => setTimeout(resolve, 80));
+						return 'allow';
+					},
+				},
+				maxIterations: 2,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					toolTimeoutMs: 20,
+				},
+			}).pipe(toArray()),
+		);
+
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'toolLog' &&
+					chunk.text.includes('timed out'),
+			),
+		).toBe(false);
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'toolLog' &&
+					chunk.text.includes('← read: file'),
+			),
+		).toBe(true);
+	});
+
+	it('does not apply toolTimeoutMs to sleep', async () => {
+		let round = 0;
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async () => {
+					round += 1;
+					if (round === 1) {
+						return (async function* () {
+							yield {
+								kind: 'done' as const,
+								text: '',
+								tool_calls: [
+									{
+										id: 'c1',
+										name: 'sleep',
+										arguments: '{"seconds":1}',
+									},
+								],
+							};
+						})();
+					}
+
+					return (async function* () {
+						yield {
+							kind: 'done' as const,
+							text: 'ok',
+						};
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [
+					{
+						toolId: 'sleep',
+						name: 'sleep',
+						description: 'sleep',
+						inputSchema: { type: 'object', properties: {} },
+						invoke: async () => {
+							await new Promise((resolve) =>
+								setTimeout(resolve, 80),
+							);
+							return 'Slept 1s.';
+						},
+					},
+				],
+				toolCtx: {
+					projectDir: '/tmp',
+					runId: 'test',
+					authorize: async () => 'allow',
+				},
+				maxIterations: 2,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					toolTimeoutMs: 20,
+				},
+			}).pipe(toArray()),
+		);
+
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'toolLog' &&
+					chunk.text.includes('timed out'),
+			),
+		).toBe(false);
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'toolLog' &&
+					chunk.text.includes('← sleep: Slept 1s.'),
+			),
+		).toBe(true);
+	});
+
+	it('applies toolTimeoutMs to bash body', async () => {
+		let round = 0;
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async () => {
+					round += 1;
+					if (round === 1) {
+						return (async function* () {
+							yield {
+								kind: 'done' as const,
+								text: '',
+								tool_calls: [
+									{
+										id: 'c1',
+										name: 'bash',
+										arguments: '{"command":"sleep 1"}',
+									},
+								],
+							};
+						})();
+					}
+
+					return (async function* () {
+						yield {
+							kind: 'done' as const,
+							text: 'ok',
+						};
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [
+					{
+						toolId: 'bash',
+						name: 'bash',
+						description: 'bash',
+						inputSchema: { type: 'object', properties: {} },
+						invoke: async () => {
+							await new Promise((resolve) =>
+								setTimeout(resolve, 80),
+							);
+							return 'done';
+						},
+					},
+				],
+				toolCtx: {
+					projectDir: '/tmp',
+					runId: 'test',
+					authorize: async () => 'allow',
+				},
+				maxIterations: 2,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					toolTimeoutMs: 20,
+				},
+			}).pipe(toArray()),
+		);
+
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'toolLog' &&
+					chunk.text.includes('timed out after 20ms'),
+			),
+		).toBe(true);
+	});
+
+	it('applies toolTimeoutMs to custom inventory tools', async () => {
+		let round = 0;
+		const chunks = await firstValueFrom(
+			runAgentLoop({
+				factory: async () => {
+					round += 1;
+					if (round === 1) {
+						return (async function* () {
+							yield {
+								kind: 'done' as const,
+								text: '',
+								tool_calls: [
+									{
+										id: 'c1',
+										name: 'web_fetch',
+										arguments:
+											'{"url":"https://example.com"}',
+									},
+								],
+							};
+						})();
+					}
+
+					return (async function* () {
+						yield {
+							kind: 'done' as const,
+							text: 'ok',
+						};
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock',
+				messages: [{ role: 'user', content: 'start' }],
+				tools: [
+					{
+						toolId: 'web_fetch',
+						name: 'web_fetch',
+						description: 'fetch',
+						inputSchema: { type: 'object', properties: {} },
+						invoke: async () => {
+							await new Promise((resolve) =>
+								setTimeout(resolve, 80),
+							);
+							return 'html';
+						},
+					},
+				],
+				toolCtx: { projectDir: '/tmp', runId: 'test' },
+				maxIterations: 2,
+				recovery: {
+					...DEFAULT_LLM_RECOVERY_POLICY,
+					toolTimeoutMs: 20,
+				},
+			}).pipe(toArray()),
+		);
+
+		expect(
+			chunks.some(
+				(chunk) =>
+					chunk.kind === 'toolLog' &&
+					chunk.text.includes('timed out after 20ms'),
+			),
+		).toBe(true);
+	});
 });

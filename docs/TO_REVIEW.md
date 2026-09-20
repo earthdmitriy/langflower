@@ -157,13 +157,13 @@ Split into `langflower-execution-context.ts`, `langflower-reactive-runner.ts`,
 
 Update references from removed modules:
 
-| Doc                              | Stale reference                                   |
-| -------------------------------- | ------------------------------------------------- |
-| `docs/NAVIGATION.md`             | `execution-ws-bridge.ts` → `runtime-ws-bridge.ts` |
-| `docs/STATUS.md`                 | same                                              |
-| `packages/server/AGENTS.md`      | same                                              |
-| `docs/EXECUTION_ARCHITECTURE.md` | already updated                                   |
-| `packages/shared/AGENTS.md`      | still describes `ReactivePortBus` as production   |
+| Doc                                           | Stale reference                                   |
+| --------------------------------------------- | ------------------------------------------------- |
+| `docs/architecture/NAVIGATION.md`             | `execution-ws-bridge.ts` → `runtime-ws-bridge.ts` |
+| `docs/STATUS.md`                              | same                                              |
+| `packages/server/AGENTS.md`                   | same                                              |
+| `docs/architecture/EXECUTION_ARCHITECTURE.md` | already updated                                   |
+| `packages/shared/AGENTS.md`                   | still describes `ReactivePortBus` as production   |
 
 Files **already deleted** (docs may still mention):
 

@@ -1,0 +1,197 @@
+{
+	"$schema": "../schemas/workflow.schema.json",
+	"metadata": {
+		"name": "Checks",
+		"description": "Planner → plan Review → Coder → Project Tests → Review → Finish. Agent reviews and a custom test gate sit on the path; retries are graph edges.",
+		"createdAt": "2026-09-20T19:05:00.000Z",
+		"updatedAt": "2026-09-20T20:10:00.000Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": 0,
+			"y": 0,
+			"scale": 0.7,
+			"width": 1015,
+			"height": 661
+		},
+		"nodes": [
+			{
+				"id": "goal",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {
+					"message": "Add a /health JSON endpoint."
+				},
+				"ui": {
+					"position": { "x": 0, "y": 280 },
+					"label": "Goal"
+				}
+			},
+			{
+				"id": "planner",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "plan",
+					"includeAgentsMd": false,
+					"maxIterations": 8,
+					"maxFeedbackTurns": 4
+				},
+				"inputs": {
+					"systemPrompt": "You are the Planner.\nWrite a concise implementation plan for the user's goal.\nWhen plan Review sends feedback, revise the plan — do not ignore it.\nDo not implement the change."
+				},
+				"ui": {
+					"position": { "x": 280, "y": 160 },
+					"label": "Planner"
+				}
+			},
+			{
+				"id": "plan-review",
+				"type": "common-review",
+				"params": {
+					"maxIterations": 6
+				},
+				"inputs": {
+					"systemPrompt": "You are the plan Assert / Review — not the Planner's co-author.\nAccept only if the plan has a clear goal, concrete steps, and named risks.\nCall feedback with specific gaps otherwise. Do not implement."
+				},
+				"ui": {
+					"position": { "x": 620, "y": 80 },
+					"label": "Assert plan"
+				}
+			},
+			{
+				"id": "coder",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "coder",
+					"includeAgentsMd": false,
+					"maxIterations": 10,
+					"maxFeedbackTurns": 4
+				},
+				"inputs": {
+					"systemPrompt": "You receive an accepted plan. Implement with harness tools. Prefer minimal edits.\nWhen Project Tests or Review send feedback, revise — do not ignore it."
+				},
+				"ui": {
+					"position": { "x": 960, "y": 160 },
+					"label": "Coder"
+				}
+			},
+			{
+				"id": "tests",
+				"type": "project-tests",
+				"params": {
+					"failFirst": 1
+				},
+				"inputs": {
+					"note": "**Tests must pass** before Review.\n\nThis gate is on the path. Failure sends the Coder the found issues to fix."
+				},
+				"ui": {
+					"position": { "x": 1300, "y": 240 },
+					"label": "Project Tests"
+				}
+			},
+			{
+				"id": "review",
+				"type": "common-review",
+				"params": {
+					"maxIterations": 6
+				},
+				"inputs": {
+					"systemPrompt": "You are principles / plan-fit Review after tests accepted.\nCall accept only if the change matches the accepted plan and is non-blocking.\nCall feedback with concrete revision notes otherwise."
+				},
+				"ui": {
+					"position": { "x": 1640, "y": 80 },
+					"label": "Review"
+				}
+			},
+			{
+				"id": "done",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": { "x": 1980, "y": 240 },
+					"label": "Finish"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-goal-planner",
+				"fromNodeId": "goal",
+				"fromPort": ["message", 0],
+				"toNodeId": "planner",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-goal-plan-review",
+				"fromNodeId": "goal",
+				"fromPort": ["message", 0],
+				"toNodeId": "plan-review",
+				"toPort": ["task", 0]
+			},
+			{
+				"edgeId": "e-planner-plan-review",
+				"fromNodeId": "planner",
+				"fromPort": ["response", 0],
+				"toNodeId": "plan-review",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-plan-review-planner",
+				"fromNodeId": "plan-review",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "planner",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-plan-review-coder",
+				"fromNodeId": "plan-review",
+				"fromPort": ["response", 0],
+				"toNodeId": "coder",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-plan-review-review-task",
+				"fromNodeId": "plan-review",
+				"fromPort": ["response", 0],
+				"toNodeId": "review",
+				"toPort": ["task", 0]
+			},
+			{
+				"edgeId": "e-coder-tests",
+				"fromNodeId": "coder",
+				"fromPort": ["response", 0],
+				"toNodeId": "tests",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-tests-coder",
+				"fromNodeId": "tests",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "coder",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-tests-review",
+				"fromNodeId": "tests",
+				"fromPort": ["response", 0],
+				"toNodeId": "review",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-review-coder",
+				"fromNodeId": "review",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "coder",
+				"toPort": ["feedback", 1]
+			},
+			{
+				"edgeId": "e-review-done",
+				"fromNodeId": "review",
+				"fromPort": ["response", 0],
+				"toNodeId": "done",
+				"toPort": ["value", 0]
+			}
+		]
+	}
+}

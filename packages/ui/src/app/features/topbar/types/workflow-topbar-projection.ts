@@ -1,7 +1,7 @@
 import type {
 	WorkflowCurrentSnapshotPayload,
 	WorkflowListEntry,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-workflow';
 
 export type WorkflowTopbarState = {
 	readonly workflows: readonly WorkflowListEntry[];

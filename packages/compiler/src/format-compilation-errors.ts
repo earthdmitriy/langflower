@@ -21,7 +21,7 @@ export const toProjectRelativePath = (
 	return relative.split(path.sep).join('/');
 };
 
-export const relativizeDiagnostic = (
+const relativizeDiagnostic = (
 	diagnostic: CompileDiagnostic,
 	projectDir: string,
 ): CompileDiagnostic => {
@@ -35,7 +35,7 @@ export const relativizeDiagnostic = (
 	};
 };
 
-export const relativizeDiagnostics = (
+const relativizeDiagnostics = (
 	diagnostics: readonly CompileDiagnostic[],
 	projectDir: string,
 ): readonly CompileDiagnostic[] =>
@@ -61,7 +61,7 @@ export const formatDiagnosticLine = (diagnostic: CompileDiagnostic): string => {
  * Body shared by `CompilePackError.message` and `COMPILATION_ERRORS.md`
  * (diagnostic lines only — no generic “Typecheck failed…” wrapper).
  */
-export const formatPackErrorMessage = (
+const formatPackErrorMessage = (
 	diagnostics: readonly CompileDiagnostic[],
 	projectDir: string,
 ): string => {

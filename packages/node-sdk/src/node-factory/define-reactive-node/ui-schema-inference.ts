@@ -6,7 +6,7 @@ export type UISchemaConstItem = {
 	readonly type: string;
 	readonly label?: string;
 	readonly default?: unknown;
-	readonly placement?: 'panel' | 'inline';
+	readonly placement?: 'panel';
 	/** Number field constraints — same semantics as canvas inline `{ type: 'number' }`. */
 	readonly min?: number;
 	readonly max?: number;

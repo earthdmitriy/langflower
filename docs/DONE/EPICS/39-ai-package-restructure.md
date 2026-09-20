@@ -4,7 +4,7 @@
 **Depends on:** [epic 38](../../DONE/EPICS/38-llm-autokick.md) (landed — do not mix with
 autokick / dead-loop behavior)  
 **Index:** [README.md](README.md)  
-**Feeds:** [NAVIGATION](../../NAVIGATION.md), [NODES](../../NODES.md),
+**Feeds:** [NAVIGATION](../../architecture/NAVIGATION.md), [NODES](../../NODES.md),
 [packages/common-nodes/AGENTS.md](../../../packages/common-nodes/AGENTS.md)
 (layout only — no use-case Status flip)
 
@@ -133,9 +133,9 @@ Internal catalog imports **do** change (`./ai/nodes/openai-llm/node.js`).
   for AI (already false after the shared loop).
 - [NODES.md](../../NODES.md) §1 — AI exception: `ai/nodes/<node>/`, not
   `ai/<node>/`. Other categories unchanged.
-- [PRINCIPLES.md](../../PRINCIPLES.md) slice example `ai/openai-llm/` →
+- [PRINCIPLES.md](../../architecture/PRINCIPLES.md) slice example `ai/openai-llm/` →
   `ai/nodes/openai-llm/` (and `ai/features/llm-loop/` as the shared slice).
-- [NAVIGATION.md](../../NAVIGATION.md) LLM client / recovery / role-preset
+- [NAVIGATION.md](../../architecture/NAVIGATION.md) LLM client / recovery / role-preset
   rows.
 - [LLM_NODES.md](../../LLM_NODES.md), [LLM_RECOVERY.md](../../LLM_RECOVERY.md),
   ADR path citations, per-node `NODE.md`, [node-library.md](../../features/node-library.md)

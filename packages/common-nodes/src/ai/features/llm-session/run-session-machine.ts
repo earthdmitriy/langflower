@@ -3,13 +3,9 @@ import type { PermissionAskRequest } from '@langflower/tools/permission';
 import {
 	EMPTY,
 	concat,
-	filter,
 	from,
-	map,
-	mergeScan,
 	of,
 	scan,
-	startWith,
 	switchMap,
 	throwError,
 	type Observable,
@@ -234,51 +230,5 @@ export const runTurnFromState = <
 		raw,
 		runTurn,
 		state.feedbackTurns + 1,
-	);
-};
-
-/**
- * Sequential session fold. Each turn is an inner Observable reduced into the
- * accumulator; concurrency 1 queues feedback while a turn is streaming.
- */
-export const runLlmSessionMachine = <
-	Context extends LlmSessionContext,
-	Session,
-	Chunk extends { readonly kind: string },
->(
-	context: Context,
-	turn$: Observable<unknown>,
-	preparation: LlmSessionPreparation<Session>,
-	runTurn: (
-		context: Context,
-		turnPayload: unknown,
-		history: readonly ChatCompletionMessage[],
-		session: Session,
-	) => Observable<Chunk>,
-	primeTurn0: boolean,
-): Observable<Chunk> => {
-	const initial: LlmSessionState<Session, Chunk> = {
-		history: [...preparation.history],
-		turn0Done: false,
-		feedbackTurns: 0,
-		preparation,
-	};
-	const turns$ = primeTurn0 ? turn$.pipe(startWith('')) : turn$;
-
-	return turns$.pipe(
-		mergeScan(
-			(state, raw) =>
-				runTurnFromState(context, state, raw, primeTurn0, runTurn),
-			initial,
-			1,
-		),
-		filter(
-			(
-				state,
-			): state is LlmSessionState<Session, Chunk> & {
-				readonly emitted: Chunk;
-			} => state.emitted !== undefined,
-		),
-		map((state) => state.emitted),
 	);
 };

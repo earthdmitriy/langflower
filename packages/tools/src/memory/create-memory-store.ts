@@ -17,6 +17,8 @@ import {
 } from './memory-paths.js';
 
 const MAX_GREP_MATCHES = 100;
+const MAX_GREP_FILES = 200;
+const MAX_GREP_FILE_BYTES = 256_000;
 
 export type MemoryTreeFile = {
 	readonly file_path: string;
@@ -32,7 +34,10 @@ export type MemoryStore = {
 		filePath: string,
 		heading?: string,
 	) => Promise<string>;
-	readonly searchGrep: (query: string) => Promise<readonly string[]>;
+	readonly searchGrep: (
+		query: string,
+		options?: { readonly signal?: AbortSignal },
+	) => Promise<readonly string[]>;
 	readonly appendLog: (filePath: string, content: string) => Promise<void>;
 	readonly updateSection: (
 		filePath: string,
@@ -81,7 +86,9 @@ export const createMemoryStore = (projectDir: string): MemoryStore => {
 	return {
 		getTree: async () => {
 			await fs.mkdir(root, { recursive: true });
-			const files = await walkFiles(root, root, false);
+			const files = await walkFiles(root, root, {
+				respectGitignore: false,
+			});
 			const tree: MemoryTreeFile[] = [];
 
 			for (const relative of files) {
@@ -124,7 +131,7 @@ export const createMemoryStore = (projectDir: string): MemoryStore => {
 			return `${found.raw}\n${body}`.replace(/\s+$/, '');
 		},
 
-		searchGrep: async (query) => {
+		searchGrep: async (query, options) => {
 			const pattern = query.trim();
 
 			if (pattern.length === 0) {
@@ -144,10 +151,19 @@ export const createMemoryStore = (projectDir: string): MemoryStore => {
 			}
 
 			await fs.mkdir(root, { recursive: true });
-			const files = await walkFiles(root, root, false);
+			const files = await walkFiles(root, root, {
+				respectGitignore: false,
+				maxFiles: MAX_GREP_FILES,
+				...(options?.signal === undefined
+					? {}
+					: { signal: options.signal }),
+			});
 			const hits: string[] = [];
 
 			for (const relative of files) {
+				if (options?.signal?.aborted) {
+					throw new Error('aborted');
+				}
 				if (hits.length >= MAX_GREP_MATCHES) {
 					break;
 				}
@@ -156,7 +172,16 @@ export const createMemoryStore = (projectDir: string): MemoryStore => {
 				let text: string;
 
 				try {
-					text = await fs.readFile(absolute, 'utf8');
+					const handle = await fs.open(absolute, 'r');
+					try {
+						const stat = await handle.stat();
+						if (stat.size > MAX_GREP_FILE_BYTES) {
+							continue;
+						}
+						text = await handle.readFile('utf8');
+					} finally {
+						await handle.close();
+					}
 				} catch {
 					continue;
 				}

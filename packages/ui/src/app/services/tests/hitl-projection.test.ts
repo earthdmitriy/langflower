@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import { formatHitlUserText } from '../execution-catalog';
 import {
 	gateHitlControlsForNode,
@@ -14,7 +14,6 @@ function definitionWith(inputs: readonly unknown[]): PaletteNodeDefinition {
 		type: 'test',
 		displayName: 'Test',
 		category: 'Test',
-		icon: undefined,
 		uiSchema: [],
 		emitOncePerActivation: false,
 		stopsRun: false,

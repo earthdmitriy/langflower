@@ -15,13 +15,15 @@ assistant + feedback user messages like openai-llm (ADR-016).
 Streams tokenized **reasoning** and **draftResponse**, then a final **response**.
 Harness builtins + wired `tools` (including MCP nodes) are listed in the reasoning text.
 Default inventory includes `ask_user` (question in the work log; composer
-Send; not Pause/Steer).
+Send and optional option chips; not Pause/Steer) and `sleep` (capped 1–300s
+wait without bash; Stop aborts).
 
 **Scripted tool loop (tests):** set param `scriptedToolTurns` to an array of
 `{ toolCalls: [...] }` / `{ text: "..." }` turns, or inject
-`createChatCompletionStream` on the execution context. The node then runs the
-same internal harness invoke loop as openai-llm (`toolLog` + `ctx.harness`) with
-session-scoped history across feedback turns.
+`ec.chat` (tests inject the factory through harness `caps`). The node then
+runs the same inventory tool loop as openai-llm
+(`toolLog` + `ToolHandle.invoke`, not `ctx.harness`) with session-scoped
+history across feedback turns.
 
 Same ports / panel shape as openai so graphs wire interchangeably. Init vs
 feedback are split (ADR-016: `startWith('')` + `concatMap` on the feedback turn
@@ -70,7 +72,6 @@ normal `ToolHandle` (epic 41). Do **not** look for `spawn_subagent` ports.
 | `model`             | select                | —        | per selected provider                                                                                                        |
 | `skillId`           | select                | —        | from skills catalog; description caption                                                                                     |
 | `includeAgentsMd`   | boolean               | `false`  | when true, append project-root `AGENTS.md` into effective system prompt                                                      |
-| `enabledToolIds`    | tool-id-list          | —        | legacy allowlist (migrates to `toolPermissions` when unset)                                                                  |
 | `toolPermissions`   | tool-permission-table | —        | deny/ask/allow per tool; unset → role preset; clamped to project floor                                                       |
 | `maxIterations`     | number                | `100`    | caps scripted tool-loop rounds **per feedback turn** (`0` = unlimited; no hard product ceiling)                              |
 | `maxFeedbackTurns`  | number                | `50`     | max feedback turns after turn 0; `0` = unlimited; further feedback → continue HITL ask (Deny → `toolLog` + `response` error) |

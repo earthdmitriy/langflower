@@ -2,7 +2,7 @@ import {
 	DIVIDER_MIN_COMPOSER_HEIGHT,
 	DIVIDER_MIN_LEFT_WIDTH,
 	DIVIDER_MIN_RIGHT_WIDTH,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/constants/defaults';
 import { describe, expect, it } from 'vitest';
 import {
 	DIVIDER_CENTER_MIN_WIDTH_PX,

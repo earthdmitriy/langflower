@@ -113,6 +113,11 @@ type LlmDeadLoopPolicy = {
 
 export type LlmRecoveryPolicy = {
 	readonly streamIdleTimeoutMs: number;
+	/**
+	 * Hung-watchdog for bash and non-harness inventory only (`0` disables).
+	 * Never wraps `permission.ask`, `ask_user`, `sleep`, FS builtins, or
+	 * Sub-Agent tools.
+	 */
 	readonly toolTimeoutMs: number;
 	/** Wall-clock on `invoke`. `0` (default) disables; stuck specialists use LLM recovery. */
 	readonly subagentTimeoutMs: number;

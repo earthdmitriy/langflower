@@ -1,12 +1,9 @@
 import type { EdgeId, NodeId } from '@langflower/runtime';
 import { describe, expect, it } from 'vitest';
-import {
-	displayEnabledToolIds,
-	resolveWiredToolOptions,
-} from '@langflower/shared/langflower';
+import { resolveWiredToolOptions } from '@langflower/shared/langflower-config/resolve-wired-tool-options';
 
 describe('lf-inspector wired tool options', () => {
-	it('resolves wired tool options with name and description for Inspector multiselect', () => {
+	it('resolves wired tool options with name and description for the permission table', () => {
 		const options = resolveWiredToolOptions(
 			{
 				nodes: [
@@ -49,11 +46,5 @@ describe('lf-inspector wired tool options', () => {
 				description: 'search files',
 			},
 		]);
-	});
-
-	it('shows all wired tool ids as checked when allowlist is unset', () => {
-		expect(displayEnabledToolIds(undefined, ['grep', 'read_file'])).toEqual(
-			['grep', 'read_file'],
-		);
 	});
 });

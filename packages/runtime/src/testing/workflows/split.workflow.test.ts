@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { graphHasCycle } from '../../runtime-helpers.js';
 import { createConstantTestNode } from '../nodes/constant-node.js';
 import { createDelayTestNode } from '../nodes/delay-node.js';
 import {
@@ -37,8 +36,6 @@ function createSplitScenario(): RuntimeHarness {
 describe('split workflow (events$)', () => {
 	it('emits both branch outputs from one source', async () => {
 		const runtime = createSplitScenario();
-
-		expect(graphHasCycle(runtime.editor.getEdges())).toBe(false);
 
 		const runId = runtime.runner.start();
 

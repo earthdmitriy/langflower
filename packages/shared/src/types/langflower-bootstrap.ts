@@ -31,7 +31,7 @@ export type RunnerSnapshotPayload = {
  * **Runtime snapshot half** of the snapshot + event-sourcing model: replays
  * value-state port frames (`RuntimeRunnerEvent`) from the server runtime log.
  * After hydration, the UI appends only **new** live frames on `runner.*`
- * (`runner.output-emitted`, `runner.input-received`, …) — not a full resnapshot
+ * (`runner.port`, `runner.done`, …) — not a full resnapshot
  * on every port change.
  */
 export type ExecutionFeedSnapshotPayload = {

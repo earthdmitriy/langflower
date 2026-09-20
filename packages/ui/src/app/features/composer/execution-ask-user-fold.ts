@@ -2,7 +2,7 @@ import type { RunId } from '@langflower/runtime';
 import type {
 	RunnerAskUserAskPayload,
 	RunnerAskUserReplyPayload,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-config';
 import { merge, type Observable } from 'rxjs';
 import { map, scan, shareReplay, startWith } from 'rxjs/operators';
 

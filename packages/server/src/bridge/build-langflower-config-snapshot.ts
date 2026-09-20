@@ -1,5 +1,5 @@
-import type { LangflowerConfigSnapshotPayload } from '@langflower/shared/langflower.js';
-import { mergeLangflowerConfigLayers } from '@langflower/shared/langflower.js';
+import type { LangflowerConfigSnapshotPayload } from '@langflower/shared/types/langflower-config.js';
+import { mergeLangflowerConfigLayers } from '@langflower/shared/langflower-config/merge-langflower-config-layers.js';
 import type { ServerContext } from '../server-context.js';
 import { redactLangflowerConfigForBridge } from '../config/redact-langflower-config.js';
 import { withSkillsCatalog } from '../skills/with-skills-catalog.js';

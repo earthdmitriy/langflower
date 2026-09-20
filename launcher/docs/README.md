@@ -15,7 +15,7 @@ knowing Rust first. Start here, then open the chapter you need.
 
 Operator-facing summary (what to download, how to dogfood):
 [launcher/README.md](../README.md). Product decision:
-[ADR-038](../../docs/ADR.md#adr-038--launcher-is-a-cli-supervisor).
+[ADR-038](../../docs/architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor).
 
 ## What this program is
 

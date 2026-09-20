@@ -3,106 +3,80 @@
 ## Meta
 
 - Paths: `packages/langflower-mcp/src/`
-- Date: 2026-07-22
-- Coverage: Full re-pass over hand-written modules (`cli.ts`, `mcp-stdio-server.ts`, `create-bridge-session.ts`, `handle-tool-call.ts`, `build-tool-catalog.ts`, `mcp-exposure-policy.ts`, `intent-wait-map.ts`, `intent-wait-predicate.ts`, `execution-feed-tail.ts`, `ws-client-access.ts`, `wait-event-mode.ts`, `list-action-intents.ts`, `match-glob.ts`, `sanitize-tool-name.ts`) plus unit tests and skim of `generated/bridge-tool-meta.ts` (codegen shape only). Cross-checked ADR-024, `packages/langflower-mcp/AGENTS.md`, `docs/LANGFLOWER_MCP.md`, `docs/PRINCIPLES.md`, `docs/REACTIVITY.md`, and relevant `FOUND_BUGS` entries. Not a line-by-line audit of the generated meta blob.
+- Date: 2026-09-20
+- Mode: delta
+- Coverage: Re-read of all hand-written modules (`cli.ts`, `mcp-stdio-server.ts`, `mcp-stdio-framing.ts`, `create-bridge-session.ts`, `handle-tool-call.ts`, `build-tool-catalog.ts`, `mcp-exposure-policy.ts`, `intent-wait-map.ts`, `intent-wait-predicate.ts`, `execution-feed-tail.ts`, `runtime-event-types.ts`, `ws-client-access.ts`, `wait-event-mode.ts`, `list-action-intents.ts`, `match-glob.ts`, `sanitize-tool-name.ts`) plus colocated unit tests. Skim of `generated/bridge-tool-meta.ts` (codegen shape; `editor.*` / S→C blobs still filtered at runtime). Confirmed leftovers via ts-scan `resolve_symbol` (`wait_session_ready`, `ACTION_EXCLUDE_GLOBS` — not found) and catalog test (`wait_session_ready` still forbidden). Cross-checked `packages/langflower-mcp/AGENTS.md`, bus JSDoc on `workflow.load.failed`, PRINCIPLES, FOUND_BUGS (same-mechanism only), LEDGER `legacy-wait-session-ready`. No new files vs 2026-09-19.
+- Previous report: 2026-09-19 — Critical=0 Important=3 Suggestion=2
+
+## Previous findings (delta mode)
+
+| id                                   | severity  | status | evidence                                                                                                                                                                                                                                                        |
+| ------------------------------------ | --------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `legacy-wait-session-ready`          | Important | fixed  | Tool and symbol stay deleted. Catalog test still `expect(names).not.toContain('wait_session_ready')`. ts-scan `resolve_symbol` from `build-tool-catalog.ts` returns not found. LEDGER closed 2026-09-18; AGENTS.md still forbids restoring it (BUG-2026-07-14). |
+| `mcp-workflow-load-failed-wait`      | Important | fixed  | Closed 2026-09-20 — see LEDGER.                                                                                                                                                                                                                                 |
+| `mcp-output-emitted-catalog-ghost`   | Important | fixed  | `CURATED_TOOLS` `wait_event` / `get_execution_feed_tail` now name `runner.port` and `in`/`out`/`done`. No `output-emitted` / `input-received` in catalog copy.                                                                                                  |
+| `mcp-stdio-handle-queue-blocks-ping` | Important | fixed  | Closed 2026-09-20 — see LEDGER.                                                                                                                                                                                                                                 |
 
 ## Principles check
 
-- **Package boundary / thin control plane — PASS.** Owns MCP stdio + exposure policy + wait/correlation only; no server domain growth. Depends on `@langflower/shared` (`langflowerWsConfig`, `waitBusEvent`, `waitSessionReady`, `deriveExecutionProgressStatus`) and `@langflower/websocket-bridge` (`createClient`) as documented.
-- **MCP as thin client over shared WS contracts — PASS.** Tools derive from `langflowerWsConfig` via `listActionIntents()` + codegen meta; no parallel REST/DTO protocol. Curated observe tools wrap the same broadcast keys the UI folds.
-- **No barrels (`index.ts`) — PASS.** Concrete `package.json` exports; no `index.ts` under the package.
-- **`type` not `interface`; arrow functions — PASS.** Sampled modules use `type` + `const` arrows.
-- **Composer entry points — PASS.** `cli.ts` `main` sequences assert → parse → session → catalog → `runMcpStdioServer`; handlers do not bury order in nested callers.
-- **Feature-sliced / colocation — PASS.** Policy, catalog, session, stdio, dispatch, feed projection, and predicates are separate modules with clear roles.
-- **Immutability — PASS (edge OK).** Session cache/feed mutate at the WS I/O edge; `execution-feed-tail.ts` folds are pure; tool responses are new JSON strings.
-- **RxJS / reactive waits — PASS.** No `withLatestFrom`. `waitForEventSeq` uses `merge(defer, seqAdvanced$)` + `firstValueFrom` (reactive, not `interval` poll). Action tools subscribe via `waitBusEvent` before `emitClientIntent`. Residual: feed/cache updates live in `.subscribe` at the host edge (accepted for ADR-024 cache).
-- **No adapters / glue (default) — MIXED (ADR-backed).** Whole package is the ADR-024 stdio control-plane over `createClient(langflowerWsConfig)` — intentional. Residual typing shim in `emitClientIntent` (finding #1).
-- **Delete obsolete / single API — PASS.** Legacy `useCache` and intent-wait name heuristic removed; explicit override map only.
-- **Prepare-then-mutate — PASS** in stdio handler (parse → dispatch → `writeMessage`).
+- **Package boundary / thin control plane — PASS.** Owns stdio handshake, exposure policy, codegen meta, wait/correlation. No server CRUD, no Langflower start/stop, no `editor.*` tools. Production `src/` does not import `@langflower/runtime`. Depends on `@langflower/shared` + `@langflower/websocket-bridge`.
+- **MCP as thin client over shared WS contracts — PASS.** Action tools = `listActionIntents()` ∩ codegen meta; observe tools wrap broadcast keys. No parallel REST/DTO protocol.
+- **No barrels (`index.ts`) — PASS.** None in the package.
+- **`type` not `interface`; arrow functions — PASS.** Sampled modules use `type` + `const` arrows. No `any`, no `withLatestFrom`.
+- **Composer entry points — PASS.** `cli.ts` `main`: assert → parse → session → catalog → `runMcpStdioServer`. `handleToolCall` lists action vs curated.
+- **Delete obsolete / single API — PASS (was MIXED).** `wait_session_ready` stayed deleted. Catalog no longer names retired `runner.output-emitted`.
+- **No adapters / glue (default) — PASS (ADR-backed).** Whole package is ADR-024 stdio over `createClient(langflowerWsConfig)`. `generated/bridge-tool-meta.ts` is codegen. Stdio parse twin is ADR-039. `ws-client-access.ts` casts stay local.
+- **Immutability / RxJS — PASS (edge OK).** Session cache / `feedState` assignment live in `.subscribe` at the WS host edge. `execution-feed-tail.ts` folds are pure. `waitForEventSeq` is `merge(defer(already-past), seqAdvanced$)`. No `withLatestFrom`.
+- **Prepare-then-mutate — PASS** in the stdio handler (parse → dispatch → `writeMessage`).
+- **Fail-closed waits — PASS.** Load races `workflow.load.failed` against correlated current; `ping` / `initialize` / `tools/list` skip the in-flight `tools/call` queue (LEDGER 2026-09-20).
 
 ## FOUND_BUGS signals
 
-- **BUG-2026-07-14** (_subscription timing vs non-replaying subjects_) — **mitigated for MCP:** `attachClient` subscribes to all `OBSERVE_EVENT_KEYS` immediately after `createClient`, before `waitSessionReady` — same “subscribe before bootstrap” pattern as `waitSessionReady` in `@langflower/shared`. `get_execution_feed_tail` is snapshot-canonical + eventLog appends; status from runner gate via `deriveExecutionProgressStatus`.
-- **BUG-2026-07-21f** (_lifecycle facts must fan-out_) — **related, not direct:** MCP action waits assume broadcast replies; unicast-only intents would hang. `runner.resume.requested` correctly races `runner.resume.started` vs `runner.resume.failed`.
-- **BUG-2026-07-19c** (_glob `{a,b}` never matched_) — **residual risk:** `match-glob.ts` has no brace expansion; current policy patterns are brace-free (finding #3).
-- **BUG-2026-07-21b** (_false-ready hydration_) — **low relevance:** MCP cache/seq waits are not UI-style `withLatestFrom` + empty catalogs.
-- Other BUG-* (canvas chrome, reactive ports, permission inventory) — **none** applicable to this package.
+- **BUG-2026-07-21f** (_lifecycle facts must fan-out; unicast is not a peer snapshot_) — **not the same mechanism.** That bug was initiator-only `clientEmit` of `runner.started` / `interrupted` hiding chrome on tab B. MCP load hang is a client wait that ignores a unicast failure and waits for a snapshot that does not change. Same family of unicast-vs-broadcast, different mechanism — do not tag `found-bugs-recurrence`.
+- **BUG-2026-07-14** (_subscription timing vs non-replaying subjects_) — **held for connect.** `attachClient` still subscribes before `waitSessionReady`. `wait_session_ready` not restored. `wait_event` `mode=next` uses cache-seq + `seqAdvanced$`.
+- **BUG-2026-07-19c** (_glob `{a,b}` never matched_) — **residual only.** `match-glob.ts` has no brace expansion; current `ACTION_NAMESPACE_GLOBS` are brace-free.
+- Other BUG-* (canvas chrome, HITL feed paint, permissions inventory) — **none** applicable.
 
 ## Glue / adapters / parallel types
 
-- **ADR-024 adapter (intentional):** stdio MCP over internal bus; exit criteria for feed + correlation **closed** in ADR-024 (2026-07-22).
-- **Typed client access:** `ws-client-access.ts` — `observeEvent$` typed via `ObserveEventKey`; `emitClientIntent` still uses a `Record` cast for dynamic intent keys (finding #1).
-- **Feed projection:** `execution-feed-tail.ts` reuses shared `RuntimeRunnerEvent`, `ExecutionProgressStatus`, `deriveExecutionProgressStatus` — tool response shape is a projection, not a mirrored WS payload type.
-- **No `*Adapter` / `*Mapper` field-reshuffle modules.** `sanitizeToolName` is MCP host naming constraint; `intent-wait-predicate.ts` is ADR-024 correlation logic, not glue.
-- **Codegen meta includes full bus keys:** `generated/bridge-tool-meta.ts` lists `editor.*`; runtime policy + `listActionIntents()` filter exposure — OK, not a parallel catalog.
+none
+
+ADR-backed copies (note, not findings):
+
+- **ADR-024:** stdio MCP over the internal bus. Correlation exit criteria remain the documented 2026-07-22 close. Load-failure race closed 2026-09-20 (LEDGER `mcp-workflow-load-failed-wait`).
+- **`generated/bridge-tool-meta.ts` — not glue.** Codegen from `langflower-bus-config.ts`. `editor.*` and unused S→C keys never become tools (`listActionIntents` / curated filter). `assertToolMetaCoverage` guards allowlisted intents ↔ meta keys.
+- **`runtime-event-types.ts` — DAG-legal aliases.** Indexes shared feed/snapshot payloads. Matches AGENTS.md. Not a second event union.
+- **Parallel framing parsers — ADR-039.** Same parse dialect (CRLF + LF Content-Length, newline JSON, object-only JSON-RPC). Tools remains parse-only; encode/mode stay here. Gate: `packages/tools/src/mcp/mcp-stdio-frame-parser.parity.test.ts`.
+- **`ws-client-access.ts`:** keyed `observeEvent$` / `emitClientIntent`; casts stay local. Not a `*Mapper`.
+- **Feed projection:** `execution-feed-tail.ts` reuses shared `deriveExecutionProgressStatus` + payload types.
 
 ## Streamlining & simplifications
 
-- **`wait_session_ready` curated tool:** optional delete or alias of `ensure_connected` — docs already state ensure covers the common path (finding #2).
-- **`OBSERVE_EVENT_KEYS`:** optional compile-time parity test against `langflowerWsConfig.fromServerToClient` subset to catch bus drift (finding #4).
-- **`seqAdvanced$` on reconnect:** optional `Subject` reset in `detachClient` so no in-flight `waitForEventSeq` can resolve from a new attach generation (finding #5).
+none
 
 ## Design-flaw fixes
 
-1. ~~**Broadcast action wait ≈ RPC without correlation**~~ **closed (2026-07-22):** field predicates + resume race; ADR-024 records bus `requestId` as won't-do for single-agent CI.
-2. ~~**Local feed diverged from session truth**~~ **closed (2026-07-22):** snapshot-canonical feed tail + runner gate status.
-3. ~~**Dynamic string keys erased typing**~~ **mostly closed (2026-07-22):** observe path typed; emit path residual cast remains (finding #1).
-4. ~~**Duplicated connect/`session.ready` sequencing**~~ **closed (2026-07-22):** `waitUntilSessionReady` delegates to shared `waitSessionReady` + timeout.
-5. ~~**`waitForEventSeq` polled with `interval(20)`**~~ **closed (2026-07-22):** reactive `seqAdvanced$` + unit test.
+none
 
 ## Findings
 
-1. **Severity:** Suggestion  
-   **Path / symbol:** `ws-client-access.ts` — `emitClientIntent`  
-   **Problem:** Outbound intents still cast `client as unknown as Record<string, Subject<unknown>>` while `observeEvent$` is typed via `ObserveEventKey`. Asymmetric boundary typing.  
-   **Proposed fix:** Derive a `ClientIntentKey` union from `langflowerWsConfig.fromClientToServer` (filtered by action policy) and narrow `emitClientIntent` the same way as observe — or codegen intent keys alongside `BRIDGE_TOOL_META`.
-
-2. **Severity:** Suggestion  
-   **Path / symbol:** `build-tool-catalog.ts` / `handle-tool-call.ts` — `wait_session_ready`  
-   **Problem:** Overlaps `ensure_connected` (connect + `session.ready`); adds surface area and agent confusion.  
-   **Proposed fix:** Remove curated tool or make it a thin alias documented as deprecated; keep `ensure_connected` as the single bootstrap entry.
-
-3. **Severity:** Suggestion  
-   **Path / symbol:** `match-glob.ts`; `mcp-exposure-policy.ts` — `ACTION_NAMESPACE_GLOBS`  
-   **Problem:** Same brace-expansion gap as BUG-2026-07-19c if someone later writes `runner.{start,interrupt}.*`-style policy. Current patterns are safe.  
-   **Proposed fix:** Keep patterns brace-free (current) or reject `{`/`}` in policy strings at startup.
-
-4. **Severity:** Suggestion  
-   **Path / symbol:** `mcp-exposure-policy.ts` — `OBSERVE_EVENT_KEYS`  
-   **Problem:** Hand-maintained allowlist can drift when `langflower-bus-config.ts` adds agent-relevant server→client keys (e.g. future bootstrap/telemetry). `wait_event` enum and session subscriptions would miss new frames silently.  
-   **Proposed fix:** Unit test asserting every `OBSERVE_EVENT_KEYS` entry exists in `langflowerWsConfig.fromServerToClient`, plus optional “required observe set” derived from workflow/runner/bootstrap namespaces.
-
-5. **Severity:** Suggestion  
-   **Path / symbol:** `create-bridge-session.ts` — `seqAdvanced$` / `detachClient`  
-   **Problem:** `detachClient` clears cache and unsubscribes WS listeners but does not complete/reset `seqAdvanced$`. A slow `waitForEventSeq` across reconnect could theoretically resolve from the next attach's `bumpCache` (same event key).  
-   **Proposed fix:** Replace with a per-attach `Subject` or increment a generation token checked in `waitForEventSeq`.
-
-6. **Severity:** Suggestion — **addressed (2026-07-22, re-verified)**  
-   **Path / symbol:** `create-bridge-session.ts` — `waitForEventSeq`  
-   **Problem:** Polled cache with `interval(20)`.  
-   **Fix applied:** Reactive `seqAdvanced$` merge; `create-bridge-session.wait-seq.test.ts` asserts no poll.
-
-7. **Severity:** Important — **addressed (2026-07-22, re-verified)**  
-   **Path / symbol:** `execution-feed-tail.ts` / `create-bridge-session.ts`  
-   **Problem:** Second feed projection / interrupt status gap (BUG-2026-07-14 class).  
-   **Fix applied:** Snapshot-canonical tail, eventLog appends only, interrupt → `stopped`, `deriveExecutionProgressStatus`; unit tests cover interrupt/settle/gate precedence.
-
-8. **Severity:** Important — **addressed (2026-07-22, re-verified)**  
-   **Path / symbol:** `handle-tool-call.ts` — `emitAction`; `intent-wait-predicate.ts`; ADR-024  
-   **Problem:** Action tools waited for next broadcast without correlation.  
-   **Fix applied:** `resolveWaitPredicate` + resume started/failed race; explicit `INTENT_WAIT_OVERRIDES` for every allowlisted intent; parity test in `intent-wait-map.test.ts`.
+none
 
 ## Non-issues / looked OK
 
-- Exposure policy correctly keeps `editor.*` out of tools while codegen may still list editor meta.
-- `assertToolMetaCoverage` + `build-tool-catalog.test.ts` guard allowlist ↔ codegen drift for **action** intents.
-- `cli.ts` composer order is explicit; stdio server is a thin JSON-RPC loop; sequential `await handle(line)` avoids overlapping tool races on one process.
-- `ensureReady` coalesces via `readyInFlight`; reconnect path detaches cleanly.
-- Action emit order: `waitBusEvent(...)` promise starts subscription before `emitClientIntent` (matches shared `requestWorkflowLoad` pattern).
-- `status$` is a `BehaviorSubject` in websocket-bridge — `readStatus` + `take(1)` is safe.
-- No barrels, no `interface`, no `withLatestFrom`, no domain logic belonging in server/tools.
-- `sanitizeToolName`, default `wait_event` mode=`latest`, and feed-tail docs match agent workflow in `docs/LANGFLOWER_MCP.md`.
-- `resolveWsUrl` reads shared transport defaults; no hard-coded protocol fork.
-- Pure feed fold functions in `execution-feed-tail.ts` are unit-tested independently of WS wiring.
-
-Return Status: Critical=0 Important=0 Suggestion=5
+- **LEDGER `legacy-wait-session-ready` — do not reopen.** Tool absent; catalog test forbids the name; ts-scan miss; AGENTS.md still bans a second `waitSessionReady` on the hot `session.ready` Subject.
+- **Historical closes still hold:** no `ACTION_EXCLUDE_GLOBS` (ts-scan miss); `emitClientIntent(ClientIntentKey)`; feed-tail tests use `RuntimeRunnerEvent`, not runtime `NodeId`; `interval(20)` poll is gone.
+- **`mcp-output-emitted-catalog-ghost` stayed fixed in this chunk.** Out-of-chunk `docs/LANGFLOWER_MCP.md` troubleshooting still says feed `input-received` — not filed here.
+- **HITL reply `wait: null`** — re-confirmed as the documented fire-and-forget contract (`ok` = emit, not accept). Not re-filed.
+- **Untyped `INTENT_WAIT_OVERRIDES`** — type hygiene only; not re-filed.
+- **`seqAdvanced$` is the race-safe cache-seq wait** for `wait_event` `mode=next`. Shared `waitBusEvent` is for action-tool correlation. Do not collapse the two.
+- **`runtime-event-types.ts` aliases vs importing runtime — production OK.**
+- **`generated/bridge-tool-meta.ts` — OK.** Codegen only; unused keys filtered at runtime.
+- **`execution-feed-tail.ts` — OK.** Snapshot-canonical + live `eventLog` appends; `applyFeedSnapshot` wiping `liveAppends` is correct when the snapshot is the full slice.
+- Exposure policy keeps `editor.*` out of tools. `assertToolMetaCoverage` + `intent-wait-map.test.ts` lock allowlist ↔ codegen ↔ wait override keys.
+- `cli.ts` composer order is explicit. Action emit order: `waitBusEvent(...)` subscription starts before `emitClientIntent`.
+- `status$` is a `BehaviorSubject` — `readStatus` + `take(1)` is safe; `session.ready` is not (BUG-2026-07-14).
+- Empty-payload waits (`list` / `save` / `create` / `interrupt`) remaining next-broadcast-wins is an ADR-024 accepted tradeoff.
+- No barrels, no `interface`, no `withLatestFrom`, no `index.ts`.
+- `sanitizeToolName` and default `wait_event` `mode=latest` match the intended host constraints.
+- Stdio parse swallow of malformed JSON is the existing ADR-039 dialect; previous report already covered `mcp-stdio-framing.ts` — not a new `fail-open-io`.

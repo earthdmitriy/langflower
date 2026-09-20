@@ -1,9 +1,9 @@
 import type {
 	ExecutionFeedSnapshotPayload,
-	ExecutionProgressStatus,
 	RunnerSnapshotPayload,
-} from '@langflower/shared/langflower.js';
-import { deriveExecutionProgressStatus } from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-bootstrap.js';
+import type { ExecutionProgressStatus } from '@langflower/shared/types/langflower-server.js';
+import { deriveExecutionProgressStatus } from '@langflower/shared/execution/derive-run-settle-outcome.js';
 import type {
 	RuntimeRunnerEvent,
 	RuntimeRunnerStatus,

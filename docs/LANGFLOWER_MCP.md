@@ -4,12 +4,12 @@ Dev-only MCP server (`@langflower/mcp`) so Cursor can **observe and drive a
 running local Langflower instance** over the internal WebSocket bus. Not a
 product API for end users.
 
-|                           |                                                                        |
-| ------------------------- | ---------------------------------------------------------------------- |
-| **ADR**                   | [ADR-024](ADR.md#adr-024--dev-mcp-control-plane-over-internal-ws-bus)  |
-| **Package**               | [`packages/langflower-mcp/`](../packages/langflower-mcp/AGENTS.md)     |
-| **Cursor config**         | [`.cursor/mcp.json`](../.cursor/mcp.json) — server id `langflower`     |
-| **Browser / screenshots** | [TBD-006](TBD.md#tbd-006--headless-ui-access-for-agents) (not shipped) |
+|                           |                                                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------- |
+| **ADR**                   | [ADR-024](architecture/ADR.md#adr-024--dev-mcp-control-plane-over-internal-ws-bus) |
+| **Package**               | [`packages/langflower-mcp/`](../packages/langflower-mcp/AGENTS.md)                 |
+| **Cursor config**         | [`.cursor/mcp.json`](../.cursor/mcp.json) — server id `langflower`                 |
+| **Browser / screenshots** | [TBD-006](TBD.md#tbd-006--headless-ui-access-for-agents) (not shipped)             |
 
 This is **not** the outbound MCP client used _inside_ workflows
 (`common-mcp-stdio` / `common-mcp-http` / system `mcp.servers` → `ToolHandle[]`).
@@ -52,6 +52,10 @@ Always start with:
 | ------------------ | ------------------------------------------------------------ |
 | `ensure_connected` | Lazy connect + wait for `session.ready`. Safe to call again. |
 
+There is **no** `wait_session_ready` tool. Do not add one: inbound
+`session.ready` is a non-replaying Subject, so a second wait after
+`ensure_connected` hangs.
+
 On success: `{ "wsUrl": "ws://127.0.0.1:4010/ws", "status": "ready" }`.
 
 Optional env / CLI (MCP process):
@@ -67,7 +71,6 @@ Optional env / CLI (MCP process):
 | ------------------------- | -------------------------------------------------------------- |
 | `wait_event`              | Snapshots / last cached bus frame                              |
 | `get_execution_feed_tail` | Live run telemetry (prefer this during/after `runner_start_*`) |
-| `wait_session_ready`      | Rare; usually covered by `ensure_connected`                    |
 
 ### `wait_event`
 
@@ -77,14 +80,14 @@ Optional env / CLI (MCP process):
 | `mode`      | **`latest` (default)** — return last cached frame, or wait until first. **`next`** — wait for a _newer_ frame after this call (easy to hang if the stream already finished). |
 | `timeoutMs` | Optional; shorter default for `mode=next`                                                                                                                                    |
 
-Do **not** use `mode=next` on `runner.output-emitted` after the stream may have
+Do **not** use `mode=next` on `runner.port` after the stream may have
 ended — use `get_execution_feed_tail` instead.
 
 ### `get_execution_feed_tail`
 
 Returns last N events from the **server feed projection**: last
 `executionFeed.snapshot.events` plus live appends of `eventLog` kinds only
-(`runner.output-emitted` / `input-received` / `done`). `status` comes from the
+(`runner.port` — direction `'in'` / `'out'` — and `runner.done`). `status` comes from the
 runner gate (`runner.snapshot` / start / interrupt / done) via
 `deriveExecutionProgressStatus` — e.g. interrupt → `stopped`, natural settle →
 `completed` / `failed` / …. Args: `{ "limit": 40 }`.
@@ -177,11 +180,14 @@ after rebuild + MCP restart.
 
 ## Stdio framing
 
-`@langflower/mcp` accepts both **Content-Length** (MCP SDK) and **newline
-JSON** (Cursor host / `@langflower/tools` mcp-stdio-client). Replies use the
-**same framing as the last inbound message** — do not force Content-Length-only
-responses (Cursor initialize will hang). After changing framing code, rebuild
-MCP and **restart** the Cursor MCP server `langflower`.
+`@langflower/mcp` accepts both **Content-Length** (MCP SDK; CRLF or LF
+header ends) and **newline JSON** (Cursor host / `@langflower/tools`
+mcp-stdio-client). Replies use the **same framing as the last inbound
+message** — do not force Content-Length-only responses (Cursor initialize
+will hang). After changing framing code, rebuild MCP and **restart** the
+Cursor MCP server `langflower`. Parse dialect is pinned against the tools
+client by `mcp-stdio-frame-parser.parity.test.ts` (DAG twins; do not merge
+packages).
 
 ## Troubleshooting
 

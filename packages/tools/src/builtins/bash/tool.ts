@@ -30,6 +30,7 @@ const invoke = async (
 			cwd,
 			shell: true,
 			windowsHide: true,
+			...(ctx.signal === undefined ? {} : { signal: ctx.signal }),
 		});
 		let stdout = '';
 		let stderr = '';

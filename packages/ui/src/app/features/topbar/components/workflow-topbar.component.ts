@@ -56,7 +56,7 @@ import {
 					type="text"
 					class="min-w-0 rounded-md border border-zinc-400 bg-white px-2 py-1 text-sm text-zinc-950 outline-none ring-2 ring-zinc-400/20 dark:border-zinc-500 dark:bg-zinc-950 dark:text-zinc-100"
 					[value]="renameDraft()"
-					(input)="renameDraft.set($any($event.target).value)"
+					(input)="handleRenameInput($event)"
 					(keydown.enter)="commitRename()"
 					(keydown.escape)="cancelRename()"
 					(blur)="commitRename()"
@@ -442,6 +442,14 @@ export class WorkflowTopbarComponent {
 	saveCurrent(): void {
 		this.bridge.raw['workflow.saveCurrent.requested'].next({});
 		this.showDeleteConfirm.set(false);
+	}
+
+	handleRenameInput(event: Event): void {
+		const target = event.target;
+		if (!(target instanceof HTMLInputElement)) {
+			return;
+		}
+		this.renameDraft.set(target.value);
 	}
 
 	startRename(): void {

@@ -48,7 +48,18 @@
 					"rolePreset": "custom",
 					"providerId": "",
 					"model": "",
-					"enabledToolIds": ["read", "glob", "grep"],
+					"toolPermissions": {
+						"read": "allow",
+						"glob": "allow",
+						"grep": "allow",
+						"edit": "deny",
+						"write": "deny",
+						"create": "deny",
+						"delete": "deny",
+						"move": "deny",
+						"bash": "deny",
+						"ask_user": "deny"
+					},
 					"maxIterations": 12,
 					"maxFeedbackTurns": 6
 				},
@@ -73,7 +84,18 @@
 					"rolePreset": "custom",
 					"providerId": "",
 					"model": "",
-					"enabledToolIds": ["read"],
+					"toolPermissions": {
+						"read": "allow",
+						"glob": "deny",
+						"grep": "deny",
+						"edit": "deny",
+						"write": "deny",
+						"create": "deny",
+						"delete": "deny",
+						"move": "deny",
+						"bash": "deny",
+						"ask_user": "deny"
+					},
 					"maxIterations": 8,
 					"contextSize": 32768,
 					"compactOnError": false

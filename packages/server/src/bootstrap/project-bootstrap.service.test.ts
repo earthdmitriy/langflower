@@ -100,6 +100,13 @@ describe('bootstrapProject', () => {
 			).isFile(),
 		).toBe(true);
 
+		const gitignore = await readUtf8(
+			path.join(langflowerDir, '.gitignore'),
+		);
+		expect(gitignore).toContain('.cache/');
+		expect(gitignore).toContain('logs/');
+		expect(gitignore).toContain('nodes/**/node_modules/');
+
 		expect(
 			(
 				await fs.stat(
@@ -255,20 +262,24 @@ describe('bootstrapProject', () => {
 			'workflows',
 			'starter.json',
 		);
+		const gitignorePath = path.join(langflowerDir, '.gitignore');
 
 		const readmeMarker = '# user-edited my-nodes readme\n';
 		const skillMarker = '# user-edited skill\n';
 		const starterMarker = '{"metadata":{"name":"user-starter"}}\n';
+		const gitignoreMarker = '# user-edited gitignore\n';
 
 		await fs.writeFile(readmePath, readmeMarker, 'utf8');
 		await fs.writeFile(skillPath, skillMarker, 'utf8');
 		await fs.writeFile(starterPath, starterMarker, 'utf8');
+		await fs.writeFile(gitignorePath, gitignoreMarker, 'utf8');
 
 		await bootstrapProject(projectDir, { mode: 'create' });
 
 		expect(await readUtf8(readmePath)).toBe(readmeMarker);
 		expect(await readUtf8(skillPath)).toBe(skillMarker);
 		expect(await readUtf8(starterPath)).toBe(starterMarker);
+		expect(await readUtf8(gitignorePath)).toBe(gitignoreMarker);
 	});
 
 	it('force mode overwrites skeleton templates without touching langflower.jsonc', async () => {
@@ -293,6 +304,7 @@ describe('bootstrapProject', () => {
 			'README.md',
 		);
 		const instructionsPath = path.join(langflowerDir, 'instructions.md');
+		const gitignorePath = path.join(langflowerDir, '.gitignore');
 		const configPath = path.join(langflowerDir, 'langflower.jsonc');
 		const userWorkflowPath = path.join(
 			langflowerDir,
@@ -314,6 +326,7 @@ describe('bootstrapProject', () => {
 		await fs.writeFile(skillPath, '# stale skill\n', 'utf8');
 		await fs.writeFile(readmePath, '# stale readme\n', 'utf8');
 		await fs.writeFile(instructionsPath, '# stale instructions\n', 'utf8');
+		await fs.writeFile(gitignorePath, '# stale gitignore\n', 'utf8');
 		await fs.writeFile(
 			configPath,
 			`${JSON.stringify(providerMarker, null, 2)}\n`,
@@ -341,6 +354,12 @@ describe('bootstrapProject', () => {
 
 		const instructions = await readUtf8(instructionsPath);
 		expect(instructions).not.toBe('# stale instructions\n');
+
+		const gitignore = await readUtf8(gitignorePath);
+		expect(gitignore).toContain('.cache/');
+		expect(gitignore).toContain('logs/');
+		expect(gitignore).toContain('nodes/**/node_modules/');
+		expect(gitignore).not.toContain('# stale gitignore');
 
 		expect(JSON.parse(await readUtf8(configPath))).toEqual(providerMarker);
 		expect(await readUtf8(userWorkflowPath)).toBe(

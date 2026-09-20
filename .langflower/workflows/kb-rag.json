@@ -89,6 +89,7 @@
 						"write": "deny",
 						"create": "deny",
 						"delete": "deny",
+						"move": "deny",
 						"bash": "deny"
 					}
 				},

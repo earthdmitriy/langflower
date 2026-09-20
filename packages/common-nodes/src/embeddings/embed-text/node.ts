@@ -1,6 +1,5 @@
 import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
 import { map, switchMap } from 'rxjs';
-import { getRunHostServices } from '../../ai/features/run-host-services.js';
 import { fromEmbedding } from '../from-embedding.js';
 import { resolveEmbeddingProviderModel } from '../resolve-embedding-provider-model.js';
 
@@ -52,6 +51,7 @@ Typical uses:
 - String → Embed text → Preview
 - Feed **vector** into Embed similarity
 `.trim(),
+	requires: ['embed'] as const,
 	uiSchema: embedPanelUiSchema,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
 		const text = makeInput<string>('text', {
@@ -73,16 +73,12 @@ Typical uses:
 			.pipeValue(
 				switchMap(({ rawText, ec }) =>
 					fromEmbedding(async (signal): Promise<EmbedTextSession> => {
-						const host = getRunHostServices(ec);
-						const create = host?.createEmbedding;
-						if (create === undefined) {
-							throw new Error(
-								'OpenAI-compatible embeddings are only available during server workflow runs',
-							);
-						}
-
+						const create = ec.embed;
 						const { providerId, model } =
-							resolveEmbeddingProviderModel(ec.params, host);
+							resolveEmbeddingProviderModel(
+								ec.params,
+								ec.defaultEmbedding,
+							);
 						const result = await create({
 							providerId,
 							model,

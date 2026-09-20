@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type {
-	CustomPaletteSnapshotPayload,
-	PaletteNodeDefinition,
-} from '@langflower/shared/langflower';
+import type { CustomPaletteSnapshotPayload } from '@langflower/shared/types/langflower-custom-palette';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import {
 	ADVANCED_CATEGORY,
 	advancedSubcategoryCollapseKey,

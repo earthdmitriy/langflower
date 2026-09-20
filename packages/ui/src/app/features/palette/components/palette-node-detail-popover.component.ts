@@ -9,20 +9,13 @@ import {
 	viewChild,
 	ElementRef,
 } from '@angular/core';
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import {
 	PALETTE_POPOVER_VIEWPORT_PAD_PX,
 	clampPopoverTop,
 } from '../utils/clamp-popover-top.js';
 import { PaletteNodePreviewComponent } from './palette-node-preview.component';
 import { renderNodeDescriptionMarkdown } from '../../../utils/render-markdown.js';
-
-type PaletteUiSchemaItem = {
-	readonly field: string;
-	readonly type: string;
-	readonly label?: string;
-	readonly placement?: 'panel' | 'inline';
-};
 
 export type PalettePopoverAnchor = {
 	readonly top: number;
@@ -126,9 +119,7 @@ export class PaletteNodeDetailPopoverComponent {
 			return [];
 		}
 
-		return (current.uiSchema as readonly PaletteUiSchemaItem[]).filter(
-			(item) => item.placement !== 'inline',
-		);
+		return current.uiSchema;
 	});
 
 	readonly descriptionHtml = computed(() => {

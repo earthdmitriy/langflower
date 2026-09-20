@@ -5,10 +5,11 @@
 
 ## Summary
 
-Appends `content` to a **project-relative** file via `ctx.files`. When the file
-already has text, inserts `delimiter` between existing content and the new
-chunk. Empty/missing file → write `content` only. Absolute paths rejected. No
-permission ask.
+Appends `content` to a **project-relative** file through the declared
+`paths` capability (`ec.denyPaths` → `createProjectFilesContext`). When the
+file already has text, inserts `delimiter` between existing content and the
+new chunk. Empty/missing file → write `content` only. Absolute paths
+rejected. No permission ask.
 
 ## Inputs
 

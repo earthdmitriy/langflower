@@ -37,6 +37,21 @@ export type InlineTextMultilineConfig = {
 	readonly minHeightPx?: number;
 };
 
+/**
+ * Object form of `'markdown'`: same grow contract as
+ * {@link InlineTextMultilineConfig}. Shorthand `'markdown'` equals
+ * `{ type: 'markdown', flex: 1 }`. Author-time editable field — idle view
+ * is rendered markdown; focus opens a textarea. Do not prefix with
+ * `preview` (that family is read-only live).
+ */
+export type InlineMarkdownConfig = {
+	readonly type: 'markdown';
+	/** Flex grow weight when the node is taller than content; `0` = no grow. */
+	readonly flex?: number;
+	/** Min height in px (default {@link DEFAULT_MULTILINE_MIN_HEIGHT_PX}). */
+	readonly minHeightPx?: number;
+};
+
 export type ResolvedMultilineInlineLayout = {
 	readonly flex: number;
 	readonly minHeightPx: number;
@@ -45,9 +60,9 @@ export type ResolvedMultilineInlineLayout = {
 /**
  * On-node editor kind for an input port.
  *
- * `'text'` / `'text-multiline'` / `'boolean'` / `'number'` / select-family
- * kinds edit the design-time literal (`node.inputs[portId]`) and are
- * disabled once an edge is wired into the port. `'preview'` /
+ * `'text'` / `'text-multiline'` / `'markdown'` / `'boolean'` / `'number'` /
+ * select-family kinds edit the design-time literal (`node.inputs[portId]`)
+ * and are disabled once an edge is wired into the port. `'preview'` /
  * `'preview-markdown'` / `'preview-code'` are read-only displays of the
  * **live** value received during execution (never disabled — there is no
  * editable state to disable).
@@ -55,11 +70,13 @@ export type ResolvedMultilineInlineLayout = {
 export type InlineConfig =
 	| 'text'
 	| 'text-multiline'
+	| 'markdown'
 	| 'boolean'
 	| 'preview'
 	| 'preview-markdown'
 	| 'preview-code'
 	| InlineTextMultilineConfig
+	| InlineMarkdownConfig
 	| {
 			readonly type: 'select' | 'multiselect' | 'radio';
 			readonly options: readonly InlineSelectOption[];
@@ -71,15 +88,18 @@ export type InlineConfig =
 			readonly step?: number;
 	  };
 
-/** Resolve multiline layout; `null` when `config` is not text-multiline. */
+/** Resolve multiline layout; `null` when `config` is not a grow multiline. */
 export const resolveMultilineInlineLayout = (
 	config: InlineConfig,
 ): ResolvedMultilineInlineLayout | null => {
-	if (config === 'text-multiline') {
+	if (config === 'text-multiline' || config === 'markdown') {
 		return { flex: 1, minHeightPx: DEFAULT_MULTILINE_MIN_HEIGHT_PX };
 	}
 
-	if (typeof config === 'object' && config.type === 'text-multiline') {
+	if (
+		typeof config === 'object' &&
+		(config.type === 'text-multiline' || config.type === 'markdown')
+	) {
 		return {
 			flex: config.flex ?? 1,
 			minHeightPx: config.minHeightPx ?? DEFAULT_MULTILINE_MIN_HEIGHT_PX,

@@ -1,4 +1,4 @@
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import type { HitlInputConfig } from '@langflower/node-sdk';
 import {
 	STEER_CONTROL_PORT_ID,
@@ -26,13 +26,17 @@ export const hitlControlsForNode = (
 ): readonly HitlControlProjection[] => {
 	return definition.inputsConfigs
 		.filter(
-			(entry): entry is PortInputConfig & { portId: string } =>
-				typeof entry.portId === 'string' && entry.hitl !== undefined,
+			(
+				entry,
+			): entry is PortInputConfig & {
+				readonly portId: string;
+				readonly hitl: HitlInputConfig;
+			} => typeof entry.portId === 'string' && entry.hitl !== undefined,
 		)
 		.map((entry) => ({
 			nodeId,
 			portId: entry.portId,
-			config: entry.hitl as HitlInputConfig,
+			config: entry.hitl,
 		}));
 };
 

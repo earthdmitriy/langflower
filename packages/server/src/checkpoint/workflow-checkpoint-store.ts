@@ -3,7 +3,7 @@ import path from 'node:path';
 import type {
 	WorkflowCheckpoint,
 	WorkflowCheckpointSummary,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/workflow-checkpoint.js';
 
 const CHECKPOINT_FILE = 'checkpoint.json';
 

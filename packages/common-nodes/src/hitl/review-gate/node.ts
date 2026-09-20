@@ -16,41 +16,34 @@ Typical uses:
 	uiSchema: [],
 	bind(_ctx, { makeInput, configureOutput }) {
 		const result = makeInput<string>('result', {
-			name: 'Result',
+			name: 'result',
 			wireType: 'string',
 			required: true,
 		});
 		const approve = makeInput<boolean>('approve', {
-			name: 'Approve',
+			name: 'approve',
 			wireType: 'boolean',
 			hidden: true,
 			hitl: {
 				title: 'Review result',
-				promptFrom: 'preview',
 				kind: 'button',
 				label: 'Approve',
 				payload: true,
 			},
 		});
 		const requestChanges = makeInput<string>('requestChanges', {
-			name: 'Request changes',
+			name: 'request changes',
 			wireType: 'string',
 			hidden: true,
 			hitl: {
 				title: 'Request changes',
-				promptFrom: 'preview',
 				kind: 'textarea',
 				placeholder: 'What should be improved?',
 				submitLabel: 'Send feedback',
 			},
 		});
 
-		// Passthrough pulls `result` (upstream edges stay live) and feeds HITL promptFrom.
-		const preview = configureOutput('preview', result, {
-			inferTypeFrom: result,
-			feed: { role: 'none' },
-		});
-
+		// `result.pipe` on both outs keeps the upstream edge live (BUG-2026-07-21d).
 		const response$ = result.pipe(withLoading()).pipeValue(
 			switchMap((reviewed: string) =>
 				approve.value$.pipe(
@@ -73,7 +66,6 @@ Typical uses:
 		return {
 			inputs: [result, approve, requestChanges],
 			outputs: [
-				preview,
 				// User answer is tracked by the HITL-configured inputs (approve /
 				// requestChanges → hitl-user). Protocol outs stay wired but omit from feed.
 				configureOutput('response', response$, {

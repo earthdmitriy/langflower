@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { graphHasCycle } from '../../runtime-helpers.js';
 import { createConstantTestNode } from '../nodes/constant-node.js';
 import { createDelayTestNode } from '../nodes/delay-node.js';
 import {
@@ -37,8 +36,6 @@ function createLinearScenario(): RuntimeHarness {
 describe('linear workflow (events$)', () => {
 	it('emits terminal delay output after chained delays', async () => {
 		const runtime = createLinearScenario();
-
-		expect(graphHasCycle(runtime.editor.getEdges())).toBe(false);
 
 		const startedAt = Date.now();
 		const runId = runtime.runner.start();

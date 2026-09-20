@@ -58,7 +58,7 @@ export const defaultLlmInventoryInputs = (
 		defaultValue: [],
 	});
 	const steerControl = make<SteerControlPayload>(STEER_CONTROL_PORT_ID, {
-		name: 'Steer',
+		name: 'steer',
 		wireType: 'any',
 		hidden: true,
 		// Must stay `single` (default): `RuntimeRunner.pushIntoInput` rejects

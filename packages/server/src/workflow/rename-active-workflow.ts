@@ -1,4 +1,4 @@
-import type { WorkflowLoadedPayload } from '@langflower/shared/langflower.js';
+import type { WorkflowLoadedPayload } from '@langflower/shared/types/langflower-workflow.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
 import { slugifyWorkflowId } from './workflow-id.js';
 import type { WorkflowService } from './workflow.service.js';

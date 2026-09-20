@@ -21,6 +21,7 @@ import {
 } from '../helpers/test-server.js';
 import { scenarioReadyById } from '../helpers/workflow-scenario-registry.js';
 import {
+	hitlChatLoopWorkflow,
 	hitlReviewApproveWorkflow,
 	hitlReviewFeedbackWorkflow,
 } from '../helpers/scenarios/hitl.js';
@@ -52,77 +53,111 @@ describe('execute HITL inputs (WS bridge)', () => {
 		await removeTempProject(projectDir);
 	});
 
-	describe.skipIf(!scenarioReadyById('hitl-review-approve'))(
-		'review approve',
-		() => {
-			it('approve button emits reviewed result on response port', async () => {
-				await seedWorkflowFromDisk(
-					client,
-					projectDir,
-					hitlReviewApproveWorkflow(),
-				);
+	describe('review approve', () => {
+		scenarioReadyById('hitl-review-approve');
 
-				const previewPromise = waitForRunnerOutput(client, {
-					nodeId: 'preview-1',
-					portId: 'text',
-					predicate: (value) => value === 'approved draft',
-				});
+		it('approve button emits reviewed result on response port', async () => {
+			await seedWorkflowFromDisk(
+				client,
+				projectDir,
+				hitlReviewApproveWorkflow(),
+			);
 
-				client['runner.start.requested'].next([]);
-				const runId = await firstValueFrom(
-					client['runner.started'].pipe(take(1)),
-				);
-
-				await sendHitlInput(
-					client,
-					{
-						nodeId: 'review-1',
-						portId: 'approve',
-						payload: true,
-					},
-					runId,
-				);
-
-				const preview = await previewPromise;
-				expect(preview[3].value).toBe('approved draft');
+			const previewPromise = waitForRunnerOutput(client, {
+				nodeId: 'preview-1',
+				portId: 'text',
+				predicate: (value) => value === 'approved draft',
 			});
-		},
-	);
 
-	describe.skipIf(!scenarioReadyById('hitl-review-feedback'))(
-		'review feedback',
-		() => {
-			it('request-changes textarea emits feedback port', async () => {
-				await seedWorkflowFromDisk(
-					client,
-					projectDir,
-					hitlReviewFeedbackWorkflow(),
-				);
+			client['runner.start.requested'].next([]);
+			const runId = await firstValueFrom(
+				client['runner.started'].pipe(take(1)),
+			);
 
-				const previewPromise = waitForRunnerOutput(client, {
-					nodeId: 'preview-1',
-					portId: 'text',
-					predicate: (value) => value === 'fix the intro',
-				});
+			await sendHitlInput(
+				client,
+				{
+					nodeId: 'review-1',
+					portId: 'approve',
+					payload: true,
+				},
+				runId,
+			);
 
-				client['runner.start.requested'].next([]);
-				const runId = await firstValueFrom(
-					client['runner.started'].pipe(take(1)),
-				);
+			const preview = await previewPromise;
+			expect(preview[3].value).toBe('approved draft');
+		});
+	});
 
-				await sendHitlInput(
-					client,
-					{
-						nodeId: 'review-1',
-						portId: 'requestChanges',
-						payload: 'fix the intro',
-					},
-					runId,
-				);
+	describe('review feedback', () => {
+		scenarioReadyById('hitl-review-feedback');
 
-				const preview = await previewPromise;
-				expect(preview[3].value).toBe('fix the intro');
+		it('request-changes textarea emits feedback port', async () => {
+			await seedWorkflowFromDisk(
+				client,
+				projectDir,
+				hitlReviewFeedbackWorkflow(),
+			);
+
+			const previewPromise = waitForRunnerOutput(client, {
+				nodeId: 'preview-1',
+				portId: 'text',
+				predicate: (value) => value === 'fix the intro',
 			});
-		},
-	);
+
+			client['runner.start.requested'].next([]);
+			const runId = await firstValueFrom(
+				client['runner.started'].pipe(take(1)),
+			);
+
+			await sendHitlInput(
+				client,
+				{
+					nodeId: 'review-1',
+					portId: 'requestChanges',
+					payload: 'fix the intro',
+				},
+				runId,
+			);
+
+			const preview = await previewPromise;
+			expect(preview[3].value).toBe('fix the intro');
+		});
+	});
+
+	describe('chat loop', () => {
+		scenarioReadyById('hitl-chat-loop');
+
+		it('Send emits the reply on feedback', async () => {
+			await seedWorkflowFromDisk(
+				client,
+				projectDir,
+				hitlChatLoopWorkflow(),
+			);
+
+			const previewPromise = waitForRunnerOutput(client, {
+				nodeId: 'preview-1',
+				portId: 'text',
+				predicate: (value) => value === 'hello back',
+			});
+
+			client['runner.start.requested'].next([]);
+			const runId = await firstValueFrom(
+				client['runner.started'].pipe(take(1)),
+			);
+
+			await sendHitlInput(
+				client,
+				{
+					nodeId: 'loop-1',
+					portId: 'message',
+					payload: 'hello back',
+				},
+				runId,
+			);
+
+			const preview = await previewPromise;
+			expect(preview[3].value).toBe('hello back');
+		});
+	});
 });

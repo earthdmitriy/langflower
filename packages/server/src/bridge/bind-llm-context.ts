@@ -4,7 +4,7 @@ import {
 	type OpenAiProviderCredentials,
 } from '@langflower/common-nodes/ai/openai/create-chat-completion-stream';
 import { listProviderModels as listOpenAiProviderModels } from '@langflower/common-nodes/ai/openai/list-provider-models';
-import type { ProviderModelEntry } from '@langflower/shared/langflower.js';
+import type { ProviderModelEntry } from '@langflower/shared/types/langflower-config.js';
 import type { LangflowerConfigService } from '../config/langflower-config.service.js';
 import { resolveProviderCredentials } from '../config/resolve-provider-credentials.js';
 

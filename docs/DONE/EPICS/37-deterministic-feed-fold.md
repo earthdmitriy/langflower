@@ -1,11 +1,17 @@
 # Epic 37 — Deterministic feed-folding abstraction (UI)
 
-**Status:** queued  
+**Status:** landed  
 **Depends on:** —  
 **Index:** [README.md](README.md)  
 **Source:** retired note `docs/TODO/deterministic-feed-fold.md` (folded into this epic)  
 **Feeds:** [grok-feed](../../use-cases/grok-feed.md), [hitl-chat](../../features/hitl-chat.md)
 (foundation only — no Status flip in this epic)
+
+**Follow-up (landed after this epic):** the live work-log reads
+`ExecutionFeedService.feedRows$` (`features/feed/` + `feed-folding/`).
+There is no second live fold and no remaining “switch UI feed” epic.
+The **Out of scope** list below is historical AC for epic 37 only — do not
+restore `feed-section.ts`, `feed-timeline`, or `createFeedState$`.
 
 ## Goal
 
@@ -78,7 +84,7 @@ subscription, a `Subject`, or an independently accumulated mirror.
 - TDD: write failing cases first (HITL/steer interleave, multi-port, multi-node,
   snapshot replay identity), then implement.
 - **Custom RxJS `OperatorFunction`s are the unit of work** (see
-  [REACTIVITY](../../REACTIVITY.md) § Custom RxJS operators) — not a single
+  [REACTIVITY](../../architecture/REACTIVITY.md) § Custom RxJS operators) — not a single
   imperative `bucketEvents` helper wrapped in `map`. Compose them in one
   public pipe (`foldPortEventsToNodeFeed`); tests may target operators alone
   or the composer.
@@ -428,8 +434,8 @@ render as secondary `data`, do not heuristically pair by adjacent text.
 
 ### Unit of work: custom RxJS operators
 
-Per [REACTIVITY](../../REACTIVITY.md) § Custom RxJS operators and
-[PRINCIPLES](../../PRINCIPLES.md): reusable stream transforms are
+Per [REACTIVITY](../../architecture/REACTIVITY.md) § Custom RxJS operators and
+[PRINCIPLES](../../architecture/PRINCIPLES.md): reusable stream transforms are
 `OperatorFunction`s used inside `pipe`, **not** `(events) => …` bucket helpers
 and **not** `(stream$) => stream$.pipe(…)` wrappers.
 
@@ -794,10 +800,9 @@ Prefer one test file per operator; composer tests own cross-cutting invariants.
 | Docs use-case Status / feed-panel product copy                    | **No**               | Optional one-line pointer in epic index only                               |
 | Integration / WS tests                                            | **No**               | Unit-only for this abstraction                                             |
 
-**Follow-up (not this epic):** switch UI feed to `foldPortEventsToNodeFeed`,
-map `NodeFeedItem` → today’s `FeedState` / timeline, delete obsolete fold
-paths. Track separately (e.g. revive [feed-refactor.md](../feed-refactor.md)
-as its own epic when ready).
+**Follow-up (landed after this epic):** live work-log is
+`ExecutionFeedService.feedRows$`. Do not revive `feed-refactor.md` or
+re-author `feed-section` / `createFeedState$`.
 
 ---
 

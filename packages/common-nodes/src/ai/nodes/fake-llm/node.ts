@@ -15,6 +15,7 @@ import {
 	runAgentLoop,
 	type ToolLoopChunk,
 } from '../../features/llm-loop/run-agent-loop.js';
+import { isHostBoundChatFactory } from '../../features/openai/create-chat-completion-stream.js';
 import { DISABLED_COMPACTION_CONFIG } from '../../features/openai/normalize-compaction-params.js';
 import type { ToolHandle } from '@langflower/node-sdk';
 import {
@@ -22,7 +23,6 @@ import {
 	parseScriptedTurns,
 	type ScriptedTurn,
 } from '../../features/scripted-chat-completion-stream.js';
-import { getRunHostServices } from '../../features/run-host-services.js';
 
 type FakeLlmChunk =
 	{ readonly kind: 'reasoning'; readonly text: string } | ToolLoopChunk;
@@ -30,7 +30,7 @@ type FakeLlmChunk =
 type FakeLlmContext = LlmAgentInventoryContext & {
 	readonly tokenDelayMs: number;
 	readonly scriptedTurns: readonly ScriptedTurn[] | undefined;
-	readonly completionFactory: CreateChatCompletionStream | undefined;
+	readonly completionFactory: CreateChatCompletionStream;
 };
 
 type FakeLlmBundle = FakeLlmContext & {
@@ -200,18 +200,20 @@ const runFakeToolLoopCycle = (
 const resolveSessionFactory = (
 	context: FakeLlmContext,
 ): CreateChatCompletionStream | undefined =>
-	// Scripted turns own the loop when present (do not prefer a server-bound
-	// OpenAI factory over the script). Injected EC factory is for unit tests
-	// only — server omits createChatCompletionStream for this node type.
+	// Scripted turns own the loop. Host-bound OpenAI chat is always on
+	// ctx (defineLlmNode) but imitate stays the default. Unmarked
+	// factories are test-injected canaries.
 	context.scriptedTurns !== undefined
 		? createScriptedFactory(context.scriptedTurns)
-		: context.completionFactory;
+		: isHostBoundChatFactory(context.completionFactory)
+			? undefined
+			: context.completionFactory;
 
 /**
  * Deterministic LLM stand-in for demos / feed UX. Supports an optional
  * scripted tool-loop (`scriptedToolTurns` or injected `createChatCompletionStream`)
- * that invokes `ctx.harness` like openai-llm.
- * @see docs/ADR.md ADR-016
+ * that invokes `ToolHandle.invoke` like openai-llm (not `ctx.harness`).
+ * @see docs/architecture/ADR.md ADR-016
  */
 export const fakeLlmNode = defineLlmNode({
 	type: 'common-fake-llm',
@@ -251,13 +253,12 @@ Typical uses:
 				scriptedTurns: parseScriptedTurns(
 					ec.params['scriptedToolTurns'],
 				),
-				completionFactory:
-					getRunHostServices(ec)?.createChatCompletionStream,
+				completionFactory: ec.chat,
 			}),
 			prepareSession: (context) => {
 				const useToolLoop =
 					context.scriptedTurns !== undefined ||
-					context.completionFactory !== undefined;
+					!isHostBoundChatFactory(context.completionFactory);
 				const systemWithTools = appendToolInventory(
 					context.effectiveSystemPrompt,
 					context.tools,

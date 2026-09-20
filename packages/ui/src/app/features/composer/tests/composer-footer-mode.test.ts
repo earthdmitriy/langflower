@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveComposerFooterMode } from '../composer-footer-mode';
 
-describe('composer-footer-mode (epic 35)', () => {
+describe('composer-footer-mode', () => {
 	it('working mode when running with no HITL — Pause chrome in working footer', () => {
 		expect(
 			resolveComposerFooterMode({

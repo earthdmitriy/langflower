@@ -9,7 +9,8 @@ export type CustomPaletteCompilationStatus =
 
 /**
  * One pack / entry failure — same diagnostics written to that pack's
- * `COMPILATION_ERRORS.md`.
+ * `COMPILATION_ERRORS.md`. WS copy of compiler `CompilePackError`
+ * ([ADR-039](../../../docs/architecture/ADR.md#adr-039--dag-forced-twins-stay-copies-until-the-dag-flips)).
  */
 export type CustomPalettePackError = {
 	readonly packageName: string;
@@ -25,6 +26,8 @@ export type CustomPaletteSnapshotPayload = {
 	readonly nodes: readonly PaletteNodeDefinition[];
 	readonly errors: readonly CustomPalettePackError[];
 	readonly status: CustomPaletteCompilationStatus;
+	/** Present when this compile was requested with a matching `requestId`. */
+	readonly requestId?: string;
 };
 
 /**
@@ -33,4 +36,6 @@ export type CustomPaletteSnapshotPayload = {
  */
 export type CustomPaletteUpdateRequestedPayload = {
 	readonly force?: boolean;
+	/** Correlate the resulting `customPalette.snapshot` to this request. */
+	readonly requestId?: string;
 };

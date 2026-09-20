@@ -6,7 +6,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { filter, firstValueFrom, of } from 'rxjs';
-import { attachRunHostServices } from '../../features/run-host-services.js';
+import { attachRunHostServices } from '../../../run-host/run-host-services.js';
+import { testLlmCapFields } from '../../features/test-llm-caps.js';
 import { stringNode } from '../../../primitives/string/node.js';
 import { fakeLlmNode } from './node.js';
 
@@ -109,6 +110,7 @@ describe('common-fake-llm tool loop', () => {
 							projectDir,
 							runId: 'test',
 							nodeId: 'llm-1',
+							...testLlmCapFields(),
 							params: {
 								tokenDelayMs: 0,
 								scriptedToolTurns: [

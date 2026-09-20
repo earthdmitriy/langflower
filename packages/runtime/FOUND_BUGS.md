@@ -1,7 +1,7 @@
 # Runtime v2 — found bugs log
 
 Append-only record of **reproduced bugs** in {@link Runtime} (v2 prototype).
-Parent log: [`docs/FOUND_BUGS.md`](../../../../docs/FOUND_BUGS.md).
+Parent log: [`docs/FOUND_BUGS.md`](../../docs/FOUND_BUGS.md).
 
 Spec: [`spec.md`](./spec.md) · Lifecycle tests: [`testing/lyfecycle/lyfecycle.lifecycle.test.ts`](./testing/lyfecycle/lyfecycle.lifecycle.test.ts)
 

@@ -13,8 +13,7 @@ import {
 	viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import type { DividerPositions } from '@langflower/shared/langflower';
-import { tap } from 'rxjs';
+import type { DividerPositions } from '@langflower/shared/types/langflower-bootstrap';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
 import { EditorSettingsProjectionService } from '../../../services/editor-settings-projection.service';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
@@ -26,7 +25,7 @@ import { LfCanvasContainerComponent } from '../../canvas/components/lf-canvas-co
 import { LfComposerShellComponent } from '../../composer/components/lf-composer-shell.component';
 import { LfWorkLogPanelComponent } from '../../feed/components/lf-work-log-panel.component';
 import { PaletteSidebarComponent } from '../../palette/components/palette-sidebar.component';
-import { EditorPaletteVisibleProjectionService } from '../../palette/services/editor-palette-visible-projection.service';
+import { EditorPaletteVisibleProjectionService } from '../../../services/editor-palette-visible-projection.service';
 import { LfInspectorPanelComponent } from '../../sidebar/components/lf-inspector-panel.component';
 import { LfSettingsPanelComponent } from '../../sidebar/components/lf-settings-panel.component';
 import { ProjectDirComponent } from '../../topbar/components/project-dir.component';
@@ -181,7 +180,7 @@ type MeasuredLayout = {
 				</div>
 			</header>
 
-			@if (sessionSnapshot$ | async; as sessionSnapshot) {
+			@if (sessionSnapshot(); as sessionSnapshot) {
 				@let paletteVisible = paletteVisible$ | async;
 				<div #editorRow class="flex min-h-0 flex-1">
 					@if (paletteVisible === true) {
@@ -271,12 +270,13 @@ type MeasuredLayout = {
 
 						<button
 							type="button"
-							aria-label="Resize awaiting-input panel"
+							aria-label="Resize composer panel"
 							class="h-1 cursor-row-resize bg-zinc-200 transition hover:bg-zinc-400 dark:bg-zinc-800 dark:hover:bg-zinc-500"
 							(pointerdown)="startResize($event, 'composer')"
 						></button>
 
 						<lf-composer-shell
+							#composerHost
 							[height]="
 								composerHeight() ??
 								sessionSnapshot.dividerPositions.composerHeight
@@ -300,28 +300,21 @@ export class EditorShellComponent {
 		viewChild<ElementRef<HTMLElement>>('leftAside');
 	private readonly rightAside =
 		viewChild<ElementRef<HTMLElement>>('rightAside');
+	private readonly composerHost = viewChild('composerHost', {
+		read: ElementRef,
+	});
 	private layoutObserver: ResizeObserver | null = null;
 	private persistTimer: ReturnType<typeof setTimeout> | null = null;
 	private serverPoke: WsServerPokeHandle | null = null;
 	private lastSessionLeftWidth = 280;
 
 	/**
-	 * Real bootstrap fact — layout mounts only after async materializes this.
-	 * Clear local overrides so the template alias is the source of truth again
+	 * Real bootstrap fact — layout mounts only after this snapshot exists.
+	 * Clear local overrides so first paint uses dividerPositions again
 	 * (reconnect / fresh session.dividerPositions).
 	 */
-	readonly sessionSnapshot$ = this.bridge.cached[
-		'session.state.snapshot'
-	].pipe(
-		tap((snapshot) => {
-			this.lastSessionLeftWidth = snapshot.dividerPositions.leftWidth;
-			if (this.activeResize() !== null) {
-				return;
-			}
-			this.leftWidth.set(null);
-			this.rightWidth.set(null);
-			this.composerHeight.set(null);
-		}),
+	readonly sessionSnapshot = toSignal(
+		this.bridge.cached['session.state.snapshot'],
 	);
 
 	readonly connectionStatus = toSignal(this.bridge.raw.status$, {
@@ -352,6 +345,23 @@ export class EditorShellComponent {
 	readonly paletteVisible$ = this.paletteChrome.paletteVisible$;
 
 	constructor() {
+		effect(() => {
+			const snapshot = this.sessionSnapshot();
+			if (snapshot === undefined) {
+				return;
+			}
+
+			untracked(() => {
+				this.lastSessionLeftWidth = snapshot.dividerPositions.leftWidth;
+				if (this.activeResize() !== null) {
+					return;
+				}
+				this.leftWidth.set(null);
+				this.rightWidth.set(null);
+				this.composerHeight.set(null);
+			});
+		});
+
 		// Warm config / models-catalog projections before Inspector mounts.
 		// Selection / settings are warmed by field injects.
 		inject(LangflowerConfigProjectionService);
@@ -374,7 +384,7 @@ export class EditorShellComponent {
 
 			untracked(() => {
 				this.attachLayoutObserver();
-				this.reclampToViewport(true);
+				this.reclampToViewport(false);
 			});
 		});
 
@@ -401,7 +411,7 @@ export class EditorShellComponent {
 		});
 	}
 
-	reloadPage(): void {
+	private reloadPage(): void {
 		window.location.reload();
 	}
 
@@ -542,8 +552,7 @@ export class EditorShellComponent {
 			return override;
 		}
 
-		const aside = this.rightAside()?.nativeElement;
-		const composer = aside?.lastElementChild as HTMLElement | undefined;
+		const composer = this.composerHost()?.nativeElement;
 		return composer?.clientHeight ?? null;
 	}
 
@@ -608,6 +617,9 @@ export class EditorShellComponent {
 		if (layout === null || current === null) {
 			return;
 		}
+		if (layout.rowWidth <= 0 || layout.rightAsideHeight <= 0) {
+			return;
+		}
 
 		const next = clampDividerPositionsToViewport(current, layout);
 
@@ -652,6 +664,15 @@ export class EditorShellComponent {
 	}
 
 	private persistDividers(): void {
+		const layout = this.readLayout();
+		if (
+			layout === null ||
+			layout.rowWidth <= 0 ||
+			layout.rightAsideHeight <= 0
+		) {
+			return;
+		}
+
 		const positions = this.currentDividerPositions();
 		if (positions === null) {
 			return;

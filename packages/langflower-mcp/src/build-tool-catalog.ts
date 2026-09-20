@@ -1,6 +1,9 @@
 import { BRIDGE_TOOL_META } from './generated/bridge-tool-meta.js';
 import { resolveWaitEvent } from './intent-wait-map.js';
-import { listActionIntents } from './list-action-intents.js';
+import {
+	listActionIntents,
+	type ClientIntentKey,
+} from './list-action-intents.js';
 import { OBSERVE_EVENT_KEYS } from './mcp-exposure-policy.js';
 import { sanitizeToolName } from './sanitize-tool-name.js';
 
@@ -9,7 +12,7 @@ export type McpToolDefinition = {
 	readonly description: string;
 	readonly inputSchema: Readonly<Record<string, unknown>>;
 	readonly kind: 'action' | 'curated';
-	readonly intent?: string;
+	readonly intent?: ClientIntentKey;
 	readonly waitEvent?: string | null;
 };
 
@@ -25,19 +28,9 @@ const CURATED_TOOLS: readonly McpToolDefinition[] = [
 		kind: 'curated',
 	},
 	{
-		name: 'wait_session_ready',
-		description:
-			'Wait until the WS client is connected and session.ready has been received.',
-		inputSchema: {
-			type: 'object',
-			additionalProperties: false,
-		},
-		kind: 'curated',
-	},
-	{
 		name: 'wait_event',
 		description:
-			'Read/wait for a server→client bus event. Default mode=latest returns the last cached frame (safe for telemetry). mode=next waits for a newer frame and times out if the stream already finished — avoid for runner.output-emitted after the fact; use get_execution_feed_tail instead.',
+			'Read/wait for a server→client bus event. Default mode=latest returns the last cached frame (safe for telemetry). mode=next waits for a newer frame and times out if the stream already finished — avoid for runner.port after the fact; use get_execution_feed_tail instead.',
 		inputSchema: {
 			type: 'object',
 			properties: {
@@ -61,7 +54,7 @@ const CURATED_TOOLS: readonly McpToolDefinition[] = [
 	{
 		name: 'get_execution_feed_tail',
 		description:
-			'Return the last N events from executionFeed.snapshot plus live eventLog appends (output-emitted / input-received / done). Status from runner gate (snapshot / start / interrupt / done). Prefer this over wait_event(runner.output-emitted).',
+			'Return the last N events from executionFeed.snapshot plus live eventLog appends (runner.port with direction in/out, plus done). Status from runner gate (snapshot / start / interrupt / done). Prefer this over wait_event(runner.port).',
 		inputSchema: {
 			type: 'object',
 			properties: {

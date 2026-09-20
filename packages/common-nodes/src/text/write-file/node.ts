@@ -1,7 +1,6 @@
 import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
 import { createProjectFilesContext } from '@langflower/tools/create-project-files-context';
 import { from, map, mergeMap, throwError } from 'rxjs';
-import { getRunHostServices } from '../../ai/features/run-host-services.js';
 
 /**
  * Overwrite a project-relative text file via `createProjectFilesContext` (no permission ask).
@@ -17,6 +16,7 @@ Typical uses:
 - Save an LLM draft
 - Persist a generated config
 `.trim(),
+	requires: ['paths'] as const,
 	uiSchema: [] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
 		const pathInput = makeInput<string>('path', {
@@ -53,10 +53,9 @@ Typical uses:
 						);
 					}
 
-					const denyPaths = getRunHostServices(ec)?.denyPaths;
 					const files = createProjectFilesContext({
 						projectRoot: ec.projectDir,
-						...(denyPaths !== undefined ? { denyPaths } : {}),
+						denyPaths: ec.denyPaths,
 					});
 
 					return from(files.write(filePath, fileContent)).pipe(

@@ -1,10 +1,70 @@
-import { getRunHostServices } from '@langflower/common-nodes/ai/run-host-services';
+import { getCommonReactiveNode } from '@langflower/common-nodes';
+import { getRunHostServices } from '@langflower/common-nodes/run-host-services';
+import {
+	contextSymbol,
+	type NodeCapabilityId,
+	type ReactiveNodeDefinition,
+} from '@langflower/node-sdk';
+import * as projectHarness from '@langflower/tools/create-project-harness';
+import * as systemMcp from '@langflower/tools/create-system-mcp-handles';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { firstValueFrom } from 'rxjs';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LangflowerConfigService } from '../config/langflower-config.service.js';
-import { buildExecutionContext } from './build-execution-context.js';
+import * as providerCredentials from '../config/resolve-provider-credentials.js';
+import {
+	buildContextSeeds,
+	buildExecutionContext,
+} from './build-execution-context.js';
+
+const ctxChat = (
+	ctx: object,
+):
+	| ((request: {
+			readonly providerId: string;
+			readonly model: string;
+			readonly messages: readonly {
+				readonly role: string;
+				readonly content: string;
+			}[];
+	  }) => Promise<unknown>)
+	| undefined => {
+	const chat = (ctx as { readonly chat?: unknown }).chat;
+	return typeof chat === 'function'
+		? (chat as (request: {
+				readonly providerId: string;
+				readonly model: string;
+				readonly messages: readonly {
+					readonly role: string;
+					readonly content: string;
+				}[];
+			}) => Promise<unknown>)
+		: undefined;
+};
+
+const definitionWithRequires = (
+	requires: readonly NodeCapabilityId[],
+): ReactiveNodeDefinition =>
+	({
+		type: 'test-caps',
+		displayName: 'test-caps',
+		requires,
+		uiSchema: [],
+		inputsConfigs: [],
+		outputsConfigs: [],
+		bypassPorts: {},
+		emitOncePerActivation: false,
+		stopsRun: false,
+		chatEntry: false,
+		getInstance: () => {
+			throw new Error('unused');
+		},
+	}) as ReactiveNodeDefinition;
+
+const resolveRequires = (requires: readonly NodeCapabilityId[]) => () =>
+	definitionWithRequires(requires);
 
 describe('buildExecutionContext', () => {
 	let projectDir: string;
@@ -34,7 +94,7 @@ describe('buildExecutionContext', () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['promptContext']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -48,8 +108,10 @@ describe('buildExecutionContext', () => {
 		);
 
 		expect(getRunHostServices(ctx)?.skillMarkdown).toBe('fresh-skill-body');
+		expect((ctx as { readonly skillMarkdown?: string }).skillMarkdown).toBe(
+			'fresh-skill-body',
+		);
 		expect(ctx).not.toHaveProperty('readSkillMarkdown');
-		expect(ctx).not.toHaveProperty('skillMarkdown');
 	});
 
 	it('loads skillMarkdown from rolePreset default when skillId empty', async () => {
@@ -69,7 +131,7 @@ describe('buildExecutionContext', () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['promptContext']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -95,7 +157,7 @@ describe('buildExecutionContext', () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['promptContext']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -111,7 +173,9 @@ describe('buildExecutionContext', () => {
 		expect(getRunHostServices(ctx)?.agentsMarkdown).toBe(
 			'# Root agents\nBe careful.',
 		);
-		expect(ctx).not.toHaveProperty('agentsMarkdown');
+		expect(
+			(ctx as { readonly agentsMarkdown?: string }).agentsMarkdown,
+		).toBe('# Root agents\nBe careful.');
 	});
 
 	it('omits agentsMarkdown when includeAgentsMd is false or unset', async () => {
@@ -124,7 +188,7 @@ describe('buildExecutionContext', () => {
 		const off = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['promptContext']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -139,7 +203,7 @@ describe('buildExecutionContext', () => {
 		const unset = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['promptContext']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -160,7 +224,7 @@ describe('buildExecutionContext', () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['promptContext']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -180,7 +244,7 @@ describe('buildExecutionContext', () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['chat']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -193,9 +257,7 @@ describe('buildExecutionContext', () => {
 			},
 		);
 
-		expect(typeof getRunHostServices(ctx)?.createChatCompletionStream).toBe(
-			'function',
-		);
+		expect(typeof ctxChat(ctx)).toBe('function');
 		expect(JSON.stringify(ctx)).not.toMatch(/apiKey|sk-/);
 		expect(ctx).not.toHaveProperty('createChatCompletionStream');
 	});
@@ -212,7 +274,7 @@ describe('buildExecutionContext', () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['secrets']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 					isolatedGlobal,
@@ -230,7 +292,6 @@ describe('buildExecutionContext', () => {
 			API_TOKEN: 'sk-secret-value',
 		});
 		expect(JSON.stringify(ctx)).not.toMatch(/sk-secret-value|API_TOKEN/);
-		expect(ctx).not.toHaveProperty('secrets');
 	});
 
 	it('injects defaultChat from effective LangflowerConfig.model', async () => {
@@ -250,7 +311,7 @@ describe('buildExecutionContext', () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['promptContext']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 					isolatedGlobal,
@@ -293,7 +354,7 @@ describe('buildExecutionContext', () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['embed']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 					isolatedGlobal,
@@ -318,11 +379,22 @@ describe('buildExecutionContext', () => {
 		expect(ctx).not.toHaveProperty('createEmbedding');
 	});
 
-	it('omits createChatCompletionStream for Fake LLM (imitate path)', async () => {
+	it('injects chat for an LLM node that declares no extra requires', async () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: (node) =>
+					getCommonReactiveNode(node.type) ??
+					definitionWithRequires([
+						'chat',
+						'tools',
+						'promptContext',
+						'permissionAsk',
+						'liveTools',
+						'paths',
+						'hosts',
+						'authorize',
+					]),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -333,21 +405,27 @@ describe('buildExecutionContext', () => {
 				type: 'common-fake-llm',
 				params: {},
 			},
+			{
+				runId: 'run-1',
+				nodeId: 'node-1',
+				requestPermission: async () => 'allow' as const,
+				emitPermissionAsk: () => undefined,
+				emitPermissionAccepted: () => undefined,
+				requestAskUser: async () => '',
+				emitAskUserAsk: () => undefined,
+				getLiveWiredTools: () => [],
+			},
 		);
 
-		expect(
-			getRunHostServices(ctx)?.createChatCompletionStream,
-		).toBeUndefined();
-		expect(typeof getRunHostServices(ctx)?.createEmbedding).toBe(
-			'function',
-		);
+		expect(typeof ctxChat(ctx)).toBe('function');
+		expect(ctx.toolHandles?.length).toBeGreaterThan(0);
 	});
 
 	it('injects toolHandles from @langflower/tools', async () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['tools']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -383,7 +461,7 @@ describe('buildExecutionContext', () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['tools']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -402,6 +480,9 @@ describe('buildExecutionContext', () => {
 		expect(ctx.toolHandles?.map((handle) => handle.toolId)).toContain(
 			'ask_user',
 		);
+		expect(ctx.toolHandles?.map((handle) => handle.toolId)).toContain(
+			'sleep',
+		);
 
 		const writeHandle = ctx.toolHandles?.find(
 			(handle) => handle.toolId === 'write',
@@ -417,7 +498,7 @@ describe('buildExecutionContext', () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['tools']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -436,6 +517,7 @@ describe('buildExecutionContext', () => {
 					return 'deny';
 				},
 				emitPermissionAsk: () => undefined,
+				emitPermissionAccepted: () => undefined,
 				requestAskUser: async () => '',
 				emitAskUserAsk: () => undefined,
 			},
@@ -451,7 +533,7 @@ describe('buildExecutionContext', () => {
 		expect(asks).toEqual(['bash']);
 	});
 
-	it('attaches requestLangflowerBus only on Langflower Tools', async () => {
+	it('attaches requestLangflowerBus from harness hooks onto RunHostServices', async () => {
 		const requestLangflowerBus = async () => ({
 			status: 'ok',
 		});
@@ -459,7 +541,7 @@ describe('buildExecutionContext', () => {
 		const llmCtx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires([]),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -475,6 +557,7 @@ describe('buildExecutionContext', () => {
 				nodeId: 'node-1',
 				requestPermission: async () => 'allow' as const,
 				emitPermissionAsk: () => undefined,
+				emitPermissionAccepted: () => undefined,
 				requestAskUser: async () => '',
 				emitAskUserAsk: () => undefined,
 				requestLangflowerBus,
@@ -483,7 +566,7 @@ describe('buildExecutionContext', () => {
 		const toolsCtx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['editorBus']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -499,6 +582,7 @@ describe('buildExecutionContext', () => {
 				nodeId: 'lf-tools-1',
 				requestPermission: async () => 'allow' as const,
 				emitPermissionAsk: () => undefined,
+				emitPermissionAccepted: () => undefined,
 				requestAskUser: async () => '',
 				emitAskUserAsk: () => undefined,
 				requestLangflowerBus,
@@ -519,7 +603,7 @@ describe('buildExecutionContext', () => {
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires(['liveTools']),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -535,6 +619,7 @@ describe('buildExecutionContext', () => {
 				nodeId: 'node-1',
 				requestPermission: async () => 'allow' as const,
 				emitPermissionAsk: () => undefined,
+				emitPermissionAccepted: () => undefined,
 				requestAskUser: async () => '',
 				emitAskUserAsk: () => undefined,
 				getLiveWiredTools,
@@ -546,13 +631,13 @@ describe('buildExecutionContext', () => {
 		);
 	});
 
-	it('does not attach getLiveWiredTools on non-agent nodes', async () => {
+	it('does not attach liveTools on nodes that do not declare it', async () => {
 		const getLiveWiredTools = () => [];
 
 		const ctx = await buildExecutionContext(
 			{
 				projectDir,
-				resolveDefinition: () => undefined,
+				resolveDefinition: resolveRequires([]),
 				langflowerConfigService: new LangflowerConfigService(
 					projectDir,
 				),
@@ -568,6 +653,7 @@ describe('buildExecutionContext', () => {
 				nodeId: 'text-1',
 				requestPermission: async () => 'allow' as const,
 				emitPermissionAsk: () => undefined,
+				emitPermissionAccepted: () => undefined,
 				requestAskUser: async () => '',
 				emitAskUserAsk: () => undefined,
 				getLiveWiredTools,
@@ -575,5 +661,164 @@ describe('buildExecutionContext', () => {
 		);
 
 		expect(getRunHostServices(ctx)?.getLiveWiredTools).toBeUndefined();
+	});
+
+	it('builds zero tool harnesses and no secrets map for pure nodes', async () => {
+		const harnessSpy = vi.spyOn(projectHarness, 'createProjectHarness');
+		const wrapSpy = vi.spyOn(projectHarness, 'wrapBuiltinToolHandles');
+		const mcpSpy = vi.spyOn(systemMcp, 'createSystemMcpHandles');
+
+		const resolveDefinition = (node: { readonly type: string }) =>
+			getCommonReactiveNode(node.type) ?? definitionWithRequires([]);
+
+		for (const type of [
+			'common-string',
+			'common-delay',
+			'common-preview',
+		] as const) {
+			const ctx = await buildExecutionContext(
+				{
+					projectDir,
+					resolveDefinition,
+					langflowerConfigService: new LangflowerConfigService(
+						projectDir,
+					),
+				},
+				'run-1',
+				{ id: type, type, params: {} },
+			);
+			expect(getRunHostServices(ctx)?.secrets).toBeUndefined();
+			expect(ctx).not.toHaveProperty('secrets');
+			expect(ctx.toolHandles).toBeUndefined();
+		}
+
+		expect(harnessSpy).not.toHaveBeenCalled();
+		expect(wrapSpy).not.toHaveBeenCalled();
+		expect(mcpSpy).not.toHaveBeenCalled();
+		harnessSpy.mockRestore();
+		wrapSpy.mockRestore();
+		mcpSpy.mockRestore();
+	});
+
+	it('gives secrets to mcp-http and not to read-file', async () => {
+		const isolatedGlobal = path.join(projectDir, 'isolated-global.jsonc');
+		const secretsPath = path.join(projectDir, 'langflower.secrets.json');
+		await fs.writeFile(
+			secretsPath,
+			`${JSON.stringify({ API_TOKEN: 'sk-secret-value' })}\n`,
+			'utf8',
+		);
+		const resolveDefinition = (node: { readonly type: string }) =>
+			getCommonReactiveNode(node.type) ?? definitionWithRequires([]);
+
+		const mcp = await buildExecutionContext(
+			{
+				projectDir,
+				resolveDefinition,
+				langflowerConfigService: new LangflowerConfigService(
+					projectDir,
+					isolatedGlobal,
+				),
+			},
+			'run-1',
+			{ id: 'mcp-1', type: 'common-mcp-http', params: {} },
+		);
+		const read = await buildExecutionContext(
+			{
+				projectDir,
+				resolveDefinition,
+				langflowerConfigService: new LangflowerConfigService(
+					projectDir,
+					isolatedGlobal,
+				),
+			},
+			'run-1',
+			{ id: 'read-1', type: 'common-read-file', params: {} },
+		);
+
+		expect(getRunHostServices(mcp)?.secrets).toEqual({
+			API_TOKEN: 'sk-secret-value',
+		});
+		expect(getRunHostServices(read)?.secrets).toBeUndefined();
+	});
+
+	it('resolves missing provider credentials at call time, not seed', async () => {
+		const resolveSpy = vi.spyOn(
+			providerCredentials,
+			'resolveProviderCredentials',
+		);
+		const ctx = await buildExecutionContext(
+			{
+				projectDir,
+				resolveDefinition: resolveRequires(['chat']),
+				langflowerConfigService: new LangflowerConfigService(
+					projectDir,
+				),
+			},
+			'run-1',
+			{
+				id: 'node-1',
+				type: 'common-openai-llm',
+				params: {},
+			},
+		);
+
+		expect(resolveSpy).not.toHaveBeenCalled();
+		const chat = ctxChat(ctx);
+		expect(typeof chat).toBe('function');
+		await expect(
+			chat!({
+				providerId: 'openai',
+				model: 'gpt-4o',
+				messages: [{ role: 'user', content: 'hi' }],
+			}),
+		).rejects.toThrow(/Provider "openai" is not configured/);
+		expect(resolveSpy).toHaveBeenCalledTimes(1);
+		resolveSpy.mockRestore();
+	});
+
+	it('seeds one ctx error for an unbound required capability', async () => {
+		const seeds = await buildContextSeeds(
+			{
+				activeWorkflow: {
+					graph: {
+						nodes: [
+							{
+								id: 'bus-1',
+								type: 'common-langflower-tools',
+								params: {},
+							},
+						],
+					},
+				},
+				setMcpDispose: () => undefined,
+				permissionAsks: {
+					requestPermission: async () => 'allow' as const,
+				},
+				askUserAsks: { requestAskUser: async () => '' },
+			} as never,
+			{
+				projectDir,
+				resolveDefinition: resolveRequires(['editorBus']),
+				langflowerConfigService: new LangflowerConfigService(
+					projectDir,
+				),
+			},
+			'run-1',
+			() => undefined,
+			() => undefined,
+			() => undefined,
+		);
+
+		expect(Object.keys(seeds)).toEqual(['bus-1']);
+		const seed = seeds['bus-1']?.[0];
+		expect(seed?.portId).toBe(contextSymbol);
+		await expect(
+			firstValueFrom(seed!.value as never),
+		).rejects.toMatchObject({
+			message: expect.stringMatching(
+				/Node "bus-1" requires capability "editorBus".*server session/,
+			),
+		});
 	});
 });

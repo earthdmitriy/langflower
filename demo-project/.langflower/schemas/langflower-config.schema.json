@@ -93,7 +93,7 @@
 		},
 		"permission": {
 			"type": "object",
-			"description": "Runtime allow/ask/deny for harness tools (≠ Inspector enabledToolIds).",
+			"description": "Runtime allow/ask/deny for harness tools (≠ node toolPermissions).",
 			"additionalProperties": {
 				"$ref": "#/$defs/permissionToolConfig"
 			}

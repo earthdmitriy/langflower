@@ -1,4 +1,4 @@
-import type { WorkflowLoadedPayload } from '@langflower/shared/langflower.js';
+import type { WorkflowLoadedPayload } from '@langflower/shared/types/langflower-workflow.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
 import { activateWorkflowInSession } from './activate-workflow-in-session.js';
 import { allocateWorkflowId } from './workflow-id.js';
@@ -14,7 +14,6 @@ const EMPTY_VIEWPORT = {
 export const createEmptyWorkflowInSession = async (
 	session: LangflowerSession,
 	workflowService: WorkflowService,
-	projectDir: string,
 	resolveDefinition: ResolveNodeDefinition,
 ): Promise<boolean> => {
 	if (session.isGraphLocked()) {
@@ -44,7 +43,6 @@ export const createEmptyWorkflowInSession = async (
 
 	const activated = activateWorkflowInSession(
 		session,
-		projectDir,
 		document,
 		{ dirty: true },
 		resolveDefinition,

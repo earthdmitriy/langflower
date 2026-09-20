@@ -10,7 +10,8 @@ const TOOLS_INPUT_PORT = 'tools';
 /**
  * Harness builtins for the Inspector — twin of
  * `@langflower/tools` `BUILTIN_TOOL_IDS`. Shared cannot import tools in
- * production; parity is pinned by
+ * production ([ADR-039](../../../docs/architecture/ADR.md#adr-039--dag-forced-twins-stay-copies-until-the-dag-flips));
+ * parity is pinned by
  * `packages/tools/src/domain/wired-tool-options.parity.test.ts`.
  */
 export const HARNESS_BUILTIN_TOOL_OPTIONS: readonly InlineSelectOption[] = [
@@ -21,6 +22,8 @@ export const HARNESS_BUILTIN_TOOL_OPTIONS: readonly InlineSelectOption[] = [
 	{ value: 'write', title: 'write' },
 	{ value: 'create', title: 'create' },
 	{ value: 'delete', title: 'delete' },
+	{ value: 'move', title: 'move' },
+	{ value: 'sleep', title: 'sleep' },
 	{ value: 'bash', title: 'bash' },
 	{ value: 'ask_user', title: 'ask_user' },
 ];
@@ -157,7 +160,8 @@ export const resolveMcpServerOptions = (
 	}));
 
 /**
- * Inspector options for `enabledToolIds`: harness builtins + wired registrations.
+ * Inspector options for harness builtins + wired registrations
+ * (`tool-permission-table` / `node.wiredTools`).
  * System MCP uses {@link resolveMcpServerOptions} / Enabled MCP separately.
  */
 export const resolveEnabledToolOptions = (
@@ -171,35 +175,4 @@ export const resolveEnabledToolOptions = (
 	);
 
 	return [...builtins, ...wired];
-};
-
-/**
- * Multiselect display value when `enabledToolIds` is unset (= all option ids).
- * Pass the effective allowlist when a role preset resolved one.
- */
-export const displayEnabledToolIds = (
-	enabledToolIds: unknown,
-	allToolIds: readonly string[],
-): readonly string[] =>
-	Array.isArray(enabledToolIds) ? enabledToolIds.map(String) : allToolIds;
-
-/**
- * Opt-out sync: when the author already chose an explicit allowlist, newly wired
- * tool ids are appended so they start enabled.
- */
-export const mergeEnabledToolIdsOnNewWires = (
-	enabledToolIds: readonly string[],
-	wiredToolIds: readonly string[],
-): readonly string[] => {
-	const next = new Set(enabledToolIds);
-	let changed = false;
-
-	for (const id of wiredToolIds) {
-		if (!next.has(id)) {
-			next.add(id);
-			changed = true;
-		}
-	}
-
-	return changed ? [...next] : enabledToolIds;
 };

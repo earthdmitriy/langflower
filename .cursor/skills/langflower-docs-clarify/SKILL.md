@@ -56,7 +56,7 @@ Always start from:
 | [docs/PRODUCT.md](../../../docs/PRODUCT.md)                                                         | Purpose, goal, differentiators        |
 | [docs/use-cases/README.md](../../../docs/use-cases/README.md)                                       | Status bar / north star               |
 | [docs/STATUS.md](../../../docs/STATUS.md)                                                           | Package/capability status             |
-| [docs/ADR.md](../../../docs/ADR.md)                                                                 | Locked decisions                      |
+| [docs/architecture/ADR.md](../../../docs/architecture/ADR.md)                                       | Locked decisions                      |
 | [docs/DONE/EPICS/MECHANICS-tool-execution.md](../../../docs/DONE/EPICS/MECHANICS-tool-execution.md) | Internal vs external tools; Sub-Agent |
 | [AGENTS.md](../../../AGENTS.md)                                                                     | Agent entry + links                   |
 
@@ -83,7 +83,7 @@ Do not invent resolutions. Call out stale Stage 1/2/3 vs use-case Status.
 | ---------------------------------- | ----------------------------------------------------------- |
 | Purpose / goal / user / north star | `docs/PRODUCT.md` + `AGENTS.md` / `STATUS.md` pointers      |
 | End-user scenario Status / naming  | `docs/use-cases/*.md` + README                              |
-| Non-obvious architecture tradeoff  | New or updated **ADR** (`docs/ADR.md`)                      |
+| Non-obvious architecture tradeoff  | New or updated **ADR** (`docs/architecture/ADR.md`)         |
 | Tool/spawn internal vs external    | `MECHANICS-tool-execution.md` + ADR                         |
 | Product locks index                | `docs/DONE/EPICS/README.md` § Product locks                 |
 | Node author surface                | package `NODE.md` + `docs/features/node-library.md`         |

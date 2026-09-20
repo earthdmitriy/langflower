@@ -11,6 +11,10 @@ Generic typed WebSocket bridge — event-driven RxJS API over a hidden transport
 - Payload contract is compile-time via shared `WsBridgeConfig`; runtime guards
   only validate envelope routing.
 - One config object for both `createClient` and `createServer`.
+- **No product transport defaults** — Node `createClient` needs `options.url`
+  or both `config.transport.port` and `config.transport.path`. Do not restore
+  a kernel fallback to port `4010` or path `/ws` (ADR-012 owner is
+  `@langflower/shared` `langflowerWsConfig.transport`).
 
 ## Build
 

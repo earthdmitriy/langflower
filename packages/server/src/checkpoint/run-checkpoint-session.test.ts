@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { NodeId, RunId } from '@langflower/runtime';
-import type { WorkflowLoadedPayload } from '@langflower/shared/langflower.js';
+import type { WorkflowLoadedPayload } from '@langflower/shared/types/langflower-workflow.js';
 import { RunCheckpointSession } from './run-checkpoint-session.js';
 
 const emptyWorkflow = (id: string): WorkflowLoadedPayload =>

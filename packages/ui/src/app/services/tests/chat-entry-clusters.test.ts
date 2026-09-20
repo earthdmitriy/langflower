@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EdgeId, NodeId } from '@langflower/runtime';
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
-import type { WorkflowPersistedGraph } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
+import type { WorkflowPersistedGraph } from '@langflower/shared/types/langflower-workflow';
 import {
 	chatEntryNodeIdsInGraph,
 	graphHasPlainStartTargets,
@@ -85,5 +85,24 @@ describe('chat-entry-clusters', () => {
 
 		expect(graphHasPlainStartTargets(g, palette)).toBe(false);
 		expect(nodeClusterRequiresChatEntry(g, palette, 'out')).toBe(true);
+	});
+
+	it('treats unknown types as non-chat-entry (false-ready if catalog is incomplete)', () => {
+		const g = graph(
+			[node('chat', 'pack/my-chat'), node('out', 'common-preview')],
+			[edge('e1', 'chat', 'message', 'out', 'text')],
+		);
+
+		expect(graphHasPlainStartTargets(g, palette)).toBe(true);
+		expect(nodeClusterRequiresChatEntry(g, palette, 'out')).toBe(false);
+
+		const withCustom = new Map(palette);
+		withCustom.set('pack/my-chat', {
+			type: 'pack/my-chat',
+			chatEntry: true,
+		} as PaletteNodeDefinition);
+
+		expect(graphHasPlainStartTargets(g, withCustom)).toBe(false);
+		expect(nodeClusterRequiresChatEntry(g, withCustom, 'out')).toBe(true);
 	});
 });

@@ -7,20 +7,22 @@ import type {
 	RuntimeFeedPortMeta,
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
+import type { CustomPaletteSnapshotPayload } from '@langflower/shared/types/langflower-custom-palette';
+import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap';
 import type {
-	CustomPaletteSnapshotPayload,
-	ExecutionFeedSnapshotPayload,
 	PaletteConfigPayload,
 	PaletteNodeDefinition,
+} from '@langflower/shared/types/langflower-palette';
+import type {
 	RunnerAskUserAskPayload,
 	RunnerAskUserReplyPayload,
 	RunnerPermissionAskPayload,
 	RunnerPermissionReplyPayload,
-	WorkflowCurrentSnapshotPayload,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-config';
+import type { WorkflowCurrentSnapshotPayload } from '@langflower/shared/types/langflower-workflow';
 import { firstValueFrom, Subject } from 'rxjs';
 import { take } from 'rxjs/operators';
-import { emptyCustomPaletteSnapshot } from '../../palette/types/palette-projection';
+import { emptyCustomPaletteSnapshot } from '../../../services/execution-catalog';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { ExecutionFeedService } from '../execution-feed.service';
 import type { NodeFeedItem, PortStreamItem } from '../types';
@@ -49,6 +51,27 @@ const buildPortTelemetry = (
 				: state === 'error'
 					? { error: value }
 					: { value };
+	const defaultOutputFeed = (): RuntimeFeedPortMeta | null => {
+		if (portDir !== 'out' || options.feed !== undefined) {
+			return options.feed ?? null;
+		}
+		if (portId === 'draft') {
+			return { role: 'draft', streaming: true };
+		}
+		if (portId === 'reasoning') {
+			return { role: 'reasoning', streaming: true };
+		}
+		if (portId === 'tool') {
+			return { role: 'tool', streaming: true };
+		}
+		if (portId === 'recovery') {
+			return { role: 'recovery', streaming: true };
+		}
+		if (portId === 'result' || portId === 'text') {
+			return { role: 'result' };
+		}
+		return null;
+	};
 	return [
 		portDir,
 		nodeId(node),
@@ -56,7 +79,7 @@ const buildPortTelemetry = (
 		response,
 		options.portIdx ?? 0,
 		options.edgeIds ?? [],
-		options.feed ?? null,
+		defaultOutputFeed(),
 	];
 };
 
@@ -135,14 +158,17 @@ const portFeed = (
 export const paletteDefinition = (
 	type: string,
 	ports: readonly PortSpec[],
+	options: { readonly feedVisitBoundary?: true } = {},
 ): PaletteNodeDefinition =>
 	({
 		type,
 		displayName: type,
 		category: 'Test',
-		icon: undefined,
 		source: 'system',
 		uiSchema: [],
+		...(options.feedVisitBoundary === true
+			? { feedVisitBoundary: true as const }
+			: {}),
 		inputsConfigs: ports
 			.filter((port) => port.direction === 'in')
 			.map((port) => ({

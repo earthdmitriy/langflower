@@ -2,7 +2,7 @@ import { contextSymbol } from '@langflower/node-sdk';
 import { RuntimeFacade } from '@langflower/runtime';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { catchError, EMPTY, filter, firstValueFrom, of, timeout } from 'rxjs';
-import { attachRunHostServices } from '../../ai/features/run-host-services.js';
+import { attachRunHostServices } from '../../run-host/run-host-services.js';
 import { mcpHttpNode } from './node.js';
 
 vi.mock('@langflower/tools/mcp-http-client', async (importOriginal) => {
@@ -170,6 +170,7 @@ describe('common-mcp-http connect errors (S5)', () => {
 							nodeId: 'mcp-http-1',
 							params: {},
 							uiSchema: mcpHttpNode.uiSchema,
+							secrets: { API_TOKEN: 'sk-live' },
 						},
 						{ secrets: { API_TOKEN: 'sk-live' } },
 					),
@@ -280,6 +281,7 @@ describe('common-mcp-http connect errors (S5)', () => {
 							nodeId: 'mcp-http-1',
 							params: {},
 							uiSchema: mcpHttpNode.uiSchema,
+							secrets: { OTHER: 'sk-other' },
 						},
 						{ secrets: { OTHER: 'sk-other' } },
 					),

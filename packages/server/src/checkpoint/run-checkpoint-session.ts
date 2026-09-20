@@ -4,14 +4,14 @@ import {
 	type RunId,
 	type RuntimeRunnerEvent,
 } from '@langflower/runtime';
-import {
-	buildWorkflowFingerprint,
-	toCheckpointJsonValue,
-	type WorkflowCheckpoint,
-	type WorkflowCheckpointPortSnapshot,
-	type WorkflowCheckpointSummary,
-	type WorkflowLoadedPayload,
-} from '@langflower/shared/langflower.js';
+import { buildWorkflowFingerprint } from '@langflower/shared/checkpoint/workflow-fingerprint.js';
+import { toCheckpointJsonValue } from '@langflower/shared/checkpoint/json-value.js';
+import type {
+	WorkflowCheckpoint,
+	WorkflowCheckpointPortSnapshot,
+	WorkflowCheckpointSummary,
+} from '@langflower/shared/types/workflow-checkpoint.js';
+import type { WorkflowLoadedPayload } from '@langflower/shared/types/langflower-workflow.js';
 import {
 	summarizeCheckpoint,
 	WorkflowCheckpointStore,

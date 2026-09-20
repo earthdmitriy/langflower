@@ -4,14 +4,11 @@ import type {
 	RuntimeRunnerEvent,
 } from '@langflower/runtime';
 import { isPortTelemetry } from '@langflower/runtime';
-import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
-import { combineLatest, merge, type Observable } from 'rxjs';
+import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap';
+import { merge, type Observable } from 'rxjs';
 import { filter, map, scan, shareReplay, startWith } from 'rxjs/operators';
-import {
-	feedCatalogFromSnaps,
-	type FeedCatalog,
-} from '../../services/execution-catalog';
-import { mergePaletteCatalogs } from '../palette/types/palette-projection';
+import { type FeedCatalog } from '../../services/execution-catalog';
+import { foldCanvasNodeCatalog$ } from './fold-canvas-node-catalog';
 import {
 	appendNodeChromeFrame,
 	emptyNodeChromeFoldState,
@@ -137,18 +134,7 @@ export const foldSingleNodeCanvasStatus = (
 		| 'customPaletteSnapshot$'
 	>,
 ): Observable<CanvasNodeFoldStatus> => {
-	const catalog$ = combineLatest([
-		sources.workflowSnapshot$,
-		combineLatest([
-			sources.paletteSnapshot$,
-			sources.customPaletteSnapshot$,
-		]).pipe(
-			map(([system, custom]) => mergePaletteCatalogs(system, custom)),
-		),
-	]).pipe(
-		map(([workflow, palette]) => feedCatalogFromSnaps(workflow, palette)),
-		shareReplay({ bufferSize: 1, refCount: true }),
-	);
+	const catalog$ = foldCanvasNodeCatalog$(sources);
 
 	const forNode = (event: PortTelemetry): boolean => event[1] === nodeId;
 

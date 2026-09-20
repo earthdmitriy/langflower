@@ -9,10 +9,10 @@
 ## Evolution — previous runtime versions
 
 Project docs describe **three production execution generations** in
-[`EXECUTION_ARCHITECTURE.md`](../../../../docs/EXECUTION_ARCHITECTURE.md),
-[`DONE/EPICS/README.md`](../../../../docs/DONE/EPICS/README.md),
-[`REACTIVE_NODES.md`](../../../../docs/REACTIVE_NODES.md), and
-[`docs/TODO/runtime-refactor.md`](../../../../docs/TODO/runtime-refactor.md).
+[`EXECUTION_ARCHITECTURE.md`](../../docs/architecture/EXECUTION_ARCHITECTURE.md),
+[`DONE/EPICS/README.md`](../../docs/DONE/EPICS/README.md),
+[`REACTIVE_NODES.md`](../../docs/REACTIVE_NODES.md), and
+[`docs/TODO/runtime-refactor.md`](../../docs/TODO/runtime-refactor.md).
 This package’s **current production** surface is the editor/runner split
 (`RuntimeFacade`). Older gen-1…3 stacks are historical.
 
@@ -31,7 +31,7 @@ Current production (this package — editor/runner split)
 ### Production gen 1 — batch topo executor (Phase 2–3)
 
 **What it was** (historical Phase 2 «Resilient batch executor», Phase 3 Delay;
-see [`EXECUTION_ARCHITECTURE.md`](../../../../docs/EXECUTION_ARCHITECTURE.md))
+see [`EXECUTION_ARCHITECTURE.md`](../../docs/architecture/EXECUTION_ARCHITECTURE.md))
 
 - Server-side **topological batch loop** over `defineNode` handlers only.
 - One shot per node: resolve inputs → `execute()` (sync / Promise) → collect
@@ -53,7 +53,7 @@ see [`EXECUTION_ARCHITECTURE.md`](../../../../docs/EXECUTION_ARCHITECTURE.md))
 ### Production gen 2 — batch loop + `ReactivePortBus` (Phase 4–6)
 
 **What it was** (historical Phase 4–6;
-[`REACTIVE_NODES.md`](../../../../docs/REACTIVE_NODES.md) «Old (shared bus path)»)
+[`REACTIVE_NODES.md`](../../docs/REACTIVE_NODES.md) «Old (shared bus path)»)
 
 - **Two execution stacks** in `@langflower/server` + `@langflower/shared`:
     - Batch topo loop (`runGlobalBatchLoop`, `runPartialBatchLoop`, …).
@@ -66,26 +66,26 @@ see [`EXECUTION_ARCHITECTURE.md`](../../../../docs/EXECUTION_ARCHITECTURE.md))
 - Run completion tied to **activity settle** and, in tests, output Observable
   `complete` — conflicting rules for hot `Subject` inputs.
 
-**What was wrong** ([`FOUND_BUGS.md`](../../../../docs/FOUND_BUGS.md) 2026-06-18,
-[`runtime-refactor.md`](../../../../docs/TODO/runtime-refactor.md) P0)
+**What was wrong** ([`FOUND_BUGS.md`](../../docs/FOUND_BUGS.md) 2026-06-18,
+[`runtime-refactor.md`](../../docs/TODO/runtime-refactor.md) P0)
 
-| Problem                              | Symptom / design flaw                                                                                                                                                                                                     |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Two adapters, two lifecycles**     | Batch scheduling vs bus emit; reactive targets could be scheduled as batch nodes (Review → Agent feedback).                                                                                                               |
-| **`switchMap` + hot bus inputs**     | `combineLatest` on bus ports never `complete` → inner runs never settle → `waitForIdle` timeout on Review loop.                                                                                                           |
-| **Output `complete` ≈ run complete** | Session `onOutputComplete` / port `complete` assumed terminal Observable completion that hot inputs never emit.                                                                                                           |
-| **Idle heuristics for HITL**         | Interactive Ask User loops auto-`completed` after N replies when graph looked idle ([ADR-015](../../../../docs/ADR.md#adr-015--interactive-hitl-feedback-loops-end-on-stop-not-idle-settle) documents the fix direction). |
-| **Duplication**                      | Terminal-port predicates, activity tracking, HITL wiring duplicated between session and shared runtime ([`TO_REVIEW.md`](../../../../docs/TO_REVIEW.md)).                                                                 |
+| Problem                              | Symptom / design flaw                                                                                                                                                                                                            |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Two adapters, two lifecycles**     | Batch scheduling vs bus emit; reactive targets could be scheduled as batch nodes (Review → Agent feedback).                                                                                                                      |
+| **`switchMap` + hot bus inputs**     | `combineLatest` on bus ports never `complete` → inner runs never settle → `waitForIdle` timeout on Review loop.                                                                                                                  |
+| **Output `complete` ≈ run complete** | Session `onOutputComplete` / port `complete` assumed terminal Observable completion that hot inputs never emit.                                                                                                                  |
+| **Idle heuristics for HITL**         | Interactive Ask User loops auto-`completed` after N replies when graph looked idle ([ADR-015](../../docs/architecture/ADR.md#adr-015--interactive-hitl-feedback-loops-end-on-stop-not-idle-settle) documents the fix direction). |
+| **Duplication**                      | Terminal-port predicates, activity tracking, HITL wiring duplicated between session and shared runtime ([`TO_REVIEW.md`](../../docs/TO_REVIEW.md)).                                                                              |
 
 Removed from production **2026-06-18** (Phase 8): `ReactivePortBus`,
 `NodeActivityTracker`, `wireReactiveNodes`, `dispatch-port-emit`, server batch
-loops ([`REACTIVE_NODES.md`](../../../../docs/REACTIVE_NODES.md) § «Removed legacy stack»).
+loops ([`REACTIVE_NODES.md`](../../docs/REACTIVE_NODES.md) § «Removed legacy stack»).
 
 ---
 
 ### Production gen 3 — `@langflower/runtime` (historical name `WorkflowRuntime`)
 
-**What it was** ([`EXECUTION_ARCHITECTURE.md`](../../../../docs/EXECUTION_ARCHITECTURE.md);
+**What it was** ([`EXECUTION_ARCHITECTURE.md`](../../docs/architecture/EXECUTION_ARCHITECTURE.md);
 server cutover **2026-06-18**)
 
 - Early package surface: `createWorkflowRuntime()`, `materializeRunGraph`,
@@ -95,9 +95,9 @@ server cutover **2026-06-18**)
 - Draft graph + **immutable snapshot** per run; scoped edge subscriptions
   disposed on terminal status; graph locked while run active.
 - Run cycle boundaries via reactive run tracking — **not** output Observable
-  `complete` ([`REACTIVE_NODES.md`](../../../../docs/REACTIVE_NODES.md)).
+  `complete` ([`REACTIVE_NODES.md`](../../docs/REACTIVE_NODES.md)).
 - Loop policies in runner: Review accept auto-settles; interactive Ask User HITL
-  runs until stop only ([ADR-015](../../../../docs/ADR.md#adr-015--interactive-hitl-feedback-loops-end-on-stop-not-idle-settle)).
+  runs until stop only ([ADR-015](../../docs/architecture/ADR.md#adr-015--interactive-hitl-feedback-loops-end-on-stop-not-idle-settle)).
 
 **Pain that drove the editor/runner split (this ADR)**
 
@@ -135,7 +135,8 @@ ports. It **re-imported gen 1 completion intuition**:
 One rule: **`running` until `interrupt` or explicit end**. Natural `done` only
 for empty graph and `stopsRun` finish nodes. Applies gen 3’s core lesson
 («node output completion is not run completion») without gen 3’s materialization
-stack — but **not production** until server migrates off `WorkflowRuntime`.
+stack. **This is production:** the server path is `RuntimeFacade`; there is no
+`WorkflowRuntime` symbol left to migrate off.
 
 ## Context
 
@@ -158,8 +159,9 @@ The acyclic auto-`done` prototype (above) broke down in practice for:
 1. **Empty graph** — `start()` on zero nodes emits instant `done` so the editor
    unlocks without `interrupt`.
 2. **Finish node** — a {@link RuntimeNode} with `stopsRun: true` emits a
-   **value** on a watched output port; runtime calls `finishRun(runId)` (deferred
-   via `queueMicrotask` so wiring finishes before teardown).
+   **value** on a watched output port. Telemetry `tap` only records
+   `output-emitted`; a named subscribe after wrap calls `finishRun(runId)`
+   (deferred via `queueMicrotask` so wiring finishes before teardown).
 
 **Run ends (`stopped`) when:**
 
@@ -290,11 +292,11 @@ invalid downstream chain.
 - Test finish node: [`testing/nodes/finish-node.ts`](./testing/nodes/finish-node.ts)
 - Dynamic chain workflow test:
   [`testing/workflows/dynamic-chain.workflow.test.ts`](./testing/workflows/dynamic-chain.workflow.test.ts)
-- Production history: [`EXECUTION_ARCHITECTURE.md`](../../../../docs/EXECUTION_ARCHITECTURE.md),
-  [`DONE/EPICS/README.md`](../../../../docs/DONE/EPICS/README.md),
-  [`REACTIVE_NODES.md`](../../../../docs/REACTIVE_NODES.md),
-  [`EXECUTION_ARCHITECTURE.md`](../../../../docs/EXECUTION_ARCHITECTURE.md)
-- Gen 3 refactor: [`docs/TODO/runtime-refactor.md`](../../../../docs/TODO/runtime-refactor.md),
-  [`docs/TO_REVIEW.md`](../../../../docs/TO_REVIEW.md)
-- Gen 3 HITL policy: [ADR-015](../../../../docs/ADR.md#adr-015--interactive-hitl-feedback-loops-end-on-stop-not-idle-settle)
+- Production history: [`EXECUTION_ARCHITECTURE.md`](../../docs/architecture/EXECUTION_ARCHITECTURE.md),
+  [`DONE/EPICS/README.md`](../../docs/DONE/EPICS/README.md),
+  [`REACTIVE_NODES.md`](../../docs/REACTIVE_NODES.md),
+  [`EXECUTION_ARCHITECTURE.md`](../../docs/architecture/EXECUTION_ARCHITECTURE.md)
+- Gen 3 refactor: [`docs/TODO/runtime-refactor.md`](../../docs/TODO/runtime-refactor.md),
+  [`docs/TO_REVIEW.md`](../../docs/TO_REVIEW.md)
+- Gen 3 HITL policy: [ADR-015](../../docs/architecture/ADR.md#adr-015--interactive-hitl-feedback-loops-end-on-stop-not-idle-settle)
 - Supersedes v2 bugs in [`FOUND_BUGS.md`](./FOUND_BUGS.md) (second run / start from stopped)

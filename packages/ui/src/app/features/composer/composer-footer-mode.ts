@@ -1,5 +1,5 @@
 /**
- * Pure footer-band mode for the composer shell (palette §8 / epic 35).
+ * Pure footer-band mode for the composer shell.
  * Keeps Stop-left / Run-right invariants testable without mounting Angular.
  * Pause may also appear in HITL footer when another feed-last agent is
  * pausable (per-node Pause — button owns its own visibility).

@@ -5,8 +5,8 @@ import type {
 
 /**
  * Path-choice control tools (accept / feedback). Must not be merged into shared
- * inventory or harness allowlists. Import only from `ai/nodes/review/` and
- * `ai/nodes/critique/`.
+ * inventory or harness allowlists. Import from path-choice / Review / Critique
+ * only — not from OpenAI / Fake / Sub-Agent inventory.
  */
 
 export const REVIEW_ACCEPT_TOOL = 'accept';

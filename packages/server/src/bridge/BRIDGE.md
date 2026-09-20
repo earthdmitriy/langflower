@@ -9,7 +9,7 @@ subscribes to bus intents and emits snapshots / deltas.
 `common-nodes` via [`build-execution-context.ts`](build-execution-context.ts)
 and [`bind-llm-context.ts`](bind-llm-context.ts). See
 [server AGENTS.md](../AGENTS.md) and
-[PRINCIPLES.md § Thin server](../../../../docs/PRINCIPLES.md#thin-server--do-not-grow-domain-here).
+[PRINCIPLES.md § Thin server](../../../../docs/architecture/PRINCIPLES.md#thin-server--do-not-grow-domain-here).
 
 ## Entry
 
@@ -24,23 +24,34 @@ create-server.ts
 
 Read [`attach-langflower-bridge.ts`](attach-langflower-bridge.ts) first —
 it is the composer entry (sibling wire steps, explicit order). Pattern:
-[PRINCIPLES.md](../../../../docs/PRINCIPLES.md) § Composer entry points.
+[PRINCIPLES.md](../../../../docs/architecture/PRINCIPLES.md) § Composer entry points.
 
 ## Attach order
 
-1. **Always-on runner fan-out** — `session.runtime.runner.events$` →
-   [`forward-runner-event.ts`](forward-runner-event.ts) for every indexed
-   client. Independent of connections/runs so initial `pending` events
-   during `runner.start()` are not dropped (`events$` is a non-replaying
-   Subject). Late clients get backlog via `executionFeed.snapshot`.
-   See [FOUND_BUGS.md](../../../docs/FOUND_BUGS.md) (pending race).
+0. **Diagnostic JSONL** — [`bridge-event-log.ts`](bridge-event-log.ts), gated
+   by effective `serverLogs`. Writes before other wires so bootstrap frames
+   are recorded.
+1. **Always-on runner composer** — one `events$` subscribe:
+   [`forward-runner-event.ts`](forward-runner-event.ts) → checkpoint
+   persist ([`wire-runner-handlers.ts`](wire-runner-handlers.ts)
+   `persistCheckpointFromRunnerEvent`) → `onRunSettled`. Independent of
+   connections/runs so initial `pending` events during `runner.start()` are
+   not dropped (`events$` is a non-replaying Subject). Late clients get
+   backlog via `executionFeed.snapshot`.
+   See [FOUND_BUGS.md](../../../../docs/FOUND_BUGS.md) (pending race).
 2. **Connect / disconnect** — [`client-index.ts`](client-index.ts) +
    [`emit-bootstrap.ts`](emit-bootstrap.ts).
-3. **Intent handlers** (bus namespaces):
+3. **Intent handlers** (bus namespaces, in attach order):
     - [`wire-workflow-handlers.ts`](wire-workflow-handlers.ts)
     - [`wire-palette-handlers.ts`](wire-palette-handlers.ts)
+    - [`wire-custom-palette-handlers.ts`](wire-custom-palette-handlers.ts)
+    - [`wire-config-handlers.ts`](wire-config-handlers.ts)
+    - [`wire-project-bootstrap-handlers.ts`](wire-project-bootstrap-handlers.ts)
     - [`wire-editor-handlers.ts`](wire-editor-handlers.ts)
     - [`wire-runner-handlers.ts`](wire-runner-handlers.ts)
+
+Broadcast uses [`bridge-outbound.ts`](bridge-outbound.ts) `bridgeEmit`.
+Unicast (this tab) uses `clientEmit` plus [`client-index.ts`](client-index.ts).
 
 Detach: unsubscribe root + per-client subs, `clearClientIndex`,
 `session.dispose()`.
@@ -143,5 +154,5 @@ Outbound helpers: [`bridge-outbound.ts`](bridge-outbound.ts)
 
 Protocol registry:
 [`packages/shared/src/langflower-bus-config.ts`](../../shared/src/langflower-bus-config.ts).
-High-level sync model: [docs/ARCHITECTURE.md](../../../docs/ARCHITECTURE.md)
+High-level sync model: [docs/architecture/ARCHITECTURE.md](../../../../docs/architecture/ARCHITECTURE.md)
 § WebSocket Protocol.

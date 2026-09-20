@@ -2,10 +2,13 @@ import type {
 	CustomPaletteCompilationStatus,
 	CustomPalettePackError,
 	CustomPaletteSnapshotPayload,
+} from '@langflower/shared/types/langflower-custom-palette';
+import type {
 	PaletteConfigPayload,
 	PaletteNodeDefinition,
 	PaletteNodeSource,
-} from '@langflower/shared/langflower';
+} from '@langflower/shared/types/langflower-palette';
+import { emptyCustomPaletteSnapshot } from '../../../services/execution-catalog';
 
 export type PaletteCategoryGroup = {
 	readonly category: string;
@@ -25,12 +28,6 @@ export type PaletteSidebarState = {
 	readonly customErrors: readonly CustomPalettePackError[];
 };
 
-export const emptyCustomPaletteSnapshot: CustomPaletteSnapshotPayload = {
-	nodes: [],
-	errors: [],
-	status: 'not_compiled',
-};
-
 export const initialPaletteSidebarState: PaletteSidebarState = {
 	sections: [
 		{ source: 'system', categories: [] },
@@ -39,17 +36,6 @@ export const initialPaletteSidebarState: PaletteSidebarState = {
 	customStatus: 'not_compiled',
 	customErrors: [],
 };
-
-/** Merged catalog for canvas / execution lookups (system + custom nodes). */
-export const mergePaletteCatalogs = (
-	system: PaletteConfigPayload,
-	custom: CustomPaletteSnapshotPayload,
-): PaletteConfigPayload => ({
-	nodes: [
-		...system.nodes.map((node) => ({ ...node, source: 'system' as const })),
-		...custom.nodes.map((node) => ({ ...node, source: 'custom' as const })),
-	],
-});
 
 export const ADVANCED_CATEGORY = 'Advanced';
 

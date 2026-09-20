@@ -37,14 +37,15 @@ Root `package.json` scripts (cwd = repo root):
 
 ```bash
 npm run rust:install     # only ensure the toolchain
-npm run launcher         # same as launcher:dev
 npm run launcher:dev     # cargo run  → debug binary + window
 npm run launcher:build   # cargo build --release
+npm run launcher:package # macOS: Langflower.app from the release bin
 npm run launcher:test    # cargo test
 ```
 
-`launcher/package.json` duplicates those paths for people who `cd
-launcher`. It is **not** an npm workspace member.
+`launcher/package.json` is private crate metadata (name / engines only).
+It has **no** npm scripts. Run `launcher:*` from the repo root. The
+crate is **not** an npm workspace member.
 
 CI never calls this script. Workflows use `dtolnay/rust-toolchain@stable`
 plus `Swatinem/rust-cache`.
@@ -88,9 +89,17 @@ Output:
 | Windows       | `launcher/target/release/langflower-launcher.exe` |
 | macOS / Linux | `launcher/target/release/langflower-launcher`     |
 
-That file is the whole app. It does not include Node or the CLI. Zip it
-yourself only for local sharing; official assets come from GitHub
-Actions.
+That file is the whole window process. It does not include Node or the
+CLI. On macOS, wrap it in `Langflower.app` so Finder does not open
+Terminal:
+
+```bash
+npm run launcher:package
+```
+
+writes `launcher/dist/Langflower.app`. Zip it yourself only for local
+sharing; official assets come from GitHub Actions (`ditto` zip of that
+bundle).
 
 Release profile (`Cargo.toml`): small binary (`opt-level = "z"`, LTO,
 single codegen unit, strip, `panic = abort`). Debug `cargo run` is
@@ -104,6 +113,7 @@ Runs on push/PR to `master` when `launcher/**` or the two launcher
 workflows change.
 
 - Matrix: `windows-latest`, `macos-latest`
+- `python launcher/scripts/package-macos-app.py --self-test`
 - `cargo test --locked` in `launcher/`
 - `MACOSX_DEPLOYMENT_TARGET=11.0`
 
@@ -138,9 +148,11 @@ If GitHub does not provide `windows-11-arm` on this repo’s plan, switch
 that job to `windows-latest` and keep `--target aarch64-pc-windows-msvc`
 (cross). Documented in the operator README.
 
-Each zip contains **only the binary** (plus execute bit on non-Windows).
-`publish` downloads the four zips, writes `SHA256SUMS.txt`, and creates
-a GitHub Release titled `Launcher X.Y.Z`.
+Windows zips contain **only** `langflower-launcher.exe`. macOS zips
+contain **`Langflower.app`** (built by
+`launcher/scripts/package-macos-app.py`, zipped with `ditto -c -k
+--keepParent`). `publish` downloads the four zips, writes
+`SHA256SUMS.txt`, and creates a GitHub Release titled `Launcher X.Y.Z`.
 
 npm CLI tags are **`vX.Y.Z`**. Never attach launcher zips to those
 releases.
@@ -161,7 +173,7 @@ From [docs/RELEASE.md](../../docs/RELEASE.md):
 3. Wait for the workflow. Download zips from the GitHub Release.
 
 Unsigned v1: Windows SmartScreen and macOS Gatekeeper warn. On macOS:
-right-click the binary → Open. NSIS / DMG / signing / notarization /
+right-click **Langflower.app** → Open. NSIS / DMG / signing / notarization /
 binary auto-update are **not** in this crate yet (ADR-038 revisit).
 
 ## Operator install (what the zip does not do)
@@ -171,7 +183,7 @@ The person who downloads a zip still needs:
 1. Node.js ≥ 22 (the window can offer LTS via winget / official pkg).
 2. `npm install -g langflower`.
 
-Then they run `langflower-launcher.exe` / `langflower-launcher`.
+Then they run `langflower-launcher.exe` / `Langflower.app`.
 
 ## Troubleshooting local builds
 
@@ -183,7 +195,7 @@ Then they run `langflower-launcher.exe` / `langflower-launcher`.
 | Start disabled forever              | Detect sees no global CLI or Node too old; open Details                     |
 | Spawn uses old CLI                  | Unset vs set `LANGFLOWER_LAUNCHER_BIN`; confirm `npm root -g`               |
 | Port errors                         | Something already bound 4010–4109; Stop other instances                     |
-| macOS “damaged” / cannot open       | Gatekeeper on unsigned binary — right-click → Open                          |
+| macOS “damaged” / cannot open       | Gatekeeper on unsigned `.app` — right-click → Open                          |
 | Tests hang on `multi_instance`      | Must stay `#[tokio::test(flavor = "multi_thread")]`                         |
 
 ## TypeScript gates vs this crate

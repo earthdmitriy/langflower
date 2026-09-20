@@ -6,7 +6,7 @@ import {
 	type EmbedTextRole,
 } from '@langflower/node-sdk';
 import { distinctUntilChanged, map, switchMap } from 'rxjs';
-import { getRunHostServices } from '../../ai/features/run-host-services.js';
+import type { CapabilityEmbed } from '@langflower/node-sdk';
 import { fromEmbedding } from '../from-embedding.js';
 import { resolveEmbeddingProviderModel } from '../resolve-embedding-provider-model.js';
 
@@ -57,20 +57,13 @@ const linkAbortSignals = (
 };
 
 const buildEmbedHandle = (options: {
-	readonly create: NonNullable<
-		ReturnType<typeof getRunHostServices>
-	>['createEmbedding'];
+	readonly create: CapabilityEmbed;
 	readonly providerId: string;
 	readonly model: string;
 	readonly dim: number;
 	readonly runSignal: AbortSignal;
 }): EmbedHandle => {
 	const { create, providerId, model, dim, runSignal } = options;
-	if (create === undefined) {
-		throw new Error(
-			'OpenAI-compatible embeddings are only available during server workflow runs',
-		);
-	}
 
 	return {
 		dim,
@@ -115,15 +108,17 @@ Share an embedding model with custom nodes. Wire **embed** into a pack that need
 
 Uses the Settings default model, or pick one on this node.
 `.trim(),
+	requires: ['embed'] as const,
 	uiSchema: embedPanelUiSchema,
 	bind(ctx, { configureOutput, combineInputs }) {
 		const resolved$ = combineInputs([ctx], ([ec]) => ec).pipeValue(
 			map((ec) => {
-				const host = getRunHostServices(ec);
-				const resolved = resolveEmbeddingProviderModel(ec.params, host);
+				const resolved = resolveEmbeddingProviderModel(
+					ec.params,
+					ec.defaultEmbedding,
+				);
 				return {
 					ec,
-					host,
 					key: `${resolved.providerId}/${resolved.model}`,
 					...resolved,
 				};
@@ -131,14 +126,9 @@ Uses the Settings default model, or pick one on this node.
 			distinctUntilChanged((left, right) => left.key === right.key),
 		);
 		const embed$ = resolved$.pipe(withLoading()).pipeValue(
-			switchMap(({ host, providerId, model }) =>
+			switchMap(({ ec, providerId, model }) =>
 				fromEmbedding(async (runSignal): Promise<EmbedHandle> => {
-					const create = host?.createEmbedding;
-					if (create === undefined) {
-						throw new Error(
-							'OpenAI-compatible embeddings are only available during server workflow runs',
-						);
-					}
+					const create = ec.embed;
 
 					const probe = await create({
 						providerId,

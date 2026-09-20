@@ -6,17 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ResolveNodeDefinition } from './workflow-document.js';
 import { WorkflowService } from './workflow.service.js';
 
-const resolveDefinition: ResolveNodeDefinition = (node) => {
-	const definition = resolveWorkflowNodeDefinition({
-		type: node.type,
-	});
-
-	if (definition === undefined) {
-		return undefined;
-	}
-
-	return definition;
-};
+const resolveDefinition: ResolveNodeDefinition = resolveWorkflowNodeDefinition;
 
 describe('WorkflowService.list', () => {
 	let projectDir: string;
@@ -292,5 +282,30 @@ describe('WorkflowService.list', () => {
 		expect(workflows.some((entry) => entry.workflowId === 'untitled')).toBe(
 			true,
 		);
+	});
+
+	it('returns NOT_FOUND for a missing workflow file', async () => {
+		const loaded = await service.load({ workflowId: 'missing-id' });
+		expect(loaded).toEqual({
+			ok: false,
+			code: 'NOT_FOUND',
+			message: 'Workflow missing-id not found',
+		});
+	});
+
+	it('returns INVALID_GRAPH for corrupt workflow JSON', async () => {
+		const workflowsDir = path.join(projectDir, '.langflower', 'workflows');
+		await fs.mkdir(workflowsDir, { recursive: true });
+		await fs.writeFile(
+			path.join(workflowsDir, 'corrupt.json'),
+			'{ not json',
+			'utf8',
+		);
+
+		const loaded = await service.load({ workflowId: 'corrupt' });
+		expect(loaded.ok).toBe(false);
+		if (!loaded.ok) {
+			expect(loaded.code).toBe('INVALID_GRAPH');
+		}
 	});
 });

@@ -1,20 +1,22 @@
 import type { RuntimeEdge } from '@langflower/runtime';
 import type {
 	CanvasViewport,
+	WorkflowCurrentSnapshotPayload,
+	WorkflowLoadPayload,
+	WorkflowLoadedPayload,
+	WorkflowNodePersisted,
+	WorkflowSavePayload,
+} from '@langflower/shared/types/langflower-workflow.js';
+import type {
 	EditorAddEdgeRequestedPayload,
 	EditorAddNodeRequestedPayload,
 	EditorPasteRequestedPayload,
 	EditorSelectedNodePayload,
 	EditorSelectNodeRequestedPayload,
 	EditorUpdateNodeRequestedPayload,
-	RunnerPermissionAskPayload,
-	WorkflowCurrentSnapshotPayload,
-	WorkflowLoadPayload,
-	WorkflowLoadedPayload,
-	WorkflowNodePersisted,
-	WorkflowSavePayload,
-} from '@langflower/shared/langflower.js';
-import { langflowerWsConfig } from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-editor.js';
+import type { RunnerPermissionAskPayload } from '@langflower/shared/types/langflower-config.js';
+import { langflowerWsConfig } from '@langflower/shared/langflower-bus-config.js';
 import type { LangflowerWsClient } from '@langflower/shared/langflower-ws-waits';
 import {
 	requestWorkflowLoad,

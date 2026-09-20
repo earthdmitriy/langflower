@@ -5,11 +5,10 @@ import type {
 	LangflowerConfigDraftPatchRequestedPayload,
 	LangflowerConfigSaveRequestedPayload,
 	LangflowerSecretsSaveRequestedPayload,
-	SettingsDraft,
-} from '@langflower/shared/langflower.js';
-import { resolveServerLogsEnabled } from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-config.js';
+import type { SettingsDraft } from '@langflower/shared/langflower-config/settings-draft.js';
+import { resolveServerLogsEnabled } from '@langflower/shared/langflower-config/resolve-server-logs-enabled.js';
 import type { ServerContext } from '../server-context.js';
-import type { LangflowerSession } from '../session/langflower-session.js';
 import { buildLangflowerConfigSnapshot } from './build-langflower-config-snapshot.js';
 import { bridgeEmit } from './bridge-outbound.js';
 import { isInboundEvent } from './inbound-guards.js';
@@ -72,7 +71,6 @@ export type WireConfigHandlersOptions = {
 export const wireConfigHandlers = (
 	bridge: LangflowerBridge,
 	context: ServerContext,
-	_session: LangflowerSession,
 	draftController: SettingsDraftController,
 	options: WireConfigHandlersOptions = {},
 ): Subscription => {
@@ -107,7 +105,7 @@ export const wireConfigHandlers = (
 				return;
 			}
 
-			await context.langflowerConfigService.writeSecrets({
+			const written = await context.langflowerConfigService.writeSecrets({
 				...(raw.payload.secretIds !== undefined
 					? { secretIds: raw.payload.secretIds }
 					: {}),
@@ -115,6 +113,10 @@ export const wireConfigHandlers = (
 					? { secretValues: raw.payload.secretValues }
 					: {}),
 			});
+			if (!written.ok) {
+				return;
+			}
+
 			await draftController.syncGlobalSecrets();
 			const snapshot = await buildLangflowerConfigSnapshot(context);
 			bridgeEmit(bridge, 'langflower.config.snapshot', snapshot);

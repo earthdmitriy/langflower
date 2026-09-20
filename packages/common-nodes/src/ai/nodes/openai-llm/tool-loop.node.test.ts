@@ -7,7 +7,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { filter, firstValueFrom, of } from 'rxjs';
-import { attachRunHostServices } from '../../features/run-host-services.js';
+import { attachRunHostServices } from '../../../run-host/run-host-services.js';
+import { testLlmCapFields } from '../../features/test-llm-caps.js';
 import { stringNode } from '../../../primitives/string/node.js';
 import { openAiLlmNode } from './node.js';
 
@@ -151,20 +152,23 @@ describe('common-openai-llm tool loop', () => {
 								maxIterations: 8,
 							},
 							uiSchema: openAiLlmNode.uiSchema,
-							toolHandles: ['read', 'write'].map((toolId) =>
-								handle(toolId, async (args) => {
-									const result = await harness.invoke({
-										toolId,
-										args,
-									});
+							...testLlmCapFields({
+								chat: factory,
+								toolHandles: ['read', 'write'].map((toolId) =>
+									handle(toolId, async (args) => {
+										const result = await harness.invoke({
+											toolId,
+											args,
+										});
 
-									if (!result.ok) {
-										throw new Error(result.text);
-									}
+										if (!result.ok) {
+											throw new Error(result.text);
+										}
 
-									return result.text;
-								}),
-							),
+										return result.text;
+									}),
+								),
+							}),
 						},
 						{
 							skillMarkdown: '',

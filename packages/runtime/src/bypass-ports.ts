@@ -24,9 +24,6 @@ export type BypassSlot = {
 	readonly slotIndex: number;
 };
 
-/** Edge `fromPort` / `toPort` shape for a bypass slot. */
-export type BypassEdgePort = readonly [basePortId: string, slotIndex: number];
-
 export const bypassSlot = (
 	basePortId: string,
 	slotIndex: number,
@@ -34,15 +31,6 @@ export const bypassSlot = (
 	basePortId,
 	slotIndex,
 });
-
-export const bypassSlotFromEdgePort = (
-	port: readonly [string, number],
-): BypassSlot => bypassSlot(port[0], port[1]);
-
-export const bypassEdgePort = (slot: BypassSlot): BypassEdgePort => [
-	slot.basePortId,
-	slot.slotIndex,
-];
 
 /**
  * Checkpoint / outputs-map / tap key for a bypass slot (`ch`, `ch@1`, …).
@@ -52,9 +40,6 @@ export const bypassOutputPortId = (
 	basePortId: string,
 	slotIndex: number,
 ): string => (slotIndex === 0 ? basePortId : `${basePortId}@${slotIndex}`);
-
-export const bypassOutputPortIdFromSlot = (slot: BypassSlot): string =>
-	bypassOutputPortId(slot.basePortId, slot.slotIndex);
 
 /** Inverse of {@link bypassOutputPortId}. */
 export const parseBypassOutputPortId = (outputPortId: string): BypassSlot => {
@@ -80,11 +65,6 @@ export const bypassSlotKey = (
 	basePortId: string,
 	slotIndex: number,
 ): SlotKey => slotKey(nodeId, basePortId, slotIndex);
-
-export const bypassSlotKeyFromEdgePort = (
-	nodeId: NodeId,
-	port: readonly [string, number],
-): SlotKey => bypassSlotKey(nodeId, port[0], port[1]);
 
 /**
  * Checkpoint / telemetry portId for a slot. Bypass bases use

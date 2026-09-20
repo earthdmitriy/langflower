@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { bootstrapProject } from '@langflower/server/bootstrap';
-import type { WorkflowSavePayload } from '@langflower/shared/langflower.js';
+import type { WorkflowSavePayload } from '@langflower/shared/types/langflower-workflow.js';
 import { getTestsTmpDir } from './repo-paths.js';
 import { bootstrapExampleWorkflow } from './scenarios/smoke.js';
 

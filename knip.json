@@ -3,12 +3,21 @@
 	"workspaces": {
 		"packages/shared": {
 			"entry": [
-				"src/langflower.ts",
 				"src/langflower-bus-config.ts",
 				"src/langflower-ws-waits.ts",
 				"src/constants/defaults.ts",
-				"src/types/config.ts",
-				"src/types/langflower-*.ts"
+				"src/types/*.ts",
+				"src/langflower-config/merge-langflower-config-layers.ts",
+				"src/langflower-config/merge-provider-model-options.ts",
+				"src/langflower-config/parse-default-chat-model.ts",
+				"src/langflower-config/resolve-server-logs-enabled.ts",
+				"src/langflower-config/resolve-ui-schema-options.ts",
+				"src/langflower-config/resolve-wired-tool-options.ts",
+				"src/langflower-config/secret-id.ts",
+				"src/langflower-config/settings-draft.ts",
+				"src/checkpoint/json-value.ts",
+				"src/checkpoint/workflow-fingerprint.ts",
+				"src/execution/derive-run-settle-outcome.ts"
 			],
 			"project": ["src/**/*.ts"]
 		},

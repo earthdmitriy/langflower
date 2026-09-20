@@ -1,4 +1,4 @@
-import type { LangflowerConfig } from '@langflower/shared/langflower.js';
+import type { LangflowerConfig } from '@langflower/shared/types/langflower-config.js';
 
 type ResolvedProviderCredentials = {
 	readonly apiKey?: string;

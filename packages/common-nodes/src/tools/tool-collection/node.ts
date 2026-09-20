@@ -1,24 +1,9 @@
 import {
 	defineReactiveNode,
 	TOOL_HANDLE_WIRE_TYPE,
-	type ToolHandle,
 } from '@langflower/node-sdk';
 import { map } from 'rxjs';
-import { flattenToolHandles } from '../collect-agent-tool-handles.js';
-
-const mergeToolHandlesLastWins = (wired: unknown): readonly ToolHandle[] => {
-	const flattened = Array.isArray(wired)
-		? flattenToolHandles(wired)
-		: flattenToolHandles(
-				wired === undefined || wired === null ? [] : [wired],
-			);
-	const byId = new Map<string, ToolHandle>();
-	for (const handle of flattened) {
-		byId.set(handle.toolId, handle);
-	}
-
-	return [...byId.values()];
-};
+import { lastWinsToolHandles } from '../collect-agent-tool-handles.js';
 
 /**
  * Optional hub: combine many `tools` wires into one `ToolHandle[]`.
@@ -43,7 +28,7 @@ Optional — you can still plug many tool packs straight into the agent.
 		});
 
 		const merged$ = tools.pipeValue(
-			map((wired) => mergeToolHandlesLastWins(wired)),
+			map((wired) => lastWinsToolHandles(wired)),
 		);
 
 		return {

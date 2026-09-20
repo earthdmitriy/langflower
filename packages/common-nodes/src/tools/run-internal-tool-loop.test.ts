@@ -1,5 +1,4 @@
 import type { ToolHandle } from '@langflower/node-sdk';
-import type { Harness } from '@langflower/tools/create-project-harness';
 import type { CreateChatCompletionStreamArgs } from '../ai/features/chat-completion-stream.js';
 import { describe, expect, it, vi } from 'vitest';
 import { firstValueFrom, ReplaySubject, toArray } from 'rxjs';
@@ -53,7 +52,6 @@ describe('runInternalToolLoop compaction', () => {
 					{ role: 'user', content: 'NOW' },
 				],
 				tools: [],
-				harness: undefined,
 				maxIterations: 1,
 				compaction: { contextSize: 500, compactOnError: false },
 			}).pipe(toArray()),
@@ -70,14 +68,7 @@ describe('runInternalToolLoop compaction', () => {
 });
 
 describe('runInternalToolLoop allowlist', () => {
-	it('rejects tool calls outside enabled inventory without invoking harness', async () => {
-		const invoke = vi.fn(async () => ({ ok: true as const, text: 'ok' }));
-		const harness: Harness = {
-			invoke,
-			authorize: async () => 'allow',
-			listBuiltinRegistrations: () => [],
-		};
-
+	it('rejects tool calls outside enabled inventory without invoking them', async () => {
 		const factory = async (_args: CreateChatCompletionStreamArgs) =>
 			(async function* () {
 				yield {
@@ -103,12 +94,10 @@ describe('runInternalToolLoop allowlist', () => {
 				model: 'mock',
 				messages: [{ role: 'user', content: 'hi' }],
 				tools: [handle('read', async () => 'ok')],
-				harness,
 				maxIterations: 2,
 			}).pipe(toArray()),
 		);
 
-		expect(invoke).not.toHaveBeenCalled();
 		expect(
 			chunks.some(
 				(chunk) =>
@@ -119,12 +108,6 @@ describe('runInternalToolLoop allowlist', () => {
 	});
 
 	it('invokes ToolHandle without harness toolId lookup', async () => {
-		const invoke = vi.fn(async () => ({ ok: true as const, text: 'nope' }));
-		const harness: Harness = {
-			invoke,
-			authorize: async () => 'allow',
-			listBuiltinRegistrations: () => [],
-		};
 		const handler = vi.fn(async (args: Readonly<Record<string, unknown>>) =>
 			JSON.stringify({ echo: args.x }),
 		);
@@ -163,7 +146,6 @@ describe('runInternalToolLoop allowlist', () => {
 				model: 'mock',
 				messages: [{ role: 'user', content: 'hi' }],
 				tools: [handle('custom_echo', handler)],
-				harness,
 				toolCtx: {
 					projectDir: '/tmp/proj',
 					runId: 'run-1',
@@ -172,7 +154,6 @@ describe('runInternalToolLoop allowlist', () => {
 			}).pipe(toArray()),
 		);
 
-		expect(invoke).not.toHaveBeenCalled();
 		expect(handler).toHaveBeenCalledWith(
 			{ x: 1 },
 			expect.objectContaining({
@@ -190,11 +171,6 @@ describe('runInternalToolLoop allowlist', () => {
 
 	it('denies builtin ToolHandle when authorize returns deny', async () => {
 		const handler = vi.fn(async () => 'should-not-run');
-		const harness: Harness = {
-			invoke: vi.fn(async () => ({ ok: true as const, text: 'nope' })),
-			authorize: async () => 'deny',
-			listBuiltinRegistrations: () => [],
-		};
 		let round = 0;
 
 		const factory = async (_args: CreateChatCompletionStreamArgs) => {
@@ -233,10 +209,10 @@ describe('runInternalToolLoop allowlist', () => {
 				model: 'mock',
 				messages: [{ role: 'user', content: 'hi' }],
 				tools: [handle('write', handler)],
-				harness,
 				toolCtx: {
 					projectDir: '/tmp/proj',
 					runId: 'run-1',
+					authorize: async () => 'deny',
 				},
 				maxIterations: 3,
 			}).pipe(toArray()),
@@ -254,11 +230,6 @@ describe('runInternalToolLoop allowlist', () => {
 
 	it('invokes wired custom ToolHandle even when authorize would deny', async () => {
 		const handler = vi.fn(async () => 'wired-ok');
-		const harness: Harness = {
-			invoke: vi.fn(async () => ({ ok: true as const, text: 'nope' })),
-			authorize: async () => 'deny',
-			listBuiltinRegistrations: () => [],
-		};
 		let round = 0;
 
 		const factory = async (_args: CreateChatCompletionStreamArgs) => {
@@ -297,10 +268,10 @@ describe('runInternalToolLoop allowlist', () => {
 				model: 'mock',
 				messages: [{ role: 'user', content: 'hi' }],
 				tools: [handle('append_memory_log', handler)],
-				harness,
 				toolCtx: {
 					projectDir: '/tmp/proj',
 					runId: 'run-1',
+					authorize: async () => 'deny',
 				},
 				maxIterations: 3,
 			}).pipe(toArray()),

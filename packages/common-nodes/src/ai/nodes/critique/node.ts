@@ -1,23 +1,4 @@
-import type {
-	ChatCompletionMessage,
-	CreateChatCompletionStream,
-} from '../../features/chat-completion-stream.js';
-import { filter, map, Observable, type Observable as RxObservable } from 'rxjs';
-import {
-	defineLlmNode,
-	isSteerControlPayload,
-	toLlmRecoveryPortValue,
-	type SteerControlPayload,
-} from '@langflower/node-sdk/llm';
-import type { PermissionAskRequest } from '@langflower/tools/permission';
-import { collectAgentToolHandles } from '../../../tools/collect-agent-tool-handles.js';
-import { buildEffectiveSystemPrompt } from '../../features/prompt/build-effective-system-prompt.js';
-import { resolveChatProviderModel } from '../../features/prompt/resolve-chat-provider-model.js';
-import {
-	createLlmSessionCycle$,
-	demuxByKind,
-	normalizeMaxFeedbackTurns,
-} from '../../features/llm-session/llm-session-shell.js';
+import { defineLlmNode } from '@langflower/node-sdk/llm';
 import { llmCompactionUiSchema } from '../../features/ui-schema/llm-compaction-ui-schema.js';
 import { llmRecoveryUiSchema } from '../../features/ui-schema/llm-recovery-ui-schema.js';
 import {
@@ -25,58 +6,14 @@ import {
 	llmPanelUiSchema,
 } from '../../features/ui-schema/llm-panel-ui-schema.js';
 import {
-	parseLlmRolePreset,
-	resolveEffectiveSkillId,
-} from '../../features/llm-role-preset.js';
-import {
 	DEFAULT_PATH_CHOICE_MAX_ITERATIONS,
 	PATH_CHOICE_MAX_ITERATIONS_CAP,
-	normalizeMaxIterations,
 } from '../../features/prompt/normalize-max-iterations.js';
-import type { LlmRecoveryPolicy } from '../../features/llm-loop/llm-loop-types.js';
-import { normalizeLlmRecoveryPolicy } from '../../features/llm-loop/normalize-llm-recovery-policy.js';
-import { normalizeCompactionConfig } from '../../features/openai/normalize-compaction-params.js';
-import type { LlmCompactionConfig } from '../../features/openai/normalize-compaction-params.js';
-import type { ToolHandle } from '@langflower/node-sdk';
-import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
 import {
 	REVIEW_ACCEPT_TOOL,
 	REVIEW_FEEDBACK_TOOL,
 } from '../../features/path-choice/control-tools.js';
-import {
-	runPathChoiceToolLoop,
-	type ReviewLoopChunk,
-} from '../../features/path-choice/run-reactive-path-choice-loop.js';
-import { getRunHostServices } from '../../features/run-host-services.js';
-
-type CritiqueChunk =
-	| Exclude<ReviewLoopChunk, { kind: 'accept' }>
-	| {
-			readonly kind: 'accept';
-			readonly notes: string;
-			readonly result: string;
-	  };
-
-type CritiqueContext = {
-	readonly assignment: string;
-	readonly providerId: string;
-	readonly model: string;
-	readonly skillId: string;
-	readonly effectiveSystemPrompt: string;
-	readonly skillMarkdown: string;
-	readonly factory: CreateChatCompletionStream | undefined;
-	readonly maxIterations: number;
-	/** Shared session storm cap; 0 = unlimited (Critique revise rounds). */
-	readonly maxFeedbackTurns: number;
-	readonly requestPermission?: (
-		request: PermissionAskRequest,
-	) => Promise<'allow' | 'deny'>;
-	readonly tools: readonly ToolHandle[];
-	readonly toolCtx: ToolHandlerContext;
-	readonly compaction: LlmCompactionConfig;
-	readonly recovery: LlmRecoveryPolicy;
-	readonly steerControl$: RxObservable<SteerControlPayload>;
-};
+import { bindPathChoiceSession } from '../../features/path-choice/bind-path-choice-session.js';
 
 const FORCED_TOOL_SYSTEM = [
 	'You are an adversarial Critique node — not the author of the assignment.',
@@ -88,32 +25,6 @@ const FORCED_TOOL_SYSTEM = [
 	`Call ${REVIEW_FEEDBACK_TOOL} with concrete findings when the packet is not yet defensible.`,
 	`Call ${REVIEW_ACCEPT_TOOL} only when further attack is non-blocking — agreed enough to stop critiquing.`,
 ].join(' ');
-
-const requireChatConfig = (providerId: string, model: string): void => {
-	if (providerId.trim().length === 0) {
-		throw new Error('Provider is required for Critique chat');
-	}
-
-	if (model.trim().length === 0) {
-		throw new Error('Model is required for Critique chat');
-	}
-};
-
-const buildEffectiveCritiqueSystem = (input: {
-	readonly rolePreset: ReturnType<typeof parseLlmRolePreset>;
-	readonly systemPromptInput: string;
-	readonly agentsMarkdown: string;
-	readonly skillMarkdown: string;
-}): string => {
-	const merged = buildEffectiveSystemPrompt(input);
-	const parts = [FORCED_TOOL_SYSTEM];
-
-	if (merged.trim().length > 0) {
-		parts.push(merged);
-	}
-
-	return parts.join('\n\n---\n\n');
-};
 
 const buildUserContent = (assignment: string, packet: string): string =>
 	[
@@ -129,63 +40,6 @@ const buildRevisedPacketUserContent = (packet: string): string =>
 		'## Revised packet to attack',
 		packet.trim().length > 0 ? packet : '(empty packet)',
 	].join('\n');
-
-const hasUserMessage = (history: readonly ChatCompletionMessage[]): boolean =>
-	history.some((message) => message.role === 'user');
-
-const runCritiqueTurn = (
-	context: CritiqueContext,
-	packet: string,
-	history: readonly ChatCompletionMessage[],
-): RxObservable<CritiqueChunk> => {
-	const factory = context.factory;
-
-	if (factory === undefined) {
-		return new Observable((subscriber) => {
-			subscriber.error(
-				new Error(
-					'Critique chat is only available during server workflow runs',
-				),
-			);
-		});
-	}
-
-	requireChatConfig(context.providerId, context.model);
-
-	const userContent = hasUserMessage(history)
-		? buildRevisedPacketUserContent(packet)
-		: buildUserContent(context.assignment, packet);
-
-	const messages: readonly ChatCompletionMessage[] = [
-		...history,
-		{ role: 'user', content: userContent },
-	];
-
-	return runPathChoiceToolLoop({
-		factory,
-		providerId: context.providerId,
-		model: context.model,
-		messages,
-		maxIterations: context.maxIterations,
-		tools: context.tools,
-		compaction: context.compaction,
-		recovery: context.recovery,
-		steerControl$: context.steerControl$,
-		toolCtx: context.toolCtx,
-	}).pipe(
-		map((chunk): CritiqueChunk => {
-			if (chunk.kind === 'accept') {
-				return {
-					kind: 'accept',
-					notes: chunk.notes,
-					result: packet,
-				};
-			}
-
-			return chunk;
-		}),
-	);
-};
 
 /**
  * Adversarial Critique: path choice via the same Review-private control tools
@@ -213,180 +67,15 @@ Wire the assignment on the first input and the packet to critique on the second.
 		...llmCompactionUiSchema,
 		...llmRecoveryUiSchema,
 	] as const,
-	bind(ctx, { makeInput, configureOutput, combineInputs }, inventory) {
-		const { tools, steerControl } = inventory;
-		const assignment = makeInput<string>('assignment', {
-			name: 'assignment',
-			wireType: 'string',
-			inline: 'text-multiline',
-			required: true,
+	bind(ctx, helpers, inventory) {
+		return bindPathChoiceSession(ctx, helpers, inventory, {
+			primary: { id: 'assignment', name: 'assignment' },
+			turn: { id: 'packet', name: 'packet' },
+			forcedSystem: FORCED_TOOL_SYSTEM,
+			requireProviderError: 'Provider is required for Critique chat',
+			requireModelError: 'Model is required for Critique chat',
+			buildUserContent,
+			buildRevisedUserContent: buildRevisedPacketUserContent,
 		});
-		const packet = makeInput<string>('packet', {
-			name: 'packet',
-			wireType: 'string',
-			inline: 'text-multiline',
-			required: true,
-		});
-		const systemPrompt = makeInput<string>('systemPrompt', {
-			name: 'systemPrompt',
-			wireType: 'string',
-			inline: 'text-multiline',
-			defaultValue: '',
-		});
-
-		// Init peers only — packet is the session turn driver (ADR-016).
-		const context$ = combineInputs(
-			[assignment, systemPrompt, tools, ctx],
-			([assignmentValue, systemPromptValue, toolList, ec]) => {
-				const rolePreset = parseLlmRolePreset(ec.params.rolePreset);
-				const skillId = resolveEffectiveSkillId(
-					rolePreset,
-					ec.params.skillId,
-				);
-				const hostServices = getRunHostServices(ec);
-				const skillMarkdown = hostServices?.skillMarkdown ?? '';
-				const agentsMarkdown = hostServices?.agentsMarkdown ?? '';
-
-				return {
-					assignment: String(assignmentValue ?? ''),
-					...resolveChatProviderModel(ec.params, hostServices),
-					skillId,
-					skillMarkdown,
-					effectiveSystemPrompt: buildEffectiveCritiqueSystem({
-						rolePreset,
-						systemPromptInput: String(systemPromptValue ?? ''),
-						agentsMarkdown,
-						skillMarkdown,
-					}),
-					factory: hostServices?.createChatCompletionStream,
-					maxIterations: normalizeMaxIterations(
-						ec.params.maxIterations,
-						{
-							fallback: DEFAULT_PATH_CHOICE_MAX_ITERATIONS,
-							maxCap: PATH_CHOICE_MAX_ITERATIONS_CAP,
-						},
-					),
-					maxFeedbackTurns: normalizeMaxFeedbackTurns(
-						ec.params.maxFeedbackTurns,
-					),
-					...(hostServices?.requestPermission !== undefined
-						? { requestPermission: hostServices.requestPermission }
-						: {}),
-					compaction: normalizeCompactionConfig(ec.params),
-					recovery: normalizeLlmRecoveryPolicy(ec.params),
-					steerControl$: steerControl.value$.pipe(
-						filter(isSteerControlPayload),
-					),
-					tools: collectAgentToolHandles({
-						toolHandles: ec.toolHandles,
-						toolsPort: toolList,
-					}),
-					toolCtx: {
-						projectDir: ec.projectDir,
-						runId: ec.runId,
-						...(hostServices?.authorize !== undefined
-							? { authorize: hostServices.authorize }
-							: {}),
-						...(hostServices?.denyPaths !== undefined
-							? { denyPaths: hostServices.denyPaths }
-							: {}),
-						...(hostServices?.allowedHosts !== undefined
-							? { allowedHosts: hostServices.allowedHosts }
-							: {}),
-					},
-				} satisfies CritiqueContext;
-			},
-		);
-
-		const cycle$ = createLlmSessionCycle$(
-			context$,
-			packet.value$,
-			(context) => ({
-				history: [
-					{
-						role: 'system',
-						content: context.effectiveSystemPrompt,
-					},
-				],
-				trackAssistantHistory: false,
-				appendUserFeedbackToHistory: false,
-				session: undefined,
-			}),
-			(context, turnPayload, history) =>
-				runCritiqueTurn(context, String(turnPayload ?? ''), history),
-			{ primeTurn0: false },
-		);
-
-		const reasoning$ = cycle$.pipeValue(
-			demuxByKind(
-				'reasoning',
-				(chunk) =>
-					(chunk as Extract<CritiqueChunk, { kind: 'reasoning' }>)
-						.text,
-			),
-		);
-		const draftResponse$ = cycle$.pipeValue(
-			demuxByKind(
-				'draftResponse',
-				(chunk) =>
-					(chunk as Extract<CritiqueChunk, { kind: 'draftResponse' }>)
-						.text,
-			),
-		);
-		const toolLog$ = cycle$.pipeValue(
-			demuxByKind(
-				'toolLog',
-				(chunk) =>
-					(chunk as Extract<CritiqueChunk, { kind: 'toolLog' }>).text,
-			),
-		);
-		const recovery$ = cycle$.pipeValue(
-			demuxByKind('recoveryNotice', (chunk) => {
-				const notice = chunk as Extract<
-					CritiqueChunk,
-					{ kind: 'recoveryNotice' }
-				>;
-				return toLlmRecoveryPortValue(notice);
-			}),
-		);
-		const response$ = cycle$.pipeValue(
-			demuxByKind(
-				'accept',
-				(chunk) =>
-					(chunk as Extract<CritiqueChunk, { kind: 'accept' }>)
-						.result,
-			),
-		);
-		const feedback$ = cycle$.pipeValue(
-			demuxByKind(
-				'feedback',
-				(chunk) =>
-					(chunk as Extract<CritiqueChunk, { kind: 'feedback' }>)
-						.notes,
-			),
-		);
-
-		return {
-			inputs: [assignment, packet, systemPrompt],
-			outputs: [
-				configureOutput('reasoning', reasoning$, {
-					wireType: 'string',
-					feed: { role: 'reasoning', streaming: true },
-				}),
-				configureOutput('draftResponse', draftResponse$, {
-					wireType: 'string',
-					feed: { role: 'draft', streaming: true },
-				}),
-				configureOutput('response', response$, {
-					wireType: 'string',
-					feed: { role: 'result' },
-				}),
-				configureOutput('feedback', feedback$, {
-					wireType: 'string',
-					feed: { role: 'result' },
-				}),
-			],
-			inventoryOutputs: { toolLog$, recovery$ },
-		};
 	},
 });

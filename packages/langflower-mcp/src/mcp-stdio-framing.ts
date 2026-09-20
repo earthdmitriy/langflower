@@ -5,6 +5,10 @@
  * Replies must use the **same** framing the peer used on the last inbound
  * message — Cursor's host historically speaks newline JSON; forcing
  * Content-Length-only responses leaves initialize hanging ("server won't start").
+ *
+ * Parse path is a DAG twin of tools `mcp-stdio-frame-parser.ts` (neither
+ * package may import the other in production). Encode / mode echo stay here.
+ * Gate: tools `mcp-stdio-frame-parser.parity.test.ts`.
  */
 
 export type McpJsonMessage = Readonly<Record<string, unknown>>;

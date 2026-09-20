@@ -16,10 +16,11 @@ Shared LLM core lives under `features/` as named slices — not a junk drawer:
 - `features/openai/` — unbound HTTP factory (server binds secrets)
 - `features/ui-schema/` — Inspector panel / recovery / compaction fragments
 - `features/prompt/` — system prompt, max-iterations, provider/model resolve
+- `features/llm-run-host.ts` — LLM bag type (`createChatCompletionStream`);
+  nodes read `ec.chat` from declared caps, not a peek helper
 
-One-file published modules stay at `features/` root (`llm-role-preset.ts`,
-`run-host-services.ts`). Specifiers in
-`package.json` `exports` are unchanged.
+Run-scoped host attach/get lives in `src/run-host/` (`./run-host-services`).
+Do not import that bag from `ai/` in embeddings / MCP / files / crawl.
 
 Plan / Coder / Explorer are **instance presets** on `common-openai-llm` /
 `common-fake-llm` — not separate palette types.

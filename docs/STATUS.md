@@ -8,7 +8,7 @@ Legend: **done** · **partial** · **stub** (NODE.md / placeholder only) · **pl
 Partial → Implementable; north star coding-agent) ·
 [TODO/EPICS/README.md](TODO/EPICS/README.md) (active queue: see file) ·
 [features/README.md](features/README.md) (UI / capability contracts) ·
-[DONE/EPICS/README.md](DONE/EPICS/README.md) (completed epics archive **00–45**) ·
+[DONE/EPICS/README.md](DONE/EPICS/README.md) (completed epics archive **00–46**) ·
 [DONE/LLM-NODES/llm-nodes-README.md](DONE/LLM-NODES/llm-nodes-README.md) (LLM foundation 1–6).
 
 Do **not** use historical Stage 1 / 2 / 3 labels for planning — see PRODUCT.md.
@@ -44,22 +44,22 @@ Last aligned with `catalog.ts`, use-cases README, and features README
 | 6   | Reload nodes button                   | **partial** | system: `palette.reload.requested` unchanged; custom: Update + Langflower Tools `compile_custom_nodes` (bus) + hot-swap + same-turn inventory **done** |
 | 7   | Palette compile errors                | **done**    | `customPalette.snapshot.errors` + pack `COMPILATION_ERRORS.md`                                                                                         |
 | 8   | Project directory via CLI             | **done**    | `start-command.ts`, `lf-project-dir`                                                                                                                   |
-| 9   | Inline primitive inputs on node body  | **done**    | `node-inline-inputs`, `lf-node.component.ts`                                                                                                           |
+| 9   | Inline primitive inputs on node body  | **done**    | `app/components/lf-inline-field.component.ts`, `lf-node.component.ts`                                                                                  |
 
 ## By package
 
 ### `@langflower/shared` — **partial**
 
-| Area                    | Status      | Path                                                                                                                                                                        |
-| ----------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DataType` union        | partial     | `types/data-type.ts`                                                                                                                                                        |
-| Node / workflow types   | partial     | `types/node-definition.ts`, `workflow.ts`                                                                                                                                   |
-| Config schema           | partial     | `types/config.ts`                                                                                                                                                           |
-| `canConnectPorts`       | **done**    | `validators/connection-validator.ts`                                                                                                                                        |
-| WebSocket bus registry  | **done**    | `langflower-bus-config.ts`, `langflower.ts`                                                                                                                                 |
-| Defaults                | **done**    | `constants/defaults.ts`                                                                                                                                                     |
-| Partial-run plan        | **planned** | `execution/partial-run-plan.ts` — not yet implemented; feed-panel Phase 1 derives partial-run trimming client-side (`packages/ui/src/app/features/sidebar/feed-section.ts`) |
-| Langflower config (LLM) | **done**    | `types/langflower-config.ts`, `langflower.jsonc`                                                                                                                            |
+| Area                    | Status   | Path                                                                                                                       |
+| ----------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `DataType` union        | partial  | `types/data-type.ts`                                                                                                       |
+| Node / workflow types   | partial  | `types/node-definition.ts`, `workflow.ts`                                                                                  |
+| Config schema           | partial  | `types/config.ts`                                                                                                          |
+| `canConnectPorts`       | **done** | `validators/connection-validator.ts`                                                                                       |
+| WebSocket bus registry  | **done** | `langflower-bus-config.ts`, `langflower.ts`                                                                                |
+| Defaults                | **done** | `constants/defaults.ts`                                                                                                    |
+| Partial-run plan        | **done** | Cluster scope is `RuntimeRunner.startNode` (not a shared `partial-run-plan.ts`). Feed does not trim the graph client-side. |
+| Langflower config (LLM) | **done** | `types/langflower-config.ts`, `langflower.jsonc`                                                                           |
 
 ### `@langflower/server` — **partial**
 
@@ -68,7 +68,7 @@ Last aligned with `catalog.ts`, use-cases README, and features README
 | `createServer`                       | **done**    | `create-server.ts`                                                                                                                                                                           |
 | API routers                          | partial     | `api/workflows-router.ts` (bulk REST)                                                                                                                                                        |
 | Node registry                        | **done**    | System via `PaletteService`; custom via `CustomPaletteService` + resolve merge                                                                                                               |
-| Custom node compiler                 | **done**    | `@langflower/compiler` + `customPalette.*` bus; contract [ADR-030](ADR.md#adr-030--custom-node-pack-layout--npm-model)                                                                       |
+| Custom node compiler                 | **done**    | `@langflower/compiler` + `customPalette.*` bus; contract [ADR-030](architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model)                                                          |
 | Workflow CRUD                        | **done**    | `workflow/workflow.service.ts`                                                                                                                                                               |
 | Config service                       | **done**    | `config/`                                                                                                                                                                                    |
 | Langflower config (project + global) | **done**    | `config/langflower-config.service.ts` — project `.langflower/langflower.jsonc` + OS user global merge (epic 18; ADR-002)                                                                     |
@@ -86,9 +86,9 @@ Last aligned with `catalog.ts`, use-cases README, and features README
 | ------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Editor layout                   | **done**    | `features/editor/`                                                                                                                                                                  |
 | ngDiagram canvas                | **done**    | `features/canvas/`, `diagram/`                                                                                                                                                      |
-| Connection middleware           | **done**    | `diagram/connection-validation.middleware.ts`                                                                                                                                       |
-| Workflow ↔ diagram map          | **done**    | `diagram/workflow-diagram.mapper.ts`                                                                                                                                                |
-| Inline node inputs              | **done**    | `features/canvas/node-inline-inputs.component.ts`                                                                                                                                   |
+| Connection / topology           | **done**    | Server workflow is source of truth; UI `BridgeDiagramService` projects edges. No `connection-validation.middleware.ts`. Type rules: `canConnectPorts`.                              |
+| Workflow ↔ diagram map          | **done**    | `services/bridge-diagram.ts`                                                                                                                                                        |
+| Inline node inputs              | **done**    | `app/components/lf-inline-field.component.ts`                                                                                                                                       |
 | Typography / theme              | **done**    | `docs/TYPOGRAPHY.md`, `src/theme/`                                                                                                                                                  |
 | Palette                         | **done**    | `features/palette/`                                                                                                                                                                 |
 | Topbar / workflow chrome        | **partial** | `features/topbar/` + Settings gear (epic 18)                                                                                                                                        |
@@ -109,13 +109,13 @@ Last aligned with `catalog.ts`, use-cases README, and features README
 
 ### Desktop launcher — **done** (supervisor)
 
-| Area                          | Status   | Path                                                                                                                                                                                      |
-| ----------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Slint window + CLI spawn      | **done** | `launcher/` — one child per project; `--no-open -p`; software renderer; no WebView2 ([ADR-038](ADR.md#adr-038--launcher-is-a-cli-supervisor)); [author guide](../launcher/docs/README.md) |
-| Recents                       | **done** | user-global `launcher.json`                                                                                                                                                               |
-| Open editor in system browser | **done** | localhost `http://127.0.0.1:` after READY; **?** opens [launcher.md](public/launcher.md) on GitHub                                                                                        |
-| User manual                   | **done** | [docs/public/launcher.md](public/launcher.md)                                                                                                                                             |
-| GitHub Release zips           | **done** | unsigned Win x64/ARM64 + macOS arm64/x64 on tag `launcher-v*` (not npm `v*`)                                                                                                              |
+| Area                          | Status   | Path                                                                                                                                                                                                   |
+| ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Slint window + CLI spawn      | **done** | `launcher/` — one child per project; `--no-open -p`; software renderer; no WebView2 ([ADR-038](architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor)); [author guide](../launcher/docs/README.md) |
+| Recents                       | **done** | user-global `launcher.json`                                                                                                                                                                            |
+| Open editor in system browser | **done** | localhost `http://127.0.0.1:` after READY; **?** opens [launcher.md](public/launcher.md) on GitHub                                                                                                     |
+| User manual                   | **done** | [docs/public/launcher.md](public/launcher.md)                                                                                                                                                          |
+| GitHub Release zips           | **done** | unsigned Win x64/ARM64 `.exe` + macOS arm64/x64 `Langflower.app` on tag `launcher-v*` (not npm `v*`)                                                                                                   |
 
 ## Tooling — **done**
 
@@ -128,7 +128,7 @@ Last aligned with `catalog.ts`, use-cases README, and features README
 ## Execution (WS runner) — **done** (graph basics)
 
 Common-node workflow execution via the WebSocket runner bus. See
-[EXECUTION_ARCHITECTURE.md](EXECUTION_ARCHITECTURE.md).
+[architecture/EXECUTION_ARCHITECTURE.md](architecture/EXECUTION_ARCHITECTURE.md).
 
 | Area                                      | Status      | Path                                                                                                                                                        |
 | ----------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -200,6 +200,7 @@ shipped**.
 | Repeat                    | `common-repeat`           | **done**    | Flow — emit `value` N times (first ASAP, then on `trigger`), `index` (0-based), then `done` |
 | Router                    | `common-router`           | **done**    | Reactive channels                                                                           |
 | Preview                   | `common-preview`          | **done**    | Output                                                                                      |
+| Hint                      | `common-hint`             | **done**    | Output — canvas markdown annotation (no wires)                                              |
 | Tool inspect              | `common-tool-inspect`     | **done**    | Output — `toolId` + example args + `inputSchema`; optional `toolId` filter                  |
 | Finish                    | `common-finish`           | **done**    | `stopsRun`                                                                                  |
 | Checkpoint                | `common-checkpoint`       | **done**    | Explicit durable boundary + picker resume (epic 20)                                         |
@@ -209,6 +210,7 @@ shipped**.
 | Write File                | `common-write-file`       | **done**    | Text — `ctx.files`                                                                          |
 | Append File               | `common-append-file`      | **done**    | Text — `ctx.files` + delimiter                                                              |
 | Review Gate               | `common-hitl-review-gate` | **done**    | Reactive HITL (approve / request-changes; multi-await OK)                                   |
+| Chat Loop                 | `common-chat-loop`        | **done**    | HITL reply → `feedback`; infinite agent chat until Stop                                     |
 | Fake LLM                  | `common-fake-llm`         | **done**    | Demo stream + scripted internal tool-loop                                                   |
 | OpenAI-compatible LLM     | `common-openai-llm`       | **done**    | Reactive stream/tool loop; idle/5xx retry → Steer; role tool profiles                       |
 | MCP stdio                 | `common-mcp-stdio`        | **done**    | Node-owned stdio MCP → `tools` (`ToolHandle[]`)                                             |
@@ -235,29 +237,29 @@ shipped**.
 
 ### Not in catalog (often overstated as done elsewhere)
 
-| Area                               | Types / path                                                                           | Status                                               | Track                                                                                                                                    |
-| ---------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Agent palette types                | `common-agent-*`                                                                       | **planned** (roles = LLM presets)                    | [EPICS](DONE/EPICS/README.md) 01/04                                                                                                      |
-| Text beyond Concat / file I/O      | Template, one-shot Split, …                                                            | **stub** / **planned**                               | node-library §7 — `common-split-paced` shipped; `common-split` (`parts[]`) still planned                                                 |
-| JSON helpers                       | Parse, Stringify, Set Fields                                                           | **stub** / **planned**                               | node-library §7                                                                                                                          |
-| Harness FS/shell nodes             | list/glob/grep/edit/bash as palette nodes                                              | **planned**                                          | Read/Write/Append File ship as Text via `ctx.files` (not harness ask)                                                                    |
-| Tool-loop + builtins               | invoke `read`…`bash` and `ask_user` via `@langflower/tools`                            | **done**                                             | epic 01; `ask_user` is default-on HITL text (question in feed; composer Send)                                                            |
-| Project memory (markdown tools)    | `common-memory-tools` → `.langflower/memory/`                                          | **done**                                             | [ADR-033](ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base); `update_plan` / `plan` feed; skeleton `kb-create` / `kb-navigate` |
-| hello-embed sample pack            | skeleton `nodes/hello-embed` + `kb-ingest` / `kb-manual-search` / `kb-tool` / `kb-rag` | **done**                                             | markdown → sqlite (vectors + FTS5); hybrid RRF retrieve; pack tsconfig must allow `.ts` imports (`allowImportingTsExtensions`)           |
-| Vector KB pipeline / curation      | former `common-kb-*`                                                                   | **removed**                                          | superseded by ADR-033                                                                                                                    |
-| Obsidian vault helpers             | frontmatter / wikilinks / MOC                                                          | **deferred**                                         | [TBD-007](TBD.md#tbd-007--obsidian-vault-helpers)                                                                                        |
-| Crawl research nodes               | fetch/extract/crawl/save                                                               | **done**                                             | epic 12                                                                                                                                  |
-| Runtime `permission.ask` ladder    | feed Allow/Deny for **builtins** in tool loop                                          | **done**                                             | epic 02; wired packs/MCP skip ask (ADR-033)                                                                                              |
-| Runtime `ask_user`                 | feed question bubble + composer Send; tool result is operator text                     | **done**                                             | sibling of `permission.ask` (`runner.askUser.*`); not Pause/Steer                                                                        |
-| Tools package + permission adapter | `@langflower/tools`, `server/src/harness/`                                             | **done**                                             | epics 01 / 02                                                                                                                            |
-| MCP client / inventory map         | `@langflower/tools` mcp/, LLM `tools` port                                             | **done** (fixture/scripted); **live model unproven** | epic 16 / 41 stage 1; [TESTING live checklist](TESTING.md#live-openai-compatible--mcp-tool-calling-gap)                                  |
+| Area                               | Types / path                                                                                        | Status                                               | Track                                                                                                                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent palette types                | `common-agent-*`                                                                                    | **planned** (roles = LLM presets)                    | [EPICS](DONE/EPICS/README.md) 01/04                                                                                                                                    |
+| Text beyond Concat / file I/O      | Template, one-shot Split, …                                                                         | **stub** / **planned**                               | node-library §7 — `common-split-paced` shipped; `common-split` (`parts[]`) still planned                                                                               |
+| JSON helpers                       | Parse, Stringify, Set Fields                                                                        | **stub** / **planned**                               | node-library §7                                                                                                                                                        |
+| Harness FS/shell nodes             | list/glob/grep/edit/bash as palette nodes                                                           | **planned**                                          | Read/Write/Append File ship as Text via `ctx.files` (not harness ask)                                                                                                  |
+| Tool-loop + builtins               | invoke `read`…`move`/`sleep`/`bash` and `ask_user` via `@langflower/tools`                          | **done**                                             | epic 01; `ask_user` is default-on HITL text (question in feed; composer Send); `move` is workspace rename without bash; `sleep` is a capped wait (1–300s) without bash |
+| Project memory (markdown tools)    | `common-memory-tools` → `.langflower/memory/`                                                       | **done**                                             | [ADR-033](architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base); `update_plan` / `plan` feed; skeleton `kb-create` / `kb-navigate`                  |
+| hello-embed sample pack            | skeleton `nodes/hello-embed` + `kb-ingest` / `kb-manual-search` / `kb-tool` / `kb-rag`              | **done**                                             | markdown → sqlite (vectors + FTS5); hybrid RRF retrieve; pack tsconfig must allow `.ts` imports (`allowImportingTsExtensions`)                                         |
+| Vector KB pipeline / curation      | former `common-kb-*`                                                                                | **removed**                                          | superseded by ADR-033                                                                                                                                                  |
+| Obsidian vault helpers             | frontmatter / wikilinks / MOC                                                                       | **deferred**                                         | [TBD-007](TBD.md#tbd-007--obsidian-vault-helpers)                                                                                                                      |
+| Crawl research nodes               | fetch/extract/crawl/save                                                                            | **done**                                             | epic 12                                                                                                                                                                |
+| Runtime `permission.ask` ladder    | feed Allow/Deny for **builtins** in tool loop                                                       | **done**                                             | epic 02; wired packs/MCP skip ask (ADR-033)                                                                                                                            |
+| Runtime `ask_user`                 | feed question bubble + composer Send; optional option chips; tool result is formatted operator text | **done**                                             | sibling of `permission.ask` (`runner.askUser.*`); not Pause/Steer                                                                                                      |
+| Tools package + permission adapter | `@langflower/tools`, `server/src/harness/`                                                          | **done**                                             | epics 01 / 02                                                                                                                                                          |
+| MCP client / inventory map         | `@langflower/tools` mcp/, LLM `tools` port                                                          | **done** (fixture/scripted); **live model unproven** | epic 16 / 41 stage 1; [TESTING live checklist](TESTING.md#live-openai-compatible--mcp-tool-calling-gap)                                                                |
 
 ## Out of scope (deferred)
 
 Sandboxed user-node execution and embedding the canvas in a native
 webview are tracked as long-horizon goals in [TBD.md](TBD.md) (not the
 near-term epic queue). The thin Slint CLI supervisor is **not** that
-shell ([ADR-038](ADR.md#adr-038--launcher-is-a-cli-supervisor)). Tauri
+shell ([ADR-038](architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor)). Tauri
 is not the intended launcher path (tried; WebView + large exe).
 
 When extending stubs, keep existing file paths — do not create parallel implementations.

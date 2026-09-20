@@ -1,5 +1,5 @@
-import { asString } from '../args.js';
 import type { BuiltinTool, HandlerContext } from '../types.js';
+import { parseAskUserArgs } from './parse-ask-user-args.js';
 
 const ASK_USER_ABORTED = 'ask_user aborted.';
 
@@ -41,11 +41,7 @@ const invoke = async (
 	ctx: HandlerContext,
 	args: Readonly<Record<string, unknown>>,
 ): Promise<string> => {
-	const question = asString(args, 'question');
-
-	if (question === undefined || question.trim().length === 0) {
-		throw new Error('ask_user requires string argument «question».');
-	}
+	const request = parseAskUserArgs(args);
 
 	if (ctx.askUser === undefined) {
 		throw new Error(
@@ -53,10 +49,7 @@ const invoke = async (
 		);
 	}
 
-	return invokeWithAbort(
-		ctx.askUser({ question: question.trim() }),
-		ctx.signal,
-	);
+	return invokeWithAbort(ctx.askUser(request), ctx.signal);
 };
 
 export const askUserTool = {
@@ -65,17 +58,42 @@ export const askUserTool = {
 		toolId: 'ask_user',
 		name: 'ask_user',
 		description:
-			'Do not guess. If you are not sure, ask the user. Pauses the run so the operator can provide additional information.',
+			'Do not guess. If you are not sure, ask the user. Pauses the run so the operator can answer. Pass «question» for a freeform prompt, and/or ordered «questions» with optional choice lists. The operator sees every question at once, may select options (multi-select when allowMultiple is true), and may also type a freeform reply. One Send returns the answers.',
 		inputSchema: {
 			type: 'object',
 			properties: {
 				question: {
 					type: 'string',
 					description:
-						'The question to show the operator. Be specific about what you need.',
+						'Headline or single freeform question. Required when questions is omitted.',
+				},
+				questions: {
+					type: 'array',
+					description:
+						'Ordered questions shown together. Each may include options. Max 8.',
+					items: {
+						type: 'object',
+						properties: {
+							prompt: {
+								type: 'string',
+								description: 'Question text for the operator.',
+							},
+							options: {
+								type: 'array',
+								description:
+									'Optional choice labels. Max 12. Empty means freeform only for this prompt.',
+								items: { type: 'string' },
+							},
+							allowMultiple: {
+								type: 'boolean',
+								description:
+									'When true, the operator may select several options for this question.',
+							},
+						},
+						required: ['prompt'],
+					},
 				},
 			},
-			required: ['question'],
 			additionalProperties: false,
 		},
 	},

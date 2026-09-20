@@ -1,4 +1,4 @@
-import type { RunnerPermissionAskPayload } from '@langflower/shared/langflower.js';
+import type { RunnerPermissionAskPayload } from '@langflower/shared/types/langflower-config.js';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
 	createTempProject,
@@ -34,7 +34,8 @@ describe('execute fake-llm maxIterations continue (WS bridge)', () => {
 		expect(llm?.params.maxIterations).toBe(1);
 	});
 
-	describe.skipIf(!scenarioReadyById(SCENARIO_ID))('runtime', () => {
+	describe('runtime', () => {
+		scenarioReadyById(SCENARIO_ID);
 		let projectDir: string;
 		let urls: TestServerHandle;
 		let client: LangflowerWsClient;

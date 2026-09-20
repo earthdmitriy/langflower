@@ -84,6 +84,22 @@ describe('NodePreviewValuesService', () => {
 		expect(service.valueFor('n1', 'text')).toBeUndefined();
 	});
 
+	it('keeps live inputs when runner.started arrives after ports (null→runId)', () => {
+		raw['runner.port'].next([
+			'in',
+			'n1',
+			'text',
+			{ value: 'prefix' },
+			0,
+			[],
+			null,
+		]);
+		expect(service.valueFor('n1', 'text')).toBe('prefix');
+
+		raw['runner.started'].next('run-1');
+		expect(service.valueFor('n1', 'text')).toBe('prefix');
+	});
+
 	it('clears on new runId and on workflow switch', () => {
 		raw['runner.started'].next('run-1');
 		raw['runner.port'].next([

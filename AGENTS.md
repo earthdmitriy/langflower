@@ -9,27 +9,28 @@ Start with [PRODUCT](docs/PRODUCT.md), then the relevant feature/use-case doc.
 
 ## Canonical docs
 
-| Doc                                                                | Use for                                                    |
-| ------------------------------------------------------------------ | ---------------------------------------------------------- |
-| [PRODUCT](docs/PRODUCT.md)                                         | Purpose, user, differentiators, scope                      |
-| [GLOSSARY](docs/GLOSSARY.md)                                       | Short term definitions (Part 1 users; Part 2 developers)   |
-| [Features](docs/features/README.md)                                | Shipped user-facing behaviour                              |
-| [Use cases](docs/use-cases/README.md)                              | Active scenarios and Status gaps                           |
-| [NAVIGATION](docs/NAVIGATION.md)                                   | Where code belongs                                         |
-| [PRINCIPLES](docs/PRINCIPLES.md)                                   | Functional-reactive flow, adapted slices, boundaries       |
-| [ARCHITECTURE](docs/ARCHITECTURE.md)                               | Startup, API, and system flows                             |
-| [ADR](docs/ADR.md)                                                 | Non-obvious architecture decisions                         |
-| [REACTIVITY](docs/REACTIVITY.md)                                   | RxJS folds and subscription rules                          |
-| [EXECUTION_ARCHITECTURE](docs/EXECUTION_ARCHITECTURE.md)           | Runtime/bridge execution flow                              |
-| [HOW_TO_WRITE_REACTIVE_NODES](docs/HOW_TO_WRITE_REACTIVE_NODES.md) | Node authoring                                             |
-| [LLM_RECOVERY](docs/LLM_RECOVERY.md)                               | Stuck stream / dead-loop recovery (idle, autokick)         |
-| [EMBEDDING](docs/EMBEDDING.md)                                     | OpenAI embeddings vs chat (`encoding_format`, EmbedHandle) |
-| [TESTING](docs/TESTING.md)                                         | Unit/API/integration tests                                 |
-| [VIRTUAL_SCROLL](docs/VIRTUAL_SCROLL.md)                           | Work-log window: why CDK autosize failed, current slice    |
-| [STATUS](docs/STATUS.md)                                           | Implemented versus stubbed                                 |
-| [FOUND_BUGS](docs/FOUND_BUGS.md)                                   | Reproduced bugs and design lessons                         |
-| [TODO](docs/TODO/README.md) / [DONE](docs/DONE/README.md)          | Queued / completed plans                                   |
-| [TBD](docs/TBD.md)                                                 | Long-horizon unresolved tradeoffs                          |
+| Doc                                                                   | Use for                                                    |
+| --------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [PRODUCT](docs/PRODUCT.md)                                            | Purpose, user, differentiators, scope                      |
+| [GLOSSARY](docs/GLOSSARY.md)                                          | Short term definitions (Part 1 users; Part 2 developers)   |
+| [Features](docs/features/README.md)                                   | Shipped user-facing behaviour                              |
+| [Use cases](docs/use-cases/README.md)                                 | Active scenarios and Status gaps                           |
+| [NAVIGATION](docs/architecture/NAVIGATION.md)                         | Where code belongs                                         |
+| [PRINCIPLES](docs/architecture/PRINCIPLES.md)                         | Functional-reactive flow, adapted slices, boundaries       |
+| [ARCHITECTURE](docs/architecture/ARCHITECTURE.md)                     | Startup, API, and system flows                             |
+| [ADR](docs/architecture/ADR.md)                                       | Non-obvious architecture decisions                         |
+| [REACTIVITY](docs/architecture/REACTIVITY.md)                         | RxJS folds and subscription rules                          |
+| [EXECUTION_ARCHITECTURE](docs/architecture/EXECUTION_ARCHITECTURE.md) | Runtime/bridge execution flow                              |
+| [EXTENSION_POINT](docs/architecture/EXTENSION_POINT.md)               | Extension seams: node, pack, tool, bus event, provider     |
+| [HOW_TO_WRITE_REACTIVE_NODES](docs/HOW_TO_WRITE_REACTIVE_NODES.md)    | Node authoring                                             |
+| [LLM_RECOVERY](docs/LLM_RECOVERY.md)                                  | Stuck stream / dead-loop recovery (idle, autokick)         |
+| [EMBEDDING](docs/EMBEDDING.md)                                        | OpenAI embeddings vs chat (`encoding_format`, EmbedHandle) |
+| [TESTING](docs/TESTING.md)                                            | Unit/API/integration tests                                 |
+| [VIRTUAL_SCROLL](docs/VIRTUAL_SCROLL.md)                              | Work-log window: why CDK autosize failed, current slice    |
+| [STATUS](docs/STATUS.md)                                              | Implemented versus stubbed                                 |
+| [FOUND_BUGS](docs/FOUND_BUGS.md)                                      | Reproduced bugs and design lessons                         |
+| [TODO](docs/TODO/README.md) / [DONE](docs/DONE/README.md)             | Queued / completed plans                                   |
+| [TBD](docs/TBD.md)                                                    | Long-horizon unresolved tradeoffs                          |
 
 Feature docs describe **what** ships; technical docs and ADRs describe **how**.
 Do not plan against historical Stage labels.
@@ -68,7 +69,7 @@ Read the nested instructions before changing a package:
 
 The package DAG and pragmatic Package / Slice / Unit / Kernel model are
 canonical in
-[PRINCIPLES § Feature-sliced structure](docs/PRINCIPLES.md#feature-sliced-structure).
+[PRINCIPLES § Feature-sliced structure](docs/architecture/PRINCIPLES.md#feature-sliced-structure).
 
 ## Core rules
 
@@ -77,7 +78,7 @@ canonical in
 - Make reset and hydration policy explicit. Never hide state reduction in
   `subscribe`, `tap`, or Angular `effect`.
 - `withLatestFrom` requires explicit human approval; prefer `combineLatest` or
-  redesign. See [REACTIVITY](docs/REACTIVITY.md).
+  redesign. See [REACTIVITY](docs/architecture/REACTIVITY.md).
 - Keep feature slices self-contained. UI services may own cross-feature folds;
   feature components own local UX. Keep ngDiagram mutation at the diagram
   boundary.
@@ -91,7 +92,7 @@ canonical in
   stay in `@langflower/node-sdk`. Reuse the owner type.
 - TypeScript is strict: no `any`; prefer guards/generics over casts.
 - Expected failures are Results (`{ ok: true|false }`), not throws — see
-  [PRINCIPLES § Functional error handling](docs/PRINCIPLES.md#functional-error-handling).
+  [PRINCIPLES § Functional error handling](docs/architecture/PRINCIPLES.md#functional-error-handling).
 - Use `type`, arrow functions, immutable updates, and concrete module imports.
   `index.ts` barrels are forbidden.
 - Keep single-use helpers local above their consumer. Extract only for two real
@@ -102,7 +103,7 @@ canonical in
   `dead-code` → delete findings → `check-exports` → `verify`.
 
 Full rationale and edge allow-list:
-[PRINCIPLES](docs/PRINCIPLES.md).
+[PRINCIPLES](docs/architecture/PRINCIPLES.md).
 
 ## Reactive execution summary
 
@@ -117,9 +118,9 @@ Full rationale and edge allow-list:
 - There is no separate batch engine and no `ReactivePortBus`. Do not reintroduce
   execution-mode adapters.
 
-See [ADR-004](docs/ADR.md#adr-004--functional--reactive-style-with-rxjs),
-[ADR-012](docs/ADR.md#adr-012--internal-websocket-bus-rest-for-bulk-escape-hatches),
-and [EXECUTION_ARCHITECTURE](docs/EXECUTION_ARCHITECTURE.md).
+See [ADR-004](docs/architecture/ADR.md#adr-004--functional--reactive-style-with-rxjs),
+[ADR-012](docs/architecture/ADR.md#adr-012--internal-websocket-bus-rest-for-bulk-escape-hatches),
+and [EXECUTION_ARCHITECTURE](docs/architecture/EXECUTION_ARCHITECTURE.md).
 
 ## Found bugs
 

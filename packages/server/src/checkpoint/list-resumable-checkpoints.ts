@@ -1,8 +1,6 @@
-import {
-	buildWorkflowFingerprint,
-	type WorkflowCheckpointSummary,
-	type WorkflowLoadedPayload,
-} from '@langflower/shared/langflower.js';
+import { buildWorkflowFingerprint } from '@langflower/shared/checkpoint/workflow-fingerprint.js';
+import type { WorkflowCheckpointSummary } from '@langflower/shared/types/workflow-checkpoint.js';
+import type { WorkflowLoadedPayload } from '@langflower/shared/types/langflower-workflow.js';
 import type { WorkflowCheckpointStore } from './workflow-checkpoint-store.js';
 
 /** List resumable checkpoints, marking fingerprint mismatches as stale. */

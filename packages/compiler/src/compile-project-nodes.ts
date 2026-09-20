@@ -130,8 +130,6 @@ const packRecord = (
 	),
 });
 
-export { hasCustomNodePacks } from './discover-packs.js';
-
 /**
  * Scan `.langflower/nodes/`. Each pack runs independently; within a pack each
  * `export default` entry is typechecked then esbuilt only if clean.

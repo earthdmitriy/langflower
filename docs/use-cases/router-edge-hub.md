@@ -202,8 +202,6 @@ node-library).
 - Unit: `packages/runtime/src/testing/workflows/router.workflow.test.ts`,
   `packages/common-nodes/src/flow/router/router.test.ts`,
   canvas dynamic ports in `packages/ui` dynamic-port-update tests
-- CI (partial): `tests/integration/ws/execute-router.ws.test.ts` — scenario
-  graph asserted; runtime cases still `it.todo`
 - Related: [node-library § Router](../features/node-library.md),
   [REACTIVE_NODES.md](../REACTIVE_NODES.md),
   [visual-workflow-editor](../features/visual-workflow-editor.md)

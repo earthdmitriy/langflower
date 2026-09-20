@@ -30,7 +30,6 @@ describe('createFakeSkillCaseRunner', () => {
 			},
 			skillMarkdown: TRIAGE_SKILL,
 			projectRoot: '.',
-			harness: null,
 		});
 		expect(actual).toBe('HELLO_OK');
 	});
@@ -45,7 +44,6 @@ describe('createFakeSkillCaseRunner', () => {
 			},
 			skillMarkdown: TRIAGE_SKILL,
 			projectRoot: '.',
-			harness: null,
 		});
 		expect(actual).toBe('BYE_OK');
 	});
@@ -61,7 +59,6 @@ describe('createFakeSkillCaseRunner', () => {
 				},
 				skillMarkdown: null,
 				projectRoot: '.',
-				harness: null,
 			}),
 		).rejects.toThrow(/skillPath markdown/);
 	});

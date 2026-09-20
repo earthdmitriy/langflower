@@ -1,6 +1,9 @@
 import type { ToolHandle } from '@langflower/node-sdk';
 import { describe, expect, it } from 'vitest';
-import { collectAgentToolHandles } from './collect-agent-tool-handles.js';
+import {
+	collectAgentToolHandles,
+	lastWinsToolHandles,
+} from './collect-agent-tool-handles.js';
 
 const handle = (toolId: string, name = toolId): ToolHandle => ({
 	toolId,
@@ -43,5 +46,20 @@ describe('collectAgentToolHandles', () => {
 		});
 
 		expect(merged.map((tool) => tool.toolId)).toEqual(['ok']);
+	});
+});
+
+describe('lastWinsToolHandles', () => {
+	it('last-wins on toolId across a combine wire', () => {
+		const merged = lastWinsToolHandles([
+			handle('dup', 'first'),
+			handle('keep'),
+			handle('dup', 'second'),
+		]);
+
+		expect(merged.map((tool) => `${tool.toolId}:${tool.name}`)).toEqual([
+			'dup:second',
+			'keep:keep',
+		]);
 	});
 });

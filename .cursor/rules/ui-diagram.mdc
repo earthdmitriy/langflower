@@ -15,4 +15,4 @@ alwaysApply: false
 - Components: standalone, `OnPush`. No duplicate port validation — use `shared`.
 - **Inline inputs:** primitive port values on node body → `data.inputs`; `supportsInlinePortInput`.
 - `tsconfig.json`: `composite: false` (Angular requirement).
-- See `packages/ui/AGENTS.md` and `docs/NAVIGATION.md`.
+- See `packages/ui/AGENTS.md` and `docs/architecture/NAVIGATION.md`.

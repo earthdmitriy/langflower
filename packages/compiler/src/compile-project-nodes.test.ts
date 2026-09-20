@@ -5,10 +5,8 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-	compileProjectNodes,
-	hasCustomNodePacks,
-} from './compile-project-nodes.js';
+import { compileProjectNodes } from './compile-project-nodes.js';
+import { hasCustomNodePacks } from './discover-packs.js';
 import { loadProjectNodes } from './load-project-nodes.js';
 import { COMPILATION_ERRORS_FILE } from './write-compilation-errors.js';
 

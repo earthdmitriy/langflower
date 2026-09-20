@@ -5,11 +5,17 @@ import type {
 	RunId,
 } from '@langflower/runtime';
 import { isPortTelemetry } from '@langflower/runtime';
-import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/langflower';
+import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap';
 import { merge, type Observable } from 'rxjs';
 import { map, scan, shareReplay, startWith } from 'rxjs/operators';
 
-type OutputPortTelemetry = PortTelemetry & { readonly 0: 'out' };
+export type OutputPortTelemetry = PortTelemetry & { readonly 0: 'out' };
+
+export type InputPortTelemetry = PortTelemetry & {
+	readonly 0: 'in';
+	readonly 2: string;
+	readonly 3: { readonly value: unknown };
+};
 
 export type ChromeAction =
 	| {
@@ -132,5 +138,3 @@ export const createEdgeStates$ = (deps: {
 	readonly runnerStartNodeStarted$: Observable<RunId>;
 }): Observable<ReadonlyMap<EdgeId, ResponseDto<unknown>>> =>
 	createChromeMap$(deps, EDGE_CHROME_KEYING);
-
-export type { OutputPortTelemetry };

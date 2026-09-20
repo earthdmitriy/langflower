@@ -7,10 +7,8 @@ describe('resolveEmbeddingProviderModel', () => {
 			resolveEmbeddingProviderModel(
 				{ providerId: 'openai', model: 'text-embedding-3-small' },
 				{
-					defaultEmbedding: {
-						providerId: 'lmstudio',
-						model: 'local-embed',
-					},
+					providerId: 'lmstudio',
+					model: 'local-embed',
 				},
 			),
 		).toEqual({
@@ -24,10 +22,8 @@ describe('resolveEmbeddingProviderModel', () => {
 			resolveEmbeddingProviderModel(
 				{ providerId: '', model: '' },
 				{
-					defaultEmbedding: {
-						providerId: 'lmstudio',
-						model: 'nomic-embed',
-					},
+					providerId: 'lmstudio',
+					model: 'nomic-embed',
 				},
 			),
 		).toEqual({
@@ -41,10 +37,8 @@ describe('resolveEmbeddingProviderModel', () => {
 			resolveEmbeddingProviderModel(
 				{ providerId: 'openai', model: '' },
 				{
-					defaultEmbedding: {
-						providerId: 'lmstudio',
-						model: 'text-embedding-3-small',
-					},
+					providerId: 'lmstudio',
+					model: 'text-embedding-3-small',
 				},
 			),
 		).toEqual({

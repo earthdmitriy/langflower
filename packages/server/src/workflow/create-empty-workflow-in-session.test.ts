@@ -8,17 +8,7 @@ import { createEmptyWorkflowInSession } from './create-empty-workflow-in-session
 import type { ResolveNodeDefinition } from './workflow-document.js';
 import { WorkflowService } from './workflow.service.js';
 
-const resolveDefinition: ResolveNodeDefinition = (node) => {
-	const definition = resolveWorkflowNodeDefinition({
-		type: node.type,
-	});
-
-	if (definition === undefined) {
-		return undefined;
-	}
-
-	return definition;
-};
+const resolveDefinition: ResolveNodeDefinition = resolveWorkflowNodeDefinition;
 
 describe('createEmptyWorkflowInSession', () => {
 	let projectDir: string;
@@ -39,7 +29,6 @@ describe('createEmptyWorkflowInSession', () => {
 		const ok = await createEmptyWorkflowInSession(
 			session,
 			service,
-			projectDir,
 			resolveDefinition,
 		);
 
@@ -63,12 +52,7 @@ describe('createEmptyWorkflowInSession', () => {
 		});
 
 		const session = new LangflowerSession();
-		await createEmptyWorkflowInSession(
-			session,
-			service,
-			projectDir,
-			resolveDefinition,
-		);
+		await createEmptyWorkflowInSession(session, service, resolveDefinition);
 
 		expect(session.activeWorkflow?.workflowId).toBe('untitled-2');
 	});

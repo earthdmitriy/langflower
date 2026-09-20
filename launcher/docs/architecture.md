@@ -4,7 +4,7 @@ How the launcher process is shaped, how events move, and what happens
 from “double-click” to “browser opens.”
 
 Product constraints are locked in
-[ADR-038](../../docs/ADR.md#adr-038--launcher-is-a-cli-supervisor).
+[ADR-038](../../docs/architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor).
 This page describes **the current code**, including multi-instance
 behaviour that the original epic 46 one-child sketch does not mention.
 
@@ -221,11 +221,9 @@ Copy concatenates `log_lines` and sets the system clipboard (`arboard`).
 Empty copy is allowed (no extra log line). Clipboard failure appends
 `Could not copy log: …`.
 
-`Last event:` lines from the CLI appear in Details as ordinary stdout.
-`src/last_event_line.rs` can parse the latest one (TTY `\r` overwrites
-included) but the window does not yet promote it to a dedicated widget.
-Keep the parser; do not delete it as unused product code without checking
-epic 46.
+There is **no** `Last event:` stdout protocol. The CLI prints
+`Run settled:` on `onRunSettled` only. Do not add a TTY writer or a
+Rust parser for live feed lines.
 
 ## Recents file
 

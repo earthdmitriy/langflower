@@ -10,9 +10,9 @@
 
 Ship hard **Stop** (rose cancel), soft **Pause** (amber), and post-Pause HITL
 composer (textarea + Send) per
-[ADR-031](../../ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer)
+[ADR-031](../../architecture/ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer)
 (product chrome) and
-[ADR-032](../../ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port)
+[ADR-032](../../architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port)
 (`steerControl` mechanism). Pause must not call `interrupt('cancel')`.
 
 ## Landed notes

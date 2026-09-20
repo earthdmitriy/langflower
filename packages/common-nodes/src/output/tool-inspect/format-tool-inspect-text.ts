@@ -1,5 +1,5 @@
 import type { ToolHandle } from '@langflower/node-sdk';
-import { flattenToolHandles } from '../../tools/collect-agent-tool-handles.js';
+import { lastWinsToolHandles } from '../../tools/collect-agent-tool-handles.js';
 
 export const EMPTY_TOOL_INSPECT_TEXT = 'No tools on this wire.';
 
@@ -69,20 +69,6 @@ const exampleFromSchema = (schema: unknown): unknown => {
 	return null;
 };
 
-const lastWinsHandles = (wired: unknown): readonly ToolHandle[] => {
-	const flattened = Array.isArray(wired)
-		? flattenToolHandles(wired)
-		: flattenToolHandles(
-				wired === undefined || wired === null ? [] : [wired],
-			);
-	const byId = new Map<string, ToolHandle>();
-	for (const handle of flattened) {
-		byId.set(handle.toolId, handle);
-	}
-
-	return [...byId.values()];
-};
-
 const formatOneTool = (handle: ToolHandle): string => {
 	const lines = [handle.toolId];
 	const description = handle.description.trim();
@@ -112,7 +98,7 @@ export const formatToolInspectText = (
 	wired: unknown,
 	toolIdFilter?: unknown,
 ): string => {
-	const handles = lastWinsHandles(wired);
+	const handles = lastWinsToolHandles(wired);
 	const needle = String(toolIdFilter ?? '').trim();
 	const filtered =
 		needle.length === 0

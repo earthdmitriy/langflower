@@ -16,7 +16,3 @@ Boolean literal from the inline `value` input port → output `value`.
 ## Outputs
 
 `value` (boolean)
-
----
-
-_Implementation removed — re-add via `defineReactiveNode` + `bind()` API._

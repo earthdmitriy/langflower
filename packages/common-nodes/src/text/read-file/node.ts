@@ -1,7 +1,6 @@
 import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
 import { createProjectFilesContext } from '@langflower/tools/create-project-files-context';
 import { from, mergeMap, throwError } from 'rxjs';
-import { getRunHostServices } from '../../ai/features/run-host-services.js';
 
 /**
  * Read a project-relative text file via `createProjectFilesContext` (no permission ask).
@@ -16,6 +15,7 @@ Read a file inside the project into **content**. Absolute paths are refused.
 
 Pulse **update** to read the same path again after it changes on disk.
 `.trim(),
+	requires: ['paths'] as const,
 	uiSchema: [] as const,
 	bind(ctx, { makeInput, configureOutput, combineInputs }) {
 		const pathInput = makeInput<string>('path', {
@@ -50,10 +50,9 @@ Pulse **update** to read the same path again after it changes on disk.
 						);
 					}
 
-					const denyPaths = getRunHostServices(ec)?.denyPaths;
 					const files = createProjectFilesContext({
 						projectRoot: ec.projectDir,
-						...(denyPaths !== undefined ? { denyPaths } : {}),
+						denyPaths: ec.denyPaths,
 					});
 
 					return from(files.read(filePath));

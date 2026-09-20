@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { configToDraft } from '@langflower/shared/langflower.js';
+import { configToDraft } from '@langflower/shared/langflower-config/settings-draft.js';
 import {
 	applyDraftPatch,
 	buildDraftSnapshot,
@@ -21,7 +21,7 @@ describe('settings-draft-session', () => {
 		});
 
 		expect(seeded.draft.providers).toHaveLength(1);
-		expect(seeded.connections['0']).toEqual({ state: 'checking' });
+		expect(seeded.connections['lm']).toEqual({ state: 'checking' });
 		expect(buildDraftSnapshot('project', seeded).dirty).toBe(false);
 		expect(
 			buildDraftSnapshot('project', seeded).draft.providers[0]?.apiKey,
@@ -35,7 +35,7 @@ describe('settings-draft-session', () => {
 			},
 		});
 
-		expect(seeded.connections['0']).toEqual({ state: 'idle' });
+		expect(seeded.connections['lm']).toEqual({ state: 'idle' });
 	});
 
 	it('seeds global secret ids without values', () => {
@@ -100,7 +100,7 @@ describe('settings-draft-session', () => {
 		});
 
 		expect(patched.probeIndexes).toEqual([0]);
-		expect(patched.next.connections['0']).toEqual({ state: 'checking' });
+		expect(patched.next.connections['p']).toEqual({ state: 'checking' });
 	});
 
 	it('keeps pending apiKey when patch sends empty key', () => {
@@ -134,5 +134,29 @@ describe('settings-draft-session', () => {
 
 		expect(patched.next.draft.providers[0]?.apiKey).toBe('pending');
 		expect(patched.next.draft.providers[0]?.name).toBe('Renamed');
+	});
+
+	it('keeps the remaining row connection after the first provider is removed', () => {
+		const previous = seedScopeDraft({
+			provider: {
+				gone: { name: 'Gone' },
+				keep: {
+					name: 'Keep',
+					options: { baseURL: 'http://keep/v1' },
+				},
+			},
+		});
+		const keep = previous.draft.providers.find((row) => row.id === 'keep');
+		expect(keep).toBeDefined();
+
+		const patched = applyDraftPatch(previous, {
+			...previous.draft,
+			providers: [keep!],
+		});
+
+		expect(patched.next.connections['gone']).toBeUndefined();
+		expect(patched.next.connections['keep']).toEqual({
+			state: 'checking',
+		});
 	});
 });

@@ -3,10 +3,12 @@ import {
 	createProjectHarness,
 	type Harness,
 } from '@langflower/tools/create-project-harness';
-import type { PermissionConfig } from '@langflower/tools/permission';
+import {
+	DEFAULT_PERMISSION_CONFIG,
+	type PermissionConfig,
+} from '@langflower/tools/permission';
 import type { EvalCase, EvalPack, EvalScorerKind } from './eval-pack-types.js';
 import { loadEvalPack } from './load-pack.js';
-import { loadSkillViaRead } from './load-skill-via-read.js';
 import { scoreCase } from './score-case.js';
 
 export type EvalCaseResult = {
@@ -33,7 +35,6 @@ export type EvalCaseRunner = (args: {
 	readonly case: EvalCase;
 	readonly skillMarkdown: string | null;
 	readonly projectRoot: string;
-	readonly harness: Harness | null;
 }) => Promise<string>;
 
 export type RunEvalSuiteOptions = {
@@ -41,19 +42,37 @@ export type RunEvalSuiteOptions = {
 	/** Project root for harness path fence + skill `read`. Defaults to packDir. */
 	readonly projectRoot?: string;
 	readonly runCase: EvalCaseRunner;
-	/** Optional harness override (tests). */
-	readonly harness?: Harness;
 };
 
-const allowReadPermission: PermissionConfig = {
+const skillReadPermission: PermissionConfig = {
+	...DEFAULT_PERMISSION_CONFIG,
 	read: { '*': 'allow' },
-	glob: { '*': 'allow' },
-	grep: { '*': 'allow' },
+	glob: { '*': 'deny' },
+	grep: { '*': 'deny' },
 	edit: { '*': 'deny' },
 	write: { '*': 'deny' },
 	create: { '*': 'deny' },
 	delete: { '*': 'deny' },
+	move: { '*': 'deny' },
+	sleep: { '*': 'deny' },
 	bash: { '*': 'deny' },
+	ask_user: { '*': 'deny' },
+};
+
+const loadSkillViaRead = async (
+	harness: Harness,
+	skillPath: string,
+): Promise<string> => {
+	const result = await harness.invoke({
+		toolId: 'read',
+		args: { path: skillPath },
+	});
+	if (!result.ok) {
+		throw new Error(
+			`failed to read skill via harness read (${skillPath}): ${result.text}`,
+		);
+	}
+	return result.text;
 };
 
 const meanScore = (scores: readonly number[]): number => {
@@ -71,7 +90,8 @@ const meanScore = (scores: readonly number[]): number => {
  * → score → aggregate → fail-closed when suiteScore < threshold.
  *
  * `runCase` is injected by the consumer (CLI Fake / `--replay` / real LLM) —
- * this package does not own agent implementations.
+ * this package does not own agent implementations. The project harness is
+ * local to skill `read` and is not passed to runners.
  */
 export const runEvalSuite = async (
 	options: RunEvalSuiteOptions,
@@ -80,19 +100,16 @@ export const runEvalSuite = async (
 	const projectRoot = path.resolve(options.projectRoot ?? packDir);
 	const pack = await loadEvalPack(packDir);
 
-	const harness =
-		options.harness ??
-		(pack.skillPath === undefined
-			? null
-			: createProjectHarness({
-					projectRoot,
-					permission: allowReadPermission,
-				}));
-
 	const skillMarkdown =
-		pack.skillPath === undefined || harness === null
+		pack.skillPath === undefined
 			? null
-			: await loadSkillViaRead(harness, pack.skillPath);
+			: await loadSkillViaRead(
+					createProjectHarness({
+						projectRoot,
+						permission: skillReadPermission,
+					}),
+					pack.skillPath,
+				);
 
 	const caseResults: EvalCaseResult[] = [];
 	for (const evalCase of pack.cases) {
@@ -101,7 +118,6 @@ export const runEvalSuite = async (
 			case: evalCase,
 			skillMarkdown,
 			projectRoot,
-			harness,
 		});
 		const scorer = evalCase.scorer ?? pack.scorer;
 		const score = scoreCase(actual, evalCase.expected, scorer);

@@ -2,7 +2,7 @@ import {
 	statefulConnection,
 	statefulObservable,
 } from '@rx-evo/stateful-observable';
-import { filter, firstValueFrom, of } from 'rxjs';
+import { filter, firstValueFrom, of, throwError } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import type { PortMeta } from './port-meta.js';
 import { readOutputValue } from './testing/readOutputValue.js';
@@ -17,7 +17,12 @@ import {
 	runAndCollectEvents,
 	waitForOutput,
 } from './testing/workflows/workflow-events.js';
-import { isPortTelemetry, isRuntimeDone, type PortTelemetry } from './types.js';
+import {
+	isPortTelemetry,
+	isRuntimeDone,
+	type NodeId,
+	type PortTelemetry,
+} from './types.js';
 
 function createTypedSourceTestNode(options: {
 	readonly nodeId: string;
@@ -231,6 +236,37 @@ describe('Runtime (v2)', () => {
 		expect(
 			await readOutputValue(runtime.editor.getNode('B').outputs.value),
 		).toBe('seeded');
+	});
+
+	it('connects Observable seed values as the input stream', async () => {
+		const runtime = createRuntimeHarness();
+		runtime.editor.addNode(createStaticTypedPassthroughTestNode('B'));
+
+		const errorPromise = firstValueFrom(
+			runtime.runner.events$.pipe(
+				filter(
+					(event) =>
+						isPortTelemetry(event) &&
+						event[0] === 'out' &&
+						'error' in event[3] &&
+						event[1] === 'B',
+				),
+			),
+		);
+
+		runtime.runner.start({
+			B: [
+				{
+					portId: 'text',
+					slotIndex: 0,
+					value: throwError(() => new Error('seed boom')),
+				},
+			],
+		});
+
+		const failed = await errorPromise;
+		expect(String(failed[3].error)).toContain('seed boom');
+		runtime.runner.interrupt('cancel');
 	});
 
 	it('pushIntoInput starts the target cluster and delivers payload', async () => {
@@ -589,6 +625,11 @@ describe('Runtime (v2)', () => {
 
 		expect(output[3].value).toBe('upstream');
 		expect(orphanEvents).toEqual([]);
+	});
+
+	it('startNode returns false when the node is missing', () => {
+		const runtime = createRuntimeHarness();
+		expect(runtime.runner.startNode('missing' as NodeId)).toBe(false);
 	});
 
 	it('events$ does not replay past events to late subscribers', async () => {

@@ -16,23 +16,24 @@ starts a **new** session (clears history). `feedback` is **not** an init peer �
 turn 0 is primed with `feedback.pipe(startWith(''), concatMap…)` so Soft↔Hard
 loops do not deadlock; later non-empty feedback appends to conversation history
 (full history sent every turn until compaction shrinks it via `historySync`).
-One shared `cycle$` (`shareReplay`) fans out to reasoning / draft / toolLog /
-response.
+One shared `cycle$` fans out to reasoning / draft / toolLog / response
+(`StatefulObservable` is already hot — do not add `shareReplay`).
 
 **OpenAI-compatible** means any provider with a compatible REST API — set
 `options.baseURL` in `langflower.jsonc` (LM Studio, local proxies, OpenAI, …).
 
-Credentials resolve **only on the server** via `resolveProviderCredentials`;
-the node calls `ExecutionContext.createChatCompletionStream` and never sees
-`apiKey` values.
+Credentials resolve **only on the server** via `resolveProviderCredentials`.
+The node reads the host-bound factory from declared caps (`ec.chat`, via
+`defineLlmNode` / `requires`) and never sees `apiKey` values.
 
-**Internal tool loop (epics 01 / 16):** allowlisted builtins from
-`ExecutionContext.harness` (`@langflower/tools`, including default `ask_user`),
-wired registrations, and
-MCP tools (ready `ToolHandle[]` from `EC.toolHandles` ∪ port `tools`) are
-passed to the chat API as `tools`. The node never expands MCP server config.
-When the model returns `tool_calls`, the node invokes handlers / `ctx.harness`,
+**Internal tool loop (epics 01 / 16):** allowlisted builtins
+(`@langflower/tools`, including default `ask_user`), wired registrations,
+and MCP tools (`EC.toolHandles` ∪ port `tools`) are passed to the chat API
+as `tools`. The node never expands MCP server config.
+When the model returns `tool_calls`, the loop invokes `ToolHandle.invoke`
+([ADR-019](../../../../../../docs/architecture/ADR.md#adr-019--toolhandle-invocation-not-harness-toolid-registry)),
 appends tool results, and re-completes until final text or `maxIterations`.
+Do **not** call `ctx.harness` — that field is not on public EC.
 `ask_user` pauses the loop for operator text (question in the work log;
 composer Send — not Allow/Deny).
 Observability is the `toolLog` feed port — not per-call
@@ -77,14 +78,13 @@ normal `ToolHandle` (epic 41). Do **not** look for `spawn_subagent` ports.
 | `model`            | select                | —        | per selected provider                                                                                                        |
 | `skillId`          | select                | —        | from skills catalog                                                                                                          |
 | `includeAgentsMd`  | boolean               | `false`  | when true, append project-root `AGENTS.md` into effective system prompt                                                      |
-| `enabledToolIds`   | tool-id-list          | —        | legacy allowlist (migrates to `toolPermissions` when unset)                                                                  |
 | `toolPermissions`  | tool-permission-table | —        | deny/ask/allow per tool; unset → role preset; clamped to project floor                                                       |
 | `maxIterations`    | number                | `100`    | caps internal tool-loop rounds **per feedback turn** (`0` = unlimited; no hard product ceiling)                              |
 | `maxFeedbackTurns` | number                | `50`     | max feedback turns after turn 0; `0` = unlimited; further feedback → continue HITL ask (Deny → `toolLog` + `response` error) |
 | `contextSize`      | number                | `200000` | approx input token budget (`chars/4` of messages+tools); `0` disables proactive compaction                                   |
 | `compactOnError`   | boolean               | `false`  | on context-length create error: force-compact once and retry before failing                                                  |
 
-Selecting a role preset materializes `enabledToolIds` (Inspector). Runtime
+Selecting a role preset materializes `toolPermissions` (Inspector). Runtime
 permission posture overlays project `permission` per role. Merge rules:
 [docs/LLM_NODES.md](../../../../../../docs/LLM_NODES.md).
 
@@ -98,5 +98,5 @@ Run cancel (`runner.interrupt`) aborts in-flight HTTP streams best-effort via
 `AbortSignal`.
 
 See [docs/LLM_NODES.md](../../../../../../docs/LLM_NODES.md) and
-[docs/ADR.md](../../../../../../docs/ADR.md) ADR-016 /
+[docs/architecture/ADR.md](../../../../../../docs/architecture/ADR.md) ADR-016 /
 [epic 04](../../../../../../docs/DONE/EPICS/04-role-tool-profiles.md).

@@ -1,6 +1,6 @@
 {
 	"name": "langflower",
-	"version": "0.1.3",
+	"version": "0.2.0",
 	"description": "Visual LLM-chain builder",
 	"type": "module",
 	"bin": {
@@ -63,9 +63,9 @@
 		"start": "npm run start -w @langflower/cli",
 		"dev": "node build/dev.mjs",
 		"rust:install": "node ./launcher/scripts/with-portable-rust.mjs --ensure",
-		"launcher": "node ./launcher/scripts/with-portable-rust.mjs cargo run",
 		"launcher:dev": "node ./launcher/scripts/with-portable-rust.mjs cargo run",
 		"launcher:build": "node ./launcher/scripts/with-portable-rust.mjs cargo build --release",
+		"launcher:package": "python ./launcher/scripts/package-macos-app.py --bin ./launcher/target/release/langflower-launcher --app-dir ./launcher/dist/Langflower.app",
 		"launcher:test": "node ./launcher/scripts/with-portable-rust.mjs cargo test"
 	},
 	"dependencies": {

@@ -9,7 +9,7 @@ jsonc `mcp.servers`).
 **Related:** [settings-panel](../../use-cases/settings-panel.md),
 [node-local-mcp](../../use-cases/node-local-mcp.md),
 [CONFIG.md](../../CONFIG.md),
-[ADR-002 amend](../../ADR.md#adr-002--langflower-project-local-storage-opencode-style),
+[ADR-002 amend](../../architecture/ADR.md#adr-002--langflower-project-local-storage-opencode-style),
 [TBD-010](../../TBD.md#tbd-010--os-backed--encrypted-secret-storage)
 
 ## Goal

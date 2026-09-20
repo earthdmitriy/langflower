@@ -1,0 +1,228 @@
+{
+	"$schema": "../schemas/workflow.schema.json",
+	"metadata": {
+		"name": "Permissions",
+		"description": "Explore → Approve → Mutate → Approve → Shell. Each stage has its own tool budget; permissions follow the graph.",
+		"createdAt": "2026-09-20T19:05:00.000Z",
+		"updatedAt": "2026-09-21T17:15:10.417Z"
+	},
+	"graph": {
+		"viewport": {
+			"x": -38.93333435058594,
+			"y": 44.80018615722656,
+			"scale": 0.7,
+			"width": 1015.390625,
+			"height": 661.328125
+		},
+		"nodes": [
+			{
+				"id": "goal",
+				"type": "common-chat-input",
+				"params": {},
+				"inputs": {
+					"message": "Find a small safe file change, then apply it and verify with a shell command."
+				},
+				"ui": {
+					"position": {
+						"x": 0,
+						"y": 280
+					},
+					"label": "Goal"
+				}
+			},
+			{
+				"id": "explore",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "plan",
+					"includeAgentsMd": false,
+					"toolPermissions": {
+						"read": "allow",
+						"glob": "allow",
+						"grep": "allow",
+						"edit": "deny",
+						"write": "deny",
+						"create": "deny",
+						"delete": "deny",
+						"move": "deny",
+						"bash": "deny",
+						"ask_user": "deny"
+					},
+					"maxIterations": 8,
+					"maxFeedbackTurns": 2
+				},
+				"inputs": {
+					"systemPrompt": "You are the Explore stage. Read and search only — do not mutate files or run shell.\nSummarize what you found and the exact write you want next.\nIf the write-handoff sends feedback, revise the explore notes."
+				},
+				"ui": {
+					"position": {
+						"x": 300,
+						"y": 160
+					},
+					"label": "Explore"
+				}
+			},
+			{
+				"id": "write-gate",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 520,
+						"y": 340
+					},
+					"label": "Approve write"
+				}
+			},
+			{
+				"id": "mutate",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "coder",
+					"includeAgentsMd": false,
+					"toolPermissions": {
+						"read": "allow",
+						"glob": "allow",
+						"grep": "allow",
+						"edit": "ask",
+						"write": "ask",
+						"create": "ask",
+						"delete": "deny",
+						"move": "deny",
+						"bash": "deny",
+						"ask_user": "deny"
+					},
+					"maxIterations": 8,
+					"maxFeedbackTurns": 2
+				},
+				"inputs": {
+					"systemPrompt": "You are the Mutate stage. Apply the approved change with edit/write/create. Bash is denied here.\nSummarize files changed. If the bash-handoff sends feedback, revise the change."
+				},
+				"ui": {
+					"position": {
+						"x": 740,
+						"y": 160
+					},
+					"label": "Mutate"
+				}
+			},
+			{
+				"id": "bash-gate",
+				"type": "common-hitl-review-gate",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 960,
+						"y": 340
+					},
+					"label": "Approve shell"
+				}
+			},
+			{
+				"id": "shell",
+				"type": "common-openai-llm",
+				"params": {
+					"rolePreset": "coder",
+					"includeAgentsMd": false,
+					"toolPermissions": {
+						"read": "allow",
+						"glob": "allow",
+						"grep": "allow",
+						"edit": "deny",
+						"write": "deny",
+						"create": "deny",
+						"delete": "deny",
+						"move": "deny",
+						"bash": "ask",
+						"ask_user": "deny"
+					},
+					"maxIterations": 6,
+					"maxFeedbackTurns": 0
+				},
+				"inputs": {
+					"systemPrompt": "You are the Shell stage. Verify the mutate result with a focused bash command. Do not edit files.\nRespect permission.ask. Summarize the verification."
+				},
+				"ui": {
+					"position": {
+						"x": 1160,
+						"y": 180
+					},
+					"label": "Shell"
+				}
+			},
+			{
+				"id": "done",
+				"type": "common-finish",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 1400,
+						"y": 360
+					},
+					"label": "Finish"
+				}
+			}
+		],
+		"edges": [
+			{
+				"edgeId": "e-goal-explore",
+				"fromNodeId": "goal",
+				"fromPort": ["message", 0],
+				"toNodeId": "explore",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-explore-write-gate",
+				"fromNodeId": "explore",
+				"fromPort": ["response", 0],
+				"toNodeId": "write-gate",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-write-gate-explore",
+				"fromNodeId": "write-gate",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "explore",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-write-gate-mutate",
+				"fromNodeId": "write-gate",
+				"fromPort": ["response", 0],
+				"toNodeId": "mutate",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-mutate-bash-gate",
+				"fromNodeId": "mutate",
+				"fromPort": ["response", 0],
+				"toNodeId": "bash-gate",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-bash-gate-mutate",
+				"fromNodeId": "bash-gate",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "mutate",
+				"toPort": ["feedback", 0]
+			},
+			{
+				"edgeId": "e-bash-gate-shell",
+				"fromNodeId": "bash-gate",
+				"fromPort": ["response", 0],
+				"toNodeId": "shell",
+				"toPort": ["userPrompt", 0]
+			},
+			{
+				"edgeId": "e-shell-done",
+				"fromNodeId": "shell",
+				"fromPort": ["response", 0],
+				"toNodeId": "done",
+				"toPort": ["value", 0]
+			}
+		]
+	}
+}

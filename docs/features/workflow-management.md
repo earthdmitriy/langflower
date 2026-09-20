@@ -85,7 +85,7 @@ automatically reloaded the next time the project is opened.
 - Full WebSocket intent/snapshot contract for workflow load/save/rename/
   delete, and why command-reply events are deliberately avoided in favor of
   broadcast snapshots: [packages/ui/AGENTS.md](../../packages/ui/AGENTS.md)
-  § Workflow Topbar, and [docs/ARCHITECTURE.md](../ARCHITECTURE.md) §
+  § Workflow Topbar, and [docs/architecture/ARCHITECTURE.md](../architecture/ARCHITECTURE.md) §
   Workflow management / § State sync.
 - Canvas edit → server graph mutation path:
   `packages/server/src/workflow/apply-editor-mutation.ts`.

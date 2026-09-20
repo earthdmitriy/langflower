@@ -16,10 +16,6 @@ export class CustomNodeRegistry {
 		this.byType = next;
 	}
 
-	clear(): void {
-		this.byType = new Map();
-	}
-
 	get(type: string): ReactiveNodeDefinition | undefined {
 		return this.byType.get(type);
 	}

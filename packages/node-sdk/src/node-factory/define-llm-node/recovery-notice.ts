@@ -37,16 +37,6 @@ export const isLlmRecoveryNotice = (
 export const isLlmRecoverySuspended = (value: unknown): boolean =>
 	isLlmRecoveryNotice(value) && value.code === 'suspended';
 
-export const recoveryNoticeText = (value: unknown): string => {
-	if (isLlmRecoveryNotice(value)) {
-		return value.text;
-	}
-	if (typeof value === 'string') {
-		return value;
-	}
-	return '';
-};
-
 /** Port payload: `code` + `text` plus any additive timing fields. */
 export const toLlmRecoveryPortValue = (
 	notice: LlmRecoveryNotice,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { LangflowerConfig } from '@langflower/shared/langflower.js';
+import type { LangflowerConfig } from '@langflower/shared/types/langflower-config.js';
 import { resolveProviderCredentials } from './resolve-provider-credentials.js';
 
 const testConfig = (apiKey: string): LangflowerConfig => ({

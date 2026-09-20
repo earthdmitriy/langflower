@@ -280,9 +280,9 @@ export class RuntimeEditor implements RuntimeEditorApi {
 		};
 	}
 
-	getClusterByNodeId(nodeId: NodeId): GraphCluster {
+	getClusterByNodeId(nodeId: NodeId): GraphCluster | false {
 		if (!this.nodes.has(nodeId)) {
-			throw new Error(`Node ${nodeId} not found`);
+			return false;
 		}
 
 		return resolveClusterForNode(this.allClusters, nodeId);

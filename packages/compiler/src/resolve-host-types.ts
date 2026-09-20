@@ -161,6 +161,28 @@ const resolveTypesRelative = (
  * compiler (global Langflower tree), using package.json `types` /
  * `exports.types` — not a `.js` → `.d.ts` sibling guess.
  */
+const hostPeerSubpath = (specifier: string): string | undefined => {
+	for (const name of HOST_PEER_PACKAGES) {
+		if (specifier.startsWith(`${name}/`)) {
+			return specifier.slice(name.length + 1);
+		}
+	}
+
+	return undefined;
+};
+
+const typesFromExportsSubpath = (
+	exportsField: unknown,
+	subpath: string,
+): string | undefined => {
+	const record = asRecord(exportsField);
+	if (record === undefined) {
+		return undefined;
+	}
+
+	return typesFromExportTarget(record[`./${subpath}`]);
+};
+
 export const resolveHostPackageTypes = (
 	specifier: string,
 ): string | undefined => {
@@ -179,12 +201,20 @@ export const resolveHostPackageTypes = (
 		return undefined;
 	}
 
-	const fromExports = typesFromExportsField(pkg.exports);
+	const subpath = hostPeerSubpath(specifier);
+	const fromExports =
+		subpath === undefined
+			? typesFromExportsField(pkg.exports)
+			: typesFromExportsSubpath(pkg.exports, subpath);
 	if (fromExports !== undefined) {
 		const resolved = resolveTypesRelative(packageRoot, fromExports);
 		if (resolved !== undefined) {
 			return resolved;
 		}
+	}
+
+	if (subpath !== undefined) {
+		return undefined;
 	}
 
 	const fromTypes = pkg.types ?? pkg.typings;
@@ -220,19 +250,41 @@ export const hostRuntimeStamp = (): string =>
 	}).join(';');
 
 /**
- * Map bare host peer names → absolute `.d.ts` paths for tsc `paths`.
- * Resolved from the compiler's own install tree (works with `npm i -g`
- * and a project folder that has no `node_modules`).
+ * Map host peer names and published subpaths → absolute `.d.ts` for tsc
+ * `paths`. Resolved from the compiler's own install tree (works with
+ * `npm i -g` and a project folder that has no `node_modules`).
  */
 export const hostPathMappings = (): Record<string, string[]> => {
 	const mappings: Record<string, string[]> = {};
 
-	for (const name of HOST_PEER_PACKAGES) {
-		const typesPath = resolveHostPackageTypes(name);
+	const add = (specifier: string): void => {
+		const typesPath = resolveHostPackageTypes(specifier);
 		if (typesPath === undefined) {
+			return;
+		}
+		mappings[specifier] = [toPosix(typesPath)];
+	};
+
+	for (const name of HOST_PEER_PACKAGES) {
+		add(name);
+		const entry = resolvePackageEntry(name);
+		if (entry === undefined) {
 			continue;
 		}
-		mappings[name] = [toPosix(typesPath)];
+		const packageRoot = findPackageRoot(entry);
+		if (packageRoot === undefined) {
+			continue;
+		}
+		const exportsField = asRecord(readPackageJson(packageRoot)?.exports);
+		if (exportsField === undefined) {
+			continue;
+		}
+		for (const key of Object.keys(exportsField)) {
+			if (key === '.' || !key.startsWith('./')) {
+				continue;
+			}
+			add(`${name}/${key.slice(2)}`);
+		}
 	}
 
 	return mappings;

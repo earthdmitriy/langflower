@@ -7,7 +7,8 @@ import type {
 import { RuntimeFacade } from '@langflower/runtime';
 import { describe, expect, it } from 'vitest';
 import { filter, firstValueFrom, map } from 'rxjs';
-import { attachRunHostServices } from '../../features/run-host-services.js';
+import { attachRunHostServices } from '../../../run-host/run-host-services.js';
+import { testLlmCapFields } from '../../features/test-llm-caps.js';
 import { subAgentNode } from './node.js';
 
 const echoUserFactory: CreateChatCompletionStream = async (
@@ -45,6 +46,9 @@ const subAgentContext = (
 					...params,
 				},
 				uiSchema: subAgentNode.uiSchema,
+				...testLlmCapFields({
+					chat: factory,
+				}),
 			},
 			{
 				skillMarkdown: '',
@@ -216,6 +220,14 @@ describe('common-sub-agent', () => {
 								subagentTimeoutMs: 40,
 							},
 							uiSchema: subAgentNode.uiSchema,
+							...testLlmCapFields({
+								chat: async () =>
+									(async function* () {
+										await new Promise<void>(
+											() => undefined,
+										);
+									})(),
+							}),
 						},
 						{
 							skillMarkdown: '',

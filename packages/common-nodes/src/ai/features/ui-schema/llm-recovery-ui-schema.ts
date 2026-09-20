@@ -13,7 +13,7 @@ export const llmRecoveryUiSchema = [
 	{
 		field: 'toolTimeoutMs',
 		type: 'number',
-		label: 'Tool timeout (ms, 0 disables)',
+		label: 'Hung-tool timeout (ms, bash/MCP/custom; 0 disables)',
 		default: 60000,
 		min: 0,
 		step: 1,

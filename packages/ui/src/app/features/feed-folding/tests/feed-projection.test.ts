@@ -10,6 +10,7 @@ import {
 import type { FeedEventFromSource, PortFrameMeta } from '../types';
 import {
 	createExecutionFeedHarness,
+	inputEvent,
 	outputEvent,
 	paletteDefinition,
 	readItems,
@@ -159,5 +160,55 @@ describe('ExecutionFeedService incremental projection', () => {
 				(item) => item.value,
 			),
 		).toEqual(['XYZ']);
+	});
+
+	it('live appends match snapshot replay for boundary and input-role frames', async () => {
+		const events = [
+			outputEvent('parent', 'draft', 'plan'),
+			outputEvent('helper', 'draft', 'writing', {
+				feed: {
+					role: 'draft',
+					streaming: true,
+					closesPreviousVisit: true,
+				},
+			}),
+			inputEvent('parent', 'prompt', 'ready', {
+				feed: { role: 'result' },
+			}),
+		];
+
+		const live = createExecutionFeedHarness();
+		live.seedCatalog({ parent: 'agent', helper: 'pack/delegate' }, []);
+		for (const frame of events) {
+			live.raw.runnerPort$.next(frame);
+		}
+
+		const snapshot = createExecutionFeedHarness();
+		snapshot.seedCatalog({ parent: 'agent', helper: 'pack/delegate' }, []);
+		snapshot.raw.executionFeedSnapshot$.next({
+			runId: runId(),
+			workflowId: 'wf-1',
+			status: 'running',
+			events,
+		});
+
+		expect(live.latestNodes().map((node) => node.nodeId)).toEqual([
+			'parent',
+			'helper',
+			'parent',
+		]);
+		expect(snapshot.latestNodes().map((node) => node.nodeId)).toEqual(
+			live.latestNodes().map((node) => node.nodeId),
+		);
+		expect(
+			(await readItems(live.latestNodes()[2]!, 'prompt')).map(
+				(item) => item.value,
+			),
+		).toEqual(['ready']);
+		expect(
+			(await readItems(snapshot.latestNodes()[2]!, 'prompt')).map(
+				(item) => item.value,
+			),
+		).toEqual(['ready']);
 	});
 });

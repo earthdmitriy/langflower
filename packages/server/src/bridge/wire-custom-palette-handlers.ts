@@ -1,6 +1,6 @@
-import type { CustomPaletteUpdateRequestedPayload } from '@langflower/shared/langflower.js';
+import type { CustomPaletteUpdateRequestedPayload } from '@langflower/shared/types/langflower-custom-palette.js';
 import type { Subscription } from 'rxjs';
-import { compileAndHotSwapCustomNodes } from '../palette/compile-and-hot-swap-custom-nodes.js';
+import { compileAndHotSwapCustomNodes } from './compile-and-hot-swap-custom-nodes.js';
 import type { ServerContext } from '../server-context.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
 import { isInboundEvent } from './inbound-guards.js';
@@ -18,5 +18,8 @@ export const wireCustomPaletteHandlers = (
 
 		await compileAndHotSwapCustomNodes(session, context, bridge, {
 			force: raw.payload.force === true,
+			...(typeof raw.payload.requestId === 'string'
+				? { requestId: raw.payload.requestId }
+				: {}),
 		});
 	});

@@ -6,7 +6,7 @@ related:
     - docs/TODO/runtime-refactor.md
     - docs/TO_REVIEW.md
     - docs/REACTIVE_NODES.md
-    - docs/EXECUTION_ARCHITECTURE.md
+    - docs/architecture/EXECUTION_ARCHITECTURE.md
 ---
 
 # Runtime cleanup refactor — WIP snapshot

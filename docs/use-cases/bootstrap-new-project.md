@@ -31,7 +31,8 @@ equivalent first-run CLI) pointing at the folder.
 
 - If the folder has **no** `.langflower/` directory, bootstrap MUST create
   `.langflower/`, default configs, custom-node pack `nodes/my-nodes/`,
-  `instructions.md`, skills from skeleton, and **all** skeleton workflows
+  `instructions.md`, `.gitignore` (compiled node cache, bridge logs, pack
+  `node_modules/`), skills from skeleton, and **all** skeleton workflows
   (including **`starter`**, `simple-coder`, `advanced-coder`, `node-writer`,
   `agents-dialog`, …).
 - Bootstrap MUST seed **`starter`** as the default / open graph
@@ -114,7 +115,7 @@ templates without losing provider / MCP settings.
 **Expect:**
 
 - Server MUST force-overwrite skeleton-owned workflows, skills, `my-nodes`,
-  and `instructions.md` from the packaged skeleton.
+  `instructions.md`, and `.gitignore` from the packaged skeleton.
 - Server MUST NOT rewrite `langflower.jsonc` (providers, API keys, MCP).
 - Server MUST NOT overwrite an existing `config.json`.
 - User-authored workflow files whose ids are not in the skeleton MUST remain.

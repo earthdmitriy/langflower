@@ -11,7 +11,6 @@ import type { WorkflowService } from './workflow.service.js';
 export const copyWorkflowToSession = async (
 	session: LangflowerSession,
 	workflowService: WorkflowService,
-	projectDir: string,
 	workflowId: string,
 	resolveDefinition: ResolveNodeDefinition,
 ): Promise<boolean> => {
@@ -49,7 +48,6 @@ export const copyWorkflowToSession = async (
 
 	return activateWorkflowInSession(
 		session,
-		projectDir,
 		saveResult.document,
 		{ dirty: false },
 		resolveDefinition,

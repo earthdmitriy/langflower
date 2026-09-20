@@ -1,5 +1,4 @@
 import type { ToolHandle } from '@langflower/node-sdk';
-import type { Harness } from '@langflower/tools/create-project-harness';
 import type { CreateChatCompletionStreamArgs } from '../chat-completion-stream.js';
 import { describe, expect, it, vi } from 'vitest';
 import { firstValueFrom, toArray } from 'rxjs';
@@ -15,12 +14,6 @@ const lookupTool = (
 	description: toolId,
 	inputSchema: { type: 'object', properties: {} },
 	invoke,
-});
-
-const allowHarness = (): Harness => ({
-	invoke: vi.fn(async () => ({ ok: true as const, text: 'unused' })),
-	authorize: async () => 'allow',
-	listBuiltinRegistrations: () => [],
 });
 
 describe('runPathChoiceToolLoop', () => {
@@ -282,7 +275,6 @@ describe('runPathChoiceToolLoop', () => {
 		const handler = vi.fn(async () =>
 			JSON.stringify({ ok: true, excerpt: 'file body' }),
 		);
-		const harness = allowHarness();
 		let callIndex = 0;
 
 		const factory = async (args: CreateChatCompletionStreamArgs) => {
@@ -333,10 +325,10 @@ describe('runPathChoiceToolLoop', () => {
 				],
 				maxIterations: 5,
 				tools: [lookupTool('read', handler)],
-				harness,
 				toolCtx: {
 					projectDir: '/tmp',
 					runId: 'review-loop',
+					authorize: async () => 'allow',
 				},
 			}).pipe(toArray()),
 		);
@@ -356,7 +348,6 @@ describe('runPathChoiceToolLoop', () => {
 		const handler = vi.fn(async () =>
 			JSON.stringify({ ok: true, excerpt: 'checked' }),
 		);
-		const harness = allowHarness();
 		let callIndex = 0;
 
 		const factory = async (_args: CreateChatCompletionStreamArgs) => {
@@ -414,10 +405,10 @@ describe('runPathChoiceToolLoop', () => {
 				],
 				maxIterations: 5,
 				tools: [lookupTool('read', handler)],
-				harness,
 				toolCtx: {
 					projectDir: '/tmp',
 					runId: 'review-loop',
+					authorize: async () => 'allow',
 				},
 			}).pipe(toArray()),
 		);
@@ -435,5 +426,76 @@ describe('runPathChoiceToolLoop', () => {
 			notes: 'Fix section 2',
 		});
 		expect(callIndex).toBe(3);
+	});
+
+	it('re-reads getTools each iteration and keeps Review control tools', async () => {
+		let phase = 0;
+		const providerToolNames: string[][] = [];
+		const handleV1 = lookupTool('echo', async () => {
+			phase = 1;
+			return 'v1';
+		});
+		const handleV2 = lookupTool('echo', async () => 'v2');
+		const handleNew = lookupTool('new_tool', async () => 'new');
+
+		const chunks = await firstValueFrom(
+			runPathChoiceToolLoop({
+				factory: async (args) => {
+					providerToolNames.push(
+						(args.tools ?? []).map((tool) => tool.function.name),
+					);
+					const round = providerToolNames.length;
+					if (round === 1) {
+						return (async function* () {
+							yield {
+								kind: 'done' as const,
+								text: '',
+								tool_calls: [
+									{
+										id: 'c1',
+										name: 'echo',
+										arguments: '{}',
+									},
+								],
+							};
+						})();
+					}
+
+					return (async function* () {
+						yield {
+							kind: 'done' as const,
+							text: '',
+							tool_calls: [
+								{
+									id: 'a1',
+									name: 'accept',
+									arguments: JSON.stringify({ notes: 'ok' }),
+								},
+							],
+						};
+					})();
+				},
+				providerId: 'mock',
+				model: 'mock/fast',
+				messages: [
+					{ role: 'system', content: 'review' },
+					{ role: 'user', content: 'task' },
+				],
+				maxIterations: 5,
+				tools: [handleV1],
+				getTools: () =>
+					phase === 0 ? [handleV1] : [handleV2, handleNew],
+				toolCtx: { projectDir: '/tmp', runId: 'test' },
+			}).pipe(toArray()),
+		);
+
+		expect(providerToolNames[0]).toEqual(
+			expect.arrayContaining(['accept', 'feedback', 'echo']),
+		);
+		expect(providerToolNames[0]).not.toContain('new_tool');
+		expect(providerToolNames[1]).toEqual(
+			expect.arrayContaining(['accept', 'feedback', 'echo', 'new_tool']),
+		);
+		expect(chunks).toContainEqual({ kind: 'accept', notes: 'ok' });
 	});
 });

@@ -11,7 +11,7 @@ import {
 	secretsDraftFromIds,
 	staticModelIdsForProvider,
 	type SettingsDraft,
-} from '../utils/settings-draft';
+} from '@langflower/shared/langflower-config/settings-draft';
 
 const emptyDraft = (): SettingsDraft => configToDraft({});
 
@@ -364,6 +364,46 @@ describe('secrets draft helpers', () => {
 			secretIds: ['KEEP', 'EMPTY', 'NEW'],
 			secretValues: { KEEP: 'next', NEW: 'fresh' },
 		});
+	});
+
+	it('does not give a remaining row the deleted row pending apiKey', () => {
+		const previous: SettingsDraft = {
+			...emptyDraft(),
+			providers: [
+				{
+					id: 'gone',
+					name: 'Gone',
+					baseURL: '',
+					modelsText: '',
+					apiKey: 'sk-deleted',
+					hasApiKey: false,
+				},
+				{
+					id: 'keep',
+					name: 'Keep',
+					baseURL: '',
+					modelsText: '',
+					apiKey: 'sk-keep',
+					hasApiKey: false,
+				},
+			],
+		};
+		const patched = mergeDraftPatch(previous, {
+			...previous,
+			providers: [
+				{
+					id: 'keep',
+					name: 'Keep',
+					baseURL: '',
+					modelsText: '',
+					apiKey: '',
+					hasApiKey: false,
+				},
+			],
+		});
+		expect(patched.providers).toHaveLength(1);
+		expect(patched.providers[0]?.id).toBe('keep');
+		expect(patched.providers[0]?.apiKey).toBe('sk-keep');
 	});
 
 	it('keeps pending secret value when patch sends empty value', () => {

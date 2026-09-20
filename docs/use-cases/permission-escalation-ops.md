@@ -22,7 +22,7 @@ read to bash. Runtime security stays **per-tool policy + `permission.ask`**
 disk or running shell.
 
 **Do:** Start a staged-ops workflow whose first agent stage uses an
-explore-heavy budget (e.g. Plan / Explorer `enabledToolIds` + posture).
+explore-heavy budget (e.g. Plan / Explorer `toolPermissions` + posture).
 
 **Expect:**
 
@@ -48,7 +48,7 @@ policy is `ask`, Allow or Deny `permission.ask` in the feed/composer.
 
 - Write-capable tools (`edit` / `write` / `create` / `delete` as authored)
   MUST only become available via **graph stage handoff** (different node /
-  `enabledToolIds`) and/or HITL — MUST NOT invent a runtime “unlock write
+  `toolPermissions`) and/or HITL — MUST NOT invent a runtime “unlock write
   tier” API.
 - When project/role policy is `ask`, the call MUST pause on `permission.ask`;
   Allow MUST continue that tool+detail (run-scoped); Deny MUST fail closed.
@@ -125,7 +125,7 @@ previous chat session MUST NOT stick.
 | Harness tools + internal tool loop             | Real explore / mutate / bash invokes ([S1](#s1--start-explore-only)–[S3](#s3--gate-before-bash))                                      | Landed (epic 01)                                 |
 | `langflower.jsonc` `permission` + role posture | allow / ask / deny per tool ([S2](#s2--gate-before-mutate), [S3](#s3--gate-before-bash))                                              | Landed (epics 02 / 04)                           |
 | `permission.ask` + feed/composer Allow/Deny    | Human gate on ask-policy calls ([S2](#s2--gate-before-mutate), [S3](#s3--gate-before-bash), [S4](#s4--see-stage--grants-in-the-feed)) | Landed (epic 02)                                 |
-| Role presets / `enabledToolIds`                | Stage inventories (explore vs coder) ([S1](#s1--start-explore-only)–[S3](#s3--gate-before-bash))                                      | Landed (epic 04)                                 |
+| Role presets / `toolPermissions`               | Stage inventories (explore vs coder) ([S1](#s1--start-explore-only)–[S3](#s3--gate-before-bash))                                      | Landed (epic 04)                                 |
 | HITL / Review gate nodes                       | Optional graph handoff between stages ([S2](#s2--gate-before-mutate))                                                                 | Landed                                           |
 | Dedicated staged-ops demo + CI                 | End-to-end Value proof ([S1](#s1--start-explore-only)–[S5](#s5--re-run-the-same-staged-spine))                                        | Landed (Fake CI topology; real-LLM Expects open) |
 

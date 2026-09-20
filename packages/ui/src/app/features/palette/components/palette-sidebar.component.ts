@@ -13,17 +13,16 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import type {
 	PaletteNodeDefinition,
 	PaletteNodeSource,
-} from '@langflower/shared/langflower';
-import { combineLatest, map, startWith } from 'rxjs';
+} from '@langflower/shared/types/langflower-palette';
+import { combineLatest, map } from 'rxjs';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component';
-import { EditorPaletteVisibleProjectionService } from '../services/editor-palette-visible-projection.service';
+import { EditorPaletteVisibleProjectionService } from '../../../services/editor-palette-visible-projection.service';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import {
 	ADVANCED_CATEGORY,
 	advancedSubcategoryCollapseKey,
 	categoryCollapseKey,
-	emptyCustomPaletteSnapshot,
 	filterPaletteSections,
 	initialPaletteSidebarState,
 	paletteFromSystemAndCustom,
@@ -35,7 +34,7 @@ import {
 	attachPaletteDragImage,
 	type PaletteDragImageSession,
 } from '../utils/palette-drag-image.js';
-import { PALETTE_DRAG_MIME } from '../utils/palette-drag-mime.js';
+import { PALETTE_DRAG_MIME } from '../../../diagram/palette-drag.js';
 import {
 	PaletteNodeDetailPopoverComponent,
 	type PalettePopoverAnchor,
@@ -415,17 +414,12 @@ export class PaletteSidebarComponent {
 
 	private readonly paletteState = toSignal(
 		combineLatest([
-			this.bridge.cached['palette.snapshot'].pipe(
-				startWith({ nodes: [] as const }),
-			),
-			this.bridge.cached['customPalette.snapshot'].pipe(
-				startWith(emptyCustomPaletteSnapshot),
-			),
+			this.bridge.cached['palette.snapshot'],
+			this.bridge.cached['customPalette.snapshot'],
 		]).pipe(
 			map(([system, custom]) =>
 				paletteFromSystemAndCustom(system, custom),
 			),
-			startWith(initialPaletteSidebarState),
 		),
 		{ initialValue: initialPaletteSidebarState },
 	);

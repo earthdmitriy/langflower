@@ -33,7 +33,7 @@ const assertDevApiPortFree = () =>
 		probe.once('error', (error) => {
 			if (error.code === 'EADDRINUSE') {
 				reject(
-					new Error(`порт занят: 127.0.0.1:${String(DEV_API_PORT)}`),
+					new Error(`port in use: 127.0.0.1:${String(DEV_API_PORT)}`),
 				);
 				return;
 			}

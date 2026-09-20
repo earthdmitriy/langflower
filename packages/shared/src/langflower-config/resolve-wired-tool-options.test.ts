@@ -1,9 +1,7 @@
 import type { EdgeId, NodeId } from '@langflower/runtime';
 import { describe, expect, it } from 'vitest';
 import {
-	displayEnabledToolIds,
 	HARNESS_BUILTIN_TOOL_OPTIONS,
-	mergeEnabledToolIdsOnNewWires,
 	resolveEnabledToolOptions,
 	resolveMcpServerOptions,
 	resolveWiredToolOptions,
@@ -276,34 +274,5 @@ describe('resolveEnabledToolOptions', () => {
 		expect(
 			options.filter((option) => option.value === 'read'),
 		).toHaveLength(1);
-	});
-});
-
-describe('displayEnabledToolIds', () => {
-	it('treats unset allowlist as all option ids', () => {
-		expect(displayEnabledToolIds(undefined, ['grep', 'read_file'])).toEqual(
-			['grep', 'read_file'],
-		);
-	});
-
-	it('preserves explicit allowlist including empty', () => {
-		expect(displayEnabledToolIds([], ['grep'])).toEqual([]);
-		expect(displayEnabledToolIds(['grep'], ['grep', 'read_file'])).toEqual([
-			'grep',
-		]);
-	});
-});
-
-describe('mergeEnabledToolIdsOnNewWires', () => {
-	it('appends newly wired tool ids to an explicit allowlist', () => {
-		expect(
-			mergeEnabledToolIdsOnNewWires(['grep'], ['grep', 'read_file']),
-		).toEqual(['grep', 'read_file']);
-	});
-
-	it('returns the same array reference when nothing new is wired', () => {
-		const current = ['grep'] as const;
-
-		expect(mergeEnabledToolIdsOnNewWires(current, ['grep'])).toBe(current);
 	});
 });

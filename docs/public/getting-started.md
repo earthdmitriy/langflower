@@ -30,7 +30,8 @@ on its own port. User manual:
 Windows and macOS zips are on
 [GitHub Releases](https://github.com/earthdmitriy/langflower/releases)
 (tags `launcher-v*`, not the npm `v*` tags). You still need Node.js and
-`npm install -g langflower`. On macOS, right-click the binary → Open.
+`npm install -g langflower`. On macOS, right-click **Langflower.app** →
+Open.
 
 Stop the process with Ctrl+C when you are done. There is no cloud account and
 no background daemon.

@@ -35,10 +35,14 @@ export type DefineNodeConfig<
 	readonly category?: string;
 	readonly paletteSecondary?: boolean;
 	readonly description?: string;
-	readonly icon?: string;
 	readonly stopsRun?: boolean;
 	readonly emitOncePerActivation?: boolean;
 	readonly chatEntry?: boolean;
+	readonly defaultCanvasSize?: {
+		readonly width: number;
+		readonly height: number;
+	};
+	readonly feedVisitBoundary?: boolean;
 	readonly uiSchema: AssertConstUISchema<UI>;
 	readonly inputs?: Readonly<Record<string, DefineNodePortMeta>>;
 	readonly outputs?: Readonly<Record<string, DefineNodePortMeta>>;
@@ -96,10 +100,15 @@ export const defineNode = <const UI extends readonly UISchemaConstItem[]>(
 		...(config.description !== undefined
 			? { description: config.description }
 			: {}),
-		...(config.icon !== undefined ? { icon: config.icon } : {}),
 		...(config.stopsRun !== undefined ? { stopsRun: config.stopsRun } : {}),
 		...(config.chatEntry !== undefined
 			? { chatEntry: config.chatEntry }
+			: {}),
+		...(config.defaultCanvasSize !== undefined
+			? { defaultCanvasSize: config.defaultCanvasSize }
+			: {}),
+		...(config.feedVisitBoundary === true
+			? { feedVisitBoundary: true as const }
 			: {}),
 		bind(
 			ctx: Parameters<DefinedReactiveNodeConfig<UI>['bind']>[0],
@@ -189,7 +198,5 @@ export const defineNode = <const UI extends readonly UISchemaConstItem[]>(
 		},
 	};
 
-	// `AssertConstUISchema` collapses to `never` under the unconstrained UI
-	// default on `DefinedReactiveNodeConfig`; call sites still pass `as const`.
-	return defineReactiveNode(reactiveConfig as never);
+	return defineReactiveNode(reactiveConfig as DefinedReactiveNodeConfig<UI>);
 };

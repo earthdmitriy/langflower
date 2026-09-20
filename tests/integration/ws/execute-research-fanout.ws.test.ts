@@ -73,7 +73,8 @@ describe('execute research-fanout (WS bridge)', () => {
 		).toHaveLength(1);
 	});
 
-	describe.skipIf(!scenarioReadyById(SCENARIO_ID))('runtime', () => {
+	describe('runtime', () => {
+		scenarioReadyById(SCENARIO_ID);
 		let projectDir: string;
 		let urls: TestServerHandle;
 		let client: LangflowerWsClient;

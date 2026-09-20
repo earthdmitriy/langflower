@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { RuntimeRunnerEvent } from '@langflower/runtime';
-import type { RunnerPermissionAskPayload } from '@langflower/shared/langflower.js';
+import type { RunnerPermissionAskPayload } from '@langflower/shared/types/langflower-config.js';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
 	createTempProject,
@@ -52,7 +52,8 @@ describe('execute basic-coder pilot (WS bridge)', () => {
 		).toBe(true);
 	});
 
-	describe.skipIf(!scenarioReadyById(SCENARIO_ID))('runtime', () => {
+	describe('runtime', () => {
+		scenarioReadyById(SCENARIO_ID);
 		let projectDir: string;
 		let urls: TestServerHandle;
 		let client: LangflowerWsClient;

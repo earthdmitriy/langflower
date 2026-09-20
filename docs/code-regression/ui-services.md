@@ -3,86 +3,101 @@
 ## Meta
 
 - Paths: `packages/ui/src/app/services/`
-- Date: 2026-07-22
-- Coverage: All 15 production modules under the chunk (bridge transport, remount projections, `execution-*-fold.ts` / `execution-catalog.ts`, HITL/chat helpers, thin UI-only services). Representative tests: `workflow-execution.service.test.ts` (HITL/bootstrap reconnect), `execution-chrome-fold.test.ts`, `hitl-projection.test.ts`, `bridge-diagram.service.test.ts`, projection service tests. Re-verified against prior report (2026-07-21) and 2026-07-22 fold extractions.
+- Date: 2026-09-20
+- Mode: delta
+- Coverage: All 20 production modules (previous 19 plus `frame-feed-meta.ts`). Re-read WES, live-graph / run-gate / chrome / liveness / output-values folds, catalog, chat-entry, HITL projection, bridge client, remount projections, theme, hover. Sampled tests: chrome, run-gate, catalog, output-values, live-graph, hitl-projection. Cross-checked `hasRunnableGraph` / `lastActivityMs` / `requestScope` callers via ts-scan. No `execution-liveness-fold.test.ts`. Not a line-by-line pass of every fixture.
+- Previous report: 2026-09-19, Critical=0 Important=2 Suggestion=6 (unstructured ids; ids assigned in this delta)
+
+## Previous findings (delta mode)
+
+| id                                          | severity   | status     | evidence                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------- | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ui-services-run-gate-snapshot-graph`       | Important  | fixed      | Closed 2026-09-20 — see LEDGER.                                                                                                                                                                                                                                                                     |
+| `ui-services-liveness-started-wipe`         | Important  | fixed      | Closed 2026-09-20 — see LEDGER.                                                                                                                                                                                                                                                                     |
+| `ui-services-config-layers-twin`            | Suggestion | still-open | `LangflowerConfigLayersProjection` is still a field-for-field copy of imported `LangflowerConfigSnapshotPayload` (`config`, `projectConfig`, `globalConfig`, `globalPath`, `secretIds`, `secretsPath`). Not in ADR-039. Refs only inside `langflower-config-projection.service.ts`.                 |
+| `ui-services-chrome-generic-telemetry-twin` | Suggestion | still-open | Local `OutputPortTelemetry` in `execution-liveness-fold.ts` still duplicates the chrome export (`PortTelemetry & { readonly 0: 'out' }`). `execution-output-values-fold.ts` already imports the chrome alias. Generic `ChromeKeying<K>` with one keying is not a class (dropped from this finding). |
 
 ## Principles check
 
-- **RxJS / `withLatestFrom` — PASS.** Grep over the chunk: zero imports or uses. Feed/HITL classification builds catalog inside `combineLatest([feed, workflow, palette])` or `switchMap` over real catalog streams (`execution-feed-fold.ts`, `execution-hitl-fold.ts`).
-- **Cross-feature fold ownership — PASS.** Run gate, feed, chrome, HITL, permissions each have one module-local `scan` (`execution-*-fold.ts`). `WorkflowExecutionService` is a wiring façade + UI-only drafts (`hitlDrafts`, `chatStartPending`, optimistic Subjects).
-- **Hydrate / reset policy — PASS.** Feed waits for all three bootstrap snapshots before first classify; `distinctUntilChanged` on feed snapshot identity prevents catalog churn from replay-wiping live turns. HITL hydrate uses explicit `live` guard + `hardReset` on done/interrupt/new run. Chrome keeps settled maps after done (no reset on terminal events). Run gate and permissions use tagged reset actions.
-- **Bypass / modelAdapter identity — PASS (looked OK).** No `modelAdapter` or parallel bypass encoders in this tree. `execution-chrome-fold.ts` ignores `typeof event.portId === 'symbol'` (runtime bypass). `bridge-diagram.service.ts` carries `bypassPorts: {}` only as empty `PortsConfig` for unknown palette types — not a resync cache.
-- **Immutability / one concern one fold — PASS.** Folds are pure `scan`s; edge effects limited to bridge intents, constructor draft clears, and theme DOM/localStorage.
-- **No barrels — PASS.** No `index.ts` under `services/`.
-- **`type` not `interface` — PASS.** Local shapes use `type` (`FeedAction`, `HitlFoldState`, `LangflowerConfigLayersProjection`, etc.).
-- **Arrow exports — PASS.** Pure helpers use `export const … = (…) => …` (`hitl-projection.ts`, `bridge-diagram.service.ts`, fold modules). Prior `export function` drift is gone.
-- **No bridge mirror caches — PASS.** Domain facts stay on `LangflowerBridgeClient.raw`; `BehaviorSubject` only in `ThemeService` (UI-only theme, allowed by AGENTS).
-- **Composer entry points — PASS.** Fold factories (`createFeedState$`, `createHitlTriggeredNodes$`, …) list merge sources explicitly; no hidden A→B→C chains.
-- **Thin server — N/A** (UI package).
+- **PASS — `withLatestFrom` / barrels / `type` not `interface` / no production `any`:** Zero `withLatestFrom` (ts-scan unresolved in this folder). Zero `index.ts`. Zero `interface`. Test-only `wireType: 'any'` strings are palette fixtures, not TypeScript `any`.
+- **PASS — tagged-action `scan` folds:** Chrome, run-gate, live-graph, liveness, output-values still follow source → action → `merge` → `scan` → selector. WES has no constructor and no domain `.subscribe`.
+- **PASS — leftover dual work-log / HITL APIs stay deleted:** No `createFeedState$` / `execution-feed-fold.ts`. HITL / permission / drafts stay in `features/composer/`. Cited `workflow-execution.service.test.ts` is still gone.
+- **PASS — custom-catalog false-ready on WES gates:** `mergedPaletteFromSnapshots$` is still `combineLatest([system$, custom$])` with no empty custom `startWith`. `hasPaletteCatalog` / `hasPlainStartTargets` still refuse while `palette.size === 0`.
+- **PASS — one-way diagram conversion / no feature-component import:** `bridge-diagram.ts` (not `*.service.ts`). `LfNodeData` colocated. Canvas helper import only. No import from `lf-node.component`.
+- **PASS — bridge as SoT:** `LangflowerBridgeService` is `createClient` + eager `shareReplay(1)` cache. No REST / DTO adapters. `BehaviorSubject` only in `ThemeService` (UI-only theme).
+- **PASS — null active workflow (BUG-2026-07-17d):** `nodeTypeByIdFromWorkflow` and `createLiveGraph$` still use `activeWorkflow?.graph ?? null`.
+- **PASS — Run enablement one graph fact:** `hasRunnableGraph` reads `activeGraph()?.nodes.length` (LEDGER `ui-services-run-gate-snapshot-graph`, 2026-09-20).
+- **PASS — liveness adopt/keep `runId`:** `started` no longer hard-wipes same-run stamps (LEDGER `ui-services-liveness-started-wipe`, 2026-09-20).
+- **FAIL — `twin-without-adr`:** `LangflowerConfigLayersProjection` and liveness-local `OutputPortTelemetry`. See those two Suggestion ids.
+- **N/A — thin server.**
 
 ## FOUND_BUGS signals
 
-- **BUG-2026-07-21b (false-ready context / HITL missing after reload)** — **mitigated; re-verified PASS.** `execution-feed-fold.ts` and `execution-hitl-fold.ts` never pair events with `startWith(empty)` lookup maps. Regression test `replays HITL replies when feed arrives before workflow and palette` in `tests/workflow-execution.service.test.ts`.
-- **BUG-2026-07-21 (settle wiped reconnect chrome)** — **looked fixed:** `execution-chrome-fold.ts` omits done/interrupt reset; comments cite detachable-long-run S2–S3.
-- **BUG-2026-07-17e / parallel HITL siblings** — HITL per-node visibility + `live` hydrate guard; hard-reset on done/interrupt.
-- **BUG-2026-07-17 (remount enablement)** — `hasRunnableGraph`, `SelectedNodeProjectionService`, `LangflowerConfigProjectionService` use root `shareReplay` / meaningful `initialValue`.
-- **BUG-2026-07-16 (constructor snapshot subscribe / NG0200)** — no `runner.snapshot` constructor subscribe; residual surface is draft-clear subscribes only (see Finding #1).
-- **BUG-2026-07-13 (DOM chrome side-channel)** — chrome via fold projections + per-element event slices (`getEventsForNode` / `getEventsForEdge`); no global DOM sweep in this chunk.
+- **BUG-2026-08-18d (started-after-ports wipe):** **Liveness now adopt/keep `runId` (2026-09-20).** Chrome / HITL / feed already did. Reconnect order is still `executionFeed.snapshot` then replayed `runner.started` (UI `AGENTS.md`).
+- **BUG-2026-07-11c (frozen `graphInput` vs live edges):** **Does not recur on Run size.** Run gate now uses `activeGraph`. That bug was port rebuild from a frozen canvas `graphInput`.
+- **BUG-2026-07-17b (remount enablement):** Remount via root `toSignal` still held. Run size now follows `activeGraph`.
+- **BUG-2026-07-21b (false-ready empty maps):** No `withLatestFrom` here. WES custom empty seed stayed deleted. Residual empty custom `startWith` is palette sidebar (out of chunk).
+- **BUG-2026-07-21 (settle wipe):** Chrome still omits done/interrupt wipe. Looked held.
+- **BUG-2026-07-16 (eager `runner.snapshot` / NG0200):** Still closed on WES. Models-catalog constructor subscribe is not that mechanism.
+- **BUG-2026-07-17d (null graph):** Looked held.
 
 ## Glue / adapters / parallel types
 
-- **`bridge-diagram.service.ts`** — allowed one-way `RuntimeEdge` / `WorkflowNodePersisted` → ng-diagram boundary (`persistedNodeToDiagram`, `persistedEdgeToDiagram`). Comments forbid round-trip. Filename still says `*.service.ts` but module is pure functions (no `@Injectable`) — naming smell only.
-- **No `*Adapter` / `*Mapper` classes** in this chunk.
-- **Fold-local projection types** (`HitlControlProjection`, `FeedAction`, `ChromeAction`, `LangflowerConfigLayersProjection`) — UI fold vocabulary, not parallel `@langflower/shared` DTOs. OK.
-- **`paletteByType`** — single implementation in `bridge-diagram.service.ts`; reused by `execution-catalog.ts`, `execution-hitl-fold.ts`, `workflow-execution.service.ts`. No duplicate builders.
-- **Feature import** — folds import `feed-section` reducers from `features/sidebar/`; allowed per `packages/ui/AGENTS.md` (feature-owned vocabulary).
+- **No `*Adapter` / `*Mapper` classes.** No parallel WS payload types.
+- **`bridge-diagram.ts`:** Allowed one-way persisted → ng-diagram boundary.
+- **`FeedCatalog` / `feedCatalogFromSnaps`:** Shared by feed-folding and canvas-node-status. Platform owner is correct.
+- **`HitlControlProjection`:** Cross-feature vocabulary. OK.
+- **`frame-feed-meta.ts`:** New since the previous module list. Shared `PortTelemetry` slot-6 readers for feed / HITL / canvas chrome. Not a twin.
+- **`LangflowerConfigLayersProjection`:** Twin of `LangflowerConfigSnapshotPayload`. Finding `ui-services-config-layers-twin`.
+- **Liveness-local `OutputPortTelemetry`:** Twin of the chrome export. Finding `ui-services-chrome-generic-telemetry-twin`.
+- **Composer snapshot `nodeTypeById$`:** Out of chunk (`composer.service.ts`). HITL classify on snapshots is the right readiness model.
 
 ## Streamlining & simplifications
 
-- Fold extraction (`execution-*-fold.ts`, `execution-catalog.ts`) and `withLatestFrom` removal — **done; hold.**
-- Drive `hitlDrafts` / `chatStartPending` clears from existing settle/start fold actions so `WorkflowExecutionService` constructor can stay subscription-free (deferred — Finding #1).
-- Rename `bridge-diagram.service.ts` → `bridge-diagram.ts` (or `persisted-to-diagram.ts`) — cosmetic; update imports/tests when touched.
-- Replace `entry.hitl as HitlInputConfig` in `hitl-projection.ts` with a narrow type predicate after the `hitl !== undefined` filter.
+- `langflower-config-projection.service.ts`: `type LangflowerConfigLayersProjection = LangflowerConfigSnapshotPayload` (or use the payload type directly).
+- `execution-liveness-fold.ts`: import `OutputPortTelemetry` from `execution-chrome-fold.ts`; delete the local alias.
+
+(`hasRunnableGraph` from `activeGraph` shipped 2026-09-20.)
 
 ## Design-flaw fixes
 
-1. **False-ready (BUG-2026-07-21b class)** — **addressed and re-verified.** Catalog maps built inside readiness `combineLatest`; live paths use `switchMap` over catalog Subjects, not empty-started sampling.
-2. **Ownership concentration** — **addressed.** Fold pipelines extracted; façade ~510 lines wiring bridge + UI drafts.
-3. **Live vs hydrate asymmetry (HITL)** — **addressed.** HITL live path uses `switchMap`; hydrate guarded by `live` flag; feed uses feed-identity dedupe instead — complementary, not contradictory.
+none
 
 ## Findings
 
-1. **Severity:** Important  
-   **Path / symbol:** `packages/ui/src/app/services/workflow-execution.service.ts` — `constructor` (`merge(runnerDone$, runnerInterrupted$).subscribe`, `isRunning$.subscribe`)  
-   **Problem:** Imperative `.subscribe` mutates UI signals outside the fold pipeline. Same constructor surface class as BUG-2026-07-16 (snapshot subscribe footgun). Draft/pending clears are legitimate UI-only edges but bypass the tagged-action model.  
-   **Proposed fix:** Emit `hardReset` / `start`-derived actions into permission/HITL/feed settle folds (or a tiny UI-draft fold) and map to draft clears via `toSignal` side-effect-free projection or a single named edge subscriber owned by the fold module.
+1.  - id: `ui-services-config-layers-twin`
+    - class: `twin-without-adr`
+    - severity: Suggestion
+    - first-seen: 2026-09-19
+    - status: open
+    - path: `packages/ui/src/app/services/langflower-config-projection.service.ts` — `LangflowerConfigLayersProjection`
+    - evidence: Local type duplicates `LangflowerConfigSnapshotPayload` field-for-field. Already imported in the same file. Not listed in ADR-039. No parity test. ts-scan: declaration + `EMPTY_LAYERS` + `scan` only.
+    - proposed fix: Use `LangflowerConfigSnapshotPayload` (or `type LangflowerConfigLayersProjection = LangflowerConfigSnapshotPayload`).
 
-2. **Severity:** Suggestion  
-   **Path / symbol:** `packages/ui/src/app/services/bridge-diagram.service.ts`  
-   **Problem:** Filename implies Angular service; file exports only pure converters + `paletteByType`.  
-   **Proposed fix:** Rename module (non-`service` suffix); batch import updates.
-
-3. **Severity:** Suggestion  
-   **Path / symbol:** `packages/ui/src/app/services/hitl-projection.ts` — `hitlControlsForNode` (`entry.hitl as HitlInputConfig`)  
-   **Problem:** `as` after filter; principles prefer guards/predicates.  
-   **Proposed fix:** Type predicate on `PortInputConfig & { hitl: HitlInputConfig }`.
-
-4. **Severity:** Suggestion  
-   **Path / symbol:** `packages/ui/src/app/services/execution-feed-fold.ts` — `foldFeedState` permission branch (`action.ask.runId as RunId`)  
-   **Problem:** Cast at fold boundary; low risk if payload is always typed from bridge.  
-   **Proposed fix:** Narrow `RunnerPermissionAskPayload.runId` at the action mapper or use a shared guard from `@langflower/shared`.
+2.  - id: `ui-services-chrome-generic-telemetry-twin`
+    - class: `twin-without-adr`
+    - severity: Suggestion
+    - first-seen: 2026-09-19
+    - status: open
+    - path: `packages/ui/src/app/services/execution-liveness-fold.ts` — local `OutputPortTelemetry`
+    - evidence: Line 7 redeclares `PortTelemetry & { readonly 0: 'out' }`. Chrome already exports that alias; output-values fold imports it. Not an ADR-039 twin.
+    - proposed fix: Import `OutputPortTelemetry` from `execution-chrome-fold.ts`; delete the local type.
 
 ## Non-issues / looked OK
 
-- `langflower-bridge.service.ts` — thin `createClient` owner; `ngOnDestroy` closes socket; no RPC/DTO wrappers.
-- `selected-node-projection.service.ts` / `langflower-config-projection.service.ts` — correct remount-safe projections; config `scan` partial-updates on slim `session.state.snapshot` only.
-- `node-hover.service.ts` / `theme.service.ts` — UI-only transient/local state per AGENTS.
-- `execution-catalog.ts` — shared catalog builders; `feedCatalogFromSnaps` single entry for classify context.
-- `execution-chrome-fold.ts` — shared `foldChromeState` / `createChromeMap$`; bypass `symbol` portId skipped consistently.
-- `execution-run-gate-fold.ts` / `execution-permission-fold.ts` — separate concerns, explicit hard-reset actions.
-- `chat-entry-clusters.ts` — pure cluster gating; union-find mutates local `parent` map only inside helper scope.
-- Empty-started `paletteByType$` / `nodeTypeById$` in façade — confined to remount UI gates (`hasRunnableGraph`, idle chat-entry), not feed/HITL classify (commented and verified).
-- One-way diagram conversion contract matches AGENTS; no reverse `Edge` → `RuntimeEdge` in this tree.
-- No `index.ts` barrels; no REST glue services in this folder.
-
-**Status:** Critical=0 Important=1 Suggestion=3
+- **LEDGER Closed 2026-09-20:** `ui-services-run-gate-snapshot-graph`, `ui-services-liveness-started-wipe`. Do not reopen without a new mechanism.
+- **Cluster close — WES constructor `.subscribe` for drafts:** still false. No constructor; Composer owns drafts / Pause / HITL tabs.
+- **Cluster close — `withLatestFrom`:** none in this folder.
+- **Cluster close — competing work-log `scan`:** one timeline in `feed-folding/`.
+- **Follow-up E — empty custom `startWith` on WES:** stayed deleted. `execution-catalog.test.ts` still waits for both snapshots.
+- **Follow-up D — `LfNodeData` from `lf-node.component`:** stayed deleted.
+- `frame-feed-meta.ts` — new shared slot-6 helpers; consumers in feed-folding / composer HITL / canvas-node-status. Not a twin.
+- `langflower-bridge.service.ts` — thin client; eager cache subscribe is the remount host edge.
+- Remount projections — snapshot replace + `shareReplay`. Settings/palette intents go to `*.requested`. `startWith(CLOSED_PROJECT)` / `EMPTY_SNAPSHOT` / `EMPTY_LAYERS` are remount seeds, not catalog false-ready.
+- `execution-live-graph-fold.ts` — snapshot replace + editor add/update/delete; tests cover update-after-snapshot, replace, add/remove, null graph.
+- `execution-chrome-fold.ts` — settled chrome kept; bypass `symbol` portId skipped; adopt-runId covered.
+- `chat-entry-clusters.ts` — union-find on a local `parent` map; unknown-type false-ready still gated by WES `palette.size === 0`.
+- `hitl-projection.ts` — type predicate, no `as HitlInputConfig`; steer payload-aware transition.
+- `node-hover.service.ts` / `theme.service.ts` — UI-only.
+- `getEventsForEdge` / `getEventsForPort` / `getInputEventsForPort` — live filters for canvas pulse; not a second fold.
+- Snapshot label lag, catalog constructor subscribe, last-output reset policy, and duplicate settings intent names are not listed classes.

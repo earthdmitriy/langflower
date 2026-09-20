@@ -18,9 +18,13 @@
 			"types": "./dist/ai/features/llm-role-preset.d.ts",
 			"import": "./dist/ai/features/llm-role-preset.js"
 		},
-		"./ai/run-host-services": {
-			"types": "./dist/ai/features/run-host-services.d.ts",
-			"import": "./dist/ai/features/run-host-services.js"
+		"./run-host-services": {
+			"types": "./dist/run-host/run-host-services.d.ts",
+			"import": "./dist/run-host/run-host-services.js"
+		},
+		"./ai/llm-run-host": {
+			"types": "./dist/ai/features/llm-run-host.d.ts",
+			"import": "./dist/ai/features/llm-run-host.js"
 		},
 		"./ai/openai/create-chat-completion-stream": {
 			"types": "./dist/ai/features/openai/create-chat-completion-stream.d.ts",
@@ -33,6 +37,10 @@
 		"./embeddings/create-embedding": {
 			"types": "./dist/embeddings/create-embedding.d.ts",
 			"import": "./dist/embeddings/create-embedding.js"
+		},
+		"./tools/collect-agent-tool-handles": {
+			"types": "./dist/tools/collect-agent-tool-handles.d.ts",
+			"import": "./dist/tools/collect-agent-tool-handles.js"
 		}
 	},
 	"scripts": {

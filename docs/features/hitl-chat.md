@@ -34,6 +34,9 @@ agent-initiated tool that uses the same composer:
 - **Review Gate** — mid-run pause for approve or request-changes; user text
   on `requestChanges` feeds back into the workflow (e.g. into an agent's
   next turn); approve passes the reviewed content on `response`.
+- **Chat Loop** — mid-run reply only (`message` → `feedback`); no Approve.
+  Wire agent `response` → `result` and `feedback` → agent `feedback`. The
+  run ends on **Stop**.
 - **Review** — a gate placed after an agent step: the agent answers, then a
   reviewer (a person, or a dedicated review agent node) checks that answer.
   If it's good, that same answer passes through unchanged. If not, the
@@ -47,13 +50,16 @@ agent-initiated tool that uses the same composer:
   inside one dialog.
 - **`ask_user` builtin** — default harness tool on agent nodes. The model
   calls it when unsure (do not guess). The tool loop pauses; the **work log**
-  shows the question as a conversation bubble; the composer is textarea +
-  **Send** only (static placeholder). Send returns the operator text as the
-  tool result and the same turn continues. This is **not** Pause/Steer
-  (`steerControl`) and **not** `permission.ask` Allow/Deny.
+  shows the question (or joined prompts) as a conversation bubble. The
+  composer is textarea + **Send**, plus option chips when the agent passed
+  ordered `questions` (multi-select when `allowMultiple` is true). The
+  operator may pick chips, type freeform, or both; one Send returns formatted
+  text as the tool result and the same turn continues. This is **not**
+  Pause/Steer (`steerControl`) and **not** `permission.ask` Allow/Deny.
 
-**Chat-style workflows:** when a workflow contains a Review Gate–driven
-feedback loop back into an agent, the run behaves like a conversation. Once
+**Chat-style workflows:** when a workflow contains a Chat Loop (or a Review
+Gate used only for feedback) wired back into an agent, the run behaves like
+a conversation. Once
 started (see [workflow-execution.md](workflow-execution.md) for how a chat
 run begins), the user's message and the agent's inline prompt are combined
 for the first turn, and the agent's streaming draft response appears in the
@@ -112,10 +118,10 @@ layout table: [feed-panel.md](feed-panel.md) § Composer layout):
   unlocks for that paused agent (`steerControl` has `config.hitl`: textarea +
   **Send**); tabs when 2+ awaiting (agents and/or gates). Pause is **per-node**
   (last feed section), not a global run pause. Fold: `pause` opens awaiting,
-  Send closes — see [ADR-032](../ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port).
+  Send closes — see [ADR-032](../architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port).
   Soft Pause UI/runtime **shipped** (DONE epic 36) — see
   [run-interruption](../use-cases/run-interruption.md) and
-  [ADR-031](../ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer).
+  [ADR-031](../architecture/ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer).
   Composer shell layout **shipped**
   ([DONE epic 35](../DONE/EPICS/35-composer-shell-layout-contract.md)).
 
@@ -129,7 +135,7 @@ reviewer hats. With 2+ open gates the tab strip lists every gate; each
 
 - Full HITL protocol (prompt delivery, reply submission, port-level
   `config.hitl`, loop-kind detection and termination rules):
-  [docs/EXECUTION_ARCHITECTURE.md](../EXECUTION_ARCHITECTURE.md) § LLM +
+  [docs/architecture/EXECUTION_ARCHITECTURE.md](../architecture/EXECUTION_ARCHITECTURE.md) § LLM +
   human-in-the-loop.
 - Graph lock / feed panel rendering and HITL types:
   [docs/REACTIVE_NODES.md](../REACTIVE_NODES.md) § HITL and graph lock.
@@ -138,7 +144,9 @@ reviewer hats. With 2+ open gates the tab strip lists every gate; each
   [node-library.md](node-library.md).
 - Chat Input idle composer + plain-Run exclusion:
   `ComposerService.idleChatEntryNodeIds` /
-  `WorkflowExecutionService.hasPlainStartTargets`; runtime `chatEntry` on
+  `WorkflowExecutionService.hasPlainStartTargets` (Run stays disabled until
+  `hasPaletteCatalog` — merged system+custom snapshots, no empty custom seed);
+  runtime `chatEntry` on
   `RuntimeRunner.start`. Idle composer, canvas, and inspector share
   `inputs.message`. Composer follows live `editor.updateNodes` (same delta
   as the canvas), not snapshot-only `workflow.current.snapshot`. Canvas:
@@ -153,15 +161,15 @@ reviewer hats. With 2+ open gates the tab strip lists every gate; each
   `pause-button.component.ts`. Layout contract:
   [feed-panel.md](feed-panel.md) § Composer layout.
 - Soft Pause mechanism:
-  [ADR-032](../ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port);
+  [ADR-032](../architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port);
   scenarios: [run-interruption](../use-cases/run-interruption.md).
 - HITL push: `packages/server/src/bridge/wire-runner-handlers.ts`
   (`runner.hitl.event` → `pushIntoInput`).
 - Agent `ask_user` builtin: `packages/tools/src/builtins/ask_user/tool.ts`;
   WS `runner.askUser.ask` / `runner.askUser.reply` / `runner.askUser.accepted`
-  (sibling of `permission.ask`, free-text reply). Question is a feed bubble;
-  composer footer mode `askUser` is textarea + Send only — permission
-  Allow/Deny still wins if both are pending.
+  (sibling of `permission.ask`). Question is a feed bubble; composer footer
+  mode `askUser` is textarea + Send, with option chips when `questions` is
+  set. Permission Allow/Deny still wins if both are pending.
 - Interactive-loop termination design decision:
-  [docs/ADR.md](../ADR.md#adr-015--interactive-hitl-feedback-loops-end-on-stop-not-idle-settle)
+  [docs/architecture/ADR.md](../architecture/ADR.md#adr-015--interactive-hitl-feedback-loops-end-on-stop-not-idle-settle)
   (ADR-015).

@@ -4,7 +4,6 @@ import type { RuntimeOptions } from './types.js';
 
 export { bypassOutputPortId, parseBypassOutputPortId } from './bypass-ports.js';
 export { RuntimeEditor } from './runtime-editor.js';
-export { graphHasCycle } from './runtime-helpers.js';
 export type { GraphCluster } from './runtime-helpers.js';
 export { RuntimeRunner } from './runtime-runner.js';
 export type {

@@ -50,7 +50,7 @@ data arrives as an `Observable`, keep the stream and bind with `async` pipe in
 the template — do not default to `toSignal(..., { initialValue: null })` just
 to read values in the class. Use `toSignal` / `computed` when you actually need
 signal composition or a meaningful non-null `initialValue`. Details:
-[`docs/REACTIVITY.md`](../../docs/REACTIVITY.md) § Observables and signals.
+[`docs/architecture/REACTIVITY.md`](../../docs/architecture/REACTIVITY.md) § Observables and signals.
 
 If a screen needs data that is not available on `LangflowerBridgeClient`, stop
 and extend `packages/shared/src/langflower-bus-config.ts` plus the shared
@@ -87,6 +87,10 @@ contract and canvas incidents that led to it.
 ## Import boundaries
 
 - A feature may inject root platform services from `src/app/services/`.
+- Shared presentational primitives live in `src/app/components/` (inline field,
+  static port-row, port CSS). Cross-feature diagram constants (palette drag
+  MIME) live in `src/app/diagram/`. Features import those kernels; they must
+  not import another feature's components.
 - Platform code may import a pure feature-owned type or helper when that feature
   owns the vocabulary (for example feed projection types).
 - Platform code must not import feature components.
@@ -145,10 +149,11 @@ client must show the same state without asking which tab caused a change.
    `createServer` before listen — not on connect).
 3. Feed / HITL folds must therefore wait for real workflow and palette Subjects
    — do **not** hydrate with `withLatestFrom` + `startWith(empty)` lookup maps
-   (false-ready: HITL replies dropped). Canvas palette streams also wait for
-   real snapshots (no empty `startWith`). **`withLatestFrom` is forbidden** unless
+   (false-ready: HITL replies dropped). Canvas palette streams and WES
+   Run/chat-entry gates wait for real system **and** custom snapshots (no
+   empty custom `startWith`). **`withLatestFrom` is forbidden** unless
    a human explicitly confirms the call site — prefer `combineLatest`. Pattern:
-   [docs/REACTIVITY.md](../../docs/REACTIVITY.md) § Hydration and
+   [docs/architecture/REACTIVITY.md](../../docs/architecture/REACTIVITY.md) § Hydration and
    `withLatestFrom`; bugs: [FOUND_BUGS.md](../../docs/FOUND_BUGS.md)
    BUG-2026-07-21b.
 4. Catalog-gated live event streams are hot. Events emitted after the feed
@@ -159,10 +164,13 @@ client must show the same state without asking which tab caused a change.
 permission replay, and palette still follow it in the order above.
 
 **When debugging “live OK, reload empty”:** check whether the fold that
-builds `feedUserTurns` / awaiting HITL ran against empty palette/types.
-Regression sequence lives in
-`services/tests/workflow-execution.service.test.ts`
-(`replays HITL replies when feed arrives before workflow and palette`).
+builds feed visits / awaiting HITL ran against empty palette/types.
+Regression sequences live in
+`features/feed-folding/tests/execution-feed.service-replay.test.ts`
+(`retains an early bridge snapshot until workflow and palette arrive`) and
+`features/canvas-node-status-folding/tests/fold-canvas-node-hitl.test.ts`
+(`rebuilds awaiting when feed snapshot arrives before palette`).
+Do not recreate `services/tests/workflow-execution.service.test.ts`.
 
 **After reconnect:**
 
@@ -175,10 +183,10 @@ Regression sequence lives in
   restores `viewport` from the active graph in
   `workflow.current.snapshot`.
 - Load/save/rename → `workflow.current.snapshot` (full replace).
-- Runtime port activity → **only new** `runner.output-emitted`, `runner.input-received`,
-  `runner.done`, … — no full resnapshot per tick.
+- Runtime port activity → **only new** `runner.port` (direction `'in'` / `'out'`
+  at payload slot 0), `runner.done`, … — no full resnapshot per tick.
 
-See also § Workflow Topbar and [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+See also § Workflow Topbar and [`docs/architecture/ARCHITECTURE.md`](../../docs/architecture/ARCHITECTURE.md).
 
 ## Feature Structure
 
@@ -222,8 +230,8 @@ Current features:
 - `src/app/features/sidebar/` — inspector and settings slice.
 - `src/app/features/topbar/components/workflow-topbar.component.ts` — workflow catalog UI.
 - `src/app/services/langflower-bridge.service.ts` — typed bridge client owner.
-- `src/app/services/bridge-diagram.service.ts` — pure one-way persisted graph →
-  ngDiagram conversion boundary (not an injectable despite the filename).
+- `src/app/services/bridge-diagram.ts` — pure one-way persisted graph →
+  ngDiagram conversion boundary (not an injectable).
 - `src/app/services/workflow-execution.service.ts` — cross-feature execution
   façade (run gate, live graph, labels, chrome). HITL / drafts / Pause live
   on `ComposerService`, not here.
@@ -306,13 +314,15 @@ See [`docs/DIAGRAM_CANVAS.md`](docs/DIAGRAM_CANVAS.md) § Port layout.
 on-node editor is now attached to an **input port row** via
 `InputPortMeta.inline?: InlineConfig` (`@langflower/node-sdk`):
 
-- `InlineConfig` — `'text'` \| `'text-multiline'` \| `'boolean'` \|
-  `'preview'` \| `'preview-markdown'` \| `'preview-code'` \|
-  `{ type: 'text-multiline', flex?, minHeightPx? }` \|
+- `InlineConfig` — `'text'` \| `'text-multiline'` \| `'markdown'` \|
+  `'boolean'` \| `'preview'` \| `'preview-markdown'` \| `'preview-code'` \|
+  `{ type: 'text-multiline' | 'markdown', flex?, minHeightPx? }` \|
   `{ type: 'select' | 'multiselect' | 'radio', options }` \|
   `{ type: 'number', min?, max?, step? }`.
-  Shorthand `'text-multiline'` ⇒ `flex: 1`, min 100px; canvas rows with
-  `flex > 0` fill leftover node height (ADR-017 — no textarea grip).
+  Shorthand `'text-multiline'` / `'markdown'` ⇒ `flex: 1`, min 100px;
+  canvas rows with `flex > 0` fill leftover node height (ADR-017 — no
+  textarea grip). `'markdown'` is author-time (idle rendered markdown,
+  focus = textarea) — not the read-only `preview-*` family.
 - `resolveNodePorts(config, nodeId, edges, nodeInputs)` resolves each
   `DiagramInputPortRow.inline` (explicit-only — no default-on heuristics),
   `.value` (from `nodeInputs[basePortId]` or `defaultValue`), and `.connected`
@@ -320,8 +330,8 @@ on-node editor is now attached to an **input port row** via
 - `lf-node-port-row.component.ts` renders `lf-inline-field.component.ts` under
   the port label when `inline !== null`. Editable kinds are `disabled` while
   `connected`; preview kinds are never disabled (nothing to edit) and read
-  their value from `NodePreviewValuesService` (projects live
-  `runner.input-received` events, keyed `${nodeId}:${portId}`).
+  their value from `NodePreviewValuesService` (projects live `runner.port`
+  `'in'` frames, keyed `${nodeId}:${portId}`).
 - Portless literal nodes (`common-string` / `common-number` / `common-boolean`)
   moved their `params.value` to a real `value` input port with `inline` set —
   no wire is required; an unconnected port seeds from `defaultValue`.

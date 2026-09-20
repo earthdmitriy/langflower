@@ -4,7 +4,7 @@ import type {
 	WorkflowDeletePayload,
 	WorkflowLoadPayload,
 	WorkflowRenameCurrentPayload,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-workflow.js';
 import { Subscription } from 'rxjs';
 import { listResumableCheckpoints } from '../checkpoint/list-resumable-checkpoints.js';
 import { WorkflowCheckpointStore } from '../checkpoint/workflow-checkpoint-store.js';
@@ -140,7 +140,6 @@ export const wireWorkflowHandlers = (
 				const loaded = await loadWorkflowIntoSession(
 					session,
 					context.workflowService,
-					context.projectDir,
 					raw.payload.workflowId,
 					context.resolveDefinition,
 				);
@@ -297,7 +296,6 @@ export const wireWorkflowHandlers = (
 				const created = await createEmptyWorkflowInSession(
 					session,
 					context.workflowService,
-					context.projectDir,
 					context.resolveDefinition,
 				);
 				clearSelection = true;
@@ -334,7 +332,6 @@ export const wireWorkflowHandlers = (
 				const copied = await copyWorkflowToSession(
 					session,
 					context.workflowService,
-					context.projectDir,
 					raw.payload.workflowId,
 					context.resolveDefinition,
 				);

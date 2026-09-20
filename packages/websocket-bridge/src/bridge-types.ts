@@ -56,10 +56,6 @@ export type WsBridgeEventType<T extends WsBridgeMessageConfig> = Extract<
 	string
 >;
 
-export type WsBridgeAnyEventType<C extends WsBridgeConfig> =
-	| WsBridgeEventType<C['fromClientToServer']>
-	| WsBridgeEventType<C['fromServerToClient']>;
-
 export type WsBridgePayload<
 	T extends WsBridgeMessageConfig,
 	K extends WsBridgeEventType<T>,
@@ -96,24 +92,6 @@ export type WsBridgeServerInboundPayload<
 	C extends WsBridgeConfig,
 	K extends WsBridgeServerInboundKey<C>,
 > = WsBridgePayload<C['fromClientToServer'], K>;
-
-export type WsBridgeOutboundSubjects<T extends WsBridgeMessageConfig> = {
-	readonly [K in WsBridgeEventType<T>]: Subject<WsBridgePayload<T, K>>;
-};
-
-export type WsBridgeInboundObservables<T extends WsBridgeMessageConfig> = {
-	readonly [K in WsBridgeEventType<T>]: Observable<WsBridgePayload<T, K>>;
-};
-
-export type WsBridgeAnyPayload<
-	C extends WsBridgeConfig,
-	K extends WsBridgeAnyEventType<C>,
-> =
-	K extends WsBridgeEventType<C['fromClientToServer']>
-		? WsBridgePayload<C['fromClientToServer'], K>
-		: K extends WsBridgeEventType<C['fromServerToClient']>
-			? WsBridgePayload<C['fromServerToClient'], K>
-			: never;
 
 export type WsBridgeOutgoingChannel<Payload> = Subject<Payload>;
 
@@ -155,7 +133,6 @@ export type WsBridgeServerIncoming<C extends WsBridgeConfig> = {
 
 export type WsBridgeConnectedClient<C extends WsBridgeConfig> = {
 	readonly id: string;
-	readonly connected$: Observable<boolean>;
 	readonly disconnected$: Observable<void>;
 	close(): void;
 };

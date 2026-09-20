@@ -10,6 +10,7 @@ import {
 import {
 	BehaviorSubject,
 	filter,
+	isObservable,
 	merge,
 	Observable,
 	of,
@@ -34,7 +35,6 @@ import { RuntimeEditor } from './runtime-editor.js';
 import {
 	clusterHasChatEntry,
 	collectClusterSlotKeys,
-	GraphCluster,
 } from './runtime-helpers.js';
 import {
 	PortMeta,
@@ -201,8 +201,10 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		>,
 		runId?: RunId,
 	): RunId | false {
-		// Composer: resolve cluster → start scoped run
 		const cluster = this.editor.getClusterByNodeId(nodeId);
+		if (cluster === false) {
+			return false;
+		}
 		return this.runScope(
 			cluster.nodeIds,
 			cluster.edgeIds,
@@ -297,11 +299,8 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			return false;
 		}
 
-		let cluster: GraphCluster;
-
-		try {
-			cluster = this.editor.getClusterByNodeId(cfg.nodeId);
-		} catch {
+		const cluster = this.editor.getClusterByNodeId(cfg.nodeId);
+		if (cluster === false) {
 			return false;
 		}
 
@@ -403,6 +402,14 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		this.eventsSubject.next(event);
 	}
 
+	private targetInputFeed = (
+		nodeId: NodeId,
+		portId: string,
+	): RuntimeFeedPortMeta | undefined => {
+		const node = this.editor.getNode(nodeId);
+		return node === false ? undefined : node.inputs[portId]?.meta.feed;
+	};
+
 	private emitPortEvent(
 		_runId: RunId,
 		portDir: 'in' | 'out',
@@ -422,7 +429,14 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			'error' in dto
 				? { error: normalizePortErrorValue(dto.error) }
 				: dto;
-		const feed = defaultFeed ?? null;
+		const node = this.editor.getNode(nodeId);
+		const closesPreviousVisit =
+			node !== false && node.feedVisitBoundary === true;
+		const portFeed = defaultFeed;
+		const feed =
+			closesPreviousVisit === true
+				? { ...(portFeed ?? {}), closesPreviousVisit: true as const }
+				: (portFeed ?? null);
 
 		const portIdStr = typeof portId === 'string' ? portId : String(portId);
 		this.emitRunnerEvent([
@@ -498,6 +512,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 				0,
 				cfg.payload,
 				[],
+				node.inputs[cfg.portId]?.meta.feed,
 			);
 			existing.source.next(cfg.payload);
 			return run.runId;
@@ -530,6 +545,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			0,
 			cfg.payload,
 			[],
+			connection.meta.feed,
 		);
 		source.next(cfg.payload);
 
@@ -546,6 +562,8 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 	 * subscriber, which is what previously reordered events against downstream
 	 * `input-received`s. Must still be subscribed/connected somewhere
 	 * (downstream `connect`, or the end-node driver) to run.
+	 * `tap` is telemetry only: `stopsRun` completion is a named subscribe
+	 * after wrap in `wireScope`.
 	 */
 	private tapOutputPort(
 		run: ActiveRun,
@@ -556,13 +574,11 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 	): StatefulObservable<unknown, unknown, PortMeta> {
 		if (typeof output.meta.portId !== 'string') return output;
 
-		const node = this.editor.getNode(nodeId);
-
 		return output
 			.pipe(
 				tap({
 					next: (response: ResponseWithStatus<unknown, unknown>) => {
-						const emittedValue = this.emitPortEvent(
+						this.emitPortEvent(
 							run.runId,
 							'out',
 							nodeId,
@@ -572,19 +588,6 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 							edgeIds,
 							output.meta.feed,
 						);
-
-						if (
-							emittedValue &&
-							node !== false &&
-							node.stopsRun === true
-						) {
-							const finishRunId = run.runId;
-							queueMicrotask(() => {
-								if (this.activeRun?.runId === finishRunId) {
-									this.finishRun(finishRunId);
-								}
-							});
-						}
 					},
 				}),
 				filter((response) => {
@@ -593,6 +596,22 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 				}),
 			)
 			.with({ meta: output.meta });
+	}
+
+	private scheduleFinishOnSuccessValue(
+		runId: RunId,
+		response: unknown,
+	): void {
+		const dto = toResponseDto(response);
+		if (dto === null || !('value' in dto)) {
+			return;
+		}
+
+		queueMicrotask(() => {
+			if (this.activeRun?.runId === runId) {
+				this.finishRun(runId);
+			}
+		});
 	}
 
 	/**
@@ -623,6 +642,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 							slotIndex,
 							response,
 							edgeIds,
+							this.targetInputFeed(nodeId, portId),
 						);
 					},
 				}),
@@ -735,7 +755,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			try {
 				this.flushPendingWire();
 			} catch {
-				// Status/lock already restored in pendingWire.
+				this.eventsSubject.next(['done', resolvedRunId]);
 			}
 		});
 
@@ -805,8 +825,12 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 					);
 				}
 
+				const source$ = isObservable(seed.value)
+					? seed.value
+					: of(seed.value);
+
 				connection.connect(
-					of(seed.value).pipe(
+					source$.pipe(
 						tap({
 							next: (value) => {
 								if (typeof seed.portId !== 'symbol') {
@@ -818,6 +842,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 										seed.slotIndex,
 										value,
 										[],
+										connection.meta.feed,
 									);
 								}
 							},
@@ -883,6 +908,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 									0,
 									value,
 									[],
+									connection.meta.feed,
 								);
 							},
 						}),
@@ -1227,6 +1253,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 								0,
 								response,
 								group.edges.map((entry) => entry.edge.edgeId),
+								group.connection.meta.feed,
 							);
 						},
 					}),
@@ -1238,20 +1265,33 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			});
 		}
 
-		// Subscribe end-node outputs *before* defaults/seeds so multi-value
-		// shared streams (shareReplay bufferSize 1) still deliver every chunk
-		// to unwired ports such as LLM `reasoning` / `draftResponse`. Seeds
-		// must not emit while only edge-driven outputs are subscribed.
+		// Demand-pull unwired outputs *before* defaults/seeds so multi-value
+		// shared streams still deliver every chunk to ports such as LLM
+		// `reasoning` / `draftResponse`. Seeds must not emit while only
+		// edge-driven outputs are subscribed.
+		// `stopsRun` completion is this named edge (not `tap`): wired finish
+		// outputs also subscribe so teardown is not hidden in telemetry.
 		for (const key of scopeOutputKeys) {
-			if ((outputEdgeIds.get(key) ?? []).length > 0) {
+			const watched = watchedByKey.get(key);
+			if (watched === undefined) {
 				continue;
 			}
 
-			const watched = watchedByKey.get(key);
-
-			if (watched !== undefined) {
-				run.subscriptions.add(watched.subscribe(() => {}));
+			const { nodeId } = parseSlotKey(key);
+			const node = nodesById.get(nodeId);
+			const isUnwired = (outputEdgeIds.get(key) ?? []).length === 0;
+			const stopsRun = node?.stopsRun === true;
+			if (!isUnwired && !stopsRun) {
+				continue;
 			}
+
+			run.subscriptions.add(
+				watched.subscribe((response) => {
+					if (stopsRun) {
+						this.scheduleFinishOnSuccessValue(run.runId, response);
+					}
+				}),
+			);
 		}
 
 		const defaultScopeNodeIds =

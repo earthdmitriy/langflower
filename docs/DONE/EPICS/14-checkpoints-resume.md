@@ -13,7 +13,7 @@ operator **picks** a checkpoint after Stop/restart. Blocks
 ## Landed (infrastructure — this epic)
 
 1. **Checkpoint format + storage** — `.langflower/runs/<workflowId>/<runId>/checkpoint.json`
-   ([ADR-018](../../ADR.md#adr-018--durable-workflow-checkpoints)).
+   ([ADR-018](../../architecture/ADR.md#adr-018--durable-workflow-checkpoints)).
 2. **Runtime `resume`** — skip completed nodes; replay JSON-safe output
    snapshots (`packages/runtime/src/runtime-runner.ts`).
 3. **Server / WS** — store, resume/discard channels.

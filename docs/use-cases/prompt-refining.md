@@ -39,8 +39,8 @@ chat thread they must scroll back through later.
 **Want:** A durable project file (`prompts/scene-01.md`) as the artifact —
 not only a feed bubble.
 
-**Do:** Let Draft prompt run its tool loop (`enabledToolIds`: `read` /
-`write` / `create`).
+**Do:** Let Draft prompt run its tool loop (`toolPermissions`: `read` /
+`write` / `create` allowed).
 
 **Expect:**
 

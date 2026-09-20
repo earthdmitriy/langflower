@@ -1,16 +1,14 @@
-import { langflowerWsConfig } from '@langflower/shared/langflower.js';
+import { langflowerWsConfig } from '@langflower/shared/langflower-bus-config.js';
 import { matchAnyGlob } from './match-glob.js';
-import {
-	ACTION_EXCLUDE_GLOBS,
-	ACTION_NAMESPACE_GLOBS,
-} from './mcp-exposure-policy.js';
+import { ACTION_NAMESPACE_GLOBS } from './mcp-exposure-policy.js';
 
-export const listActionIntents = (): readonly string[] => {
-	const keys = Object.keys(langflowerWsConfig.fromClientToServer);
+export type ClientIntentKey =
+	keyof typeof langflowerWsConfig.fromClientToServer;
 
-	return keys.filter(
-		(key) =>
-			matchAnyGlob(ACTION_NAMESPACE_GLOBS, key) &&
-			!matchAnyGlob(ACTION_EXCLUDE_GLOBS, key),
-	);
+export const listActionIntents = (): readonly ClientIntentKey[] => {
+	const keys = Object.keys(
+		langflowerWsConfig.fromClientToServer,
+	) as ClientIntentKey[];
+
+	return keys.filter((key) => matchAnyGlob(ACTION_NAMESPACE_GLOBS, key));
 };

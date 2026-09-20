@@ -10,9 +10,11 @@ import type {
 	EditorAddNodeRequestedPayload,
 	EditorPasteRequestedPayload,
 	EditorUpdateNodeRequestedPayload,
+} from '@langflower/shared/types/langflower-editor.js';
+import type {
 	WorkflowLoadedPayload,
 	WorkflowNodePersisted,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-workflow.js';
 import { of } from 'rxjs';
 import type { LangflowerSession } from '../session/langflower-session.js';
 import type { ResolveNodeDefinition } from './workflow-document.js';
@@ -113,10 +115,7 @@ const normalizeNodeParams = (
 		return {};
 	}
 
-	const definition = resolveDefinition({
-		type: existing.type,
-		params: existing.params,
-	});
+	const definition = resolveDefinition(existing);
 
 	if (definition === undefined || type !== existing.type) {
 		return params;
@@ -162,10 +161,7 @@ const normalizeNodeInputs = (
 		return {};
 	}
 
-	const definition = resolveDefinition({
-		type: existing.type,
-		params: existing.params,
-	});
+	const definition = resolveDefinition(existing);
 
 	if (definition === undefined || type !== existing.type) {
 		return inputs;
@@ -233,14 +229,10 @@ export const normalizeEditorUpdateNodePayload = (
 };
 
 const materializeRuntimeNode = (
-	projectDir: string,
 	node: WorkflowNodePersisted,
 	resolveDefinition: ResolveNodeDefinition,
 ) => {
-	const definition = resolveDefinition({
-		type: node.type,
-		params: node.params,
-	});
+	const definition = resolveDefinition(node);
 
 	if (definition === undefined) {
 		return undefined;
@@ -297,6 +289,9 @@ const materializeRuntimeNode = (
 			: {}),
 		...(instance.stopsRun === true ? { stopsRun: true } : {}),
 		...(instance.chatEntry === true ? { chatEntry: true } : {}),
+		...(instance.feedVisitBoundary === true
+			? { feedVisitBoundary: true }
+			: {}),
 	};
 };
 
@@ -362,7 +357,6 @@ const emptyPasteResult: EditorPasteResult = {
  */
 export const applyEditorAddNode = (
 	session: LangflowerSession,
-	projectDir: string,
 	payload: EditorAddNodeRequestedPayload,
 	resolveDefinition: ResolveNodeDefinition,
 ): WorkflowNodePersisted[] => {
@@ -395,11 +389,7 @@ export const applyEditorAddNode = (
 	};
 
 	// 2. Materialize runtime node
-	const runtimeNode = materializeRuntimeNode(
-		projectDir,
-		persisted,
-		resolveDefinition,
-	);
+	const runtimeNode = materializeRuntimeNode(persisted, resolveDefinition);
 
 	if (runtimeNode === undefined) {
 		return [];
@@ -431,7 +421,6 @@ export const applyEditorAddNode = (
  */
 export const applyEditorPaste = (
 	session: LangflowerSession,
-	projectDir: string,
 	payload: EditorPasteRequestedPayload,
 	resolveDefinition: ResolveNodeDefinition,
 ): EditorPasteResult => {
@@ -445,7 +434,6 @@ export const applyEditorPaste = (
 	for (const node of payload.nodes) {
 		const added = applyEditorAddNode(
 			session,
-			projectDir,
 			{
 				type: node.type,
 				position: {
@@ -516,7 +504,6 @@ export const applyEditorPaste = (
  */
 export const applyEditorUpdateNode = (
 	session: LangflowerSession,
-	projectDir: string,
 	payload: EditorUpdateNodeRequestedPayload,
 	resolveDefinition: ResolveNodeDefinition,
 ): WorkflowNodePersisted[] => {
@@ -586,7 +573,6 @@ export const applyEditorUpdateNode = (
 
 		const bindResult = bindWorkflowToSessionEditor(
 			session.runtime.editor,
-			projectDir,
 			session.activeWorkflow,
 			resolveDefinition,
 		);
@@ -723,7 +709,6 @@ export const applyEditorRemoveNode = (
  */
 export const swapCustomNodesInEditor = (
 	session: LangflowerSession,
-	projectDir: string,
 	resolveDefinition: ResolveNodeDefinition,
 	customTypes: ReadonlySet<string>,
 ): readonly RuntimeEdge[] => {
@@ -745,11 +730,7 @@ export const swapCustomNodesInEditor = (
 			continue;
 		}
 
-		const next = materializeRuntimeNode(
-			projectDir,
-			persisted,
-			resolveDefinition,
-		);
+		const next = materializeRuntimeNode(persisted, resolveDefinition);
 
 		if (next === undefined) {
 			continue;
@@ -795,7 +776,6 @@ export type BindWorkflowResult =
  */
 export const bindWorkflowToSessionEditor = (
 	editor: RuntimeEditor,
-	projectDir: string,
 	document: WorkflowLoadedPayload,
 	resolveDefinition: ResolveNodeDefinition,
 ): BindWorkflowResult => {
@@ -807,11 +787,7 @@ export const bindWorkflowToSessionEditor = (
 	const droppedEdgeIds: string[] = [];
 
 	for (const node of document.graph.nodes) {
-		const runtimeNode = materializeRuntimeNode(
-			projectDir,
-			node,
-			resolveDefinition,
-		);
+		const runtimeNode = materializeRuntimeNode(node, resolveDefinition);
 
 		if (runtimeNode === undefined) {
 			droppedNodeIds.push(node.id);

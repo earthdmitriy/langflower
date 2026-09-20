@@ -6,9 +6,9 @@ import {
 	BrowserTestingModule,
 	platformBrowserTesting,
 } from '@angular/platform-browser/testing';
-import type { PaletteNodeDefinition } from '@langflower/shared/langflower';
+import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import { of, Subject } from 'rxjs';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { LangflowerConfigProjectionService } from '../../../services/langflower-config-projection.service';
 import { ModelsCatalogProjectionService } from '../../../services/models-catalog-projection.service';
@@ -48,6 +48,9 @@ const selectedNode = {
 
 describe('LfInspectorPanelComponent description', () => {
 	let fixture: ComponentFixture<LfInspectorPanelComponent>;
+	const selectNodeRequested = new Subject<{
+		readonly nodeId: string | null;
+	}>();
 
 	beforeAll(() => {
 		TestBed.initTestEnvironment(
@@ -67,6 +70,7 @@ describe('LfInspectorPanelComponent description', () => {
 					useValue: {
 						raw: {
 							'editor.updateNode.requested': new Subject(),
+							'editor.selectNode.requested': selectNodeRequested,
 						},
 						cached: {
 							'editor.updateNode.requested': new Subject(),
@@ -113,5 +117,17 @@ describe('LfInspectorPanelComponent description', () => {
 
 		expect(html.querySelector('.prose')?.innerHTML).toContain('<ul>');
 		expect(html.textContent).toContain('A file path');
+	});
+
+	it('emits editor.selectNode.requested null from Close', () => {
+		const spy = vi.spyOn(selectNodeRequested, 'next');
+		const close = (fixture.nativeElement as HTMLElement).querySelector(
+			'[aria-label="Close inspector"]',
+		);
+
+		expect(close).not.toBeNull();
+		(close as HTMLButtonElement).click();
+
+		expect(spy).toHaveBeenCalledWith({ nodeId: null });
 	});
 });

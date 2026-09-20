@@ -63,9 +63,27 @@ Use `defineReactiveNode` only when you need streaming / RxJS ports. Prefer
 
 ## After you change a pack
 
-Restart Langflower (or follow the product’s pack reload path when available)
-so the runtime picks up new node types. New nodes should appear in the node
-library for that project.
+No restart needed: open the **node library** sidebar, expand the **Custom**
+section, and press **Update**. Langflower recompiles the packs under
+`.langflower/nodes/` and hot-swaps the catalog — new or changed node types
+appear in the library for that project. Compilation errors are listed under the
+same section.
+
+Restart Langflower only when you added pack **dependencies** (run `npm install`
+inside the pack first).
+
+## After you upgrade Langflower
+
+Your packs are compiled against the SDK that ships **inside the installed
+Langflower**, not against the `@langflower/node-sdk` version written in the pack
+`package.json` (that entry is an editor hint). An upgrade therefore recompiles
+every pack on next use:
+
+- Compatible SDK change — nothing to do.
+- A pack using API that the new SDK removed or renamed fails to compile: the
+  errors are listed in the **Custom** palette section and in that pack's
+  `COMPILATION_ERRORS.md`. Only that pack is skipped; other packs keep working.
+  Fix the source and press **Update**.
 
 ## Deeper guides (monorepo)
 

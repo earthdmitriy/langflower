@@ -1,5 +1,5 @@
-import { getCommonReactiveNode } from '@langflower/common-nodes';
-import type { WorkflowLoadedPayload } from '@langflower/shared/langflower.js';
+import type { WorkflowLoadedPayload } from '@langflower/shared/types/langflower-workflow.js';
+import type { ResolveNodeDefinition } from '../workflow/workflow-document.js';
 
 type CheckpointBoundary = {
 	readonly createCheckpoint: true;
@@ -9,18 +9,21 @@ type CheckpointBoundary = {
 /**
  * Resolve whether an output emission is an explicit checkpoint boundary
  * (`createCheckpoint` on output meta, e.g. `common-checkpoint`).
+ * Uses the same resolver as bind so custom packs with `createCheckpoint`
+ * persist.
  */
 export const resolveCheckpointBoundary = (
 	workflow: WorkflowLoadedPayload,
 	nodeId: string,
 	portId: string,
+	resolveDefinition: ResolveNodeDefinition,
 ): CheckpointBoundary | undefined => {
 	const node = workflow.graph.nodes.find((entry) => entry.id === nodeId);
 	if (node === undefined) {
 		return undefined;
 	}
 
-	const definition = getCommonReactiveNode(node.type);
+	const definition = resolveDefinition(node);
 	const portMeta = definition?.outputsConfigs.find(
 		(port) => port.portId === portId,
 	);

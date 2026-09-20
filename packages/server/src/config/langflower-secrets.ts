@@ -1,4 +1,4 @@
-import { isValidSecretId } from '@langflower/shared/langflower.js';
+import { isValidSecretId } from '@langflower/shared/langflower-config/secret-id.js';
 
 export const LANGFLOWER_SECRETS_FILENAME = 'langflower.secrets.json';
 

@@ -2,108 +2,87 @@
 
 ## Meta
 
-- Paths: `packages/server/src/bridge/` (20 files); `packages/server/src/websocket/` **absent** — WS transport lives in `create-server.ts` + `@langflower/websocket-bridge` (out of chunk tree; noted for scope).
-- Date: 2026-07-22
-- Coverage: Full file inventory. Read end-to-end: `attach-langflower-bridge.ts`, `build-execution-context.ts`, `bind-llm-context.ts`, `wire-runner-handlers.ts`, `wire-workflow-handlers.ts`, `wire-editor-handlers.ts`, `wire-config-handlers.ts`, `wire-palette-handlers.ts`, `wire-models-handlers.ts`, `emit-bootstrap.ts`, `forward-runner-event.ts`, `bridge-outbound.ts`, `client-index.ts`, `inbound-guards.ts`, `langflower-bridge.types.ts`, `BRIDGE.md`, unit tests. Re-verified 2026-07-21 report fixes against current tree.
+- Paths: `packages/server/src/bridge/` (36 files; no `packages/server/src/websocket/`)
+- Date: 2026-09-20
+- Mode: delta
+- Coverage: Reconciled every 2026-09-19 finding against current source. Deep-read: `wire-runner-handlers.ts` (`startHeld` / `beginSeededRun` / resume / HITL / feed-clear), `wire-project-bootstrap-handlers.ts`, `compile-and-hot-swap-custom-nodes.ts`, `langflower-tools-rpc.ts`, `attach-langflower-bridge.ts`, `emit-bootstrap.ts`, `wire-workflow-handlers.ts`, `forward-runner-event.ts`, `get-live-wired-tools.ts`, `build-execution-context.ts` (`buildContextSeeds` / `setMcpDispose`), `BRIDGE.md`. Sampled remaining `wire-*.ts`, binds, outbound/log, inbound guards, colocated tests. ts-scan: `LangflowerBridge` owner is `langflower-bridge.types.ts`; re-export on `attach-langflower-bridge.ts` L35 has no consumer (all in-package imports use the owner; `create-server.ts` imports only `attachLangflowerBridge`). Not a line-audit of every handler branch.
+- Previous report: 2026-09-19 — Critical=1 Important=2 Suggestion=5 (old unnumbered list; IDs assigned here to match LEDGER + finding text)
+
+## Previous findings (delta mode)
+
+| id                                         | severity   | status     | evidence                                                                                                                                                                                                                            |
+| ------------------------------------------ | ---------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server-bridge-seeded-run-lock`            | Critical   | fixed      | LEDGER Closed 2026-09-19 (BUG-2026-09-19). `startHeld` + `isStartBusy()` still wrap seed + `start` / `startNode` / HITL cold-start / resume. Rollback in `finally` only when this attempt never announced a `RunId`. Do not reopen. |
+| `server-bridge-bootstrap-hot-swap`         | Important  | fixed      | Closed 2026-09-20 — see LEDGER.                                                                                                                                                                                                     |
+| `server-bridge-rpc-snapshot-wait`          | Important  | fixed      | Closed 2026-09-20 — see LEDGER.                                                                                                                                                                                                     |
+| `server-bridge-resume-composer-drift`      | Suggestion | fixed      | Exclusive-lock drift is gone: resume and `beginSeededRun` share `isStartBusy` / `startHeld` and the same `!started` rollback. Remaining “fold into one composer” is streamlining, not a listed class.                               |
+| `server-bridge-langflower-bridge-reexport` | Suggestion | still-open | `export type { LangflowerBridge }` still on `attach-langflower-bridge.ts` L35. ts-scan: zero consumers of that re-export.                                                                                                           |
+| `server-bridge-workflow-mutation-silent`   | Suggestion | still-open | `workflow.saveCurrent` / `renameCurrent` / `create` / `copy` / `delete` still no-op on graph lock or `!ok` and then `syncAfterWorkflowMutation` with no `workflow.*.failed`.                                                        |
 
 ## Principles check
 
-- **Thin server — PASS.** Bridge injects `@langflower/tools` / `common-nodes` via `build-execution-context.ts` and `bind-llm-context.ts`; no forbidden `kb/`/`crawl/`/`mcp/`/`llm/` domain trees. Evidence: `createProjectHarness`, `createKbContext`, `createMcpRuntime`, `bindCreateChatCompletionStream`.
-- **Composer entry points — PASS.** `attachLangflowerBridge` lists ordered sibling wires; `syncAfterWorkflowMutation` documents step order; handlers prepare then emit without nested A→B→C chains.
-- **Intent/fact bridge — PASS.** Clients emit `*.requested` / reply intents; server emits authoritative snapshots and `bridgeEmit` session-shared facts. `resume.failed` correctly stays unicast.
-- **Session fan-out — PASS (2026-07-22 fixes hold).** `syncAfterWorkflowMutation` broadcasts `workflow.current.snapshot`; runner telemetry and `permission.ask` use `bridgeEmit`; editor deltas/status broadcast; single `client-index` WeakMap.
-- **No barrels — PASS.** No `index.ts`; `client-index.ts` is a registry module.
-- **REACTIVITY / edge subscribe — PASS (scope).** Bridge `.subscribe` is intentional transport edge; no UI folds, no `withLatestFrom`, no hidden reducers in `tap`.
-- **Immutability — PASS with nits.** Viewport handler builds new `activeWorkflow` before assign; `mergeSeeds` returns new object.
+- **Thin server / inject-only composer — PASS.** `build-execution-context.ts` still injects tools/common-nodes factories only. No `kb/` / `crawl/` / `mcp/` / `llm/` trees in this folder. Thin binds unchanged.
+- **Intent/fact bridge — PASS.** Clients emit `*.requested`; session-shared facts use `bridgeEmit`; `runner.resume.failed` / `workflow.load.failed` / `project.bootstrap.result` stay `clientEmit`.
+- **No barrels / `type` not `interface` / no `withLatestFrom` — PASS (one leftover re-export).** No `index.ts`. Zero `interface`. Zero `withLatestFrom`. Bridge `.subscribe` is the transport edge. Re-export of `LangflowerBridge` remains (`dead-export`).
+- **One writer / run gate — PASS (listed class closed).** `startHeld` is the exclusive in-flight token. `session.runnerStatus` is still set by the same composer; overlapping start cannot seed or roll back a live run. LEDGER `server-bridge-seeded-run-lock` stays closed.
+- **Functional errors — FAIL (listed class).** Workflow save/rename/create/copy/delete still swallow lock / `!ok` with no failed fact (`fail-open-io`).
+- **Delete obsolete — FAIL (listed class).** Type re-export aggregator still present (`dead-export`).
+- **Epic 47 feed stamp — PASS.** This chunk forwards `runner.port` tuples as-is (`forwardRunnerEvent`). No catalog fallback, no `resolveOutputFeedRole`, no palette-role rewrite. Feed clear still idle-only. Do not invent a catalog-fallback recurrence.
 
 ## FOUND_BUGS signals
 
-- **BUG-2026-07-14** (non-replaying `events$` / missed `pending`) — mitigated: always-on fan-out in `attach-langflower-bridge.ts` step 1 **before** connect handlers. Regression risk if subscription order changes or a second subscriber is added without the same guarantee.
-- **BUG-2026-07-21f** (session-shared lifecycle must fan-out) — **addressed:** `runner.started`, `interrupted`, `resume.started`, `permission.ask`, `workflow.current.snapshot` use `bridgeEmit`.
-- **BUG-2026-07-17** (feed clear mid-run) — gate present: `wire-runner-handlers.ts` ignores clear when `runnerStatus === 'running'`.
-- **BUG-2026-06-26d** (editor deltas unicast) — **addressed:** editor wires use `bridgeEmit`.
-- **BUG-2026-07-21b** (bootstrap false-ready vs feed) — emit order in `emit-bootstrap.ts` still sends `executionFeed.snapshot` before `workflow.current.snapshot`; UI must `combineLatest`/wait for readiness (REACTIVITY policy), not a new server defect.
-- **BUG-2026-07-14 class (pending race)** — covered by `forward-runner-event.test.ts` + integration `pending-events-bridge.ws.test.ts` (cited in FOUND_BUGS).
+- **BUG-2026-09-19** — addressed, not a recurrence: `startHeld` still held across `await seedLiveContext`; second start returns `false` before seed; rollback only if this attempt never announced a `RunId`.
+- **BUG-2026-08-16** — bootstrap now calls `compileAndHotSwapCustomNodes({ force: true })` (LEDGER 2026-09-20). Update / RPC compile already went through that composer.
+- **BUG-2026-07-17** — feed clear still gated when `runnerStatus === 'running'`. Not a finding.
+- **BUG-2026-09-20** — no catalog-fallback path in this folder. Runtime stamps feed; bridge does not invent slot 6.
 
 ## Glue / adapters / parallel types
 
-- **No `*Adapter` / `*Mapper` filenames** in this chunk.
-- **Thin bind (acceptable, ADR-014):** `bind-llm-context.ts` — credential resolve only; HTTP in common-nodes.
-- **Transport cast glue:** `bridge-outbound.ts` — `client/bridge as unknown as Record<string, Subject<Payload>>`. Necessary until websocket-bridge exposes typed emit; no ADR exit criteria documented.
-- **Parallel type:** local `WorkflowGraphNode` in `build-execution-context.ts` mirrors graph node `{ id, type, params }`.
-- **uiSchema cast:** `as unknown as ExecutionContext<never>['uiSchema']` in `buildExecutionContext` — palette `resolveDefinition` return not narrowed to node-definitions shape.
-- **Type re-export smell:** `bridge-outbound.ts` re-exports `LangflowerBridge` / `LangflowerClient` (call-site convenience, minor aggregator).
+none
+
+ADR-backed copies, not flagged: thin `bindCreateChatCompletionStream` / `bindCreateEmbedding` / `listProviderModels` (ADR-014). `getLiveWiredTools` peek stays session-scoped inventory (BUG-2026-08-16 / ADR-016) and imports `flattenToolHandles` from common-nodes. Channel `as unknown as` casts stay transport glue, not `twin-without-adr`.
 
 ## Streamlining & simplifications
 
-- Optionally merge the two `runner.events$` subscribers into one always-on pipeline (telemetry forward + checkpoint observe) to prevent future desync (see Design-flaw fixes).
-- Replace local `WorkflowGraphNode` with `Pick<WorkflowNodePersisted, 'id' | 'type' | 'params'>` or the session graph node type.
-- Narrow `resolveDefinition` / palette return so `uiSchema` needs no double cast.
-- Align `BRIDGE.md` and `attach-langflower-bridge.ts` step-3 comment with actual wire order (`config`, `models` between palette and editor).
-- Promote stale `it.todo` cases in `tests/integration/ws/ws-session-sync.ws.test.ts` to real tests now that broadcast paths exist.
-- Document or log checkpoint persist failures instead of `.catch(() => undefined)` in `wire-runner-handlers.ts`.
+none
+
+(`server-bridge-resume-composer-drift` no longer qualifies. Do not file “fold resume into `beginSeededRun`” as a defect.)
 
 ## Design-flaw fixes
 
-1. **Dual `events$` subscribers** — `attach-langflower-bridge.ts` forwards telemetry; `wire-runner-handlers.ts` separately observes checkpoints. Correct today but fragile: a third writer or reorder could reintroduce BUG-2026-07-14 class drops. **Fix direction:** single always-on composer subscribe that calls `forwardRunnerEvent` then checkpoint observe (sibling steps in one body).
-2. **Docs/test drift on multi-tab workflow sync** — code broadcasts `workflow.current.snapshot` on load/create/copy/delete-active; integration still has open todos for load/list broadcast. **Fix direction:** implement todos or remove them; sync BRIDGE.md intent table with `wire-config-handlers` / `wire-models-handlers`.
+none
+
+(Shipped 2026-09-20: bootstrap calls `compileAndHotSwapCustomNodes({ force: true })`; palette RPC waits for its own `requestId` snapshot. See LEDGER.)
 
 ## Findings
 
-1. **Severity:** Important
-    - **Path / symbol:** `attach-langflower-bridge.ts` (step 1) + `wire-runner-handlers.ts` (lines 79–131) — two `session.runtime.runner.events$` subscriptions
-    - **Problem:** Telemetry fan-out and checkpoint persistence share one hot stream via independent subscribers. Ordering and “always-on before run start” is correct only by convention; easy to break when extending runner wiring.
-    - **Proposed fix:** One root subscription with explicit sibling steps: forward → observe/persist → terminal checkpoint broadcast.
+1.  - id: `server-bridge-langflower-bridge-reexport`
 
-2. **Severity:** Suggestion
-    - **Path / symbol:** `BRIDGE.md` § Attach order (lines 28–32)
-    - **Problem:** Says fan-out goes to “every indexed client”; implementation uses `bridgeEmit` on bridge subjects (not per-client index). Omits `wire-config-handlers` and `wire-models-handlers` present in `attach-langflower-bridge.ts`.
-    - **Proposed fix:** Update doc to match `bridgeEmit` semantics and full wire list.
+- class: dead-export
+- severity: Suggestion
+- first-seen: 2026-09-19
+- status: open
+- path: `packages/server/src/bridge/attach-langflower-bridge.ts` — `export type { LangflowerBridge }`
+- evidence: Re-export aggregator. ts-scan references all import from `langflower-bridge.types.ts`. `create-server.ts` imports only `attachLangflowerBridge`.
+- proposed fix: Delete the re-export.
 
-3. **Severity:** Suggestion
-    - **Path / symbol:** `attach-langflower-bridge.ts` comment (lines 37–38)
-    - **Problem:** Comment lists `workflow → palette → editor → runner`; actual order is `workflow → palette → config → models → editor → runner`.
-    - **Proposed fix:** Align comment with code (or reorder wires if doc order is canonical).
+2.  - id: `server-bridge-workflow-mutation-silent`
 
-4. **Severity:** Suggestion
-    - **Path / symbol:** `build-execution-context.ts` → `WorkflowGraphNode`; `uiSchema` cast (~line 162)
-    - **Problem:** Local mirror type + `as unknown as` hide the real domain/`ExecutionContext` contract.
-    - **Proposed fix:** Reuse shared/session graph node type; narrow `resolveDefinition` return.
-
-5. **Severity:** Suggestion
-    - **Path / symbol:** `bridge-outbound.ts` → `clientEmit` / `bridgeEmit`
-    - **Problem:** Runtime cast to `Record<string, Subject<Payload>>` is unavoidable glue without typed emit API; type re-exports duplicate `langflower-bridge.types.ts`.
-    - **Proposed fix:** Add typed emit helpers in `@langflower/websocket-bridge` (ADR + exit criteria); import types directly at call sites.
-
-6. **Severity:** Suggestion
-    - **Path / symbol:** `tests/integration/ws/ws-session-sync.ws.test.ts` — `it.todo('workflow.load binds graph…')`, `it.todo('saveCurrent broadcasts workflow.list.snapshot')`
-    - **Problem:** Server now broadcasts via `syncAfterWorkflowMutation` (`bridgeEmit` for current + conditional list); todos imply unfixed behaviour and leave multi-tab workflow mutations unguarded in CI.
-    - **Proposed fix:** Implement integration tests (outside this chunk’s edit scope).
-
-7. **Severity:** Suggestion
-    - **Path / symbol:** `wire-runner-handlers.ts` — `.catch(() => undefined)` on checkpoint persist/mark paths
-    - **Problem:** Silent swallow hides disk/config failures during runs; harder to diagnose than a logged edge failure.
-    - **Proposed fix:** Minimal structured log at transport edge or surface `runner.checkpointed` error fact.
-
-8. **Severity:** Suggestion
-    - **Path / symbol:** `wire-editor-handlers.ts` — `raw.payload as EdgeId` / `as NodeId`
-    - **Problem:** Casts at inbound boundary instead of guard narrowing after `isInboundEvent<string>`.
-    - **Proposed fix:** Small type guard or validate string shape before apply helpers.
+- class: fail-open-io
+- severity: Suggestion
+- first-seen: 2026-09-19
+- status: open
+- path: `packages/server/src/bridge/wire-workflow-handlers.ts` — `workflow.saveCurrent.requested` / `renameCurrent` / `create` / `copy` / `delete`
+- evidence: Load emits `workflow.load.failed` (`GRAPH_LOCKED` / load error). Save/rename/create/copy/delete no-op on lock or `save` `!ok` and still `syncAfterWorkflowMutation` with no failed fact. The requester cannot tell “ignored” from “saved.”
+- proposed fix: Unicast a `workflow.*.failed` (or one mutation-failed event) on lock and on `!ok`; do not treat the sync as success.
 
 ## Non-issues / looked OK
 
-- Thin composer: `buildExecutionContext` / `buildContextSeeds` / `bind-llm-context` inject-only; MCP dispose wired on session.
-- Always-on telemetry subscription registered before connect/bootstrap (BUG-2026-07-14 lesson applied).
-- `syncAfterWorkflowMutation` broadcasts `workflow.current.snapshot` and checkpoints; catalog broadcast on save/rename/copy/delete success.
-- Single client registry (`client-index.ts` WeakMap); no parallel `clients` Map.
-- `forwardRunnerEvent` + `bridgeEmit` for output/input/done; `emitPermissionAsk` broadcasts.
-- Runner lifecycle, interrupt, resume success, feed clear (idle gate) patterns correct.
-- Editor mutations broadcast deltas + `workflow.currentStatus.snapshot`; viewport no-op via `sameCanvasViewport`.
-- Bootstrap order documented in `emit-bootstrap.ts` header; permission-ask replay on reconnect.
-- Inbound guards minimal and typed; config save broadcasts redacted snapshot.
-- Palette reload success broadcasts; compilation error unicast to requester (RPC-style — OK).
-- Models refresh unicast (RPC-style — OK).
-- No `withLatestFrom`, no barrel `index.ts`, no domain KB/crawl/MCP HTTP reimplementation in bridge.
-- Unit tests: `forward-runner-event.test.ts`, `build-execution-context.test.ts` present.
-
-**Return Status:** Critical=0 Important=1 Suggestion=7
+- **LEDGER `server-bridge-seeded-run-lock`:** `startHeld` stayed. `beginSeededRun` rejects when `startHeld || runnerStatus === 'running'` before the first `await`. Resume unicasts `BUSY`. HITL cold-start uses the same token. Do not reopen.
+- Historical leftovers stayed deleted: no `wrap-builtin-tool-handles.ts`, no `LIVE_WIRED_TOOLS_NODE_TYPES`, no `resolveLiveContextPortId` / `applyObservableContextSeeds`, no `enabledToolIds`, no local flatten copy, no catalog-fallback / `resolveOutputFeedRole`.
+- Always-on telemetry still registered before connect (BUG-2026-07-14). `forwardRunnerEvent` is a thin tuple → `runner.port` / `runner.done` fan-out (epic 47 feed slot rides the tuple; this folder does not rewrite it).
+- Feed-clear idle gate, `sameCanvasViewport` no-op, permission / ask-user replay on reconnect. Custom palette on connect is emit-only.
+- `bind-llm-context.ts` / `bind-embed-context.ts` remain thin secret binds. Stream-factory `throw` on missing credentials is the host contract.
+- `createLangflowerToolsRpc` is in-process bus RPC. Intent allow-list still rejects `editor.addNode.requested`.
+- No barrels, no `interface`, no `withLatestFrom`. `client-index.ts` is a WeakMap, not an `index.ts` barrel.
+- Outbound channel casts and the BRIDGE.md draft-step omission stay in this section (not findings).

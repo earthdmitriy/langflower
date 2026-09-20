@@ -3,7 +3,6 @@ import { createCrawlContext } from '@langflower/tools/create-crawl-context';
 import { createWebFetch } from '@langflower/tools/create-web-fetch';
 import { runBfsCrawl } from '@langflower/tools/run-bfs-crawl';
 import { from, mergeMap, throwError } from 'rxjs';
-import { getRunHostServices } from '../../ai/features/run-host-services.js';
 
 const normalizeLimit = (
 	value: unknown,
@@ -32,6 +31,7 @@ export const crawlNode = defineReactiveNode({
 	displayName: 'Crawl',
 	category: 'Crawl',
 	paletteSecondary: true,
+	requires: ['hosts'] as const,
 	description: `
 Start from a URL and follow links up to a depth and page cap. Pages are saved as they are visited.
 
@@ -95,11 +95,8 @@ Typical uses:
 						);
 					}
 
-					const hostServices = getRunHostServices(ec);
 					const webFetch = createWebFetch({
-						...(hostServices?.allowedHosts !== undefined
-							? { allowedHosts: hostServices.allowedHosts }
-							: {}),
+						allowedHosts: ec.allowedHosts,
 					});
 					const crawl = createCrawlContext(ec.projectDir, ec.runId);
 

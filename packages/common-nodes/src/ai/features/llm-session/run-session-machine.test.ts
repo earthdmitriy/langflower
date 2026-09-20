@@ -1,6 +1,65 @@
-import { Subject, concat, delay, of, toArray } from 'rxjs';
+import {
+	Subject,
+	concat,
+	delay,
+	filter,
+	map,
+	mergeScan,
+	of,
+	startWith,
+	toArray,
+	type Observable,
+} from 'rxjs';
 import { describe, expect, it } from 'vitest';
-import { runLlmSessionMachine } from './run-session-machine.js';
+import type { ChatCompletionMessage } from '../chat-completion-stream.js';
+import type { PermissionAskRequest } from '@langflower/tools/permission';
+import {
+	runTurnFromState,
+	type LlmSessionPreparation,
+	type LlmSessionState,
+} from './run-session-machine.js';
+
+const foldTurns = <Session, Chunk extends { readonly kind: string }>(
+	context: {
+		readonly maxFeedbackTurns: number;
+		readonly requestPermission?: (
+			request: PermissionAskRequest,
+		) => Promise<'allow' | 'deny'>;
+	},
+	turn$: Observable<unknown>,
+	preparation: LlmSessionPreparation<Session>,
+	runTurn: (
+		context: typeof context,
+		turnPayload: unknown,
+		history: readonly ChatCompletionMessage[],
+		session: Session,
+	) => Observable<Chunk>,
+	primeTurn0: boolean,
+): Observable<Chunk> => {
+	const initial: LlmSessionState<Session, Chunk> = {
+		history: [...preparation.history],
+		turn0Done: false,
+		feedbackTurns: 0,
+		preparation,
+	};
+	const turns$ = primeTurn0 ? turn$.pipe(startWith('')) : turn$;
+	return turns$.pipe(
+		mergeScan(
+			(state, raw) =>
+				runTurnFromState(context, state, raw, primeTurn0, runTurn),
+			initial,
+			1,
+		),
+		filter(
+			(
+				state,
+			): state is LlmSessionState<Session, Chunk> & {
+				readonly emitted: Chunk;
+			} => state.emitted !== undefined,
+		),
+		map((state) => state.emitted),
+	);
+};
 
 type Chunk =
 	| { readonly kind: 'response'; readonly text: string }
@@ -13,12 +72,12 @@ type Chunk =
 			}[];
 	  };
 
-describe('runLlmSessionMachine', () => {
+describe('runTurnFromState', () => {
 	it('queues turns and folds assistant/user history without mutation', async () => {
 		const turns$ = new Subject<unknown>();
 		const histories: string[][] = [];
 		const resultPromise = new Promise<Chunk[]>((resolve, reject) => {
-			runLlmSessionMachine(
+			foldTurns(
 				{ maxFeedbackTurns: 0 },
 				turns$,
 				{
@@ -67,7 +126,7 @@ describe('runLlmSessionMachine', () => {
 		const histories: string[][] = [];
 
 		const chunks = await new Promise<Chunk[]>((resolve, reject) => {
-			runLlmSessionMachine(
+			foldTurns(
 				{ maxFeedbackTurns: 0 },
 				turns$,
 				{
@@ -104,7 +163,7 @@ describe('runLlmSessionMachine', () => {
 		const turnPayloads: unknown[] = [];
 
 		const chunks = await new Promise<Chunk[]>((resolve, reject) => {
-			runLlmSessionMachine(
+			foldTurns(
 				{
 					maxFeedbackTurns: 1,
 					requestPermission: async (request) => {
@@ -156,7 +215,7 @@ describe('runLlmSessionMachine', () => {
 
 		await expect(
 			new Promise<Chunk[]>((resolve, reject) => {
-				runLlmSessionMachine(
+				foldTurns(
 					{
 						maxFeedbackTurns: 1,
 						requestPermission: async () => 'deny',
@@ -189,7 +248,7 @@ describe('runLlmSessionMachine', () => {
 
 		await expect(
 			new Promise<Chunk[]>((resolve, reject) => {
-				runLlmSessionMachine(
+				foldTurns(
 					{ maxFeedbackTurns: 1 },
 					turns$,
 					{

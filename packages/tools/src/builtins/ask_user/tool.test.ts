@@ -15,6 +15,7 @@ describe('ask_user builtin', () => {
 				...baseCtx,
 				askUser: async (request) => {
 					expect(request.question).toBe('What is the goal?');
+					expect(request.questions).toEqual([]);
 					return 'Ship ask_user';
 				},
 			},
@@ -30,7 +31,7 @@ describe('ask_user builtin', () => {
 		).rejects.toThrow(/live HITL host/i);
 	});
 
-	it('requires a non-empty question', async () => {
+	it('requires a non-empty question or questions list', async () => {
 		await expect(
 			askUserTool.invoke(
 				{
@@ -40,6 +41,40 @@ describe('ask_user builtin', () => {
 				{ question: '   ' },
 			),
 		).rejects.toThrow(/question/i);
+	});
+
+	it('forwards parsed questions to the host hook', async () => {
+		const text = await askUserTool.invoke(
+			{
+				...baseCtx,
+				askUser: async (request) => {
+					expect(request.question).toBe('');
+					expect(request.questions).toEqual([
+						{
+							id: 'q1',
+							prompt: 'Stack?',
+							allowMultiple: true,
+							options: [
+								{ id: 'o1', label: 'React' },
+								{ id: 'o2', label: 'Vue' },
+							],
+						},
+					]);
+					return 'ok';
+				},
+			},
+			{
+				questions: [
+					{
+						prompt: 'Stack?',
+						options: ['React', 'Vue'],
+						allowMultiple: true,
+					},
+				],
+			},
+		);
+
+		expect(text).toBe('ok');
 	});
 
 	it('aborts when the invoke signal fires', async () => {

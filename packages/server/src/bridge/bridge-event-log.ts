@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { langflowerWsConfig } from '@langflower/shared/langflower.js';
+import { langflowerWsConfig } from '@langflower/shared/langflower-bus-config.js';
 import { encodeBridgeFrame } from '@langflower/websocket-bridge/bridge-codec';
 import { Subscription } from 'rxjs';
 import type { Observable } from 'rxjs';

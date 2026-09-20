@@ -15,4 +15,4 @@ alwaysApply: false
 - All interfaces: `readonly` properties.
 - **WebSocket bus:** `langflower-bus-config.ts` may import runtime types by design;
   this is an internal co-versioned protocol, not a public stable API.
-- See `packages/shared/AGENTS.md` and `docs/NAVIGATION.md`.
+- See `packages/shared/AGENTS.md` and `docs/architecture/NAVIGATION.md`.

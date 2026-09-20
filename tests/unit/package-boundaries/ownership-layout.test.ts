@@ -215,6 +215,28 @@ describe('ownership layout boundaries', () => {
 		expect(offenders).toEqual([]);
 	});
 
+	it('non-ai common-nodes slices do not import ai/ run-host', () => {
+		const srcRoot = path.join(ROOT, 'packages/common-nodes/src');
+		const offenders: string[] = [];
+		const leak = /ai\/(?:features\/)?(?:run-host-services|llm-run-host)/;
+		for (const file of collectTsFiles(srcRoot)) {
+			const rel = relPath(file);
+			if (rel.includes('/src/ai/')) {
+				continue;
+			}
+			const text = readFileSync(file, 'utf8');
+			for (const line of text.split('\n')) {
+				if (!/^\s*import\b/.test(line) || !leak.test(line)) {
+					continue;
+				}
+				offenders.push(rel);
+				break;
+			}
+		}
+
+		expect(offenders).toEqual([]);
+	});
+
 	it('vitest aliases must not point at deleted common-nodes MCP util paths', () => {
 		const configPath = path.join(ROOT, 'vitest.config.mjs');
 		const text = readFileSync(configPath, 'utf8');
@@ -225,6 +247,8 @@ describe('ownership layout boundaries', () => {
 			'common-nodes/mcp/build-mcp-handle',
 			'common-nodes/mcp/format-mcp-connect-error',
 			'common-nodes/mcp/create-system-mcp-handles',
+			'common-nodes/src/ai/features/run-host-services',
+			'@langflower/common-nodes/ai/run-host-services',
 		];
 
 		for (const marker of staleMarkers) {

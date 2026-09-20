@@ -2,7 +2,7 @@ import type { ReactiveNodeDefinition } from '@langflower/node-sdk';
 import type {
 	WorkflowNodePersisted,
 	WorkflowPersistedGraph,
-} from '@langflower/shared/langflower.js';
+} from '@langflower/shared/types/langflower-workflow.js';
 import type { ResolveNodeDefinition } from './workflow-document.js';
 
 export type WorkflowGraphRepairResult = {

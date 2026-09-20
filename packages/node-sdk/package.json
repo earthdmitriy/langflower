@@ -1,8 +1,12 @@
 {
 	"name": "@langflower/node-sdk",
 	"version": "0.1.0",
-	"private": true,
+	"description": "Author SDK for Langflower nodes (defineNode / defineReactiveNode)",
+	"license": "MIT",
 	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
 	"main": "./dist/node-factory/define-reactive-node/define-reactive-node.js",
 	"types": "./dist/node-factory/define-reactive-node/define-reactive-node.d.ts",
 	"exports": {

@@ -6,15 +6,13 @@ import { LangflowerSession } from '../session/langflower-session.js';
 import { bindWorkflowToSessionEditor } from './apply-editor-mutation.js';
 import type { ResolveNodeDefinition } from './workflow-document.js';
 
-const resolveDefinition: ResolveNodeDefinition = (node) =>
-	resolveWorkflowNodeDefinition({ type: node.type });
+const resolveDefinition: ResolveNodeDefinition = resolveWorkflowNodeDefinition;
 
 describe('materialize Chat Input persisted message', () => {
 	it('leaves the HITL message port inactive so Start can pushIntoInput once', async () => {
 		const session = new LangflowerSession();
 		const bind = bindWorkflowToSessionEditor(
 			session.runtime.editor,
-			process.cwd(),
 			{
 				workflowId: 'chat-input-message',
 				metadata: {

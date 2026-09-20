@@ -1,17 +1,17 @@
 import type { EdgeId, NodeId } from '@langflower/runtime';
-import {
-	clampDividerPositionsSanity,
-	type CanvasViewport,
-	type DividerPositions,
-	type EditorAddEdgeRequestedPayload,
-	type EditorAddNodeRequestedPayload,
-	type EditorPasteRequestedPayload,
-	type EditorSelectNodeRequestedPayload,
-	type EditorSettingsRequestedPayload,
-	type EditorSettingsSnapshotPayload,
-	type EditorUpdateNodeRequestedPayload,
-	type LangflowerConfigScope,
-} from '@langflower/shared/langflower.js';
+import { clampDividerPositionsSanity } from '@langflower/shared/constants/defaults.js';
+import type { CanvasViewport } from '@langflower/shared/types/langflower-workflow.js';
+import type { DividerPositions } from '@langflower/shared/types/langflower-bootstrap.js';
+import type {
+	EditorAddEdgeRequestedPayload,
+	EditorAddNodeRequestedPayload,
+	EditorPasteRequestedPayload,
+	EditorSelectNodeRequestedPayload,
+	EditorSettingsRequestedPayload,
+	EditorSettingsSnapshotPayload,
+	EditorUpdateNodeRequestedPayload,
+} from '@langflower/shared/types/langflower-editor.js';
+import type { LangflowerConfigScope } from '@langflower/shared/types/langflower-config.js';
 import { Subscription } from 'rxjs';
 import type { ServerContext } from '../server-context.js';
 import { buildSelectedNodePayload } from '../session/build-selected-node-payload.js';
@@ -70,7 +70,6 @@ export const wireEditorHandlers = (
 
 			const delta = applyEditorAddNode(
 				session,
-				context.projectDir,
 				raw.payload,
 				context.resolveDefinition,
 			);
@@ -105,7 +104,6 @@ export const wireEditorHandlers = (
 
 			const delta = applyEditorUpdateNode(
 				session,
-				context.projectDir,
 				normalizedPayload,
 				context.resolveDefinition,
 			);
@@ -128,6 +126,7 @@ export const wireEditorHandlers = (
 					buildSelectedNodePayload(
 						session,
 						context.resolveDefinition,
+						context.customNodeRegistry,
 					),
 				);
 			}
@@ -174,7 +173,6 @@ export const wireEditorHandlers = (
 
 			const { nodes, edges } = applyEditorPaste(
 				session,
-				context.projectDir,
 				raw.payload,
 				context.resolveDefinition,
 			);
@@ -396,7 +394,11 @@ export const wireEditorHandlers = (
 			bridgeEmit(
 				bridge,
 				'editor.nodeSelected',
-				buildSelectedNodePayload(session, context.resolveDefinition),
+				buildSelectedNodePayload(
+					session,
+					context.resolveDefinition,
+					context.customNodeRegistry,
+				),
 			);
 		}),
 	);

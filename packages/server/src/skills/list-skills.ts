@@ -1,4 +1,4 @@
-import type { LangflowerSkillConfig } from '@langflower/shared/langflower.js';
+import type { LangflowerSkillConfig } from '@langflower/shared/types/langflower-config.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { parseSkillMarkdown } from './parse-skill-markdown.js';

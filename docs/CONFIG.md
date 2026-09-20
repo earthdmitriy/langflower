@@ -264,7 +264,7 @@ server-side — packs wire the provider node and call `embedTexts`; they never s
 `apiKey` on `ExecutionContext`.
 
 This is **not** a revival of `.langflower/kb/` or `common-kb-*` vector storage
-([ADR-033](ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)). Pack-owned
+([ADR-033](architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)). Pack-owned
 indexes (sqlite BLOBs, etc.) stay in the pack.
 
 ### Step-by-step
@@ -395,7 +395,7 @@ Full agent presets: [features/node-library.md](features/node-library.md) §8.11.
 ## MCP (optional)
 
 External tools via the [Model Context Protocol](https://modelcontextprotocol.io/).
-**Never** a substitute for harness builtins (`read`…`bash`).
+**Never** a substitute for harness builtins (`read`…`move`/`bash`).
 
 Two sources, **one** runtime protocol (`ToolHandle[]`):
 
@@ -472,8 +472,8 @@ Matching rules (in order): `callIndex`, `hasFeedback`, `promptContains`, `defaul
 Supports streaming (`reasoning` + `content`).
 
 See [features/node-library.md §14](features/node-library.md#14-mock-llm-chain-testing).
-Integration tests: `tests/integration/ws/execute-simple.ws.test.ts`,
-`execute-llm-hitl.ws.test.ts`, `execute-structured-output.ws.test.ts`.
+Live Fake LLM WS: `tests/integration/ws/execute-fake-llm.ws.test.ts`,
+`execute-ask-user.ws.test.ts`.
 
 ## Runtime config
 

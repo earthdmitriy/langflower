@@ -3,107 +3,109 @@
 ## Meta
 
 - Paths: `packages/shared/src/`
-- Date: 2026-07-22
-- Coverage: Full inventory (27 `.ts` files under `src/`; no `hitl/` dir). Deep-read: `langflower-bus-config.ts`, `langflower-ws-waits.ts`, `langflower.ts`, all `types/*`, `execution/derive-run-settle-outcome.ts`, `checkpoint/*`, `langflower-config/*`, `constants/defaults.ts`. Spot-checked `packages/server/src/bridge/emit-bootstrap.ts` and `packages/tools/src/domain/wired-tool-options.parity.test.ts` only to re-verify protocol/parity claims — not reviewed as part of this chunk.
+- Date: 2026-09-20
+- Mode: delta
+- Coverage: Full inventory of 35 `.ts` files (same tree as 2026-09-19; 23 production + 12 colocated tests). No `index.ts`. Deep-read: `langflower-ws-waits.ts` + its test, `langflower-config/settings-draft.ts`, `types/langflower-config.ts`, `types/langflower-workflow.ts`, `types/workflow-checkpoint.ts`, `types/langflower-bootstrap.ts`, `types/langflower-editor.ts`, `types/langflower-palette.ts`, `types/langflower-custom-palette.ts`, `types/langflower-server.ts`, `types/langflower-project-bootstrap.ts`, `types/config.ts`, `langflower-config/{resolve-ui-schema-options,resolve-wired-tool-options,merge-langflower-config-layers,secret-id}.ts`, `checkpoint/{json-value,workflow-fingerprint}.ts`, `execution/derive-run-settle-outcome.ts`, `constants/defaults.ts`, `langflower-bus-config.ts` (route tables + state-sync JSDoc). Sampled: remaining config helpers (`parse-default-chat-model`, `merge-provider-model-options`, `resolve-server-logs-enabled`). Adjacent package docs checked only to reconcile finding 7: `packages/shared/package.json`, `packages/shared/README.md`. Leftover check: `langflower.ts`, `mcp-tool-id.ts`, `requestWorkflowDeleteSnapshot`, `waitLangflowerConfigSnapshot`, `enabledToolIds` — all still absent (ts-scan `resolve_symbol` miss). Cross-checked: tools `SystemMcpStdioEntry` owner; server `providerConnectionKey` call sites.
+- Previous report: 2026-09-19 — Critical=0 Important=3 Suggestion=4
+
+## Previous findings (delta mode)
+
+| id                               | severity   | status     | evidence                                                                                                                                                                                                                                                                                                                          |
+| -------------------------------- | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shared-wait-config-snapshot`    | Important  | fixed      | `waitLangflowerConfigSnapshot` is gone. ts-scan `resolve_symbol` from `langflower-ws-waits.ts` returns not found. `list_exports` of that module has no config-snapshot wait. LEDGER closed 2026-09-19.                                                                                                                            |
+| `shared-settings-draft-row-id`   | Important  | fixed      | `mergeDraftPatch` matches pending `apiKey` / secret `value` by `row.id.trim()`; empty-id rows do not inherit. `providerConnectionKey` takes `{ id }` and returns `row.id.trim()` (comment: never array index). Server session uses that helper as the connections map key. LEDGER closed 2026-09-19; BUG-2026-09-19c.             |
+| `shared-workflow-list-wait`      | Important  | fixed      | `requestWorkflowList` requires a `predicate` (no `() => true` default). Colocated test waits until `workflowId === 'example'` and ignores an empty catalog. LEDGER closed 2026-09-19.                                                                                                                                             |
+| `shared-runner-start-runid-wait` | Important  | fixed      | `startRunner` / `startRunnerFromNode` allocate a client `RunId`, send it on the intent, and `filter((id) => id === runId)`. Test emits `'other-run'` first; the helper still returns the sent id. LEDGER closed 2026-09-19. `interruptRunner` still `take(1)` with no run evidence — not re-filed (bundled into this closed row). |
+| `shared-mcp-stdio-jsdoc-owner`   | Suggestion | still-open | `LangflowerMcpStdioServerConfig` JSDoc still names common-nodes `SystemMcpStdioEntry`. Owner is tools `create-system-mcp-handles.ts` (ADR-039).                                                                                                                                                                                   |
+| `shared-package-root-export`     | Suggestion | still-open | `package.json` `exports["."]` still publishes `constants/defaults`. `packages/shared/README.md` still advertises deleted `src/index.ts`, “Depends on: Nothing”, and `validators` / in-package `common-nodes/`.                                                                                                                    |
 
 ## Principles check
 
-- **PASS — no `index.ts` barrels** — 0 barrel files under `packages/shared/`.
-- **PASS — `type` not `interface`** — exported shapes use `type` + `readonly` (`types/*.ts`).
-- **PASS — arrow functions only** — no production `function` declarations in `src/` (incl. `resolveUiSchemaOptions`).
-- **PASS — no I/O / no framework** — no `fs`, Express, or Angular imports.
-- **PASS — RxJS at edges only** — `langflower-ws-waits.ts` uses `firstValueFrom` / `filter` / `take` / `timeout`; no `withLatestFrom`, no `.subscribe` field writes.
-- **PASS — runtime type ownership on bus** — `langflower-bus-config.ts` uses `Parameters<RuntimeRunnerApi[…]>`, `RuntimeRunnerEvent`, `RuntimeEdge` directly; no mirror DTO layer.
-- **PASS — slim bootstrap contract** — `SessionStateSnapshotPayload`, `bootstrapConfig` JSDoc, and `langflowerWsConfig` state-sync table match `emit-bootstrap.ts` emit order (**re-verified 2026-07-22**).
-- **PASS — dead execute protocol removed** — `Execute*` / `ExecutionProgressPayload` gone from `types/langflower-server.ts` (**re-verified 2026-07-22**).
-- **PASS — AGENTS layout current** — `packages/shared/AGENTS.md` matches the tree; empty `hitl/` removed (**re-verified 2026-07-22**).
-- **FAIL — re-export aggregator** — `langflower.ts` remains a large named re-export facade (`export { … } from './…'`), contrary to [PRINCIPLES.md](../PRINCIPLES.md) § Module exports. Partial mitigation: WS wait helpers no longer re-exported (comment points to `@langflower/shared/langflower-ws-waits`).
-- **FAIL — parallel wait APIs** — `requestWorkflowDelete` and `requestWorkflowDeleteSnapshot` are byte-identical; several other `requestWorkflow*` helpers still use predicate-less `take(1)` (see Findings).
-- **N/A — thin server / composer entry points** — domain package; no server composers here.
+- **PASS — no `index.ts` barrels / no re-export aggregator** — 0 barrel files under `packages/shared` (glob). `langflower.ts` stays deleted. `package.json` `exports` publish concrete modules; residual root `"."` is finding `shared-package-root-export`.
+- **PASS — `type` not `interface`; `readonly` shapes; arrow functions** — exported domain types use `type`; no production `function` declarations; no `any`; no `export * from`.
+- **PASS — no I/O / no framework** — no `fs`, Express, or Angular in this package. Dependencies remain node-sdk, runtime, websocket-bridge, rxjs.
+- **PASS — RxJS at edges only** — `langflower-ws-waits.ts` uses `firstValueFrom` / `filter` / `take` / `timeout`. Workflow intents share `requestThenWait` (subscribe → `next` → evidence). No `withLatestFrom`, no `.subscribe` field writes. Bus inbound subjects stay hot; subscribe-before-`next` / subscribe-before-`connected` is unchanged.
+- **PASS — runtime type ownership on the bus** — `langflower-bus-config.ts` uses `RuntimeEditorApi` / `RuntimeRunnerApi` / `RuntimeRunnerEvent` / `RuntimeEdge` / `PortTelemetry` in `message<>()`; no mirror DTO layer.
+- **PASS — composer entry** — `requestThenWait` is the wait composer; `resolveUiSchemaOptions` is an exhaustive switch; `mergeLangflowerConfigLayers` is a single merge step. `node.wiredTools` still throws as a wrong-API contract.
+- **PASS — delete obsolete / zero-consumer export** — `waitLangflowerConfigSnapshot` deleted (previous FAIL). Historical leftovers stay gone.
+- **PASS — Settings identity** — pending secrets and connection keys match by provider/secret `id` (previous FAIL). Stale JSDoc on `ProviderConnectionStatus` is a docs leftover, not a second writer.
+- **PASS — correlated list / start waits** — list predicate required; start helpers filter the sent `RunId` (previous FAIL).
+- **FAIL — `docs-ghost`** — MCP stdio JSDoc still points at common-nodes; Settings `ProviderConnectionStatus` JSDoc still teaches index keys `"0"` / `"1"`; package README still teaches deleted `src/index.ts`.
 
 ## FOUND_BUGS signals
 
-- **BUG-2026-07-17d** (nullable session facts) — `WorkflowCurrentSnapshotPayload.activeWorkflow: … | null` and JSDoc in `types/langflower-workflow.ts` are correct; residual risk is at UI/server consumers, not shared typing.
-- **BUG-2026-07-21b / false-ready context** — still relevant for predicate-less WS waits (`requestWorkflowLoadSnapshot`, `requestWorkflowSaveCurrent`, `requestWorkflowList`); mitigated for session bootstrap via subscribe-before-connect in `waitSessionReady` / `waitSessionSnapshot`.
-- **BUG-2026-07-21** (settle projection fork) — `deriveExecutionProgressStatus` in `execution/derive-run-settle-outcome.ts` is the shared-side settle helper; no live/reconnect fork in this chunk.
-- **BUG-2026-07-14** (hot bus / missed early frames) — `waitSessionReady` subscribes to `session.ready` before awaiting `connected` (**mitigated**).
-- **BUG-2026-07-12a** (stale Vite prebundle) — `langflower.ts` export churn still concentrates cache sensitivity for UI imports of `@langflower/shared/langflower`.
-- Router / partial-run / feedback-edge entries citing old `packages/shared/src/execution/*` paths — **no recurrence surface** in this chunk.
+- **BUG-2026-09-19c** (Settings draft index identity) — **fixed in this package**, not a recurrence. Mechanism was index-keyed `mergeDraftPatch` / `providerConnectionKey`; both now key by `row.id`. Residual is JSDoc only (`shared-connection-status-index-jsdoc`).
+- **BUG-2026-07-17d** (nullable session facts) — `WorkflowCurrentSnapshotPayload.activeWorkflow: … | null` still correct. Residual risk is at consumers, not shared typing.
+- **BUG-2026-07-14** (hot bus / missed early frames) — `waitSessionReady` / `waitSessionSnapshot` still subscribe before `connected`. Intent helpers still subscribe before `next`.
+- **Uncorrelated broadcast waits** — list / start helpers now carry evidence. `requestWorkflowLoadSnapshot` next-emission default remains the documented failed-load exception. Not a rubber-stamp of BUG-2026-07-21b (`startWith` + `withLatestFrom`).
+- **BUG-2026-07-12a** (stale Vite prebundle of `@langflower/shared`) — aggregator `langflower.ts` / `index.ts` stay deleted. Residual surface is package `"."` + README (finding 7), not a restored aggregator.
+- **BUG-2026-07-21** (settle projection fork) — `deriveExecutionProgressStatus` remains the shared-side settle helper; no live/reconnect fork in this chunk.
+- **BUG-2026-07-19b** (`enabledToolIds`) — no shared leftover. Runtime `permission` ≠ node `toolPermissions`.
+- Router / partial-run entries citing deleted `packages/shared/src/execution/*` or `validators/connection-validator.ts` — **no recurrence surface** in this tree.
 
 ## Glue / adapters / parallel types
 
 - **No `*Adapter` / `*Mapper` classes** in this package.
-- **Boundary twins (no ADR):** `HARNESS_BUILTIN_TOOL_OPTIONS` / `DOMAIN_PACK_TOOL_OPTIONS` (`resolve-wired-tool-options.ts`) duplicate `@langflower/tools` catalogs because shared cannot import tools in production. Mitigated by `wired-tool-options.parity.test.ts`, but still a manual twin — not an ADR-backed adapter with exit criteria.
-- **Near-duplicate workflow metadata** — `WorkflowListEntry` vs `WorkflowMetadata` (`types/langflower-workflow.ts`) share the same field set; semantic comments differ only.
-- **Status unions (intentional, not glue)** — `WorkflowCheckpointStatus` lacks `completed_with_errors`; `ExecutionProgressStatus` adds it for feed/settle — deliberate divergence, easy to confuse at call sites.
-- **ADR-backed (looked OK):** checkpoint JSON boundary (`toCheckpointJsonValue`, ADR-018) — domain conversion with guards, not a shim layer.
-- **`PaletteNodeDefinition`** — `Omit<ReactiveNodeDefinition, 'getInstance'> & { source }` — correct reuse from `@langflower/node-sdk`, not a mirror DTO.
+- **ADR-039 twins (keep; do not merge by import):**
+    - `HARNESS_BUILTIN_TOOL_OPTIONS` / `DOMAIN_PACK_TOOL_OPTIONS` vs tools `BUILTIN_TOOL_IDS` / `*_TOOL_CONFIGS` — parity `packages/tools/src/domain/wired-tool-options.parity.test.ts`.
+    - `langflower-config/secret-id.ts` vs tools `secrets/secret-id.ts` — comment names ADR-039; shared is the inspector/jsonc owner.
+    - `LangflowerMcpStdioServerConfig` / `LangflowerMcpHttpServerConfig` vs tools `SystemMcpStdioEntry` / `SystemMcpHttpEntry` — structural; no mapper. Shared JSDoc still names the wrong package (finding `shared-mcp-stdio-jsdoc-owner`).
+    - `CustomPalettePackError` / `PaletteCompilationDiagnostic` vs compiler `CompilePackError` / `CompileDiagnostic` — WS copy; JSDoc cites ADR-039.
+- **Not glue:** `PaletteNodeDefinition` is `Omit<ReactiveNodeDefinition, 'getInstance'> & { source }`. `EditorSelectedNodePayload.node` is `WorkflowNodePersisted & { definition }`. `toCheckpointJsonValue` (ADR-018) is a fail-closed JSON boundary.
+- **Not a twin:** `WorkflowListEntry` vs `WorkflowMetadata` (ADR-029 identity off disk metadata).
+- **`ToolConfig` vs `LangflowerToolConfig`** — different documents; names collide, shapes do not.
 
 ## Streamlining & simplifications
 
-- Delete `requestWorkflowDeleteSnapshot` (or `requestWorkflowDelete`) — they are identical filtered implementations; keep one export, update integration tests.
-- Add predicates (or a shared internal `requestThenWait`) for `requestWorkflowSaveCurrent` and `requestWorkflowList`, matching `requestWorkflowLoad` / `requestWorkflowDelete`.
-- Continue shrinking `langflower.ts`: migrate high-traffic consumers to `package.json` subpaths and either remove the facade or document an explicit ADR exception.
-- Alias `WorkflowListEntry` to `WorkflowMetadata` (or `Pick`) if the shapes stay isomorphic.
-- Rename `execution/derive-run-settle-outcome.ts` to match primary export `deriveExecutionProgressStatus`, or rename the export.
-- Repoint `package.json` `"."` export at the intentional domain surface (`./langflower`) or drop `"."` and require explicit subpaths.
+none
 
 ## Design-flaw fixes
 
-1. **Broadcast snapshot waits without correlation** — multi-tab sessions have no RPC `requestId`; predicate-less `take(1)` helpers can consume another tab’s broadcast. **Fix direction:** one internal composer that always subscribes before `next` and filters on mutation evidence (id absent/present, status flip, etc.); delete duplicate/unfiltered variants; document intentional “next emission” cases like failed load keeping prior active id.
-2. **Tool catalog twins in shared** — Inspector allowlists will drift from tools unless parity tests stay green. **Fix direction:** generate options from a tools-owned JSON/constants module re-exported through a test-only or build-time path, or add ADR-019-style exit criteria for the twin with a single owner (`@langflower/tools`).
-3. **`langflower.ts` facade** — concentrates export surface and fights the no-aggregator rule. **Fix direction:** explicit subpath exports per domain module; treat `./langflower` as deprecated shim with a removal milestone.
+none
 
 ## Findings
 
-1. **Severity:** Important  
-   **Path / symbol:** `packages/shared/src/langflower.ts`  
-   **Problem:** Package-level re-export aggregator remains the de-facto import path (`@langflower/shared/langflower`) despite PRINCIPLES forbidding re-export shims. WS waits were split out (good), but ~100 lines of named re-exports still centralize churn (BUG-2026-07-12a class).  
-   **Proposed fix:** Migrate consumers to concrete subpath exports; shrink or remove `langflower.ts`; if the facade must stay temporarily, add an ADR with exit criteria.
+1.  - id: `shared-mcp-stdio-jsdoc-owner`
 
-2. **Severity:** Important  
-   **Path / symbol:** `packages/shared/src/langflower-ws-waits.ts` — `requestWorkflowDelete`, `requestWorkflowDeleteSnapshot`  
-   **Problem:** Both functions are identical (subscribe with id-absent filter, then `next`). Violates “delete obsolete parallel APIs” — doubles maintenance and import confusion.  
-   **Proposed fix:** Keep `requestWorkflowDelete`; delete `requestWorkflowDeleteSnapshot` and update `tests/integration/ws/workflows.ws.test.ts`.
+- class: docs-ghost
+- severity: Suggestion
+- first-seen: 2026-09-19
+- status: open
+- path: `packages/shared/src/types/langflower-config.ts` — `LangflowerMcpStdioServerConfig`
+- evidence: JSDoc still says “Structural twin of common-nodes `SystemMcpStdioEntry`”. ts-scan resolves `SystemMcpStdioEntry` to `packages/tools/src/mcp/create-system-mcp-handles.ts`, whose comment names the shared type as the twin. common-nodes has no such export from a shared-relative resolve.
+- proposed fix: Point the comment at tools `SystemMcpStdioEntry` / ADR-039.
 
-3. **Severity:** Important  
-   **Path / symbol:** `packages/shared/src/langflower-ws-waits.ts` — `requestWorkflowSaveCurrent`, `requestWorkflowList`  
-   **Problem:** Await `take(1)` on broadcast snapshots without a mutation predicate after sending the intent. Under multi-tab load, the first emission may belong to another tab’s mutation (false-ready / wrong-slice class; related to BUG-2026-07-21b). Filtered siblings (`requestWorkflowLoad`, `requestWorkflowDelete`) show the safer pattern.  
-   **Proposed fix:** Filter on evidence of _this_ command (e.g. list length change, dirty-status flip) or fold into one internal wait composer.
+2.  - id: `shared-package-root-export`
 
-4. **Severity:** Important  
-   **Path / symbol:** `packages/shared/src/langflower-ws-waits.ts` — `requestWorkflowLoadSnapshot`  
-   **Problem:** Still predicate-less by design (documented JSDoc): failed/unknown load keeps prior active id, so a success-id filter would hang. Residual multi-tab race remains for tests/MCP callers that only need “any post-intent snapshot”.  
-   **Proposed fix:** Accept as documented edge case for single-client tests, or add optional `predicate` parameter; prefer `requestWorkflowLoad` when activation must be verified.
+- class: docs-ghost
+- severity: Suggestion
+- first-seen: 2026-09-19
+- status: open
+- path: `packages/shared/package.json` `exports["."]` + `packages/shared/README.md` (package root; not `src/` body)
+- evidence: After `langflower.ts` deletion the published root still exists (`"."` → `constants/defaults`). README still teaches deleted `src/index.ts`, “Depends on: Nothing”, `validators`, and in-package `common-nodes/`. That is the remaining BUG-2026-07-12a-class doc surface, not a restored aggregator.
+- proposed fix: Fix the README to match AGENTS.md (concrete `exports`, real dependencies). Optional: remove or un-document `"."` so only concrete subpaths are importable.
 
-5. **Severity:** Important  
-   **Path / symbol:** `packages/shared/src/langflower-config/resolve-wired-tool-options.ts` — `HARNESS_BUILTIN_TOOL_OPTIONS`, `DOMAIN_PACK_TOOL_OPTIONS`  
-   **Problem:** Hardcoded tool ids / node-type maps duplicate `@langflower/tools` ownership. Parity test mitigates drift but there is no ADR explaining why the twin stays or when it can be removed.  
-   **Proposed fix:** Single owner in tools with a shared-safe export surface, or ADR with exit criteria; keep parity test as gate.
+3.  - id: `shared-connection-status-index-jsdoc`
 
-6. **Severity:** Suggestion  
-   **Path / symbol:** `packages/shared/src/types/langflower-workflow.ts` — `WorkflowListEntry`, `WorkflowMetadata`  
-   **Problem:** Structurally identical readonly shapes — parallel type risk if one diverges silently.  
-   **Proposed fix:** `type WorkflowListEntry = WorkflowMetadata` or shared `Pick` base type.
-
-7. **Severity:** Suggestion  
-   **Path / symbol:** `packages/shared/package.json` — `exports["."]`  
-   **Problem:** Package root resolves to `constants/defaults`, while the real domain surface is `./langflower`. Surprising for newcomers and tooling.  
-   **Proposed fix:** Point `"."` at `./langflower` or remove `"."` and require explicit subpaths.
-
-8. **Severity:** Suggestion  
-   **Path / symbol:** `packages/shared/src/execution/derive-run-settle-outcome.ts` — file name vs `deriveExecutionProgressStatus` export  
-   **Problem:** Navigation tax — primary export name does not match module path.  
-   **Proposed fix:** Rename file to `derive-execution-progress-status.ts` (or rename export to match file).
+- class: docs-ghost
+- severity: Suggestion
+- first-seen: 2026-09-20
+- status: open
+- why-new: Leftover JSDoc after `shared-settings-draft-row-id` / BUG-2026-09-19c. The 2026-09-19 report described index keys as accurate; the implementation now keys by `row.id`, so the type comment teaches the deleted rule.
+- path: `packages/shared/src/types/langflower-config.ts` — `ProviderConnectionStatus`
+- evidence: Comment still says “Keyed by draft row index string (`"0"`, `"1"`, …)”. `providerConnectionKey` now returns `row.id.trim()` and documents “never array index”. Server session stores connections under that id key.
+- proposed fix: Say the map is keyed by provider `id` (empty-id rows have no connection key).
 
 ## Non-issues / looked OK
 
-- No `interface`, no `any`, no `index.ts`, no `withLatestFrom`, no `export * from`.
-- Dead `Execute*` protocol types confirmed removed; `langflower-server.ts` holds only `SessionReadyPayload` + `ExecutionProgressStatus`.
-- Bootstrap JSDoc + state-sync table align with slim `SessionStateSnapshotPayload` and `emit-bootstrap.ts` order (**re-verified, not rubber-stamped**).
-- `resolveUiSchemaOptions` — arrow function, exhaustive switch, `node.wiredTools` throws, unit test present.
-- `waitSessionReady` / `waitSessionSnapshot` — subscribe-before-connect hot-bus pattern correct.
-- Checkpoint helpers (`toCheckpointJsonValue`, `buildWorkflowFingerprint`) — pure, fail-closed, guarded `as` casts at JSON boundary only.
-- `mergeLangflowerConfigLayers` / `mergeProviderModelOptions` — straightforward immutable merges.
-- `EditorSelectedNodePayload` uses intersection with `WorkflowNodePersisted` — no parallel selected-node DTO.
-- Bus partial configs use unique namespace prefixes before spread merge.
+- LEDGER closed — do not reopen: `shared-wait-config-snapshot`, `shared-settings-draft-row-id`, `shared-workflow-list-wait`, `shared-runner-start-runid-wait`, `legacy-workflow-delete-snapshot-wait` (`requestWorkflowDeleteSnapshot` still absent), `legacy-client-ws-port-fallback` (no client `/ws` + `4010` fallback in this package; `DEFAULT_PORT` / registry transport defaults remain the shared source of truth).
+- `interruptRunner` still `take(1)` after `runner.interrupt.requested` with no `RunId` filter. Left as residual of the closed start-wait row; not a new mechanism.
+- `requestWorkflowLoadSnapshot` next-emission default is still documented (failed load keeps prior active id). Test covers that path.
+- `waitExecutionFeedSnapshot` / `waitBusEvent` default `() => true` are generic “next event” helpers, not request/reply composers.
+- `waitSessionReady` / `waitSessionSnapshot` subscribe-before-connect still correct for hot inbound subjects.
+- `resolveUiSchemaOptions` exhaustive switch; `node.wiredTools` throws to the graph helper (wrong-API, not a Result case).
+- Checkpoint helpers and config layer merge — pure, fail-closed JSON boundary, immutable spread. Nested `mcp` / `permission` / `harness` replace as whole top-level keys; provider map is the only deep merge.
+- `PaletteNodeDefinition` / editor payloads reuse owner types. Dead `Execute*` protocol types remain gone; `langflower-server.ts` is still `SessionReadyPayload` + `ExecutionProgressStatus`.
+- `packages/shared/AGENTS.md` layout list matches the tree today.
+- Cursor rule `shared-domain.mdc` still names `validators/connection-validator.ts` / `canConnectPorts` — docs/rule drift, not a `src/` leftover.
+- No `interface`, no `withLatestFrom`, no `export * from`.
