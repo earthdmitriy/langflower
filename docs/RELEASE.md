@@ -1,53 +1,88 @@
-# Releasing `langflower` (npm)
+# Releasing Langflower
 
-Manual release of the **root** package `langflower`. Other workspace packages
-(`@langflower/cli`, `@langflower/runtime`, …) are **not** published separately.
-`@langflower/node-sdk` is the exception — see
-[Publishing `@langflower/node-sdk`](#publishing-langflowernode-sdk).
-Product `dist/` is the bundled CLI (server, catalog, compiler concatenated).
-Host peers and the bootstrap skeleton ship under `vendor/`.
+Three **independent** artifacts. Cut any one without the others. Semver and
+git tags are not tied together.
+
+- **Product CLI** `langflower` — root npm package; tag `vX.Y.Z`. Version lives
+  in root [`package.json`](../package.json). Other workspace packages
+  (`@langflower/cli`, `@langflower/runtime`, …) are **not** published
+  separately. Product `dist/` is the bundled CLI (server, catalog, compiler
+  concatenated). Host peers and the bootstrap skeleton ship under `vendor/`.
+- **Author SDK** [`@langflower/node-sdk`](#publishing-langflowernode-sdk) —
+  scoped npm package; tag `node-sdk-vX.Y.Z`. Independent registry release.
+- **Desktop launcher** — not on npm. GitHub Release zips on tag
+  `launcher-vX.Y.Z` (must match [`launcher/Cargo.toml`](../launcher/Cargo.toml)
+  `version`). Workflow:
+  [launcher-release.yml](../.github/workflows/launcher-release.yml).
+
+Publishing the SDK to npm does **not** change what the next `langflower`
+tarball vendors. The product copies `vendor/node-sdk` from this tree only
+during product `pack-release`.
 
 ## Prerequisites
 
-- Clean git tree (or only intentional release edits)
-- npm auth for the publish account (`npm whoami`)
-- Node matching root `engines`
+Shared for every cut:
 
-## Steps
+- Clean git tree, or only the intentional version-bump commit for this
+  artifact
+- npm auth for the publish account (`npm whoami`) — npm artifacts only
+- Node matching root `engines.node` (today **≥ 22.22.3**)
 
-1. **Bump version** in the root [`package.json`](../package.json) (`version` field).
+## Product CLI: `langflower` (npm)
 
-2. **Gate + pack:**
+1. **Bump version** in the root [`package.json`](../package.json) (`version`
+   field). Commit that bump (and only that) **before** packing.
+
+2. **Typecheck** (`pre-release` does **not** run it):
+
+    ```bash
+    npm run typecheck
+    ```
+
+3. **Gate + pack:**
 
     ```bash
     npm run pre-release
     ```
 
-    Runs: format → test → build-all → pack-release.  
-    Writes publish layout at repo root (`dist/`, `bin/`, `ui-dist/`, `vendor/`) and
-    rewrites root `package.json` for publish (strips `workspaces` / scripts).  
-    Backs up the monorepo manifest to `.release/package.json.backup`.  
+    Runs: format → test → build-all → pack-release.
+    Writes publish layout at repo root (`dist/`, `bin/`, `ui-dist/`, `vendor/`)
+    and rewrites root `package.json` for publish (strips `workspaces` /
+    scripts).
+    Backs up the monorepo manifest to `.release/package.json.backup`.
     Optional inspection tarball: `artifacts/langflower-<version>.tgz`.
 
-3. **Publish** (from repo root):
+    Do **not** commit `dist/`, `bin/`, `ui-dist/`, `vendor/`, or the rewritten
+    publish `package.json`.
+
+4. **Publish** (from repo root):
 
     ```bash
-    npm publish
+    npm publish --access public
     ```
 
-4. **Restore monorepo `package.json`:**
+5. **Restore monorepo `package.json`:**
 
     ```bash
     cp .release/package.json.backup package.json
     # or: git checkout -- package.json
     ```
 
-5. **Tag:**
+6. **Tag** (suffix must match the root `version`). Pushing the tag does **not**
+   create a GitHub Release page; that page is for `launcher-v*` zips.
 
     ```bash
     git tag vX.Y.Z
     git push origin vX.Y.Z
     ```
+
+7. **Confirm:**
+
+    ```bash
+    npm view langflower version
+    ```
+
+<a id="publishing-langflowernode-sdk"></a>
 
 ## Publishing `@langflower/node-sdk`
 
@@ -59,11 +94,14 @@ identity (BUG-2026-07-28). Do **not** switch that peer to the registry in the
 same change. Revisit only if the host later resolves the SDK from npm instead
 of `vendor/`.
 
-1. Bump `version` in [`packages/node-sdk/package.json`](../packages/node-sdk/package.json)
+1. **Bump** `version` in
+   [`packages/node-sdk/package.json`](../packages/node-sdk/package.json)
    when the public API changes. First registry cut is `0.1.0`. Then update the
-   skeleton pack manifests to the same exact version (see
+   skeleton pack manifests to the same **exact** version (see
    [Pack ↔ SDK compatibility](#pack--sdk-compatibility)) —
    `tests/unit/release/skeleton-sdk-pin.test.ts` fails until they match.
+   Commit the SDK + skeleton pin bump **before** tagging.
+
 2. From the repo root (clean tree, npm auth, Node matching `engines`):
 
     ```bash
@@ -79,7 +117,7 @@ of `vendor/`.
     Workspace `tsc` may include `.map` files; product `pack-release` still
     strips maps from `vendor/node-sdk`.
 
-3. Tag (suffix must match the SDK version):
+3. **Tag** (suffix must match the SDK version):
 
     ```bash
     git tag node-sdk-vX.Y.Z
@@ -118,30 +156,47 @@ pins in existing user projects — they are inert. Treat an SDK removal or renam
 as a breaking change for packs: bump the SDK minor/major and note the migration,
 because already-authored packs will fail to compile after the upgrade.
 
-## Launcher binary (GitHub Release)
+## Desktop launcher (GitHub Release)
 
 The Slint supervisor is **not** part of `npm publish`. Do **not** attach
-launcher zips to npm tags `vX.Y.Z`.
+launcher zips to npm tags `vX.Y.Z`. Local build, portable Rust, and CI matrices:
+[launcher/docs/build-and-release.md](../launcher/docs/build-and-release.md)
+and [launcher/README.md](../launcher/README.md).
 
-1. Bump `version` in [`launcher/Cargo.toml`](../launcher/Cargo.toml)
-   (and keep `Cargo.lock` in sync).
-2. Tag and push:
+1. **Bump** `version` in [`launcher/Cargo.toml`](../launcher/Cargo.toml)
+   and keep `Cargo.lock` in sync. Commit that bump (and the lockfile if it
+   changed) **before** tagging.
+
+2. **Optional local check:** `npm run launcher:test`. If the change set also
+   includes TypeScript or docs the monorepo gates, run `npm run typecheck`
+   and `npm run test` as well. Launcher tests are **not** part of
+   `pre-release` / `verify`.
+
+3. **Tag and push** (suffix must match the crate version or the tag-push job
+   fails):
 
     ```bash
     git tag launcher-vX.Y.Z
     git push origin launcher-vX.Y.Z
     ```
 
-    The tag suffix must match the crate version or the workflow fails.
     Manual **Run workflow** on
     [launcher-release.yml](../.github/workflows/launcher-release.yml)
     can publish the current SHA to a `launcher-v*` tag without that check.
 
-Assets: Windows x64 / ARM64 (`.exe`) and macOS arm64 / x64 (`Langflower.app`
-inside the zip) plus `SHA256SUMS.txt`. Unsigned — SmartScreen / Gatekeeper
-will warn. Node.js and `npm install -g langflower` remain required. See
-[launcher/README.md](../launcher/README.md) and
-[launcher/docs/build-and-release.md](../launcher/docs/build-and-release.md).
+4. **Wait** for the workflow. Confirm GitHub Release **Launcher X.Y.Z** has
+   all five assets:
+
+    - `langflower-launcher-windows-x64.zip`
+    - `langflower-launcher-windows-arm64.zip`
+    - `langflower-launcher-macos-arm64.zip`
+    - `langflower-launcher-macos-x64.zip`
+    - `SHA256SUMS.txt`
+
+    Windows zips contain `langflower-launcher.exe`. macOS zips contain
+    `Langflower.app`. Unsigned — SmartScreen / Gatekeeper will warn. On macOS:
+    right-click the **app** → Open. Node.js ≥ 22 and
+    `npm install -g langflower` remain required.
 
 ## Dogfood without registry
 
