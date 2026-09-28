@@ -119,7 +119,7 @@ describe('common-fake-llm', () => {
 			fromNodeId: 'llm-1',
 			fromPort: ['response', 0],
 			toNodeId: 'preview-1',
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		const chunks: Array<{ portId: string; value: unknown }> = [];

@@ -197,7 +197,7 @@ OpenAI-compatible chat nodes (`common-openai-llm`, `common-critique`,
 | Param            | Default  | Role                                                                                                        |
 | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------- |
 | `contextSize`    | `200000` | Approx input budget (`JSON.stringify` length / 4 over messages + tools). `0` disables proactive compaction. |
-| `compactOnError` | `false`  | On typed context-length error at stream create: force-compact once and retry.                               |
+| `compactOnError` | `true`   | On typed context-length error at stream create: force-compact once and retry. A stored `false` stays off.   |
 
 Compaction preserves leading `system` messages, the latest `user` message, and
 atomic assistant/tool blocks. Summaries replace contiguous unprotected ranges

@@ -145,7 +145,7 @@ describe('repairWorkflowGraph', () => {
 						fromNodeId: 'router',
 						fromPort: ['ch', 0],
 						toNodeId: 'preview',
-						toPort: ['text', 0],
+						toPort: ['input', 0],
 					},
 				],
 			},

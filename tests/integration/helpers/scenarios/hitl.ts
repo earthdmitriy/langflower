@@ -21,7 +21,7 @@ export const hitlReviewApproveWorkflow = (): WorkflowSavePayload => {
 		],
 		[
 			edge('e1', 'result-1', 'value', 'review-1', 'result'),
-			edge('e2', 'review-1', 'response', 'preview-1', 'text'),
+			edge('e2', 'review-1', 'response', 'preview-1', 'input'),
 		],
 	);
 };
@@ -38,7 +38,7 @@ export const hitlReviewFeedbackWorkflow = (): WorkflowSavePayload => {
 		],
 		[
 			edge('e1', 'result-1', 'value', 'review-1', 'result'),
-			edge('e2', 'review-1', 'feedback', 'preview-1', 'text'),
+			edge('e2', 'review-1', 'feedback', 'preview-1', 'input'),
 		],
 	);
 };
@@ -55,7 +55,7 @@ export const hitlChatLoopWorkflow = (): WorkflowSavePayload => {
 		],
 		[
 			edge('e1', 'result-1', 'value', 'loop-1', 'result'),
-			edge('e2', 'loop-1', 'feedback', 'preview-1', 'text'),
+			edge('e2', 'loop-1', 'feedback', 'preview-1', 'input'),
 		],
 	);
 };

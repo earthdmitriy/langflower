@@ -17,7 +17,10 @@ function formatPreviewText(value: unknown): string {
 	return String(value);
 }
 
-/** Formats wired input as display text (JSON for objects). */
+/**
+ * Shows a wired value. `output` passes the input through; `text` is the
+ * display string (JSON for objects).
+ */
 export const previewNode = defineReactiveNode({
 	type: 'common-preview',
 	displayName: 'Preview',
@@ -33,19 +36,22 @@ Typical uses:
 	defaultCanvasSize: { width: 320, height: 280 },
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {
-		const text = makeInput('text', {
-			name: 'text',
-			wireType: 'string',
+		const input = makeInput<unknown>('input', {
+			name: 'input',
+			dynamic: true,
 			required: true,
 			inline: 'preview-markdown',
 		});
-		const output$ = text.pipeValue(map(formatPreviewText));
+		const text$ = input.pipeValue(map(formatPreviewText));
 
 		return {
-			inputs: [text],
+			inputs: [input],
 			outputs: [
-				configureOutput('text', output$, {
-					inferTypeFrom: text,
+				configureOutput('output', input, {
+					inferTypeFrom: input,
+				}),
+				configureOutput('text', text$, {
+					wireType: 'string',
 					feed: { role: 'result' },
 				}),
 			],

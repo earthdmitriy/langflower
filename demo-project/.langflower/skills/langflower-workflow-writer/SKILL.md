@@ -53,22 +53,23 @@ Schema: `.langflower/schemas/workflow.schema.json`. Samples:
 
 ## Ports you must get right
 
-| Node type                               | Key ports                                                                                                                                                                                                              |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `common-chat-input`                     | out `message` (no wireable in)                                                                                                                                                                                         |
-| `common-openai-llm` / `common-fake-llm` | in `userPrompt`, `systemPrompt`, `feedback`, `tools`; out `response`, `toolLog`, …                                                                                                                                     |
-| `common-mcp-stdio` / `common-mcp-http`  | out **`tools`** — wire into an agent `tools` port (not a separate `mcp` port). MCP http in **`headers`**: JSON object/string; `{lf_secrets:ID}` / `{env:VAR}` OK                                                       |
-| `common-tool-collection`                | in **`tools`** (multi combine) → out **`tools`** — optional hub; duplicate `toolId` last-wins. Direct pack → agent still OK                                                                                            |
-| `common-tool-invoke`                    | in **`tools`** (single) + **`toolId`** (string) + **`args`** (json, blank default) → out **`result`**. Graph-side `invoke`; unknown id / bad JSON → port error. Empty inventory stays inactive.                        |
-| `common-tool-inspect`                   | in **`tools`** (single) + **`toolId`** (string, empty = all) → out **`text`** — copy-paste dump + `inputSchema`. Not Preview (`common-preview` is string-only).                                                        |
-| `common-hitl-review-gate`               | in `result`; out `response`, `feedback` (no `preview`)                                                                                                                                                                 |
-| `common-chat-loop`                      | in `result`; hidden HITL `message` (Send); out **`feedback`** only — wire to agent `feedback`. No Approve; run ends on Stop                                                                                            |
-| `common-merge`                          | in/out **`value`** only (not `step` / `output`)                                                                                                                                                                        |
-| `common-review`                         | in `task`, `result`, `systemPrompt`, `tools`; out `response`, `feedback`                                                                                                                                               |
-| `common-sub-agent`                      | out **`subagent-registration`** (one specialist handle) → parent `tools`; in `systemPrompt`, `tools`                                                                                                                   |
-| `common-finish`                         | in `value`                                                                                                                                                                                                             |
-| `common-string`                         | in/out `value`                                                                                                                                                                                                         |
-| `common-langflower-tools`               | out **`tools`** only — wire into an agent `tools` port to opt in to **`compile_custom_nodes`** (unsafe; starter Helper / Writer already wired). Not ambient. Canvas add/remove node or edge tools are **not** shipped. |
+| Node type                               | Key ports                                                                                                                                                                                                                                            |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `common-chat-input`                     | out `message` (no wireable in)                                                                                                                                                                                                                       |
+| `common-openai-llm` / `common-fake-llm` | in `userPrompt`, `systemPrompt`, `feedback`, `tools`; out `response`, `toolLog`, …                                                                                                                                                                   |
+| `common-mcp-stdio` / `common-mcp-http`  | out **`tools`** — wire into an agent `tools` port (not a separate `mcp` port). MCP http in **`headers`**: JSON object/string; `{lf_secrets:ID}` / `{env:VAR}` OK                                                                                     |
+| `common-tool-collection`                | in **`tools`** (multi combine) → out **`tools`** — optional hub; duplicate `toolId` last-wins. Direct pack → agent still OK                                                                                                                          |
+| `common-tool-invoke`                    | in **`tools`** (single) + **`toolId`** (string) + **`args`** (json, blank default) → out **`result`**. Graph-side `invoke`; unknown id / bad JSON → port error. Empty inventory stays inactive.                                                      |
+| `common-tool-inspect`                   | in **`tools`** (single) + **`toolId`** (string, empty = all) → out **`text`** — copy-paste dump + `inputSchema`. Preview (`common-preview`) is separate: in **`input`** (dynamic) → out **`output`** (same value) and **`text`** (formatted string). |
+| `common-hitl-review-gate`               | in `result`; out `response`, `feedback` (no `preview`)                                                                                                                                                                                               |
+| `common-chat-loop`                      | in `result`; hidden HITL `message` (Send); out **`feedback`** only — wire to agent `feedback`. No Approve; run ends on Stop                                                                                                                          |
+| `common-merge`                          | in/out **`value`** only (not `step` / `output`)                                                                                                                                                                                                      |
+| `common-review`                         | in `task`, `result`, `systemPrompt`, `tools`; out `response` (accept), `feedback`                                                                                                                                                                    |
+| `common-critique`                       | in `assignment`, `packet`, `systemPrompt`, `tools`; out `response` (accept), `feedback`                                                                                                                                                              |
+| `common-sub-agent`                      | out **`subagent-registration`** (one specialist handle) → parent `tools`; in `systemPrompt`, `tools`                                                                                                                                                 |
+| `common-finish`                         | in `value`                                                                                                                                                                                                                                           |
+| `common-string`                         | in/out `value`                                                                                                                                                                                                                                       |
+| `common-langflower-tools`               | out **`tools`** only — wire into an agent `tools` port to opt in to **`compile_custom_nodes`** (unsafe; starter Helper / Writer already wired). Not ambient. Canvas add/remove node or edge tools are **not** shipped.                               |
 
 ## Soft↔Hard loops
 
@@ -80,6 +81,15 @@ Typical HITL revise loop:
 
 Do **not** feed Merge output into both gates and LLM feedback on every tick
 without a clear phase split.
+
+## One response is not a branch
+
+A path-choice output (`feedback`, or accept `response`) has one consumer.
+
+- Do not wire one LLM `response` to several next stages (clarify, red-team, and an approve gate). That node cannot choose a branch.
+- Do not wire one accept `response` to the next agent and also to later gates.
+- Use `common-critique` (`assignment` / `packet`) or `common-review` (`task` / `result`) so fail is `feedback` and pass is `response`. A Review Gate has the same split.
+- Copy `.langflower/workflows/red-team.json`. The same rule is in `docs/features/node-library.md` §5.2.
 
 ## Sub-Agent (one registration wire)
 

@@ -22,10 +22,23 @@ describe('normalizeCompactionConfig', () => {
 		expect(normalizeContextSize(9_999_999)).toBe(1_000_000);
 	});
 
-	it('requires strict true for compactOnError', () => {
+	it('requires strict true for compactOnError and defaults missing to on', () => {
 		expect(normalizeCompactOnError(true)).toBe(true);
+		expect(normalizeCompactOnError(undefined)).toBe(true);
+		expect(normalizeCompactOnError(false)).toBe(false);
 		expect(normalizeCompactOnError('true')).toBe(false);
 		expect(normalizeCompactOnError(1)).toBe(false);
+	});
+
+	it('defaults missing compactOnError to on', () => {
+		expect(normalizeCompactionConfig({})).toEqual({
+			contextSize: DEFAULT_CONTEXT_SIZE,
+			compactOnError: true,
+		});
+		expect(normalizeCompactionConfig({ compactOnError: false })).toEqual({
+			contextSize: DEFAULT_CONTEXT_SIZE,
+			compactOnError: false,
+		});
 	});
 
 	it('assembles config from params', () => {

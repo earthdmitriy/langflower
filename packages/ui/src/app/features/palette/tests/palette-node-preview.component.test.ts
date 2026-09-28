@@ -40,10 +40,13 @@ describe('PaletteNodePreviewComponent rows', () => {
 		const rows = buildPreviewRowsForTest(asPaletteNode(definition));
 
 		expect(rows[0]?.inline).toBe(null);
-		expect(rows[0]?.input?.label).toBe('text');
-		expect(rows[0]?.input?.wireType).toBe('string');
-		expect(rows[0]?.output?.label).toBe('text');
-		expect(rows[0]?.output?.wireType).toBe('from(text)');
+		expect(rows[0]?.input?.label).toBe('input');
+		expect(rows[0]?.input?.wireType).toBe('dynamic');
+		expect(rows[0]?.output?.label).toBe('output');
+		expect(rows[0]?.output?.wireType).toBe('from(input)');
+		expect(rows[1]?.input).toBeNull();
+		expect(rows[1]?.output?.label).toBe('text');
+		expect(rows[1]?.output?.wireType).toBe('string');
 	});
 
 	it('renders delay passthrough output as outputName · from(inputName)', () => {

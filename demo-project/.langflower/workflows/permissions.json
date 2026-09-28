@@ -2,154 +2,111 @@
 	"$schema": "../schemas/workflow.schema.json",
 	"metadata": {
 		"name": "Permissions",
-		"description": "Explore → Approve → Mutate → Approve → Shell. Each stage has its own tool budget; permissions follow the graph.",
+		"description": "Task → Plan (RO tools) → Review → Coder (Write tools) → Finish. Each agent receives only the tool pack wired to it.",
 		"createdAt": "2026-09-20T19:05:00.000Z",
-		"updatedAt": "2026-09-21T17:15:10.417Z"
+		"updatedAt": "2026-09-28T19:21:43.610Z"
 	},
 	"graph": {
 		"viewport": {
-			"x": -38.93333435058594,
-			"y": 44.80018615722656,
-			"scale": 0.7,
-			"width": 1015.390625,
-			"height": 661.328125
+			"x": 40,
+			"y": 80,
+			"scale": 0.75,
+			"width": 1015,
+			"height": 661
 		},
 		"nodes": [
 			{
-				"id": "goal",
+				"id": "task",
 				"type": "common-chat-input",
 				"params": {},
 				"inputs": {
-					"message": "Find a small safe file change, then apply it and verify with a shell command."
+					"message": "Read and implement spec.md"
 				},
 				"ui": {
 					"position": {
-						"x": 0,
-						"y": 280
+						"x": 60,
+						"y": 260
 					},
-					"label": "Goal"
+					"label": "Task"
 				}
 			},
 			{
-				"id": "explore",
+				"id": "ro-tools",
+				"type": "my-ro-tools",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 120,
+						"y": 560
+					},
+					"label": "RO tools"
+				}
+			},
+			{
+				"id": "plan",
 				"type": "common-openai-llm",
 				"params": {
 					"rolePreset": "plan",
 					"includeAgentsMd": false,
-					"toolPermissions": {
-						"read": "allow",
-						"glob": "allow",
-						"grep": "allow",
-						"edit": "deny",
-						"write": "deny",
-						"create": "deny",
-						"delete": "deny",
-						"move": "deny",
-						"bash": "deny",
-						"ask_user": "deny"
-					},
 					"maxIterations": 8,
 					"maxFeedbackTurns": 2
 				},
 				"inputs": {
-					"systemPrompt": "You are the Explore stage. Read and search only — do not mutate files or run shell.\nSummarize what you found and the exact write you want next.\nIf the write-handoff sends feedback, revise the explore notes."
+					"systemPrompt": "You are the Planner.\nUse only the RO tools wired to this node. Inspect the project and write a short plan for the task.\nDo not create or edit files."
 				},
 				"ui": {
 					"position": {
-						"x": 300,
-						"y": 160
+						"x": 320,
+						"y": 240
 					},
-					"label": "Explore"
+					"label": "Plan"
 				}
 			},
 			{
-				"id": "write-gate",
+				"id": "review",
 				"type": "common-hitl-review-gate",
 				"params": {},
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 520,
-						"y": 340
+						"x": 580,
+						"y": 420
 					},
-					"label": "Approve write"
+					"label": "Review"
 				}
 			},
 			{
-				"id": "mutate",
-				"type": "common-openai-llm",
-				"params": {
-					"rolePreset": "coder",
-					"includeAgentsMd": false,
-					"toolPermissions": {
-						"read": "allow",
-						"glob": "allow",
-						"grep": "allow",
-						"edit": "ask",
-						"write": "ask",
-						"create": "ask",
-						"delete": "deny",
-						"move": "deny",
-						"bash": "deny",
-						"ask_user": "deny"
-					},
-					"maxIterations": 8,
-					"maxFeedbackTurns": 2
-				},
-				"inputs": {
-					"systemPrompt": "You are the Mutate stage. Apply the approved change with edit/write/create. Bash is denied here.\nSummarize files changed. If the bash-handoff sends feedback, revise the change."
-				},
-				"ui": {
-					"position": {
-						"x": 740,
-						"y": 160
-					},
-					"label": "Mutate"
-				}
-			},
-			{
-				"id": "bash-gate",
-				"type": "common-hitl-review-gate",
+				"id": "write-tools",
+				"type": "my-write-tools",
 				"params": {},
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 960,
-						"y": 340
+						"x": 660,
+						"y": 620
 					},
-					"label": "Approve shell"
+					"label": "Write tools"
 				}
 			},
 			{
-				"id": "shell",
+				"id": "coder",
 				"type": "common-openai-llm",
 				"params": {
 					"rolePreset": "coder",
 					"includeAgentsMd": false,
-					"toolPermissions": {
-						"read": "allow",
-						"glob": "allow",
-						"grep": "allow",
-						"edit": "deny",
-						"write": "deny",
-						"create": "deny",
-						"delete": "deny",
-						"move": "deny",
-						"bash": "ask",
-						"ask_user": "deny"
-					},
-					"maxIterations": 6,
-					"maxFeedbackTurns": 0
+					"maxIterations": 8,
+					"maxFeedbackTurns": 2
 				},
 				"inputs": {
-					"systemPrompt": "You are the Shell stage. Verify the mutate result with a focused bash command. Do not edit files.\nRespect permission.ask. Summarize the verification."
+					"systemPrompt": "You are the Coder.\nYou receive an approved plan. Apply it with the Write tools wired to this node.\nDo not assume you can list or search the project."
 				},
 				"ui": {
 					"position": {
-						"x": 1160,
-						"y": 180
+						"x": 840,
+						"y": 260
 					},
-					"label": "Shell"
+					"label": "Coder"
 				}
 			},
 			{
@@ -159,8 +116,8 @@
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 1400,
-						"y": 360
+						"x": 1100,
+						"y": 460
 					},
 					"label": "Finish"
 				}
@@ -168,57 +125,43 @@
 		],
 		"edges": [
 			{
-				"edgeId": "e-goal-explore",
-				"fromNodeId": "goal",
+				"edgeId": "e-task-plan",
+				"fromNodeId": "task",
 				"fromPort": ["message", 0],
-				"toNodeId": "explore",
+				"toNodeId": "plan",
 				"toPort": ["userPrompt", 0]
 			},
 			{
-				"edgeId": "e-explore-write-gate",
-				"fromNodeId": "explore",
+				"edgeId": "e-ro-plan",
+				"fromNodeId": "ro-tools",
+				"fromPort": ["tools", 0],
+				"toNodeId": "plan",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "e-plan-review",
+				"fromNodeId": "plan",
 				"fromPort": ["response", 0],
-				"toNodeId": "write-gate",
+				"toNodeId": "review",
 				"toPort": ["result", 0]
 			},
 			{
-				"edgeId": "e-write-gate-explore",
-				"fromNodeId": "write-gate",
-				"fromPort": ["feedback", 0],
-				"toNodeId": "explore",
-				"toPort": ["feedback", 0]
-			},
-			{
-				"edgeId": "e-write-gate-mutate",
-				"fromNodeId": "write-gate",
+				"edgeId": "e-review-coder",
+				"fromNodeId": "review",
 				"fromPort": ["response", 0],
-				"toNodeId": "mutate",
+				"toNodeId": "coder",
 				"toPort": ["userPrompt", 0]
 			},
 			{
-				"edgeId": "e-mutate-bash-gate",
-				"fromNodeId": "mutate",
-				"fromPort": ["response", 0],
-				"toNodeId": "bash-gate",
-				"toPort": ["result", 0]
+				"edgeId": "e-write-coder",
+				"fromNodeId": "write-tools",
+				"fromPort": ["tools", 0],
+				"toNodeId": "coder",
+				"toPort": ["tools", 0]
 			},
 			{
-				"edgeId": "e-bash-gate-mutate",
-				"fromNodeId": "bash-gate",
-				"fromPort": ["feedback", 0],
-				"toNodeId": "mutate",
-				"toPort": ["feedback", 0]
-			},
-			{
-				"edgeId": "e-bash-gate-shell",
-				"fromNodeId": "bash-gate",
-				"fromPort": ["response", 0],
-				"toNodeId": "shell",
-				"toPort": ["userPrompt", 0]
-			},
-			{
-				"edgeId": "e-shell-done",
-				"fromNodeId": "shell",
+				"edgeId": "e-coder-finish",
+				"fromNodeId": "coder",
 				"fromPort": ["response", 0],
 				"toNodeId": "done",
 				"toPort": ["value", 0]

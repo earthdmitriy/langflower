@@ -116,7 +116,7 @@
 				"fromNodeId": "0e9ae3a2-1eca-4701-83d5-94b5e262ca9a",
 				"fromPort": ["value", 0],
 				"toNodeId": "5f02ea8e-e9d7-46fb-8757-d28fdcb59a4f",
-				"toPort": ["text", 0]
+				"toPort": ["input", 0]
 			}
 		]
 	}

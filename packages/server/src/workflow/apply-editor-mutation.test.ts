@@ -225,7 +225,7 @@ describe('applyEditorPaste', () => {
 						fromClientId: 'tmp-src',
 						fromPort: ['value', 0],
 						toClientId: 'tmp-sink',
-						toPort: ['text', 0],
+						toPort: ['input', 0],
 					},
 				],
 			},
@@ -286,7 +286,7 @@ describe('applyEditorAddEdge', () => {
 			fromNodeId: 'string-1' as NodeId,
 			fromPort: ['value', 0],
 			toNodeId: 'preview-1' as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		};
 
 		const result = applyEditorAddEdge(session, payload);
@@ -304,7 +304,7 @@ describe('applyEditorAddEdge', () => {
 			fromNodeId: 'string-1' as NodeId,
 			fromPort: ['value', 0],
 			toNodeId: 'preview-1' as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		expect(result).toEqual({ removed: [], added: [] });
@@ -321,14 +321,14 @@ describe('applyEditorAddEdge', () => {
 			fromNodeId: 'string-1' as NodeId,
 			fromPort: ['value', 0],
 			toNodeId: 'preview-1' as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		const result = applyEditorAddEdge(session, {
 			fromNodeId: 'string-2' as NodeId,
 			fromPort: ['value', 0],
 			toNodeId: 'preview-1' as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		expect(result.removed).toEqual([first.added[0]]);
@@ -352,7 +352,7 @@ describe('applyEditorAddEdge', () => {
 			fromNodeId: 'string-1' as NodeId,
 			fromPort: ['value', 0],
 			toNodeId: 'preview-1' as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 		const downstream = applyEditorAddEdge(session, {
 			fromNodeId: 'preview-1' as NodeId,
@@ -367,7 +367,7 @@ describe('applyEditorAddEdge', () => {
 			fromNodeId: 'string-2' as NodeId,
 			fromPort: ['value', 0],
 			toNodeId: 'preview-1' as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		expect(result.removed).toEqual([incoming.added[0]]);
@@ -384,7 +384,7 @@ describe('applyEditorAddEdge', () => {
 			session.activeWorkflow?.graph.edges.filter(
 				(edge) =>
 					edge.toNodeId === ('preview-1' as NodeId) &&
-					edge.toPort[0] === 'text',
+					edge.toPort[0] === 'input',
 			),
 		).toHaveLength(1);
 	});
@@ -394,14 +394,14 @@ describe('applyEditorAddEdge', () => {
 			fromNodeId: 'string-1' as NodeId,
 			fromPort: ['value', 0],
 			toNodeId: 'preview-1' as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		const result = applyEditorAddEdge(session, {
 			fromNodeId: 'string-1' as NodeId,
 			fromPort: ['value', 0],
 			toNodeId: 'preview-1' as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		expect(result).toEqual({ removed: [], added: [] });
@@ -441,7 +441,7 @@ describe('applyEditorRemoveEdge', () => {
 			fromNodeId: 'string-1' as NodeId,
 			fromPort: ['value', 0],
 			toNodeId: 'preview-1' as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 		const edge = added[0]!;
 
@@ -751,7 +751,7 @@ describe('editor ↔ session topology single-writer', () => {
 			fromNodeId: added!.id as NodeId,
 			fromPort: ['value', 0],
 			toNodeId: preview!.id as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 		expect(edges).toHaveLength(1);
 		expectEditorSessionTopologyMatch(session);
@@ -787,7 +787,7 @@ describe('editor ↔ session topology single-writer', () => {
 			fromNodeId: 'string-1' as NodeId,
 			fromPort: ['value', 0],
 			toNodeId: 'preview-1' as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 		expectEditorSessionTopologyMatch(session);
 
@@ -795,7 +795,7 @@ describe('editor ↔ session topology single-writer', () => {
 			fromNodeId: 'string-2' as NodeId,
 			fromPort: ['value', 0],
 			toNodeId: 'preview-1' as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 		expectEditorSessionTopologyMatch(session);
 
@@ -820,7 +820,7 @@ describe('editor ↔ session topology single-writer', () => {
 						fromClientId: 'tmp-a',
 						fromPort: ['value', 0],
 						toClientId: 'tmp-b',
-						toPort: ['text', 0],
+						toPort: ['input', 0],
 					},
 				],
 			},
@@ -896,7 +896,7 @@ describe('swapCustomNodesInEditor', () => {
 			fromNodeId: 'swap-1' as NodeId,
 			fromPort: ['extra', 0],
 			toNodeId: 'preview-1' as NodeId,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		expect(trigger.added).toHaveLength(1);

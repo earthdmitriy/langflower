@@ -70,7 +70,7 @@ describe('HITL common nodes (runtime smoke)', () => {
 			fromNodeId: 'gate-1',
 			fromPort: ['feedback', 0],
 			toNodeId: 'preview-1',
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		const previewPromise = firstValueFrom(
@@ -138,7 +138,7 @@ describe('HITL common nodes (runtime smoke)', () => {
 			(event) =>
 				event.kind === 'input-received' &&
 				event.nodeId === 'preview-1' &&
-				event.portId === 'text',
+				event.portId === 'input',
 		);
 		expect(replyIdx).toBeGreaterThanOrEqual(0);
 		expect(feedbackIdx).toBeGreaterThanOrEqual(0);
@@ -192,7 +192,7 @@ describe('HITL common nodes (runtime smoke)', () => {
 			fromNodeId: 'gate-1',
 			fromPort: ['response', 0],
 			toNodeId: 'preview-1',
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		const previewPromise = firstValueFrom(

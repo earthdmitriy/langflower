@@ -27,7 +27,7 @@ export const fakeLlmStreamWorkflow = (): WorkflowSavePayload => {
 		],
 		[
 			edge('e-prompt', 'prompt-1', 'value', 'llm-1', 'userPrompt'),
-			edge('e-response', 'llm-1', 'response', 'preview-1', 'text'),
+			edge('e-response', 'llm-1', 'response', 'preview-1', 'input'),
 		],
 	);
 };
@@ -169,7 +169,7 @@ export const fakeLlmToolsWorkflow = (): WorkflowSavePayload => {
 		[
 			edge('e-prompt', 'prompt-1', 'value', 'llm-1', 'userPrompt'),
 			edge('e-tools', 'tools-1', 'tools', 'llm-1', 'tools'),
-			edge('e-response', 'llm-1', 'response', 'preview-1', 'text'),
+			edge('e-response', 'llm-1', 'response', 'preview-1', 'input'),
 		],
 	);
 };
@@ -217,7 +217,7 @@ export const fakeLlmMaxIterationsContinueWorkflow = (): WorkflowSavePayload => {
 		],
 		[
 			edge('e-prompt', 'prompt-1', 'value', 'llm-1', 'userPrompt'),
-			edge('e-response', 'llm-1', 'response', 'preview-1', 'text'),
+			edge('e-response', 'llm-1', 'response', 'preview-1', 'input'),
 		],
 	);
 };
@@ -263,7 +263,7 @@ export const fakeLlmAskUserWorkflow = (): WorkflowSavePayload => {
 		],
 		[
 			edge('e-prompt', 'prompt-1', 'value', 'llm-1', 'userPrompt'),
-			edge('e-response', 'llm-1', 'response', 'preview-1', 'text'),
+			edge('e-response', 'llm-1', 'response', 'preview-1', 'input'),
 		],
 	);
 };
@@ -320,7 +320,7 @@ export const fakeLlmAskUserQuestionsWorkflow = (): WorkflowSavePayload => {
 		],
 		[
 			edge('e-prompt', 'prompt-1', 'value', 'llm-1', 'userPrompt'),
-			edge('e-response', 'llm-1', 'response', 'preview-1', 'text'),
+			edge('e-response', 'llm-1', 'response', 'preview-1', 'input'),
 		],
 	);
 };
@@ -364,7 +364,7 @@ export const fakeLlmPermissionAskTimeoutWorkflow = (): WorkflowSavePayload => {
 		],
 		[
 			edge('e-prompt', 'prompt-1', 'value', 'llm-1', 'userPrompt'),
-			edge('e-response', 'llm-1', 'response', 'preview-1', 'text'),
+			edge('e-response', 'llm-1', 'response', 'preview-1', 'input'),
 		],
 	);
 };

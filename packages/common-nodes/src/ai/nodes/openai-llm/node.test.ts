@@ -102,7 +102,7 @@ describe('common-openai-llm', () => {
 			fromNodeId: 'llm-1',
 			fromPort: ['response', 0],
 			toNodeId: 'preview-1',
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		const chunks: Array<{ portId: string; value: unknown }> = [];
@@ -537,6 +537,11 @@ describe('common-openai-llm', () => {
 			'deadLoopStructuralRunCap',
 		]);
 		expect(fields).not.toContain('tokenDelayMs');
+		expect(
+			openAiLlmNode.uiSchema.find(
+				(item) => item.field === 'compactOnError',
+			),
+		).toMatchObject({ default: true });
 		const maxIterations = openAiLlmNode.uiSchema.find(
 			(item) => item.field === 'maxIterations',
 		);

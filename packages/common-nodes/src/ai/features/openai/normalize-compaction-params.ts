@@ -30,8 +30,9 @@ export const normalizeContextSize = (value: unknown): number => {
 	return Math.min(MAX_CONTEXT_SIZE, Math.floor(n));
 };
 
+/** Missing means on. Only a stored `false` disables the retry. */
 export const normalizeCompactOnError = (value: unknown): boolean =>
-	value === true;
+	value === undefined ? true : value === true;
 
 export const normalizeCompactionConfig = (
 	params: Readonly<Record<string, unknown>>,

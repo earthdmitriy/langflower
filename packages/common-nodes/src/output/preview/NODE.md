@@ -7,16 +7,18 @@
 
 ## Summary
 
-Formats the wired `text` input as display string (JSON for objects) and
-emits it on `text` with `feed.role: result` (work log in `features/feed/`).
-Passthrough — downstream nodes still receive the formatted string.
+Shows a wired value on the canvas and in the work log. `output` passes the
+input through unchanged. `text` emits the display string (JSON for objects)
+with `feed.role: result` (work log in `features/feed/`).
 
 Live bind: `src/output/preview/node.ts`.
 
 ## Inputs
 
-`text` (any, required, inline: preview-markdown)
+`input` (dynamic, required, inline: preview-markdown)
 
 ## Outputs
 
-`text` (passthrough, `feed.role: result`)
+`output` (passthrough, type follows `input`)
+
+`text` (string, formatted display text, `feed.role: result`)

@@ -62,6 +62,11 @@ describe('common-critique', () => {
 		expect(fields).not.toContain('enabledToolIds');
 		expect(
 			critiqueNode.uiSchema.find(
+				(item) => item.field === 'compactOnError',
+			),
+		).toMatchObject({ default: true });
+		expect(
+			critiqueNode.uiSchema.find(
 				(item) => item.field === 'maxIterations',
 			),
 		).toMatchObject({

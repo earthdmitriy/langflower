@@ -2,17 +2,17 @@
 	"$schema": "../schemas/workflow.schema.json",
 	"metadata": {
 		"name": "Coding workflow",
-		"description": "North-star coding harness: Goal → Planner ⇄ Clarify + Red Team + Plan gate → Coder ⇄ QA + Review → Result HITL → Finish. Feedback loops are graph edges.",
+		"description": "Goal → Planner ⇄ Red Team → Approve plan → Coder ⇄ QA → Code review → Result review → Finish. Each accept output has one consumer.",
 		"createdAt": "2026-09-20T19:05:00.000Z",
-		"updatedAt": "2026-09-20T19:05:00.000Z"
+		"updatedAt": "2026-09-28T19:49:10.975Z"
 	},
 	"graph": {
 		"viewport": {
-			"x": 0,
-			"y": 0,
-			"scale": 0.55,
-			"width": 1600,
-			"height": 900
+			"x": -112.49553790332622,
+			"y": 172.65685698143756,
+			"scale": 0.6190298455000002,
+			"width": 1191.203125,
+			"height": 613.328125
 		},
 		"nodes": [
 			{
@@ -20,10 +20,13 @@
 				"type": "common-chat-input",
 				"params": {},
 				"inputs": {
-					"message": "Make a small, safe improvement in this project."
+					"message": "Read and implement spec.md"
 				},
 				"ui": {
-					"position": { "x": 40, "y": 280 },
+					"position": {
+						"x": 220,
+						"y": -80
+					},
 					"label": "Goal"
 				}
 			},
@@ -37,49 +40,30 @@
 					"maxFeedbackTurns": 4
 				},
 				"inputs": {
-					"systemPrompt": "You are the Planner for a coding change.\nExplore the repo with harness tools (read/glob/grep; limited .md writes).\nIf requirements are missing, ask one focused clarifying question in your response (Clarify will reply on feedback).\nWhen ready, emit a concise draft plan on response for red-team critique and the plan gate.\nWhen feedback arrives (clarify replies, red-team attack, plan-gate notes, or result-gate improve notes), revise the plan — do not ignore it."
+					"systemPrompt": "You are the Planner for a coding change.\nExplore the repo with harness tools (read/glob/grep).\nEmit a concise draft plan on response for red-team critique.\nWhen feedback arrives from Red Team or the plan gate, revise the plan — do not ignore it.\nDo not implement the change."
 				},
 				"ui": {
-					"position": { "x": 300, "y": 200 },
+					"position": {
+						"x": 440,
+						"y": 120
+					},
 					"label": "Planner"
 				}
 			},
 			{
-				"id": "ask",
-				"type": "common-hitl-review-gate",
-				"params": {},
-				"inputs": {},
-				"ui": {
-					"position": { "x": 560, "y": 40 },
-					"label": "Clarify"
-				}
-			},
-			{
 				"id": "red-team",
-				"type": "common-openai-llm",
+				"type": "common-critique",
 				"params": {
-					"rolePreset": "custom",
-					"includeAgentsMd": false,
-					"toolPermissions": {
-						"read": "allow",
-						"glob": "allow",
-						"grep": "allow",
-						"edit": "deny",
-						"write": "deny",
-						"create": "deny",
-						"delete": "deny",
-						"move": "deny",
-						"bash": "deny",
-						"ask_user": "deny"
-					},
-					"maxIterations": 6,
-					"maxFeedbackTurns": 0
+					"maxIterations": 6
 				},
 				"inputs": {
-					"systemPrompt": "You are an independent Planner red-team — not the Planner's co-author.\nYour userPrompt is the Planner's latest draft. Attack scope, missing tests, unsafe assumptions, and overclaim.\nBe hostile but specific. End with 2–4 bullet findings. Do not rubber-stamp."
+					"systemPrompt": "You are an independent red-team — not the Planner's co-author.\nAttack scope, missing tests, unsafe assumptions, and overclaim.\nCall feedback with 2–4 specific findings when the plan is not ready.\nCall accept only when further attack is non-blocking."
 				},
 				"ui": {
-					"position": { "x": 560, "y": 280 },
+					"position": {
+						"x": 700,
+						"y": 40
+					},
 					"label": "Red Team"
 				}
 			},
@@ -89,18 +73,11 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 560, "y": 520 },
+					"position": {
+						"x": 980,
+						"y": 500
+					},
 					"label": "Approve plan"
-				}
-			},
-			{
-				"id": "planner-feedback",
-				"type": "common-merge",
-				"params": {},
-				"inputs": {},
-				"ui": {
-					"position": { "x": 300, "y": 480 },
-					"label": "Planner feedback"
 				}
 			},
 			{
@@ -110,42 +87,34 @@
 					"rolePreset": "coder",
 					"includeAgentsMd": false,
 					"maxIterations": 10,
-					"maxFeedbackTurns": 3
+					"maxFeedbackTurns": 4
 				},
 				"inputs": {
-					"systemPrompt": "You receive an accepted plan as the user prompt. Implement with harness tools. Prefer minimal edits. Summarize files changed in your final response.\nWhen QA or Review feedback arrives, revise — do not ignore it."
+					"systemPrompt": "You receive an accepted plan. Implement with harness tools. Prefer minimal edits.\nWhen QA, Code review, or Result review send feedback, revise — do not ignore it."
 				},
 				"ui": {
-					"position": { "x": 860, "y": 200 },
+					"position": {
+						"x": 1180,
+						"y": 80
+					},
 					"label": "Coder"
 				}
 			},
 			{
 				"id": "qa",
-				"type": "common-openai-llm",
+				"type": "common-review",
 				"params": {
-					"rolePreset": "custom",
-					"includeAgentsMd": false,
-					"toolPermissions": {
-						"read": "allow",
-						"glob": "allow",
-						"grep": "allow",
-						"edit": "deny",
-						"write": "deny",
-						"create": "deny",
-						"delete": "deny",
-						"move": "deny",
-						"bash": "ask",
-						"ask_user": "deny"
-					},
-					"maxIterations": 8,
-					"maxFeedbackTurns": 0
+					"maxIterations": 6
 				},
 				"inputs": {
-					"systemPrompt": "You are the QA agent. Your userPrompt is the Coder's latest summary.\nRun project tests via bash when appropriate (respect permission.ask).\nReport pass/fail clearly. Be specific about failures so Coder can revise via feedback."
+					"task": "Tests must pass.",
+					"systemPrompt": "You are QA after the coder.\nAccept only if the result shows the tests pass.\nCall feedback with the failures otherwise. Do not implement the change."
 				},
 				"ui": {
-					"position": { "x": 1120, "y": 80 },
+					"position": {
+						"x": 1440,
+						"y": 40
+					},
 					"label": "QA"
 				}
 			},
@@ -156,21 +125,15 @@
 					"maxIterations": 5
 				},
 				"inputs": {
-					"systemPrompt": "You are principles / plan-fit Review after QA.\nCall accept only if the change matches the accepted plan and is non-blocking.\nCall feedback with concrete revision notes otherwise."
+					"task": "The change matches the goal and the plan the coder was given.",
+					"systemPrompt": "You are plan-fit review after QA accepted.\nCall accept only if the change matches that plan and is non-blocking.\nCall feedback with concrete revision notes otherwise. Do not implement."
 				},
 				"ui": {
-					"position": { "x": 1120, "y": 320 },
+					"position": {
+						"x": 1700,
+						"y": 40
+					},
 					"label": "Code review"
-				}
-			},
-			{
-				"id": "coder-feedback",
-				"type": "common-merge",
-				"params": {},
-				"inputs": {},
-				"ui": {
-					"position": { "x": 860, "y": 400 },
-					"label": "Coder feedback"
 				}
 			},
 			{
@@ -179,7 +142,10 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 1380, "y": 280 },
+					"position": {
+						"x": 1940,
+						"y": 500
+					},
 					"label": "Result review"
 				}
 			},
@@ -189,7 +155,10 @@
 				"params": {},
 				"inputs": {},
 				"ui": {
-					"position": { "x": 1620, "y": 280 },
+					"position": {
+						"x": 2160,
+						"y": 500
+					},
 					"label": "Finish"
 				}
 			}
@@ -203,60 +172,39 @@
 				"toPort": ["userPrompt", 0]
 			},
 			{
-				"edgeId": "e-planner-ask",
-				"fromNodeId": "planner",
-				"fromPort": ["response", 0],
-				"toNodeId": "ask",
-				"toPort": ["result", 0]
-			},
-			{
-				"edgeId": "e-ask-planner-merge",
-				"fromNodeId": "ask",
-				"fromPort": ["feedback", 0],
-				"toNodeId": "planner-feedback",
-				"toPort": ["value", 0]
+				"edgeId": "e-goal-redteam-assignment",
+				"fromNodeId": "goal",
+				"fromPort": ["message", 0],
+				"toNodeId": "red-team",
+				"toPort": ["assignment", 0]
 			},
 			{
 				"edgeId": "e-planner-redteam",
 				"fromNodeId": "planner",
 				"fromPort": ["response", 0],
 				"toNodeId": "red-team",
-				"toPort": ["userPrompt", 0]
+				"toPort": ["packet", 0]
 			},
 			{
-				"edgeId": "e-redteam-planner-merge",
+				"edgeId": "e-redteam-planner-feedback",
 				"fromNodeId": "red-team",
-				"fromPort": ["response", 0],
-				"toNodeId": "planner-feedback",
-				"toPort": ["value", 1]
+				"fromPort": ["feedback", 0],
+				"toNodeId": "planner",
+				"toPort": ["feedback", 0]
 			},
 			{
-				"edgeId": "e-planner-plangate",
-				"fromNodeId": "planner",
+				"edgeId": "e-redteam-plangate",
+				"fromNodeId": "red-team",
 				"fromPort": ["response", 0],
 				"toNodeId": "plan-gate",
 				"toPort": ["result", 0]
 			},
 			{
-				"edgeId": "e-plangate-planner-merge",
+				"edgeId": "e-plangate-planner-feedback",
 				"fromNodeId": "plan-gate",
 				"fromPort": ["feedback", 0],
-				"toNodeId": "planner-feedback",
-				"toPort": ["value", 2]
-			},
-			{
-				"edgeId": "e-resultgate-planner-merge",
-				"fromNodeId": "result-gate",
-				"fromPort": ["feedback", 0],
-				"toNodeId": "planner-feedback",
-				"toPort": ["value", 3]
-			},
-			{
-				"edgeId": "e-planner-merge-feedback",
-				"fromNodeId": "planner-feedback",
-				"fromPort": ["value", 0],
 				"toNodeId": "planner",
-				"toPort": ["feedback", 0]
+				"toPort": ["feedback", 1]
 			},
 			{
 				"edgeId": "e-plangate-coder",
@@ -266,25 +214,18 @@
 				"toPort": ["userPrompt", 0]
 			},
 			{
-				"edgeId": "e-plangate-review-task",
-				"fromNodeId": "plan-gate",
-				"fromPort": ["response", 0],
-				"toNodeId": "review",
-				"toPort": ["task", 0]
-			},
-			{
 				"edgeId": "e-coder-qa",
 				"fromNodeId": "coder",
 				"fromPort": ["response", 0],
 				"toNodeId": "qa",
-				"toPort": ["userPrompt", 0]
+				"toPort": ["result", 0]
 			},
 			{
-				"edgeId": "e-qa-coder-merge",
+				"edgeId": "e-qa-coder-feedback",
 				"fromNodeId": "qa",
-				"fromPort": ["response", 0],
-				"toNodeId": "coder-feedback",
-				"toPort": ["value", 0]
+				"fromPort": ["feedback", 0],
+				"toNodeId": "coder",
+				"toPort": ["feedback", 0]
 			},
 			{
 				"edgeId": "e-qa-review",
@@ -294,18 +235,11 @@
 				"toPort": ["result", 0]
 			},
 			{
-				"edgeId": "e-review-coder-merge",
+				"edgeId": "e-review-coder-feedback",
 				"fromNodeId": "review",
 				"fromPort": ["feedback", 0],
-				"toNodeId": "coder-feedback",
-				"toPort": ["value", 1]
-			},
-			{
-				"edgeId": "e-coder-merge-feedback",
-				"fromNodeId": "coder-feedback",
-				"fromPort": ["value", 0],
 				"toNodeId": "coder",
-				"toPort": ["feedback", 0]
+				"toPort": ["feedback", 1]
 			},
 			{
 				"edgeId": "e-review-resultgate",
@@ -313,6 +247,13 @@
 				"fromPort": ["response", 0],
 				"toNodeId": "result-gate",
 				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "e-resultgate-coder-feedback",
+				"fromNodeId": "result-gate",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "coder",
+				"toPort": ["feedback", 2]
 			},
 			{
 				"edgeId": "e-resultgate-done",

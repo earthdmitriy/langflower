@@ -43,7 +43,7 @@
 				"fromNodeId": "string-1",
 				"fromPort": ["value", 0],
 				"toNodeId": "preview-1",
-				"toPort": ["text", 0]
+				"toPort": ["input", 0]
 			}
 		]
 	}

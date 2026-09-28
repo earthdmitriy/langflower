@@ -480,18 +480,19 @@ See [REACTIVE_NODES.md](../REACTIVE_NODES.md).
 
 **Category:** Output · **Mode:** batch · **Status:** done
 
-Sink node for inspecting wired values on the canvas and in the work log. Accepts
-**any** wire type on input; output is always a **display string** (JSON for
-objects).
+Sink node for inspecting wired values on the canvas and in the work log. The
+input accepts **any** wire type. `output` passes that value through. `text`
+is the display string (JSON for objects).
 
-| Direction | Port   | Type   | Notes                                                           |
-| --------- | ------ | ------ | --------------------------------------------------------------- |
-| In        | `text` | any    | required; `inline: 'preview'`                                   |
-| Out       | `text` | string | formatted display text; `passthroughFrom` for connection typing |
+| Direction | Port     | Type          | Notes                                       |
+| --------- | -------- | ------------- | ------------------------------------------- |
+| In        | `input`  | dynamic       | required; `inline: 'preview-markdown'`      |
+| Out       | `output` | `from(input)` | same value as `input`                       |
+| Out       | `text`   | string        | formatted display text; `feed.role: result` |
 
-**UI:** read-only preview box on the `text` input port row shows the last
+**UI:** read-only preview box on the `input` port row shows the last
 value received during execution (`runner.port`, direction `'in'`). Work log mirrors
-completed preview output as an assistant message.
+the formatted `text` output as an assistant message.
 
 **Use cases:**
 

@@ -145,7 +145,7 @@ describe('customPalette hot-swap (WS)', () => {
 						'custom-1',
 						'trigger',
 					),
-					edge('e-out', 'custom-1', 'out', 'preview-1', 'text'),
+					edge('e-out', 'custom-1', 'out', 'preview-1', 'input'),
 				],
 			),
 		);
@@ -221,7 +221,7 @@ describe('customPalette hot-swap (WS)', () => {
 						'custom-1',
 						'trigger',
 					),
-					edge('e-extra', 'custom-1', 'extra', 'preview-1', 'text'),
+					edge('e-extra', 'custom-1', 'extra', 'preview-1', 'input'),
 				],
 			),
 		);

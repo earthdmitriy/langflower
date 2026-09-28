@@ -14,6 +14,6 @@ export const llmCompactionUiSchema = [
 		field: 'compactOnError',
 		type: 'boolean',
 		label: 'Compact on context error',
-		default: false,
+		default: true,
 	},
 ] as const;

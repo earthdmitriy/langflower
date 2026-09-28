@@ -57,7 +57,7 @@ the accept/feedback fork, not a yes/no stub. Sub-Agent specialists wire into
 | `skillId`        | select  | —        | optional skill markdown                             |
 | `maxIterations`  | number  | `5`      | caps non-compliant completions (`0` = unlimited)    |
 | `contextSize`    | number  | `200000` | approx input token budget; shared OpenAI compaction |
-| `compactOnError` | boolean | `false`  | retry once after context-length create error        |
+| `compactOnError` | boolean | `true`   | retry once after context-length create error        |
 
 ## Forced tools (Review-private)
 

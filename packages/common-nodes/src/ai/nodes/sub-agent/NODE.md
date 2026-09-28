@@ -28,7 +28,7 @@ own `providerId` / `model` / `contextSize` — no separate body LLM.
 | ----------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | `name` / `description` / `skillIds` | text / multiselect                                                            | Handle `name` is `{name}(subagent)`; `toolId` is the slug (`Explorer_subagent`)    |
 | LLM panel                           | provider / model / role / skill / Include root AGENTS.md / tools / iterations | Same as OpenAI LLM                                                                 |
-| Compaction                          | `contextSize` / `compactOnError`                                              | Same as OpenAI LLM                                                                 |
+| Compaction                          | `contextSize` / `compactOnError`                                              | Same as OpenAI LLM (`compactOnError` defaults to `true`)                           |
 | Recovery                            | including `subagentTimeoutMs`                                                 | `0` = unlimited (default). Optional wall-clock; stuck specialists use LLM recovery |
 
 CI Fake path may set param `scriptedToolTurns` (not Inspector) — same scripted

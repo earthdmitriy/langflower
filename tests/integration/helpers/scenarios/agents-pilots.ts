@@ -250,7 +250,7 @@ export const basicCoderWorkflow = (): WorkflowSavePayload => {
 		[
 			edge('e-goal-plan', 'goal', 'message', 'plan', 'userPrompt'),
 			edge('e-plan-coder', 'plan', 'response', 'coder', 'userPrompt'),
-			edge('e-coder-summary', 'coder', 'response', 'summary', 'text'),
+			edge('e-coder-summary', 'coder', 'response', 'summary', 'input'),
 		],
 	);
 };
@@ -674,7 +674,7 @@ export const chatInputMultiTurnWorkflow = (): WorkflowSavePayload => {
 			edge('e-chat-llm', 'chat', 'message', 'llm', 'userPrompt'),
 			edge('e-llm-ask', 'llm', 'response', 'ask', 'result'),
 			edge('e-ask-feedback', 'ask', 'feedback', 'llm', 'feedback'),
-			edge('e-llm-preview', 'llm', 'response', 'preview', 'text'),
+			edge('e-llm-preview', 'llm', 'response', 'preview', 'input'),
 		],
 	);
 };
@@ -750,7 +750,7 @@ export const researchFanoutWorkflow = (): WorkflowSavePayload => {
 				'loop',
 				'bodyResult',
 			),
-			edge('e-loop-preview', 'loop', 'results', 'packets', 'text'),
+			edge('e-loop-preview', 'loop', 'results', 'packets', 'input'),
 			edge('e-loop-synth', 'loop', 'results', 'synth', 'userPrompt'),
 			edge('e-synth-conflict', 'synth', 'response', 'conflict', 'result'),
 			edge(
@@ -829,7 +829,7 @@ export const agentSwarmWorkflow = (): WorkflowSavePayload => {
 				'main',
 				'tools',
 			),
-			edge('e-out', 'main', 'response', 'out', 'text'),
+			edge('e-out', 'main', 'response', 'out', 'input'),
 		],
 	);
 };

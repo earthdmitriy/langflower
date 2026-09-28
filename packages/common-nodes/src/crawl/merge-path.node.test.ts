@@ -113,7 +113,7 @@ describe('crawl + merge path', () => {
 			fromNodeId: 'merge-1',
 			fromPort: ['value', 0],
 			toNodeId: 'preview-1',
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		const merged: string[] = [];

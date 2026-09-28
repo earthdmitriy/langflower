@@ -50,7 +50,7 @@ const edge = (edgeId: string): RuntimeEdge => ({
 	fromNodeId: 'chat' as NodeId,
 	fromPort: ['message', 0],
 	toNodeId: 'preview' as NodeId,
-	toPort: ['text', 0],
+	toPort: ['input', 0],
 });
 
 describe('createLiveGraph$', () => {

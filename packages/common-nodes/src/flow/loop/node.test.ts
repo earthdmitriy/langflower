@@ -113,7 +113,7 @@ describe('common-loop', () => {
 			fromNodeId: 'loop',
 			fromPort: ['results', 0],
 			toNodeId: 'preview',
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		const itemsSeen: string[] = [];
@@ -191,7 +191,7 @@ describe('common-loop', () => {
 			fromNodeId: 'loop',
 			fromPort: ['results', 0],
 			toNodeId: 'preview',
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		const previewPromise = firstValueFrom(

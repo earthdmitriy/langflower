@@ -69,7 +69,7 @@ describe('common-chat-input', () => {
 			fromNodeId: 'chat-1',
 			fromPort: ['message', 0],
 			toNodeId: 'preview-1',
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		const previewPromise = firstValueFrom(
@@ -118,7 +118,7 @@ describe('common-chat-input', () => {
 			fromNodeId: 'chat-1',
 			fromPort: ['message', 0],
 			toNodeId: 'preview-1',
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		expect(runtime.runner.start()).toBe(false);

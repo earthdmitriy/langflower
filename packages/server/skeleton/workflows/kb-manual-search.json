@@ -91,7 +91,7 @@
 				"fromNodeId": "search",
 				"fromPort": ["text", 0],
 				"toNodeId": "preview",
-				"toPort": ["text", 0]
+				"toPort": ["input", 0]
 			},
 			{
 				"edgeId": "e-search-done",

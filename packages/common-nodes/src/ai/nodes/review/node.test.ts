@@ -66,6 +66,9 @@ describe('common-review', () => {
 		);
 		expect(fields).not.toContain('enabledToolIds');
 		expect(
+			reviewNode.uiSchema.find((item) => item.field === 'compactOnError'),
+		).toMatchObject({ default: true });
+		expect(
 			reviewNode.uiSchema.find((item) => item.field === 'maxIterations'),
 		).toMatchObject({
 			label: 'Tool-loop max iterations per feedback turn (0 = unlimited)',

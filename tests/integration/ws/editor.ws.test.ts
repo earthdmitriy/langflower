@@ -85,7 +85,7 @@ describe('editor bus (WS bridge)', () => {
 			fromNodeId: src!.id,
 			fromPort: ['value', 0],
 			toNodeId: sink!.id,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		expect(delta).toHaveLength(1);
@@ -117,7 +117,7 @@ describe('editor bus (WS bridge)', () => {
 			fromNodeId: srcA!.id,
 			fromPort: ['value', 0],
 			toNodeId: preview!.id,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 		await emitEditorAddEdge(client, {
 			fromNodeId: preview!.id,
@@ -143,7 +143,7 @@ describe('editor bus (WS bridge)', () => {
 			fromNodeId: srcB!.id,
 			fromPort: ['value', 0],
 			toNodeId: preview!.id,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		const [removed, added] = await Promise.all([removeDelta$, addDelta$]);
@@ -222,7 +222,7 @@ describe('editor bus (WS bridge)', () => {
 					fromClientId: 'paste-src',
 					fromPort: ['value', 0],
 					toClientId: 'paste-sink',
-					toPort: ['text', 0],
+					toPort: ['input', 0],
 				},
 			],
 		});
@@ -259,7 +259,7 @@ describe('editor bus (WS bridge)', () => {
 			fromNodeId: src!.id,
 			fromPort: ['value', 0],
 			toNodeId: sink!.id,
-			toPort: ['text', 0],
+			toPort: ['input', 0],
 		});
 
 		const delta = await emitEditorRemoveEdge(client, addedEdge!.edgeId);

@@ -30,7 +30,7 @@ Agent-to-agent dialogue is just another graph pattern.
 
 Connect one agent's output to another agent's input. Add feedback paths when the second agent needs to challenge or refine the first.
 
-![Planner and Red Team agents with a feedback path between them](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/Example4.png)
+![Planner and Red Team agents with a feedback path between them](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/plan-red-team.png)
 
 There is no special "multi-agent mode".
 
@@ -58,7 +58,7 @@ Don't ask an agent to certify its own work.
 
 Put the check in the graph.
 
-![Agent response routed through a review gate, with feedback returning to the agent](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/Example2.png)
+![Agent response routed through a review gate, with feedback returning to the agent](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/gate.png)
 
 A check can:
 
@@ -79,7 +79,7 @@ Graphs don't have to be linear.
 
 A workflow can fan out into several independent pieces of work and later merge their results.
 
-![Question fanning out to Docs, Risks, and Alternatives, then merging through Concat](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/Example6.png)
+![Question fanning out to Docs, Risks, and Alternatives, then merging through Concat](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/fan-out.png)
 
 **Parallel work is a graph, too.**
 
@@ -91,7 +91,7 @@ Don't give every agent every tool.
 
 Give each stage the capabilities it needs.
 
-![Planner limited to read-only tools, then a Coder with write and shell access](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/Example5.png)
+![Plan wired to RO tools, then after Review a Coder wired to Write tools](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/permission.png)
 
 A planning agent can inspect a project without being allowed to modify it.
 
@@ -116,7 +116,7 @@ The same primitives can be combined into a complete development workflow:
 - parallel work;
 - controlled capabilities.
 
-![Coding workflow from a goal through planning, coding, tests, review, and finish](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/Example5.png)
+![Coding workflow from a goal through Planner, Red Team, Coder, QA, review, and Finish](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/coding_agent.png)
 
 The graph remains the same abstraction whether the workflow has three nodes or thirty.
 
@@ -128,7 +128,7 @@ The graph is not just where you design the workflow.
 
 **It's where you watch it run.**
 
-![Running Starter workflow: green and yellow edges beside the Work log](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/Example3.png)
+![Running Starter workflow: green and yellow edges beside the Work log](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/feed.png)
 
 ### See execution on the graph
 
@@ -158,7 +158,7 @@ Its output ports can represent different event streams:
 
 As the agent runs, those events can appear in the Work log as they happen.
 
-![Work log showing chat input, reasoning, and the agent response](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/Example1.png)
+![Helper streaming reasoning in the Work log, with reasoning, draftResponse, toolLog, and response on the node](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/events.png)
 
 This makes intermediate work observable without turning it into a separate tracing system.
 
@@ -172,7 +172,7 @@ Inspect it.
 
 Any connection can be routed through a Preview node to see the payload of the event flowing through it.
 
-![Review gate previewing the result, with the same message visible in the Work log](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/Example2.png)
+![Preview node showing the Langflower Tools payload, with the same value in the Work log](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/inspect.png)
 
 This is useful when building and debugging workflows:
 
@@ -190,7 +190,7 @@ The Work log is not just a text stream detached from the canvas.
 
 Hover an event in the Work log and Langflower highlights the node that produced the event.
 
-![Work log events beside the Helper node that produced them](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/Example3.png)
+![Work log research highlighted on the Fan-out branch that produced it](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/highlight.png)
 
 You can move from:
 

@@ -478,7 +478,7 @@ Preview (`common-preview`) is not special-cased in the template — it renders
 through the generic `inputPortRows` / `lf-node-port-row` path like every other
 node:
 
-- Input `text` has `inline: 'preview-markdown'` — `lf-inline-field` runs
+- Input `input` has `inline: 'preview-markdown'` — `lf-inline-field` runs
   `renderMarkdown` on the live value (plain `'preview'` / `'preview-code'`
   still exist for other nodes). Preview kinds are never `disabled` since
   there is nothing to edit.

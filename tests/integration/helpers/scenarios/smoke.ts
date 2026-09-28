@@ -24,7 +24,7 @@ export const bootstrapExampleWorkflow = (): WorkflowSavePayload => {
 			stringNode('string-1', 'Hello Langflower', { x: 0, y: 0 }),
 			previewNode('preview-1', { x: 240, y: 0 }),
 		],
-		[edge('e1', 'string-1', 'value', 'preview-1', 'text')],
+		[edge('e1', 'string-1', 'value', 'preview-1', 'input')],
 	);
 };
 
@@ -39,7 +39,7 @@ export const stringPreviewWorkflow = (
 			stringNode('string-1', value, { x: 0, y: 0 }),
 			previewNode('preview-1', { x: 240, y: 0 }),
 		],
-		[edge('e1', 'string-1', 'value', 'preview-1', 'text')],
+		[edge('e1', 'string-1', 'value', 'preview-1', 'input')],
 	);
 };
 
@@ -52,7 +52,7 @@ export const stringPreviewOpenRunWorkflow = (): WorkflowSavePayload => {
 			stringNode('string-1', 'running', { x: 0, y: 0 }),
 			previewNode('preview-1', { x: 240, y: 0 }),
 		],
-		[edge('e1', 'string-1', 'value', 'preview-1', 'text')],
+		[edge('e1', 'string-1', 'value', 'preview-1', 'input')],
 	);
 };
 
@@ -86,7 +86,7 @@ export const delayPreviewWorkflow = (): WorkflowSavePayload => {
 		],
 		[
 			edge('edge-1', 'string-1', 'value', 'delay-1', 'value'),
-			edge('edge-2', 'delay-1', 'value', 'preview-1', 'text'),
+			edge('edge-2', 'delay-1', 'value', 'preview-1', 'input'),
 		],
 	);
 };
@@ -119,7 +119,7 @@ export const checkpointResumeWorkflow = (): WorkflowSavePayload => {
 		],
 		[
 			edge('e-source-a', 'source', 'value', 'stage-a', 'value'),
-			edge('e-a-preview', 'stage-a', 'value', 'preview-a', 'text'),
+			edge('e-a-preview', 'stage-a', 'value', 'preview-a', 'input'),
 			edge(
 				'e-preview-checkpoint',
 				'preview-a',
@@ -128,7 +128,7 @@ export const checkpointResumeWorkflow = (): WorkflowSavePayload => {
 				'value',
 			),
 			edge('e-checkpoint-b', 'checkpoint-a', 'value', 'stage-b', 'value'),
-			edge('e-b-preview', 'stage-b', 'value', 'preview-b', 'text'),
+			edge('e-b-preview', 'stage-b', 'value', 'preview-b', 'input'),
 			edge('e-preview-finish', 'preview-b', 'text', 'finish', 'value'),
 		],
 	);
@@ -154,7 +154,7 @@ export const hardHarnessAssertIfWorkflow = (): WorkflowSavePayload => {
 			edge('e-val-assert', 'value-1', 'value', 'assert-1', 'value'),
 			edge('e-assert-if-val', 'assert-1', 'value', 'if-1', 'value'),
 			edge('e-cond-if', 'cond-1', 'value', 'if-1', 'condition'),
-			edge('e-if-preview', 'if-1', 'true', 'preview-1', 'text'),
+			edge('e-if-preview', 'if-1', 'true', 'preview-1', 'input'),
 		],
 	);
 };

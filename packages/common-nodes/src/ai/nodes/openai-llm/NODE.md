@@ -82,7 +82,7 @@ normal `ToolHandle` (epic 41). Do **not** look for `spawn_subagent` ports.
 | `maxIterations`    | number                | `100`    | caps internal tool-loop rounds **per feedback turn** (`0` = unlimited; no hard product ceiling)                              |
 | `maxFeedbackTurns` | number                | `50`     | max feedback turns after turn 0; `0` = unlimited; further feedback → continue HITL ask (Deny → `toolLog` + `response` error) |
 | `contextSize`      | number                | `200000` | approx input token budget (`chars/4` of messages+tools); `0` disables proactive compaction                                   |
-| `compactOnError`   | boolean               | `false`  | on context-length create error: force-compact once and retry before failing                                                  |
+| `compactOnError`   | boolean               | `true`   | on context-length create error: force-compact once and retry before failing                                                  |
 
 Selecting a role preset materializes `toolPermissions` (Inspector). Runtime
 permission posture overlays project `permission` per role. Merge rules:

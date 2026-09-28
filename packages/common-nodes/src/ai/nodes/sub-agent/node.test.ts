@@ -93,6 +93,11 @@ describe('common-sub-agent', () => {
 			]),
 		);
 		expect(fields).not.toContain('tokenDelayMs');
+		expect(
+			subAgentNode.uiSchema.find(
+				(item) => item.field === 'compactOnError',
+			),
+		).toMatchObject({ default: true });
 	});
 
 	it('announces Inspector skills on the tools handle and invoke runs chat', async () => {
