@@ -13,6 +13,12 @@ Each `*.ts` file may `export default` a definition or an array. No required
 Langflower does **not** auto-install on start, bootstrap, or palette reload.
 Startup **does** compile packs under `.langflower/nodes/`.
 
+Port OpenCode / CLI `.mjs` tools into pack TypeScript (`defineToolRegistrations`)
+and compile — do **not** spawn `node` on a leftover sidecar (that breaks when
+the pack is copied). **Do** wrap named scripts from the project root or a
+monorepo workspace `package.json` as tools (`npm run <script>`, allowlisted
+literal, no `start` / `dev` / watch) so the agent does not need bash.
+
 If pack files `import` each other with a **`.ts` suffix**, set
 `"allowImportingTsExtensions": true` next to `"noEmit": true` in the pack
 `tsconfig.json` (hello-embed seed). Without it the pack does not compile.

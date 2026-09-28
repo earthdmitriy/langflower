@@ -28,8 +28,9 @@ its own `package.json`.
 Rules:
 
 - **One pack = one folder** with its own `package.json`.
-- **No required `index.ts`.** Each `*.ts` / `*.tsx` may `export default` a node
+- **No required `index.ts`.** Each `*.ts` may `export default` a node
   definition or an array of definitions. Langflower discovers those defaults.
+  Custom nodes are not React — do not author `.tsx`.
 - Skip `*.test.ts`, `*.d.ts`, `dist/`, and `node_modules/` when scanning.
 - Import from **`@langflower/node-sdk`** directly — not from a root
   `nodes/types.ts`.
@@ -126,6 +127,23 @@ Wire the node’s **`tools`** output into an LLM / agent **`tools`** input. The
 model calls `git_diff` on demand (optional `path` scopes the diff). Prefer this
 over `defineNode` when the value should be inventory for the tool loop, not a
 graph wire.
+
+### Common mistake: wrapping a `.mjs` CLI instead of compiling TypeScript
+
+**Wrong:** keep `tool.mjs` and have `handler` spawn `node path/to/tool.mjs`
+(`__dirname`, `import.meta.url`, or a hardcoded path). Only `*.ts` is a pack
+entry. Copying the pack without that sidecar breaks the tool.
+
+**Right:** port the script into TypeScript in this pack (helpers in `lib/` with
+`from './lib/x.ts'` plus `allowImportingTsExtensions` if needed) so compile
+bundles it. The original `.mjs` is not a runtime dependency of the node.
+
+**Exception:** wrap named scripts from the **project root** or a **monorepo
+workspace** `package.json` as tools (`npm run <script>`, allowlisted literal,
+`cwd` under `ctx.projectDir`). Prefer that over granting bash. Do not register
+hanging scripts (`start`, `dev`, `test:watch`). Seed `review-gate.ts` wraps
+`npm run test` this way. Host `git` via `child_process` is also OK
+(`git-diff-tool.ts`).
 
 ### Common mistake: `defineNode` for `ok` / `fail` gates
 

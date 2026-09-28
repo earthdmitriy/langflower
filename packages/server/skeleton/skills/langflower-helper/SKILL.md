@@ -370,6 +370,10 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
   are extra packs (no jsonc registration).
   LLM tool `handler`s return short **strings** (expected failures as text,
   not throws). Do not dump raw subprocess logs at the model.
+  Wrap named scripts from the project root or a monorepo workspace
+  `package.json` as `ToolHandle`s (`npm run <script>`, allowlisted literal,
+  no hangers) so the agent uses tools instead of bash. Seed `review-gate`
+  wraps `npm run test` this way.
   Exclusive `ok` / `fail` gates are **`defineReactiveNode`**. Seed
   `review-gate` uses a boolean **pulse** on `ok`. If the next stage needs
   the original payload, `ok` **passthroughs `trigger`** (`inferTypeFrom`)
@@ -379,7 +383,9 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
   (Stop / done / Start) until the user loads another workflow or shuts down
   Langflower — not the same as Checkpoint resume after process kill.
 - **Cannot:** Plain JS as the authoring path, Go, Python, or other languages.
-  Server auto-install. Sandboxed arbitrary user-node execution as shipped.
+  Wrap OpenCode/CLI `.mjs` by spawning `node` on a sidecar file (not
+  TypeScript authoring; pack is not portable — port into pack `.ts` and
+  compile). Server auto-install. Sandboxed arbitrary user-node execution as shipped.
   Ambient compile without Langflower Tools wired. Canvas add/remove node or
   edge tools (not shipped). Claim that every node always resets on Stop, or
   that in-memory node state survives process restart without Checkpoints.
@@ -391,7 +397,11 @@ When the user asks to “create a project wiki”, “build a knowledge base”,
 
 When the user asks to add or change a custom node from this starter chat:
 
-1. Call Writer (or edit `.langflower/nodes/<pack>/*.ts` yourself).
+1. Call Writer (or edit `.langflower/nodes/<pack>/*.ts` yourself). When
+   converting OpenCode / CLI `.mjs` tools, **port the logic into pack `.ts`**
+   and compile — do **not** keep a sidecar and spawn `node` on it. When they
+   ask for safe project commands, wrap `package.json` scripts as tools
+   (`npm run <script>`) instead of granting bash.
 2. Call **`compile_custom_nodes`** (no args). Report `status` / `nodeTypes` /
    `errors` from the tool text. Pack failures also write
    `COMPILATION_ERRORS.md`. If tsc rejects `.ts` import paths, add
