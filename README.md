@@ -44,9 +44,9 @@ Start with an agent. Then add the capabilities your workflow needs.
 
 Skills, tools, and specialized sub-agents can become parts of the same graph.
 
-![Langflower starter workflow](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/starter.png)
+![Crawl, Langflower, Memory, and MCP tools plus a sub-agent on one agent, with a chat loop and tool permissions open](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/capabilities.png)
 
-The default Starter workflow gives a project an onboarding agent plus a Writer sub-agent for workflows and custom nodes.
+Tools live on the graph too. Wire a pack, an MCP server, or a sub-agent only to the agent that needs it.
 
 The graph grows without changing the basic execution model.
 

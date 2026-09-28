@@ -54,27 +54,29 @@ flowchart LR
 
 ## Add capabilities
 
-1. **Purpose.** The default Starter, with room to add capabilities. Skills, tools, and a Writer sub-agent on one graph. The palette is part of this frame.
+1. **Purpose.** Start with an agent, then add tool packs, MCP, and a sub-agent on the same graph. A chat loop sends feedback back. The inspector shows each tool's permission.
 
 2. **Diagram.**
 
 ```mermaid
 flowchart LR
-  Tools["Langflower Tools"] --> Helper
-  Tools --> Writer
-  Ask --> Helper
-  Writer -->|subagent| Helper
-  Helper --> Review
-  Review -->|feedback| Helper
+  Crawl["Crawl Tools"] --> Agent
+  Langflower["Langflower Tools"] --> Agent
+  Mcp["MCP stdio"] --> Agent
+  Memory["Memory Tools"] --> Agent
+  Sub["Sub-Agent"] --> Agent
+  Chat["common-chat-input"] --> Agent
+  Agent --> Loop["common-chat-loop"]
+  Loop -->|feedback| Agent
 ```
 
-3. **Screenshot.** [starter.png](starter.png)
+3. **Screenshot.** [capabilities.png](capabilities.png)
 
-4. **Workflow.** [demo-project/.langflower/workflows/starter.json](../../demo-project/.langflower/workflows/starter.json)
+4. **Workflow.** Title bar says Capabilities: [demo-project/.langflower/workflows/capabilities.json](../../demo-project/.langflower/workflows/capabilities.json). The saved file is still chat, agent, and finish.
 
 5. **Status.**
-    - Active: Ask to Helper to Review is green. Review is waiting. Writer is on the canvas and not in the run.
-    - Feed: user "hi", a Helper greeting, then Approve / Send feedback. No tool call and no Writer turn.
+    - Active: nothing. Edges are idle. Crawl Tools, Langflower Tools, MCP stdio (`npx ts-scan --mcp`), Memory Tools, and a Sub-Agent are wired into the agent. The agent response goes to Chat loop, and feedback returns.
+    - Feed: the inspector shows tool permissions, all set to allow, plus Enabled MCP. The composer shows "hi".
 
 6. **Ready.** ok
 

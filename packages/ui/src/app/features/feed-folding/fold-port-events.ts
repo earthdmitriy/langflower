@@ -17,12 +17,12 @@ import type {
 } from '@langflower/shared/types/langflower-config';
 import { combineLatest, merge, type Observable } from 'rxjs';
 import {
-	distinctUntilChanged,
 	map,
 	scan,
 	shareReplay,
 	startWith,
 	switchMap,
+	take,
 } from 'rxjs/operators';
 import {
 	catalogSwitchedDocument,
@@ -576,17 +576,21 @@ const composeFeedProjection = (
 	);
 
 	return merge(
-		combineLatest([sources.executionFeedSnapshot$, catalog$]).pipe(
-			distinctUntilChanged((prev, next) => prev[0] === next[0]),
-			map(([snapshot, catalog]): FeedComposerAction =>
-				snapshot === null
-					? { type: 'clear' }
-					: {
-							type: 'snapshot',
-							events: snapshot.events,
-							runId: snapshot.runId,
-							catalog,
-						},
+		sources.executionFeedSnapshot$.pipe(
+			switchMap((snapshot) =>
+				catalog$.pipe(
+					take(1),
+					map((catalog): FeedComposerAction =>
+						snapshot === null
+							? { type: 'clear' }
+							: {
+									type: 'snapshot',
+									events: snapshot.events,
+									runId: snapshot.runId,
+									catalog,
+								},
+					),
+				),
 			),
 		),
 		catalog$.pipe(

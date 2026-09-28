@@ -66,6 +66,20 @@ describe('ExecutionFeedService replay', () => {
 		expect(harness.latestNodes()).toEqual([]);
 	});
 
+	it('clears live rows when a second null snapshot arrives', () => {
+		const harness = createExecutionFeedHarness();
+		harness.raw.executionFeedSnapshot$.next(null);
+		harness.seedCatalog({ 'agent-a': 'agent' }, [agent]);
+		harness.raw.runnerPort$.next(outputEvent('agent-a', 'draft', 'live'));
+
+		expect(harness.latestNodes().map((node) => node.nodeId)).toEqual([
+			'agent-a',
+		]);
+
+		harness.raw.executionFeedSnapshot$.next(null);
+		expect(harness.latestNodes()).toEqual([]);
+	});
+
 	it('keeps the same graph node in different runs separate', () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ 'agent-a': 'agent' }, [agent], {

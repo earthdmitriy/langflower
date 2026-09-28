@@ -4,15 +4,15 @@
 		"name": "Starter",
 		"description": "Chat loop with an onboarding agent (skill langflower-helper) plus a Writer Sub-Agent (workflow-writer + node-writer). After bootstrap — product capabilities, workflows, editor chrome, and custom nodes.",
 		"createdAt": "2026-07-24T00:00:00.000Z",
-		"updatedAt": "2026-09-20T18:54:53.078Z"
+		"updatedAt": "2026-09-28T20:55:37.954Z"
 	},
 	"graph": {
 		"viewport": {
-			"x": 311.46661376953125,
-			"y": -193.0666961669922,
+			"x": 336.53314208984375,
+			"y": -179.7333221435547,
 			"scale": 0.85,
-			"width": 1015.390625,
-			"height": 661.328125
+			"width": 1088.453125,
+			"height": 676.265625
 		},
 		"nodes": [
 			{
@@ -22,8 +22,8 @@
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": -220,
-						"y": 500
+						"x": -200,
+						"y": 620
 					},
 					"label": "Langflower Tools"
 				}
@@ -33,7 +33,7 @@
 				"type": "common-chat-input",
 				"params": {},
 				"inputs": {
-					"message": "Can you write custom node for me?"
+					"message": "Do you have tools to fetch web pages?"
 				},
 				"ui": {
 					"position": {
@@ -109,34 +109,39 @@
 				},
 				"ui": {
 					"position": {
-						"x": -20,
-						"y": 660
+						"x": 20,
+						"y": 800
 					},
-					"label": "Writer"
+					"label": "Writer subagent"
 				}
 			},
 			{
-				"id": "review",
-				"type": "common-hitl-review-gate",
+				"id": "90c55570-13fa-438e-8e92-7de715b792cc",
+				"type": "common-crawl-tools",
 				"params": {},
 				"inputs": {},
 				"ui": {
 					"position": {
-						"x": 500,
-						"y": 800
+						"x": -198.43125287224265,
+						"y": 473.33335876464844
 					},
-					"label": "Review"
+					"label": "Crawl tools"
+				}
+			},
+			{
+				"id": "d53025a7-e006-4396-a803-c55681713c32",
+				"type": "common-chat-loop",
+				"params": {},
+				"inputs": {},
+				"ui": {
+					"position": {
+						"x": 520,
+						"y": 800
+					}
 				}
 			}
 		],
 		"edges": [
-			{
-				"edgeId": "e-compile-helper",
-				"fromNodeId": "compile",
-				"fromPort": ["tools", 0],
-				"toNodeId": "helper",
-				"toPort": ["tools", 0]
-			},
 			{
 				"edgeId": "e-compile-writer",
 				"fromNodeId": "compile",
@@ -152,25 +157,39 @@
 				"toPort": ["userPrompt", 0]
 			},
 			{
-				"edgeId": "e-helper-review",
-				"fromNodeId": "helper",
-				"fromPort": ["response", 0],
-				"toNodeId": "review",
-				"toPort": ["result", 0]
-			},
-			{
-				"edgeId": "e-review-feedback",
-				"fromNodeId": "review",
-				"fromPort": ["feedback", 0],
-				"toNodeId": "helper",
-				"toPort": ["feedback", 0]
-			},
-			{
-				"edgeId": "e-tools-writer",
+				"edgeId": "7c531d51-23b6-471b-a47e-4cb78a359dc7",
 				"fromNodeId": "writer",
 				"fromPort": ["subagent-registration", 0],
 				"toNodeId": "helper",
+				"toPort": ["tools", 2]
+			},
+			{
+				"edgeId": "33b2a413-8589-4f8b-ab4d-b893ccfac805",
+				"fromNodeId": "compile",
+				"fromPort": ["tools", 0],
+				"toNodeId": "helper",
 				"toPort": ["tools", 1]
+			},
+			{
+				"edgeId": "056d349f-c823-4fc6-89f1-6bdb389af005",
+				"fromNodeId": "90c55570-13fa-438e-8e92-7de715b792cc",
+				"fromPort": ["tools", 0],
+				"toNodeId": "helper",
+				"toPort": ["tools", 0]
+			},
+			{
+				"edgeId": "903edce1-d966-4f29-9871-38b89b354784",
+				"fromNodeId": "helper",
+				"fromPort": ["response", 0],
+				"toNodeId": "d53025a7-e006-4396-a803-c55681713c32",
+				"toPort": ["result", 0]
+			},
+			{
+				"edgeId": "b7e75557-7299-482c-86d2-9e87552127fb",
+				"fromNodeId": "d53025a7-e006-4396-a803-c55681713c32",
+				"fromPort": ["feedback", 0],
+				"toNodeId": "helper",
+				"toPort": ["feedback", 0]
 			}
 		]
 	}
