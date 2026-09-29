@@ -160,6 +160,7 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: write
+            releases: write
         steps:
             - name: Resolve tag
               id: meta
