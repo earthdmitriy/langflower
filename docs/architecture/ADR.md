@@ -2432,11 +2432,13 @@ embedding the editor in any webview shell (separate long-horizon item,
 5. Closing the launcher stops **all children it started**. Closing a
    **browser tab** does not (epic 19 detach). Unrelated Langflower
    processes are not signalled.
-6. v1 packaging is an **unsigned zip** per OS/arch, published as a
-   GitHub Release on tag `launcher-v*` (and `workflow_dispatch`). macOS
-   zips contain **`Langflower.app`** (not a naked Mach-O, so Finder does
-   not open Terminal). That tag series is **not** the npm CLI tag
-   `vX.Y.Z`. NSIS/DMG, code signing, and binary auto-update are later.
+6. v1 packaging is a zip per OS/arch, published as a GitHub Release on
+   tag `launcher-v*` (and `workflow_dispatch`). Windows zips are
+   unsigned. macOS zips contain **`Langflower.app`** (not a naked Mach-O,
+   so Finder does not open Terminal), ad-hoc signed
+   (`codesign --force --sign -`) so the arm64 seal covers `Info.plist`.
+   That tag series is **not** the npm CLI tag `vX.Y.Z`. NSIS/DMG,
+   Developer ID, notarization, and binary auto-update are later.
 
 **Tradeoffs accepted:**
 

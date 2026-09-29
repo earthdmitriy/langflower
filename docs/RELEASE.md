@@ -193,10 +193,10 @@ and [launcher/README.md](../launcher/README.md).
     - `langflower-launcher-macos-x64.zip`
     - `SHA256SUMS.txt`
 
-    Windows zips contain `langflower-launcher.exe`. macOS zips contain
-    `Langflower.app`. Unsigned — SmartScreen / Gatekeeper will warn. On macOS:
-    right-click the **app** → Open. Node.js ≥ 22 and
-    `npm install -g langflower` remain required.
+    Windows zips contain `langflower-launcher.exe` (unsigned — SmartScreen
+    will warn). macOS zips contain `Langflower.app`, ad-hoc signed and not
+    notarized, so Gatekeeper still warns: right-click the **app** → Open.
+    Node.js ≥ 22 and `npm install -g langflower` remain required.
 
 ## Dogfood without registry
 

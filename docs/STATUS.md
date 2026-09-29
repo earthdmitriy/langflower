@@ -115,7 +115,7 @@ Last aligned with `catalog.ts`, use-cases README, and features README
 | Recents                       | **done** | user-global `launcher.json`                                                                                                                                                                            |
 | Open editor in system browser | **done** | localhost `http://127.0.0.1:` after READY; **?** opens [launcher.md](public/launcher.md) on GitHub                                                                                                     |
 | User manual                   | **done** | [docs/public/launcher.md](public/launcher.md)                                                                                                                                                          |
-| GitHub Release zips           | **done** | unsigned Win x64/ARM64 `.exe` + macOS arm64/x64 `Langflower.app` on tag `launcher-v*` (not npm `v*`)                                                                                                   |
+| GitHub Release zips           | **done** | unsigned Win x64/ARM64 `.exe` + ad-hoc signed (not notarized) macOS arm64/x64 `Langflower.app` on tag `launcher-v*` (not npm `v*`)                                                                     |
 
 ## Tooling — **done**
 

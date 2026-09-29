@@ -42,7 +42,7 @@ On Windows Git Bash, the same `LANGFLOWER_LAUNCHER_BIN` override applies.
 The override changes which bin is spawned; detect still looks at the
 global install.
 
-## GitHub Release (unsigned zip)
+## GitHub Release zips
 
 Published binaries are **not** on npm. GitHub Actions builds four zips on
 tag `launcher-v*` (must match `version` in `Cargo.toml`) and on manual
@@ -57,9 +57,9 @@ plus `SHA256SUMS.txt`. npm CLI tags (`vX.Y.Z`) are a different series —
 do not attach launcher zips to them.
 
 The zip is a supervisor only. Install Node.js ≥ 22 and
-`npm install -g langflower` separately. Windows SmartScreen and macOS
-Gatekeeper will warn until a signing epic. On macOS the zip contains
-`Langflower.app`; right-click the **app** → Open.
+`npm install -g langflower` separately. Windows zips are unsigned
+(SmartScreen). The macOS `.app` is ad-hoc signed, not notarized, so
+Gatekeeper still warns: right-click the **app** → Open.
 
 Windows ARM64 uses the GitHub-hosted `windows-11-arm` runner. If that
 label is missing for the repo plan, switch the job to

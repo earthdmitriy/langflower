@@ -150,8 +150,11 @@ that job to `windows-latest` and keep `--target aarch64-pc-windows-msvc`
 
 Windows zips contain **only** `langflower-launcher.exe`. macOS zips
 contain **`Langflower.app`** (built by
-`launcher/scripts/package-macos-app.py`, zipped with `ditto -c -k
---keepParent`). `publish` downloads the four zips, writes
+`launcher/scripts/package-macos-app.py`). The packager ad-hoc signs the
+finished bundle (`codesign --force --sign -`, then
+`codesign --verify --strict`) before `ditto -c -k --keepParent`, so the
+arm64 seal covers `Info.plist`. That is not Developer ID or
+notarization. `publish` downloads the four zips, writes
 `SHA256SUMS.txt`, and creates a GitHub Release titled `Launcher X.Y.Z`.
 
 npm CLI tags are **`vX.Y.Z`**. Never attach launcher zips to those
@@ -172,8 +175,9 @@ From [docs/RELEASE.md](../../docs/RELEASE.md):
 
 3. Wait for the workflow. Download zips from the GitHub Release.
 
-Unsigned v1: Windows SmartScreen and macOS Gatekeeper warn. On macOS:
-right-click **Langflower.app** → Open. NSIS / DMG / signing / notarization /
+Windows zips stay unsigned, so SmartScreen warns. The macOS `.app` is
+ad-hoc signed, not notarized, so Gatekeeper still warns: right-click
+**Langflower.app** → Open. NSIS / DMG / Developer ID / notarization /
 binary auto-update are **not** in this crate yet (ADR-038 revisit).
 
 ## Operator install (what the zip does not do)
@@ -195,7 +199,7 @@ Then they run `langflower-launcher.exe` / `Langflower.app`.
 | Start disabled forever              | Detect sees no global CLI or Node too old; open Details                     |
 | Spawn uses old CLI                  | Unset vs set `LANGFLOWER_LAUNCHER_BIN`; confirm `npm root -g`               |
 | Port errors                         | Something already bound 4010–4109; Stop other instances                     |
-| macOS “damaged” / cannot open       | Gatekeeper on unsigned `.app` — right-click → Open                          |
+| macOS “damaged” / cannot open       | Bundle was not ad-hoc signed before `ditto`. Re-run `launcher:package` (it runs `codesign --force --sign -`). Right-click → Open does not clear this dialog |
 | Tests hang on `multi_instance`      | Must stay `#[tokio::test(flavor = "multi_thread")]`                         |
 
 ## TypeScript gates vs this crate

@@ -226,7 +226,7 @@ jobs:
 
                       This zip is **not** the Langflower product. It does not include Node.js or the `langflower` CLI. Install Node.js ≥ 22 and `npm install -g langflower`, then run the Windows `.exe` or the macOS `Langflower.app`.
 
-                      **Unsigned (v1).** Windows SmartScreen and macOS Gatekeeper will warn. On macOS, right-click **Langflower.app** → Open.
+                      **Ad-hoc signed, not notarized (v1).** Windows zips are unsigned (SmartScreen will warn). The macOS `.app` is ad-hoc signed so the arm64 bundle seal covers `Info.plist`; Gatekeeper still warns. On macOS, right-click **Langflower.app** → Open.
 
                       | Asset | Target |
                       | --- | --- |

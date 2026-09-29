@@ -18,7 +18,7 @@ launcher/
   docs/                   this guide
   scripts/
     with-portable-rust.mjs  download rustc into .tools/rust/, run cargo
-    package-macos-app.py    unsigned Langflower.app + ditto zip + --self-test
+    package-macos-app.py    ad-hoc signed Langflower.app + ditto zip + --self-test
   ui/
     app-window.slint      the window
     icon.png / icon.ico   window + Windows exe icon
@@ -64,7 +64,7 @@ gitignored portable toolchain (repo-level `.tools/`).
 | `package.json`                   | Private crate metadata; run `launcher:*` scripts from the repo root       |
 | `scripts/with-portable-rust.mjs` | rustup-init into `.tools/rust/`; Windows GNU vs MSVC linker; no CMake env |
 
-| `scripts/package-macos-app.py` | `Langflower.app` tree, optional `ditto` zip; `--self-test` |
+| `scripts/package-macos-app.py` | `Langflower.app` tree, ad-hoc `codesign` on macOS, optional `ditto` zip; `--self-test` does not sign |
 
 ## Tests (`tests/`)
 

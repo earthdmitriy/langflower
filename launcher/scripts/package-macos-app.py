@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Build an unsigned Langflower.app from the launcher Mach-O.
+"""Build a Langflower.app from the launcher Mach-O.
 
 Finder opens Terminal.app for a naked Unix binary. A `.app` bundle does
-not. This script does not codesign or notarize.
+not. On macOS the real package path ad-hoc signs the finished bundle
+(`codesign --force --sign -`) so the seal covers Info.plist. It does
+not notarize.
 """
 
 from __future__ import annotations
@@ -165,6 +167,35 @@ def package_app(
 	plist_path.write_text(info_plist_xml(version, has_icon), encoding="utf-8")
 
 
+def adhoc_sign_argv(app_dir: Path) -> list[str]:
+	return ["codesign", "--force", "--sign", "-", str(app_dir)]
+
+
+def adhoc_verify_argv(app_dir: Path) -> list[str]:
+	return ["codesign", "--verify", "--strict", "--verbose=2", str(app_dir)]
+
+
+def adhoc_sign_app(app_dir: Path) -> None:
+	"""Replace the Mach-O ad-hoc seal so it covers the finished bundle.
+
+	Must run after Info.plist and the icon exist, and before ditto.
+	`--self-test` does not call this: the dummy file is not a Mach-O.
+	"""
+	if sys.platform != "darwin":
+		raise SystemExit(
+			"codesign is required to package Langflower.app (macOS packager only)"
+		)
+	codesign = shutil.which("codesign")
+	if codesign is None:
+		raise SystemExit("codesign not found; cannot ad-hoc sign Langflower.app")
+	sign = adhoc_sign_argv(app_dir)
+	sign[0] = codesign
+	subprocess.run(sign, check=True)
+	verify = adhoc_verify_argv(app_dir)
+	verify[0] = codesign
+	subprocess.run(verify, check=True)
+
+
 def zip_app(app_dir: Path, zip_path: Path) -> None:
 	ditto = shutil.which("ditto")
 	if ditto is None:
@@ -227,6 +258,12 @@ def run_self_test() -> None:
 		app_dir = tmp / APP_BUNDLE_NAME
 		package_app(dummy, app_dir, version, icon_png)
 		assert_self_test_bundle(app_dir, version)
+		sign_argv = adhoc_sign_argv(app_dir)
+		expected_sign = ["codesign", "--force", "--sign", "-", str(app_dir)]
+		if sign_argv != expected_sign:
+			raise SystemExit(
+				f"self-test: sign argv {sign_argv} != {expected_sign}"
+			)
 		ditto = shutil.which("ditto")
 		if ditto is not None:
 			zpath = tmp / "langflower-launcher-macos-self-test.zip"
@@ -250,7 +287,7 @@ def run_self_test() -> None:
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
 	parser = argparse.ArgumentParser(
-		description="Package langflower-launcher as unsigned Langflower.app"
+		description="Package langflower-launcher as ad-hoc signed Langflower.app"
 	)
 	parser.add_argument(
 		"--self-test",
@@ -288,6 +325,7 @@ def main(argv: list[str]) -> int:
 			f"--app-dir must end with {APP_BUNDLE_NAME}, got {app_dir}"
 		)
 	package_app(args.bin, app_dir, version, icon_png)
+	adhoc_sign_app(app_dir)
 	print(f"wrote {app_dir} (version {version})")
 	if args.zip is not None:
 		zip_app(app_dir, args.zip)
