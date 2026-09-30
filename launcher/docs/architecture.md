@@ -198,8 +198,9 @@ Install (operator must click):
 
 Winget exit code `-1978335189` is treated as success (already installed /
 no-op class). After any install, PATH is refreshed (Windows: re-read
-Machine+User Path via PowerShell; macOS: ensure `/usr/local/bin` is on
-PATH) and detect runs again.
+Machine+User Path via PowerShell; macOS: login-shell PATH, then
+`/opt/homebrew/bin` and `/usr/local/bin` when those directories exist,
+then the process PATH) and detect runs again.
 
 Install is refused while **any** launcher-owned child is live.
 

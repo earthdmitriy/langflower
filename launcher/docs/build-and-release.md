@@ -191,16 +191,16 @@ Then they run `langflower-launcher.exe` / `Langflower.app`.
 
 ## Troubleshooting local builds
 
-| Symptom                             | Likely cause                                                                |
-| ----------------------------------- | --------------------------------------------------------------------------- |
-| `link` errors about coff / msvc     | Git `link.exe` used; install VS Build Tools or MinGW and re-run the wrapper |
-| `No MSVC link.exe and no MinGW gcc` | Wrapper exited on purpose — install a linker                                |
-| Window never appears, cargo stuck   | First crate compile of Slint is slow (minutes). Watch `Compiling slint`     |
-| Start disabled forever              | Detect sees no global CLI or Node too old; open Details                     |
-| Spawn uses old CLI                  | Unset vs set `LANGFLOWER_LAUNCHER_BIN`; confirm `npm root -g`               |
-| Port errors                         | Something already bound 4010–4109; Stop other instances                     |
+| Symptom                             | Likely cause                                                                                                                                                |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `link` errors about coff / msvc     | Git `link.exe` used; install VS Build Tools or MinGW and re-run the wrapper                                                                                 |
+| `No MSVC link.exe and no MinGW gcc` | Wrapper exited on purpose — install a linker                                                                                                                |
+| Window never appears, cargo stuck   | First crate compile of Slint is slow (minutes). Watch `Compiling slint`                                                                                     |
+| Start disabled forever              | Detect sees no global CLI or Node too old; open Details                                                                                                     |
+| Spawn uses old CLI                  | Unset vs set `LANGFLOWER_LAUNCHER_BIN`; confirm `npm root -g`                                                                                               |
+| Port errors                         | Something already bound 4010–4109; Stop other instances                                                                                                     |
 | macOS “damaged” / cannot open       | Bundle was not ad-hoc signed before `ditto`. Re-run `launcher:package` (it runs `codesign --force --sign -`). Right-click → Open does not clear this dialog |
-| Tests hang on `multi_instance`      | Must stay `#[tokio::test(flavor = "multi_thread")]`                         |
+| Tests hang on `multi_instance`      | Must stay `#[tokio::test(flavor = "multi_thread")]`                                                                                                         |
 
 ## TypeScript gates vs this crate
 
