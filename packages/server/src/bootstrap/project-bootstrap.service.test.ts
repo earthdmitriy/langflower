@@ -6,6 +6,7 @@ import {
 	bootstrapProject,
 	hasLangflowerProject,
 } from './project-bootstrap.service.js';
+import { resolveSkeletonRoot } from './resolve-skeleton-root.js';
 
 const readUtf8 = async (filePath: string): Promise<string> =>
 	fs.readFile(filePath, 'utf8');
@@ -106,6 +107,14 @@ describe('bootstrapProject', () => {
 		expect(gitignore).toContain('.cache/');
 		expect(gitignore).toContain('logs/');
 		expect(gitignore).toContain('nodes/**/node_modules/');
+
+		const skeletonRoot = await resolveSkeletonRoot();
+		await expect(
+			fs.access(path.join(skeletonRoot, 'gitignore')),
+		).resolves.toBeUndefined();
+		await expect(
+			fs.access(path.join(skeletonRoot, '.gitignore')),
+		).rejects.toMatchObject({ code: 'ENOENT' });
 
 		expect(
 			(

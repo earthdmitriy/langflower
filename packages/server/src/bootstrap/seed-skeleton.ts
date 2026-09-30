@@ -88,8 +88,9 @@ export const seedSkeletonContent = async (
 		path.join(skeletonRoot, 'instructions.md'),
 		path.join(langflowerDir, 'instructions.md'),
 	);
+	// Source must not be named `.gitignore`: npm pack omits that filename.
 	await copyFile(
-		path.join(skeletonRoot, '.gitignore'),
+		path.join(skeletonRoot, 'gitignore'),
 		path.join(langflowerDir, '.gitignore'),
 	);
 
