@@ -5,6 +5,7 @@ import {
 	llmMaxIterationsUiField,
 	llmPanelUiSchema,
 } from '../../features/ui-schema/llm-panel-ui-schema.js';
+import { insertReasoningEffortAfterModel } from '../../features/ui-schema/llm-reasoning-effort-ui-schema.js';
 import {
 	DEFAULT_PATH_CHOICE_MAX_ITERATIONS,
 	PATH_CHOICE_MAX_ITERATIONS_CAP,
@@ -59,7 +60,9 @@ Attack the work against the original assignment. **Accept** when it is good enou
 Wire the assignment on the first input and the packet to critique on the second. Needs a model that can call tools.
 `.trim(),
 	uiSchema: [
-		...llmPanelUiSchema.filter((item) => item.field !== 'maxIterations'),
+		...insertReasoningEffortAfterModel(
+			llmPanelUiSchema.filter((item) => item.field !== 'maxIterations'),
+		),
 		llmMaxIterationsUiField(
 			DEFAULT_PATH_CHOICE_MAX_ITERATIONS,
 			PATH_CHOICE_MAX_ITERATIONS_CAP,

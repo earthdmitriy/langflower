@@ -14,6 +14,7 @@ import {
 	DEFAULT_LLM_RECOVERY_POLICY,
 	type LlmRecoveryPolicy,
 } from './llm-loop-types.js';
+import type { ReasoningEffortValue } from '../openai/normalize-reasoning-effort.js';
 import {
 	runLlmLoop,
 	type LlmLoopPolicy,
@@ -56,6 +57,7 @@ export const runAgentLoop = (args: {
 	readonly maxIterations: number;
 	readonly compaction?: LlmCompactionConfig;
 	readonly recovery?: LlmRecoveryPolicy;
+	readonly reasoningEffort?: ReasoningEffortValue;
 	readonly requestPermission?: (
 		request: PermissionAskRequest,
 	) => Promise<'allow' | 'deny'>;
@@ -72,6 +74,9 @@ export const runAgentLoop = (args: {
 		maxIterations: args.maxIterations,
 		compaction: args.compaction ?? DISABLED_COMPACTION_CONFIG,
 		recovery: args.recovery ?? DEFAULT_LLM_RECOVERY_POLICY,
+		...(args.reasoningEffort !== undefined
+			? { reasoningEffort: args.reasoningEffort }
+			: {}),
 		policy: AGENT_LOOP_POLICY,
 		...(args.toolCtx !== undefined ? { toolCtx: args.toolCtx } : {}),
 		...(args.requestPermission !== undefined

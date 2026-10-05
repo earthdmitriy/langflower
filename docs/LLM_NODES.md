@@ -205,6 +205,15 @@ in place and emit `historySync` so ADR-016 session history stays truncated.
 Retries never replay already-streamed `reasoning` / `draftResponse` chunks.
 `common-fake-llm` keeps its panel without compaction fields.
 
+**Reasoning effort:** `common-openai-llm`, `common-critique`, `common-review`,
+and `common-sub-agent` share an inspector select `reasoningEffort`
+(`none` | `minimal` | `low` | `medium` | `high` | `xhigh` | `max`). The empty
+default does not send `reasoning_effort`, so the provider keeps its own
+default. A chosen value is sent on that node's chat completions, including
+tool-loop rounds. Compaction summary calls do not send it. Some newer models
+accept only `none` for Chat Completions while tools are enabled; any other
+value is a provider error. `common-fake-llm` has no such field.
+
 ## Failure recovery
 
 **Stuck streams and dead loops** (idle watchdog, default autokick with

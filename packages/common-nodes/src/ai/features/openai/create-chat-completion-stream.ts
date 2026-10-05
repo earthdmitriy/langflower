@@ -212,6 +212,9 @@ export const createChatCompletionStream = (deps: {
 					...(args.presence_penalty !== undefined
 						? { presence_penalty: args.presence_penalty }
 						: {}),
+					...(args.reasoning_effort !== undefined
+						? { reasoning_effort: args.reasoning_effort }
+						: {}),
 				},
 				{
 					signal: args.signal as AbortSignal | undefined,

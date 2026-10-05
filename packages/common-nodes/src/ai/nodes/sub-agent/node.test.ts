@@ -90,6 +90,7 @@ describe('common-sub-agent', () => {
 				'contextSize',
 				'compactOnError',
 				'maxIterations',
+				'reasoningEffort',
 			]),
 		);
 		expect(fields).not.toContain('tokenDelayMs');

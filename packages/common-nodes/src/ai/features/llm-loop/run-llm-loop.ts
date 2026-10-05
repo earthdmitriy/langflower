@@ -49,6 +49,7 @@ import {
 } from './inventory-tool-round.js';
 import { prepareChatCompletion } from '../openai/prepare-chat-completion.js';
 import type { LlmCompactionConfig } from '../openai/normalize-compaction-params.js';
+import type { ReasoningEffortValue } from '../openai/normalize-reasoning-effort.js';
 import {
 	compactMessagesWithSummary,
 	estimateRequestTokens,
@@ -116,6 +117,7 @@ export type RunLlmLoopOptions<Chunk> = {
 	readonly maxIterations: number;
 	readonly compaction: LlmCompactionConfig;
 	readonly recovery: LlmRecoveryPolicy;
+	readonly reasoningEffort?: ReasoningEffortValue;
 	readonly policy: LlmLoopPolicy<Chunk>;
 	/**
 	 * When set, maxIterations exhaustion asks HITL continue instead of
@@ -861,6 +863,9 @@ const prepareAndStream = <Chunk>(
 							frequency_penalty: penalties.frequency,
 							presence_penalty: penalties.presence,
 						}),
+				...(options.reasoningEffort !== undefined
+					? { reasoning_effort: options.reasoningEffort }
+					: {}),
 			}),
 		).pipe(
 			map((prepared) => ({ kind: 'prepared', prepared }) as const),

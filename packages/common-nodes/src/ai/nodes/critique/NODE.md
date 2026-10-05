@@ -44,11 +44,12 @@ Built with `defineLlmNode` from `@langflower/node-sdk`.
 
 ## Params
 
-| Field            | Type    | Default  | Notes                                               |
-| ---------------- | ------- | -------- | --------------------------------------------------- |
-| `providerId`     | select  | —        | from `langflower.jsonc` providers                   |
-| `model`          | select  | —        | per selected provider                               |
-| `skillId`        | select  | —        | optional skill markdown                             |
-| `maxIterations`  | number  | `5`      | caps non-compliant completions (`0` = unlimited)    |
-| `contextSize`    | number  | `200000` | approx input token budget; shared OpenAI compaction |
-| `compactOnError` | boolean | `true`   | retry once after context-length create error        |
+| Field             | Type    | Default  | Notes                                               |
+| ----------------- | ------- | -------- | --------------------------------------------------- |
+| `providerId`      | select  | —        | from `langflower.jsonc` providers                   |
+| `model`           | select  | —        | per selected provider                               |
+| `reasoningEffort` | select  | empty    | Chat Completions `reasoning_effort`; empty omits it |
+| `skillId`         | select  | —        | optional skill markdown                             |
+| `maxIterations`   | number  | `5`      | caps non-compliant completions (`0` = unlimited)    |
+| `contextSize`     | number  | `200000` | approx input token budget; shared OpenAI compaction |
+| `compactOnError`  | boolean | `true`   | retry once after context-length create error        |

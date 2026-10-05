@@ -60,6 +60,7 @@ describe('common-review', () => {
 				'enabledMcpIds',
 				'maxIterations',
 				'maxFeedbackTurns',
+				'reasoningEffort',
 				'contextSize',
 				'compactOnError',
 			]),

@@ -498,4 +498,40 @@ describe('runPathChoiceToolLoop', () => {
 		);
 		expect(chunks).toContainEqual({ kind: 'accept', notes: 'ok' });
 	});
+
+	it('forwards reasoningEffort onto the chat request', async () => {
+		const captured: CreateChatCompletionStreamArgs[] = [];
+		const factory = async (args: CreateChatCompletionStreamArgs) => {
+			captured.push(args);
+			return (async function* () {
+				yield {
+					kind: 'done' as const,
+					text: '',
+					tool_calls: [
+						{
+							id: 'a1',
+							name: 'accept',
+							arguments: JSON.stringify({ notes: 'ok' }),
+						},
+					],
+				};
+			})();
+		};
+
+		await firstValueFrom(
+			runPathChoiceToolLoop({
+				factory,
+				providerId: 'mock',
+				model: 'mock/fast',
+				messages: [
+					{ role: 'system', content: 'review' },
+					{ role: 'user', content: 'task' },
+				],
+				maxIterations: 3,
+				reasoningEffort: 'low',
+			}).pipe(toArray()),
+		);
+
+		expect(captured[0]?.reasoning_effort).toBe('low');
+	});
 });

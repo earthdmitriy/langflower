@@ -55,6 +55,7 @@ describe('common-critique', () => {
 				'enabledMcpIds',
 				'maxIterations',
 				'maxFeedbackTurns',
+				'reasoningEffort',
 				'contextSize',
 				'compactOnError',
 			]),

@@ -11,6 +11,7 @@ import {
 	toChatToolDefinitions,
 } from '../llm-loop/inventory-tool-round.js';
 import type { LlmCompactionConfig } from '../openai/normalize-compaction-params.js';
+import type { ReasoningEffortValue } from '../openai/normalize-reasoning-effort.js';
 import { DISABLED_COMPACTION_CONFIG } from '../openai/normalize-compaction-params.js';
 import {
 	DEFAULT_LLM_RECOVERY_POLICY,
@@ -124,6 +125,7 @@ export const runPathChoiceToolLoop = (args: {
 	readonly toolCtx?: ToolHandlerContext;
 	readonly compaction?: LlmCompactionConfig;
 	readonly recovery?: LlmRecoveryPolicy;
+	readonly reasoningEffort?: ReasoningEffortValue;
 	readonly steerControl$?: Observable<SteerControlPayload>;
 }): Observable<ReviewLoopChunk> => {
 	const inventory = args.tools ?? [];
@@ -139,6 +141,9 @@ export const runPathChoiceToolLoop = (args: {
 		...(args.getTools !== undefined ? { getTools: args.getTools } : {}),
 		compaction: args.compaction ?? DISABLED_COMPACTION_CONFIG,
 		recovery: args.recovery ?? DEFAULT_LLM_RECOVERY_POLICY,
+		...(args.reasoningEffort !== undefined
+			? { reasoningEffort: args.reasoningEffort }
+			: {}),
 		policy: PATH_CHOICE_POLICY,
 		...(args.toolCtx !== undefined ? { toolCtx: args.toolCtx } : {}),
 		...(args.steerControl$ !== undefined

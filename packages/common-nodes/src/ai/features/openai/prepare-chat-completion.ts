@@ -15,6 +15,7 @@ import {
 	resolveProactiveTargetTokens,
 } from './llm-context-compaction.js';
 import type { LlmCompactionConfig } from './normalize-compaction-params.js';
+import type { ReasoningEffortValue } from './normalize-reasoning-effort.js';
 import { DISABLED_COMPACTION_CONFIG } from './normalize-compaction-params.js';
 
 export type PreparedChatCompletion =
@@ -39,6 +40,7 @@ const createMainStream = async (args: {
 	readonly signal?: AbortSignal;
 	readonly frequency_penalty?: number;
 	readonly presence_penalty?: number;
+	readonly reasoning_effort?: ReasoningEffortValue;
 }): Promise<AsyncIterable<ChatCompletionStreamChunk>> =>
 	args.factory({
 		providerId: args.providerId,
@@ -51,6 +53,9 @@ const createMainStream = async (args: {
 			: {}),
 		...(args.presence_penalty !== undefined
 			? { presence_penalty: args.presence_penalty }
+			: {}),
+		...(args.reasoning_effort !== undefined
+			? { reasoning_effort: args.reasoning_effort }
 			: {}),
 	});
 
@@ -68,6 +73,7 @@ export const prepareChatCompletion = async (args: {
 	readonly compaction?: LlmCompactionConfig;
 	readonly frequency_penalty?: number;
 	readonly presence_penalty?: number;
+	readonly reasoning_effort?: ReasoningEffortValue;
 }): Promise<PreparedChatCompletion> => {
 	const tools = args.tools ?? [];
 	const config = args.compaction ?? DISABLED_COMPACTION_CONFIG;
@@ -123,6 +129,9 @@ export const prepareChatCompletion = async (args: {
 				: {}),
 			...(args.presence_penalty !== undefined
 				? { presence_penalty: args.presence_penalty }
+				: {}),
+			...(args.reasoning_effort !== undefined
+				? { reasoning_effort: args.reasoning_effort }
 				: {}),
 		});
 
@@ -186,6 +195,9 @@ export const prepareChatCompletion = async (args: {
 					: {}),
 				...(args.presence_penalty !== undefined
 					? { presence_penalty: args.presence_penalty }
+					: {}),
+				...(args.reasoning_effort !== undefined
+					? { reasoning_effort: args.reasoning_effort }
 					: {}),
 			});
 

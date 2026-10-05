@@ -5,6 +5,7 @@ import type {
 import { Observable } from 'rxjs';
 import { defineLlmNode } from '@langflower/node-sdk/llm';
 import { llmPanelUiSchema } from '../../features/ui-schema/llm-panel-ui-schema.js';
+import { insertReasoningEffortAfterModel } from '../../features/ui-schema/llm-reasoning-effort-ui-schema.js';
 import { llmCompactionUiSchema } from '../../features/ui-schema/llm-compaction-ui-schema.js';
 import { llmRecoveryUiSchema } from '../../features/ui-schema/llm-recovery-ui-schema.js';
 import {
@@ -55,6 +56,9 @@ const runOpenAiTurn = (
 		maxIterations: context.maxIterations,
 		compaction: context.compaction,
 		recovery: context.recovery,
+		...(context.reasoningEffort !== undefined
+			? { reasoningEffort: context.reasoningEffort }
+			: {}),
 		...(context.requestPermission !== undefined
 			? { requestPermission: context.requestPermission }
 			: {}),
@@ -81,7 +85,7 @@ Talk to an OpenAI-compatible model. Pick provider, model, and role in the inspec
 Wire tools and skills so the model can search, edit files, or call specialists. The reply streams in the work log.
 `.trim(),
 	uiSchema: [
-		...llmPanelUiSchema,
+		...insertReasoningEffortAfterModel(llmPanelUiSchema),
 		...llmCompactionUiSchema,
 		...llmRecoveryUiSchema,
 	] as const,

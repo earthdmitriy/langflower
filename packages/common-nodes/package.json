@@ -52,7 +52,7 @@
 		"@langflower/runtime": "0.1.0",
 		"@langflower/tools": "0.1.0",
 		"@rx-evo/stateful-observable": "^0.6.0",
-		"openai": "^4.104.0",
+		"openai": "^7.28.0",
 		"rxjs": "^7.8.1"
 	},
 	"files": [

@@ -51,6 +51,10 @@ import {
 import type { LlmRecoveryPolicy } from '../llm-loop/llm-loop-types.js';
 import { normalizeLlmRecoveryPolicy } from '../llm-loop/normalize-llm-recovery-policy.js';
 import {
+	normalizeReasoningEffort,
+	type ReasoningEffortValue,
+} from '../openai/normalize-reasoning-effort.js';
+import {
 	isBlankTurn,
 	runTurnFromState,
 	type LlmSessionState,
@@ -81,6 +85,11 @@ export type LlmAgentInventoryContext = {
 	) => Promise<'allow' | 'deny'>;
 	readonly compaction: LlmCompactionConfig;
 	readonly recovery: LlmRecoveryPolicy;
+	/**
+	 * Chat Completions `reasoning_effort`. Omitted when the inspector is
+	 * left on provider default.
+	 */
+	readonly reasoningEffort?: ReasoningEffortValue;
 	/** ADR-032 soft Pause / Steer — set in {@link bindLlmAgentSession}. */
 	readonly steerControl$?: Observable<SteerControlPayload>;
 };
@@ -220,6 +229,7 @@ export const assembleLlmAgentInventoryContext = (
 	ec: LlmAgentEcSlice,
 ): LlmAgentInventoryContext => {
 	const rolePreset = parseLlmRolePreset(ec.params.rolePreset);
+	const reasoningEffort = normalizeReasoningEffort(ec.params.reasoningEffort);
 	const skillId = resolveEffectiveSkillId(rolePreset, ec.params.skillId);
 	const skillMarkdown = ec.skillMarkdown;
 	const agentsMarkdown = ec.agentsMarkdown;
@@ -256,6 +266,7 @@ export const assembleLlmAgentInventoryContext = (
 		requestPermission: ec.requestPermission,
 		compaction: normalizeCompactionConfig(ec.params),
 		recovery: normalizeLlmRecoveryPolicy(ec.params),
+		...(reasoningEffort !== undefined ? { reasoningEffort } : {}),
 	};
 };
 

@@ -745,6 +745,7 @@ describe('common-fake-llm', () => {
 			'deadLoopStructuralRunCap',
 			'tokenDelayMs',
 		]);
+		expect(fields).not.toContain('reasoningEffort');
 		expect(fields).not.toContain('contextSize');
 		expect(fields).not.toContain('compactOnError');
 		expect(

@@ -30,6 +30,7 @@ import {
 } from 'rxjs';
 import { statefulObservable } from '@rx-evo/stateful-observable';
 import { llmPanelUiSchema } from '../../features/ui-schema/llm-panel-ui-schema.js';
+import { insertReasoningEffortAfterModel } from '../../features/ui-schema/llm-reasoning-effort-ui-schema.js';
 import { llmCompactionUiSchema } from '../../features/ui-schema/llm-compaction-ui-schema.js';
 import { llmRecoveryUiSchema } from '../../features/ui-schema/llm-recovery-ui-schema.js';
 import {
@@ -303,6 +304,9 @@ const runSubAgentTurn = (
 			maxIterations: context.maxIterations,
 			compaction: context.compaction,
 			recovery: context.recovery,
+			...(context.reasoningEffort !== undefined
+				? { reasoningEffort: context.reasoningEffort }
+				: {}),
 			...(context.requestPermission !== undefined
 				? { requestPermission: context.requestPermission }
 				: {}),
@@ -452,7 +456,7 @@ The specialist streams in its own work-log card. Set name, role, and skills on t
 			label: 'Skills',
 			optionsSource: 'langflower.skills',
 		},
-		...llmPanelUiSchema,
+		...insertReasoningEffortAfterModel(llmPanelUiSchema),
 		...llmCompactionUiSchema,
 		...llmRecoveryUiSchema,
 	] as const,

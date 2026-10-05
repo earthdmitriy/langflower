@@ -5,6 +5,7 @@ import {
 	llmMaxIterationsUiField,
 	llmPanelUiSchema,
 } from '../../features/ui-schema/llm-panel-ui-schema.js';
+import { insertReasoningEffortAfterModel } from '../../features/ui-schema/llm-reasoning-effort-ui-schema.js';
 import {
 	DEFAULT_PATH_CHOICE_MAX_ITERATIONS,
 	PATH_CHOICE_MAX_ITERATIONS_CAP,
@@ -64,7 +65,9 @@ Typical uses:
 - Optional extra tools or Sub-Agents for the reviewer to use first
 `.trim(),
 	uiSchema: [
-		...llmPanelUiSchema.filter((item) => item.field !== 'maxIterations'),
+		...insertReasoningEffortAfterModel(
+			llmPanelUiSchema.filter((item) => item.field !== 'maxIterations'),
+		),
 		llmMaxIterationsUiField(
 			DEFAULT_PATH_CHOICE_MAX_ITERATIONS,
 			PATH_CHOICE_MAX_ITERATIONS_CAP,

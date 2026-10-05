@@ -120,6 +120,9 @@ const runPathChoiceTurn = (
 			: {}),
 		compaction: context.compaction,
 		recovery: context.recovery,
+		...(context.reasoningEffort !== undefined
+			? { reasoningEffort: context.reasoningEffort }
+			: {}),
 		...(context.steerControl$ !== undefined
 			? { steerControl$: context.steerControl$ }
 			: {}),

@@ -212,11 +212,96 @@ describe('common-openai-llm', () => {
 		expect(captured).toHaveLength(1);
 		expect(captured[0]?.providerId).toBe('openai');
 		expect(captured[0]?.model).toBe('gpt-4o-mini');
+		expect(captured[0]?.reasoning_effort).toBeUndefined();
 		expect(JSON.stringify(captured)).not.toMatch(/sk-|apiKey/);
 
 		runtime.runner.interrupt('cancel');
 		runtime.runner.dispose();
 		runtime.editor.dispose();
+	});
+
+	it('forwards reasoningEffort to the chat factory and omits a blank value', async () => {
+		const run = async (
+			reasoningEffort: string,
+		): Promise<CreateChatCompletionStreamArgs | undefined> => {
+			const captured: CreateChatCompletionStreamArgs[] = [];
+			const runtime = new RuntimeFacade({ log: false });
+			const llm = openAiLlmNode.getInstance();
+			const str = stringNode.getInstance();
+
+			str.inputs.value.connect(of('Hi'));
+
+			runtime.editor.addNode({
+				nodeId: 'prompt-1',
+				inputs: str.inputs,
+				outputs: str.outputs,
+				bypassPorts: str.bypassPorts,
+			});
+			runtime.editor.addNode({
+				nodeId: 'llm-1',
+				inputs: llm.inputs,
+				outputs: llm.outputs,
+				bypassPorts: llm.bypassPorts,
+			});
+			runtime.editor.addEdge({
+				fromNodeId: 'prompt-1',
+				fromPort: ['value', 0],
+				toNodeId: 'llm-1',
+				toPort: ['userPrompt', 0],
+			});
+
+			const previewPromise = firstValueFrom(
+				runtime.runner.events$.pipe(
+					filter(
+						(event) =>
+							event[0] === 'out' &&
+							'value' in event[3] &&
+							event[1] === 'llm-1' &&
+							event[2] === 'response',
+					),
+				),
+			);
+
+			runtime.runner.start({
+				'prompt-1': [
+					{
+						portId: contextSymbol,
+						slotIndex: 0,
+						value: {
+							projectDir: '/tmp',
+							runId: 'test',
+							nodeId: 'prompt-1',
+							params: {},
+							uiSchema: stringNode.uiSchema,
+						},
+					},
+				],
+				'llm-1': llmContext(
+					'llm-1',
+					{
+						providerId: 'openai',
+						model: 'gpt-4o-mini',
+						reasoningEffort,
+					},
+					{
+						createChatCompletionStream: mockStreamFactory(
+							[{ kind: 'done', text: 'ok' }],
+							(args) => captured.push(args),
+						),
+					},
+				),
+			});
+
+			await previewPromise;
+			runtime.runner.interrupt('cancel');
+			runtime.runner.dispose();
+			runtime.editor.dispose();
+			return captured[0];
+		};
+
+		expect((await run('high'))?.reasoning_effort).toBe('high');
+		expect((await run(''))?.reasoning_effort).toBeUndefined();
+		expect((await run('turbo'))?.reasoning_effort).toBeUndefined();
 	});
 
 	it('includes skill markdown in factory system message when skillId set', async () => {
@@ -510,6 +595,7 @@ describe('common-openai-llm', () => {
 			'rolePreset',
 			'providerId',
 			'model',
+			'reasoningEffort',
 			'skillId',
 			'includeAgentsMd',
 			'toolPermissions',

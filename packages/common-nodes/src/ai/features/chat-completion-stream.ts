@@ -1,3 +1,5 @@
+import type { ReasoningEffortValue } from './openai/normalize-reasoning-effort.js';
+
 export type ChatCompletionAbortSignal = {
 	readonly aborted: boolean;
 };
@@ -55,6 +57,7 @@ export type CreateChatCompletionStreamArgs = {
 	readonly signal?: ChatCompletionAbortSignal;
 	readonly frequency_penalty?: number;
 	readonly presence_penalty?: number;
+	readonly reasoning_effort?: ReasoningEffortValue;
 };
 
 /** OpenAI-compatible chat stream factory (credentials resolved server-side). */
