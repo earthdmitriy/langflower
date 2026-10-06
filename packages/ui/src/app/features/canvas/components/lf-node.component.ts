@@ -114,6 +114,7 @@ const displayLabel = (data: WorkflowNodePersisted): string => {
 							[inline]="row.inline"
 							[value]="row.value"
 							[disabled]="row.connected || isRunning()"
+							[expandable]="!row.connected"
 							[hidden]="row.hidden"
 							[previewValue]="previewValueFor(row.basePortId)"
 							[nodeSelected]="node().selected ?? false"

@@ -133,6 +133,7 @@ const buildPreviewRows = (node: PaletteNodeDefinition): PreviewBodyRow[] => {
 								[config]="row.inline"
 								[value]="row.inlineValue"
 								[disabled]="true"
+								[expandable]="false"
 							/>
 						</div>
 					}

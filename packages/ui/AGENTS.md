@@ -323,6 +323,11 @@ on-node editor is now attached to an **input port row** via
   canvas rows with `flex > 0` fill leftover node height (ADR-017 — no
   textarea grip). `'markdown'` is author-time (idle rendered markdown,
   focus = textarea) — not the read-only `preview-*` family.
+  `text-multiline` and `markdown` show an Expand control (canvas and
+  inspector) unless that input port is wired. The dialog has its own
+  textarea and emits the field's existing `valueChange` on keyup and change
+  — no draft. Palette previews pass `expandable: false`. A wired input is
+  disabled in the inspector as well as on the canvas.
 - `resolveNodePorts(config, nodeId, edges, nodeInputs)` resolves each
   `DiagramInputPortRow.inline` (explicit-only — no default-on heuristics),
   `.value` (from `nodeInputs[basePortId]` or `defaultValue`), and `.connected`

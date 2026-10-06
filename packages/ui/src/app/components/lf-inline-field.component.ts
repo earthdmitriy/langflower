@@ -11,6 +11,8 @@ import {
 	resolveMultilineInlineLayout,
 } from '@langflower/node-sdk';
 import { renderMarkdown } from '../utils/render-markdown.js';
+import { LfHoverTipComponent } from './lf-hover-tip.component';
+import { LfTextExpandDialogComponent } from './lf-text-expand-dialog.component';
 
 function formatPreviewValue(value: unknown): string {
 	if (value === null || value === undefined) {
@@ -144,6 +146,7 @@ function sameValue(a: unknown, b: unknown): boolean {
 @Component({
 	selector: 'lf-inline-field',
 	standalone: true,
+	imports: [LfHoverTipComponent, LfTextExpandDialogComponent],
 	host: {
 		'[class.lf-inline-field--fill]': 'fill()',
 		'[style.--lf-multiline-min.px]': 'multilineMinHeightPx()',
@@ -176,50 +179,125 @@ function sameValue(a: unknown, b: unknown): boolean {
 				/>
 			}
 			@case ('text-multiline') {
-				<textarea
-					#control
-					rows="2"
-					[value]="textValue()"
-					[disabled]="disabled()"
-					(change)="valueChange.emit(control.value)"
-					(keyup)="valueChange.emit(control.value)"
-					class="lf-inline-control lf-inline-multiline lf-scroll"
-					data-no-drag="true"
-					data-no-pan="true"
-				></textarea>
-			}
-			@case ('markdown') {
-				@if (markdownEditingActive()) {
+				<div class="lf-inline-expand-host">
 					<textarea
 						#control
 						rows="2"
 						[value]="textValue()"
-						autofocus
+						[disabled]="disabled()"
 						(change)="valueChange.emit(control.value)"
 						(keyup)="valueChange.emit(control.value)"
-						(blur)="stopMarkdownEdit()"
 						class="lf-inline-control lf-inline-multiline lf-scroll"
+						[class.lf-inline-multiline--expand]="showExpand()"
 						data-no-drag="true"
 						data-no-pan="true"
 					></textarea>
-				} @else {
-					<div
-						class="lf-inline-preview lf-scroll prose prose-xs max-w-full dark:prose-invert"
-						tabindex="0"
-						data-no-drag="true"
-						data-no-pan="true"
-						(click)="startMarkdownEdit()"
-						(focus)="startMarkdownEdit()"
-					>
-						@if (textValue()) {
-							<div [innerHTML]="authorMarkdownHtml()"></div>
-						} @else {
-							<span class="lf-inline-preview-placeholder"
-								>Write a hint…</span
+					@if (showExpand()) {
+						<span class="lf-inline-expand-button">
+							<lf-hover-tip
+								tip="Expand"
+								side="bottom"
+								align="end"
 							>
-						}
-					</div>
-				}
+								<button
+									type="button"
+									class="rounded p-0.5 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+									aria-label="Expand"
+									data-no-drag="true"
+									data-no-pan="true"
+									(mousedown)="onExpandMouseDown($event)"
+									(click)="openExpand($event)"
+								>
+									<svg
+										viewBox="0 0 24 24"
+										class="h-3 w-3"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+										/>
+									</svg>
+								</button>
+							</lf-hover-tip>
+						</span>
+					}
+				</div>
+			}
+			@case ('markdown') {
+				<div class="lf-inline-expand-host">
+					@if (markdownEditingActive()) {
+						<textarea
+							#control
+							rows="2"
+							[value]="textValue()"
+							autofocus
+							(change)="valueChange.emit(control.value)"
+							(keyup)="valueChange.emit(control.value)"
+							(blur)="stopMarkdownEdit()"
+							class="lf-inline-control lf-inline-multiline lf-scroll"
+							[class.lf-inline-multiline--expand]="showExpand()"
+							data-no-drag="true"
+							data-no-pan="true"
+						></textarea>
+					} @else {
+						<div
+							class="lf-inline-preview lf-scroll prose prose-xs max-w-full dark:prose-invert"
+							[class.lf-inline-preview--expand]="showExpand()"
+							tabindex="0"
+							data-no-drag="true"
+							data-no-pan="true"
+							(click)="startMarkdownEdit()"
+							(focus)="startMarkdownEdit()"
+						>
+							@if (textValue()) {
+								<div [innerHTML]="authorMarkdownHtml()"></div>
+							} @else {
+								<span class="lf-inline-preview-placeholder"
+									>Write a hint…</span
+								>
+							}
+						</div>
+					}
+					@if (showExpand()) {
+						<span class="lf-inline-expand-button">
+							<lf-hover-tip
+								tip="Expand"
+								side="bottom"
+								align="end"
+							>
+								<button
+									type="button"
+									class="rounded p-0.5 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+									aria-label="Expand"
+									data-no-drag="true"
+									data-no-pan="true"
+									(mousedown)="onExpandMouseDown($event)"
+									(click)="openExpand($event)"
+								>
+									<svg
+										viewBox="0 0 24 24"
+										class="h-3 w-3"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+										/>
+									</svg>
+								</button>
+							</lf-hover-tip>
+						</span>
+					}
+				</div>
 			}
 			@case ('boolean') {
 				<label
@@ -320,6 +398,15 @@ function sameValue(a: unknown, b: unknown): boolean {
 				</div>
 			}
 		}
+		@if (expanded() && showExpand()) {
+			<lf-text-expand-dialog
+				[value]="textValue()"
+				[disabled]="disabled()"
+				[label]="expandLabel()"
+				(valueChange)="valueChange.emit($event)"
+				(dismiss)="expanded.set(false)"
+			/>
+		}
 	`,
 	styles: `
 		.lf-inline-control {
@@ -385,11 +472,29 @@ function sameValue(a: unknown, b: unknown): boolean {
 			min-height: 0;
 			height: 100%;
 		}
+		.lf-inline-expand-host {
+			position: relative;
+			width: 100%;
+		}
+		:host.lf-inline-field--fill .lf-inline-expand-host {
+			display: flex;
+			flex: 1 1 auto;
+			flex-direction: column;
+			min-height: 0;
+			height: 100%;
+		}
 		.lf-inline-multiline {
 			resize: none;
 			min-height: var(--lf-multiline-min, 100px);
 			max-height: 12rem;
 			overflow-y: auto;
+		}
+		.lf-inline-expand-button {
+			position: absolute;
+			top: 0.125rem;
+			/* Scrollbar gutter is ~11px; keep the control clear of it. */
+			right: 1.5rem;
+			z-index: 10;
 		}
 		/* Inspector sidebar: grip is safe (no node box / wires). */
 		:host-context(lf-inspector-panel) .lf-inline-multiline {
@@ -456,6 +561,13 @@ function sameValue(a: unknown, b: unknown): boolean {
 			overflow-x: hidden;
 			overflow-y: auto;
 		}
+		.lf-inline-multiline.lf-inline-multiline--expand,
+		.lf-inline-preview.lf-inline-preview--expand,
+		:host.lf-inline-field--fill
+			.lf-inline-preview.lf-inline-preview--expand {
+			padding-right: 3rem;
+			overflow-y: scroll;
+		}
 		:host ::ng-deep .lf-inline-preview img,
 		:host ::ng-deep .lf-inline-preview pre,
 		:host ::ng-deep .lf-inline-preview table,
@@ -494,6 +606,10 @@ export class LfInlineFieldComponent {
 	readonly disabled = input<boolean>(false);
 	/** Canvas only: stretch textarea into flex-grown port row (ADR-017). */
 	readonly fill = input<boolean>(false);
+	/** Palette stubs pass false so the catalog card has no expand control. */
+	readonly expandable = input<boolean>(true);
+	/** Dialog title. Canvas port label or inspector field label. */
+	readonly expandLabel = input<string>('Edit text');
 
 	readonly valueChange = output<unknown>();
 
@@ -528,6 +644,13 @@ export class LfInlineFieldComponent {
 		renderMarkdown(this.textValue()),
 	);
 	readonly markdownEditing = signal(false);
+	/** UI chrome only: whether the expand dialog is open. */
+	readonly expanded = signal(false);
+	readonly showExpand = computed(
+		() =>
+			this.expandable() &&
+			(this.kind() === 'text-multiline' || this.kind() === 'markdown'),
+	);
 	readonly markdownEditingActive = computed(
 		() => this.markdownEditing() && !this.disabled(),
 	);
@@ -535,6 +658,17 @@ export class LfInlineFieldComponent {
 		selectedSelectDescription(this.options(), this.value()),
 	);
 	readonly radioGroupName = `lf-inline-radio-${(radioGroupCounter += 1)}`;
+
+	onExpandMouseDown(event: MouseEvent): void {
+		event.preventDefault();
+		event.stopPropagation();
+	}
+
+	openExpand(event: MouseEvent): void {
+		event.preventDefault();
+		event.stopPropagation();
+		this.expanded.set(true);
+	}
 
 	startMarkdownEdit(): void {
 		if (this.disabled()) {

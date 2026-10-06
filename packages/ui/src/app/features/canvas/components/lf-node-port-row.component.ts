@@ -100,6 +100,8 @@ const isPreviewInline = (config: InlineConfig | null): boolean => {
 						[previewValue]="previewValue()"
 						[disabled]="disabled()"
 						[fill]="growFlex() > 0"
+						[expandable]="expandable()"
+						[expandLabel]="label()"
 						(valueChange)="valueChange.emit($event)"
 					/>
 				</div>
@@ -123,6 +125,8 @@ export class LfNodePortRowComponent {
 	readonly value = input<unknown>(undefined);
 	readonly previewValue = input<unknown>(undefined);
 	readonly disabled = input<boolean>(false);
+	/** False when the input port is wired — Expand stays off. */
+	readonly expandable = input(true);
 	readonly hidden = input<boolean>(false);
 	readonly nodeSelected = input<boolean>(false);
 	readonly endpointHighlighted = input<boolean>(false);

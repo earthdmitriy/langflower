@@ -35,7 +35,13 @@ palette hover popover), input ports (wired and unwired), inline editors
 where declared, panel `uiSchema` fields (including config-backed
 provider/model dropdowns), read-only cached outputs from the last run when
 present. Multiline textareas can be dragged taller (`resize: vertical`;
-height is ephemeral, not persisted). After Settings Save, those dropdown
+height is ephemeral, not persisted). Multiline and markdown fields, both
+panel parameters and unwired input ports, show an **Expand** control that
+opens a tall editor (max width 700px). Typing there emits the same
+`editor.updateNode.requested` payload as the small field (`params` for panel
+fields, `inputs` for ports). A wired input is read-only here, same as on the
+canvas: the control is disabled, Expand is hidden, and the panel does not
+emit `editor.updateNode.requested` for that port. After Settings Save, those dropdown
 option lists MUST reflect the new snapshot without requiring the operator
 to reload the editor.
 

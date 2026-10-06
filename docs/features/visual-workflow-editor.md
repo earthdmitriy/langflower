@@ -79,10 +79,16 @@ The editor screen has four areas:
 - String/number/boolean input ports show an editable control directly on the
   node body by default — no need to open the side panel or wire in a literal
   value.
-- That inline control is greyed out (read-only) the moment a wire is
-  connected to the port, since the wire's value is what actually gets used.
-  Unwired inline fields and the node **label** are also locked while a run
-  is active (`cursor-not-allowed` on disabled controls).
+- Multiline and markdown fields on the node, and the same unwired fields in
+  the inspector, have an **Expand** control. It opens a tall editor (max
+  width 700px) for long prompts. Keystrokes there write through the same
+  `editor.updateNode.requested` path as the small field. Expand is not shown
+  once a wire is connected to that input.
+- That inline control is greyed out (read-only) on the canvas and in the
+  inspector the moment a wire is connected to the port, since the wire's
+  value is what actually gets used. Unwired inline fields and the node
+  **label** are also locked while a run is active (`cursor-not-allowed` on
+  disabled controls).
 - Some fields (e.g. structured JSON, long text, non-primitive types) only
   ever appear in the right-hand parameter panel, not inline on the node.
 - While a workflow is running, ports with a "preview" style inline field show

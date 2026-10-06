@@ -156,6 +156,8 @@ type InputPortRow = {
 	/** `null` when the port has no editable on-node control or is a multi/dynamic slot. */
 	readonly inline: InlineConfig | null;
 	readonly value: unknown;
+	/** A wire targets this input. The authored control is not the value in use. */
+	readonly connected: boolean;
 };
 
 type OutputPortRow = {
@@ -216,6 +218,16 @@ const toInlineConfig = (
 			return 'text-multiline';
 	}
 };
+
+/** True when any edge lands on this node's input port (any slot). */
+const inputPortConnected = (
+	graph: WorkflowPersistedGraph | null,
+	nodeId: string,
+	portId: string,
+): boolean =>
+	graph?.edges.some(
+		(edge) => edge.toNodeId === nodeId && edge.toPort[0] === portId,
+	) === true;
 
 const inputWireType = (config: InputPortConfig): string => {
 	if (config.dynamic === true) {
@@ -431,6 +443,7 @@ const buildPanelRows = (
 												row.disabled === true ||
 												isRunning()
 											"
+											[expandLabel]="row.label"
 											(valueChange)="
 												onFieldChange(row.field, $event)
 											"
@@ -481,7 +494,9 @@ const buildPanelRows = (
 								<lf-inline-field
 									[config]="row.inline"
 									[value]="row.value"
-									[disabled]="isRunning()"
+									[disabled]="isRunning() || row.connected"
+									[expandable]="!row.connected"
+									[expandLabel]="row.label"
 									(valueChange)="
 										onInputChange(row.portId, $event)
 									"
@@ -586,6 +601,7 @@ export class LfInspectorPanelComponent {
 
 	readonly inputRows = computed<readonly InputPortRow[]>(() => {
 		const node = this.selectedNode();
+		const graph = this.activeGraph();
 
 		if (node === null) {
 			return [];
@@ -613,6 +629,7 @@ export class LfInspectorPanelComponent {
 							? (entry.inline ?? null)
 							: null,
 					value,
+					connected: inputPortConnected(graph, node.id, portId),
 				};
 			});
 	});
@@ -707,7 +724,11 @@ export class LfInspectorPanelComponent {
 	onInputChange(portId: string, value: unknown): void {
 		const node = this.selectedNode();
 
-		if (node === null || this.execution.isRunning()) {
+		if (
+			node === null ||
+			this.execution.isRunning() ||
+			inputPortConnected(this.activeGraph(), node.id, portId)
+		) {
 			return;
 		}
 
