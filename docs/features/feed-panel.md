@@ -246,14 +246,14 @@ below). Run controls never live in chrome.
 - Text CTAs = pills (`rounded-full`); round icon buttons match that height.
 - Tooltips via `lf-hover-tip` (not bare OS `title`).
 
-| State                         | Chrome                        | Footer                                                                                         | Forbidden                                                                                                  |
-| ----------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Idle Chat Input (`chatEntry`) | None (single entry)           | **Start** (emerald play) on the right                                                          | Idle **Run** in chrome; field labels; label **Send** on Chat Input                                         |
-| Mid-run HITL (1 gate)         | None                          | Reply CTAs (right) + run controls per row below                                                | Title-only chrome; field labels                                                                            |
-| Mid-run HITL (2+ gates)       | Tab strip only                | Same as 1-gate for the active tab                                                              | Title chrome without tabs                                                                                  |
-| Run active, no HITL           | None                          | Centered `working . . .`; **Stop** (rose) **left**; **Pause** (amber) **right**                | Single amber Stop in a shared Start/Stop primary slot; Stop as full-width Run                              |
-| Soft-paused (`steerControl`)  | HITL tab strip if 2+ awaiting | HITL composer: textarea + **Send** (`config.hitl` on `steerControl`); **Stop** still available | Fake Pause via cancel; inventing checkpoint Continue; treating `{ kind: 'pause' }` as a closing HITL reply |
-| Idle, no HITL, not running    | —                             | Plain text **Run** / **Run from node** (non-chat clusters only)                                | Using that plain Run to start a Chat Input cluster                                                         |
+| State                         | Chrome                        | Footer                                                                                                      | Forbidden                                                                                                  |
+| ----------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Idle Chat Input (`chatEntry`) | None (single entry)           | **Start** (emerald play) on the right                                                                       | Idle **Run** in chrome; field labels; label **Send** on Chat Input                                         |
+| Mid-run HITL (1 gate)         | None                          | Reply CTAs (right) + run controls per row below                                                             | Title-only chrome; field labels                                                                            |
+| Mid-run HITL (2+ gates)       | Tab strip only                | Same as 1-gate for the active tab                                                                           | Title chrome without tabs                                                                                  |
+| Run active, no HITL           | None                          | Centered `working . . .`; **Stop** (rose) **left**; **Pause** (amber) **right**                             | Single amber Stop in a shared Start/Stop primary slot; Stop as full-width Run                              |
+| Soft-paused (`steerControl`)  | HITL tab strip if 2+ awaiting | HITL composer: textarea + **Continue** (`{ kind: 'resume' }`, no text) + **Send**; **Stop** still available | Fake Pause via cancel; inventing checkpoint Continue; treating `{ kind: 'pause' }` as a closing HITL reply |
+| Idle, no HITL, not running    | —                             | Plain text **Run** / **Run from node** (non-chat clusters only)                                             | Using that plain Run to start a Chat Input cluster                                                         |
 
 Icon / run-control rules:
 
@@ -270,10 +270,11 @@ Icon / run-control rules:
   ([ADR-032](../architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port)).
   Other working agents keep running; Pause again when another agent becomes
   last in feed. **Shipped** (DONE epic 36).
-- **After Pause** — HITL composer unlocks (textarea + **Send**); tabs when 2+
-  paused agents / gates (sequential Pause, not one-click fan-out). Send →
-  `{ kind: 'steer', text }`. Stop still
-  hard-cancels.
+- **After Pause or recovery suspend** — HITL composer unlocks (textarea +
+  **Continue** + **Send**); tabs when 2+ paused agents / gates (sequential
+  Pause, not one-click fan-out). Continue (and Enter on an empty draft) →
+  `{ kind: 'resume' }` with no typed text. Send → `{ kind: 'steer', text }`.
+  Stop still hard-cancels. **Continue** here is not checkpoint **Continue from…**.
 - **Reply vocabulary** — Review Gate keeps text labels (`Send`,
   `Send feedback`, Approve, …). Do not reuse Start for mid-run replies.
 - Chat-control footer stays mounted for the whole run — even after Chat Input

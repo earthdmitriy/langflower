@@ -25,7 +25,7 @@ import {
 	ComposerService,
 } from '../composer.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
-import { resolveComposerActionPayload } from '../hitl-action-payload';
+import { resolveComposerEnterPayload } from '../hitl-action-payload';
 import { resolveComposerFooterMode } from '../composer-footer-mode';
 import { LfHitlActionsComponent } from './lf-hitl-actions.component';
 import { LfHitlTextareaComponent } from './lf-hitl-textarea.component';
@@ -38,7 +38,8 @@ import { RunButtonComponent } from './run-button.component';
  * shell; tab strip and footer float over it (absolute + fade). Stop left,
  * Start/Run/Send right; Pause is per-node (last feed section) and may show
  * again in HITL footer when another agent becomes last in feed. Enter (no
- * Shift) activates the rightmost footer CTA; Shift+Enter inserts a newline.
+ * Shift) activates the rightmost footer CTA; an empty Steer draft Continues
+ * instead of Send. Shift+Enter inserts a newline.
  */
 @Component({
 	selector: 'lf-composer-shell',
@@ -422,7 +423,7 @@ export class LfComposerShellComponent {
 			rightmost.nodeId,
 			rightmost.portId,
 		);
-		const resolved = resolveComposerActionPayload(rightmost, draft);
+		const resolved = resolveComposerEnterPayload(rightmost, draft);
 		if (!resolved.ok) {
 			return;
 		}

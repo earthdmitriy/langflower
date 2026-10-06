@@ -114,11 +114,13 @@ layout table: [feed-panel.md](feed-panel.md) § Composer layout):
   Reply CTAs stay text pills (`Send`, `Send feedback`, Approve, …) on the
   right. Hard **Stop** is rose (left while running / after Pause); soft **Pause**
   is amber (right while a pausable last-feed agent is working — including when
-  another node already has a Steer tab). After Pause, the same HITL composer
-  unlocks for that paused agent (`steerControl` has `config.hitl`: textarea +
-  **Send**); tabs when 2+ awaiting (agents and/or gates). Pause is **per-node**
-  (last feed section), not a global run pause. Fold: `pause` opens awaiting,
-  Send closes — see [ADR-032](../architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port).
+  another node already has a Steer tab). After Pause, and after a suspended
+  recovery notice, the same HITL composer unlocks for that agent
+  (`steerControl` has `config.hitl`: textarea + **Continue** and **Send**);
+  tabs when 2+ awaiting (agents and/or gates). Pause is **per-node**
+  (last feed section), not a global run pause. Fold: `pause` opens awaiting;
+  Send and Continue (`{ kind: 'resume' }`, no typed text) close — see
+  [ADR-032](../architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port).
   Soft Pause UI/runtime **shipped** (DONE epic 36) — see
   [run-interruption](../use-cases/run-interruption.md) and
   [ADR-031](../architecture/ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer).

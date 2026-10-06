@@ -1964,8 +1964,8 @@ shape (textarea + Send; tabs when 2+).
       stays `running`.
     - `{ kind: 'steer', text: string }` — Send: append into loop messages and
       continue.
-    - `{ kind: 'resume' }` — continue without new text (optional; v1 Send-only
-      is enough).
+    - `{ kind: 'resume' }` — Continue (and Enter on an empty draft): retry the
+      checkpoint with no new user text. Send stays the typed-correction path.
 3. Delivery: existing `runner.hitl.event` →
    `RuntimeRunner.pushIntoInput({ nodeId, portId: 'steerControl', payload })`.
    No new interrupt reason. JSDoc on `runner.hitl.event` must say it is the

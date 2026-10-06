@@ -75,7 +75,7 @@ approve/reject ([grok-feed](grok-feed.md) S3).
 
 **Want:** Correct the agent and continue the same run.
 
-**Do:** Type a correction; press **Send feedback** or **Resume**.
+**Do:** Type a correction and press **Send**, or press **Continue** with an empty draft (`{ kind: 'resume' }`).
 
 **Expect:**
 
@@ -132,7 +132,9 @@ long agent turn.
 - The LLM retries from its committed round checkpoint; partial streamed text
   remains telemetry and MUST NOT be committed as completed history.
 - After retry exhaustion the node MUST remain alive in a Steer/Resume await and
-  the Steer composer MUST open (same fold as Pause).
+  the Steer composer MUST open (same fold as Pause). **Continue** MUST be
+  enabled with an empty draft and send `{ kind: 'resume' }`. **Send** stays
+  disabled until the operator types a correction.
 - Authentication/configuration failures remain terminal errors.
 
 Idle / hung streams, token dead loops, and HTTP 429 / 5xx / network after

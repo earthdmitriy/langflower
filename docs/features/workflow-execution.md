@@ -88,7 +88,7 @@ mechanism [ADR-032](../architecture/ADR.md#adr-032--soft-pause-via-hidden-steerc
 | --------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | **Stop**        | Hard cancel — run ends                                                                                              | Rose stop icon, composer footer **left** while running / after Pause | **Shipped** via `runner.interrupt.requested` `'cancel'` (DONE epic 36) |
 | **Pause**       | Soft interrupt — **one** agent (last feed section) enters HITL-class await on `steerControl`; siblings keep working | Amber pause icon, footer **right** while that agent is pausable      | **Shipped** — ADR-032 per-node; DONE epic 36                           |
-| **After Pause** | HITL composer: textarea + **Send** (`steerControl`); tabs if 2+                                                     | Same HITL shell as gates                                             | **Shipped** (DONE epics 35–36)                                         |
+| **After Pause** | HITL composer: textarea + **Continue** (`{ kind: 'resume' }`, no text) + **Send**; tabs if 2+                       | Same HITL shell as gates; also after recovery suspend                | **Shipped** (DONE epics 35–36)                                         |
 
 For chat-style workflows waiting on human input (see
 [hitl-chat.md](hitl-chat.md)), **hard Stop** is how the conversation ends —

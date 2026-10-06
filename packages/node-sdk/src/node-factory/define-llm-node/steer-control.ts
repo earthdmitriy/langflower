@@ -2,7 +2,7 @@
  * Soft Pause / Steer on LLM inventory port `steerControl` (ADR-032).
  *
  * Pause button → `{ kind: 'pause' }`. HITL Send → `{ kind: 'steer', text }`.
- * Optional `{ kind: 'resume' }` continues without new text.
+ * Continue → `{ kind: 'resume' }` with no new user text.
  */
 
 export const STEER_CONTROL_PORT_ID = 'steerControl' as const;

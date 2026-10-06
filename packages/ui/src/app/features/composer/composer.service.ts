@@ -38,6 +38,7 @@ import { ExecutionFeedService } from '../feed-folding/execution-feed.service';
 import { createHitlTriggeredNodes$ } from './execution-hitl-fold';
 import { createPendingAskUserAsks$ } from './execution-ask-user-fold';
 import { createPendingPermissionAsks$ } from './execution-permission-fold';
+import { wrapSteerHitlPayload } from './hitl-action-payload';
 import { nodeInputString } from './node-input-string';
 
 /** Synthetic HITL port id for composer drafts while `ask_user` is pending. */
@@ -359,11 +360,7 @@ export class ComposerService {
 	): void {
 		const nodeId = event[0];
 		const portId = event[1];
-		const rawPayload = event[2];
-		const payload =
-			portId === STEER_CONTROL_PORT_ID && typeof rawPayload === 'string'
-				? { kind: 'steer' as const, text: rawPayload }
-				: rawPayload;
+		const payload = wrapSteerHitlPayload(portId, event[2]);
 		const nodeType = this.nodeTypeById().get(nodeId);
 		const def =
 			nodeType !== undefined

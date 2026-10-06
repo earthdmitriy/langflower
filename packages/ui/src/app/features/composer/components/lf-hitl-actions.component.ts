@@ -7,7 +7,11 @@ import {
 	inject,
 } from '@angular/core';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
-import { resolveComposerActionPayload } from '../hitl-action-payload';
+import {
+	isSteerControlTextarea,
+	resolveComposerActionPayload,
+	steerResumePayload,
+} from '../hitl-action-payload';
 import type { HitlControlProjection } from '../../../services/hitl-projection';
 import { ComposerService } from '../composer.service';
 
@@ -62,6 +66,19 @@ import { ComposerService } from '../composer.service';
 							</button>
 						</lf-hover-tip>
 					} @else {
+						@if (isSteerTextarea(entry)) {
+							<lf-hover-tip
+								tip="Resume this turn without new text"
+							>
+								<button
+									type="button"
+									class="lf-composer-pill border border-zinc-200 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+									(click)="submitResume(entry)"
+								>
+									Continue
+								</button>
+							</lf-hover-tip>
+						}
 						<lf-hover-tip
 							[tip]="
 								draftOf(entry).trim().length > 0
@@ -107,6 +124,14 @@ export class LfHitlActionsComponent {
 
 	canSubmitStart(entry: HitlControlProjection): boolean {
 		return this.draftOf(entry).trim().length > 0;
+	}
+
+	isSteerTextarea(entry: HitlControlProjection): boolean {
+		return isSteerControlTextarea(entry);
+	}
+
+	submitResume(entry: HitlControlProjection): void {
+		this.submitted.emit([entry.nodeId, entry.portId, steerResumePayload()]);
 	}
 
 	submitEntry(entry: HitlControlProjection): void {
