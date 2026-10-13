@@ -225,9 +225,21 @@ export const wireEditorHandlers = (
 				return;
 			}
 
+			const edgesBefore = new Set(
+				session.runtime.editor.getEdges().map((edge) => edge.edgeId),
+			);
+
 			const delta = applyEditorRemoveNode(session, raw.payload as NodeId);
 
 			bridgeEmit(bridge, 'editor.deleteNodes', delta);
+
+			const addedEdges = session.runtime.editor
+				.getEdges()
+				.filter((edge) => !edgesBefore.has(edge.edgeId));
+
+			if (addedEdges.length > 0) {
+				bridgeEmit(bridge, 'editor.addEdges', addedEdges);
+			}
 
 			if (delta.length > 0) {
 				bridgeEmit(bridge, 'workflow.currentStatus.snapshot', {

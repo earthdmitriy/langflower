@@ -246,6 +246,60 @@ describe('editor bus (WS bridge)', () => {
 		expect(delta).toEqual([node]);
 	});
 
+	it('broadcasts a spliced edge when a passthrough preview is removed', async () => {
+		const [src] = await emitEditorAddNode(
+			client,
+			stringNodeAddPayload('splice', { x: 0, y: 400 }),
+		);
+		const [mid] = await emitEditorAddNode(
+			client,
+			previewNodeAddPayload({ x: 240, y: 400 }),
+		);
+		const [sink] = await emitEditorAddNode(
+			client,
+			previewNodeAddPayload({ x: 480, y: 400 }, 'Preview sink'),
+		);
+
+		await emitEditorAddEdge(client, {
+			fromNodeId: src!.id,
+			fromPort: ['value', 0],
+			toNodeId: mid!.id,
+			toPort: ['input', 0],
+		});
+		await emitEditorAddEdge(client, {
+			fromNodeId: mid!.id,
+			fromPort: ['output', 0],
+			toNodeId: sink!.id,
+			toPort: ['input', 0],
+		});
+
+		const added$ = firstValueFrom(
+			client['editor.addEdges'].pipe(
+				filter((edges) =>
+					edges.some(
+						(edge) =>
+							edge.fromNodeId === src!.id &&
+							edge.toNodeId === sink!.id,
+					),
+				),
+				take(1),
+			),
+		);
+
+		const removed = await emitEditorRemoveNode(client, mid!.id);
+		const added = await added$;
+
+		expect(removed.map((node) => node.id)).toEqual([mid!.id]);
+		expect(added).toEqual([
+			expect.objectContaining({
+				fromNodeId: src!.id,
+				fromPort: ['value', 0],
+				toNodeId: sink!.id,
+				toPort: ['input', 0],
+			}),
+		]);
+	});
+
 	it('returns removed edge on editor.removeEdge.delta', async () => {
 		const [src] = await emitEditorAddNode(
 			client,

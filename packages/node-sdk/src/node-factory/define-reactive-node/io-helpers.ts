@@ -198,6 +198,12 @@ export type OutputParams = {
 	 * if set - output will be connected to feed at sidebar
 	 */
 	readonly feed?: FeedPortMeta;
+	/**
+	 * Input port id this output continues when the node is deleted.
+	 * Wire type stays as declared. Passthrough outputs already continue
+	 * their `inferTypeFrom` input via `fromInput`.
+	 */
+	readonly rewireFrom?: string;
 };
 
 type WithWireType = { readonly wireType: string };

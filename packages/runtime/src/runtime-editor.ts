@@ -210,12 +210,20 @@ export class RuntimeEditor implements RuntimeEditorApi {
 			return false;
 		}
 
+		// Plan while incident edges still exist. Insert splices before
+		// cleanup so a downstream passthrough keeps a type pin.
+		const splices = this.planRemovalSplices(nodeId);
+
 		this.nodes.delete(nodeId);
 
 		for (const [edgeId, edge] of this.edges.entries()) {
 			if (edge.fromNodeId === nodeId || edge.toNodeId === nodeId) {
 				this.edges.delete(edgeId);
 			}
+		}
+
+		for (const splice of splices) {
+			this.addEdge(splice);
 		}
 
 		this.cleanupInvalidEdges();
@@ -652,6 +660,107 @@ export class RuntimeEditor implements RuntimeEditorApi {
 		return undefined;
 	}
 
+	/**
+	 * Declared continuation channels (`fromInput` or `rewireFrom`).
+	 * One incoming edge fans out. Several incoming edges into a single
+	 * output are left unwired. Bypass outputs pair by slot index.
+	 */
+	private planRemovalSplices(nodeId: NodeId): Omit<RuntimeEdge, 'edgeId'>[] {
+		const node = this.nodes.get(nodeId);
+
+		if (node === undefined) {
+			return [];
+		}
+
+		const channels = new Map<
+			string,
+			{ readonly sourceInput: string; readonly outputPortId: string }
+		>();
+
+		for (const output of Object.values(node.outputs)) {
+			const sourceInput = output.meta.rewireFrom ?? output.meta.fromInput;
+
+			if (
+				sourceInput === undefined ||
+				typeof output.meta.portId !== 'string'
+			) {
+				continue;
+			}
+
+			const outputPortId = output.meta.portId;
+			const key = `${sourceInput}\0${outputPortId}`;
+
+			if (!channels.has(key)) {
+				channels.set(key, { sourceInput, outputPortId });
+			}
+		}
+
+		const splices: Omit<RuntimeEdge, 'edgeId'>[] = [];
+
+		for (const channel of channels.values()) {
+			const inEdges: RuntimeEdge[] = [];
+			const outEdges: RuntimeEdge[] = [];
+
+			for (const edge of this.edges.values()) {
+				if (
+					edge.toNodeId === nodeId &&
+					edge.toPort[0] === channel.sourceInput
+				) {
+					inEdges.push(edge);
+				}
+
+				if (
+					edge.fromNodeId === nodeId &&
+					edge.fromPort[0] === channel.outputPortId
+				) {
+					outEdges.push(edge);
+				}
+			}
+
+			if (inEdges.length === 0 || outEdges.length === 0) {
+				continue;
+			}
+
+			if (isBypassPort(node, channel.outputPortId)) {
+				for (const outEdge of outEdges) {
+					const sources = inEdges.filter(
+						(edge) => edge.toPort[1] === outEdge.fromPort[1],
+					);
+
+					if (sources.length !== 1) {
+						continue;
+					}
+
+					const source = sources[0];
+
+					if (source === undefined) {
+						continue;
+					}
+
+					pushSplice(splices, nodeId, source, outEdge);
+				}
+
+				continue;
+			}
+
+			if (inEdges.length !== 1) {
+				continue;
+			}
+
+			const source = inEdges[0];
+
+			if (source === undefined) {
+				continue;
+			}
+
+			for (const outEdge of outEdges) {
+				pushSplice(splices, nodeId, source, outEdge);
+			}
+		}
+
+		return splices;
+	}
+
 	private cleanupInvalidEdges(): RuntimeEdge[] {
 		const removed: RuntimeEdge[] = [];
 		let removedEdge = true;
@@ -671,3 +780,25 @@ export class RuntimeEditor implements RuntimeEditorApi {
 		return removed;
 	}
 }
+
+const pushSplice = (
+	splices: Omit<RuntimeEdge, 'edgeId'>[],
+	removedNodeId: NodeId,
+	incoming: RuntimeEdge,
+	outgoing: RuntimeEdge,
+): void => {
+	if (
+		incoming.fromNodeId === removedNodeId ||
+		outgoing.toNodeId === removedNodeId ||
+		incoming.fromNodeId === outgoing.toNodeId
+	) {
+		return;
+	}
+
+	splices.push({
+		fromNodeId: incoming.fromNodeId,
+		fromPort: incoming.fromPort,
+		toNodeId: outgoing.toNodeId,
+		toPort: outgoing.toPort,
+	});
+};

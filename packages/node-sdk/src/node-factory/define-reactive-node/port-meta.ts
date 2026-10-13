@@ -64,6 +64,11 @@ export type PortMeta = {
 	readonly wireType: string | symbol;
 	readonly mode?: InputPortMode;
 	readonly fromInput?: string;
+	/**
+	 * Input port id this output continues when the node is deleted.
+	 * Does not change wire-type inference (`fromInput` does).
+	 */
+	readonly rewireFrom?: string;
 	readonly defaultValue?: unknown;
 	readonly feed?: FeedPortMeta;
 };

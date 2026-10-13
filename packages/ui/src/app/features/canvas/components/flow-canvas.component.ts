@@ -629,7 +629,19 @@ export class FlowCanvasComponent {
 		},
 
 		handleSelectionRemoved: (event: SelectionRemovedEvent) => {
+			const deletedNodeIds = new Set(
+				event.deletedNodes.map((node) => node.id),
+			);
+
 			for (const edge of event.deletedEdges) {
+				// Incident edges stay on the server until removeNode splices them.
+				if (
+					deletedNodeIds.has(edge.source) ||
+					deletedNodeIds.has(edge.target)
+				) {
+					continue;
+				}
+
 				this.bridge.raw['editor.removeEdge.requested'].next(edge.id);
 			}
 

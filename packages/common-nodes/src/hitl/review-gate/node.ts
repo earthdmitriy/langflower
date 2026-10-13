@@ -71,6 +71,9 @@ Typical uses:
 				configureOutput('response', response$, {
 					wireType: 'string',
 					feed: { role: 'none' },
+					// Approve path continues `result` when the gate is deleted.
+					// `feedback` is a different value and must not splice.
+					rewireFrom: 'result',
 				}),
 				configureOutput('feedback', feedback$, {
 					wireType: 'string',

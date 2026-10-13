@@ -73,6 +73,17 @@ The editor screen has four areas:
   several upstream branches and combine them into one value.
 - Hovering a port shows its name, type, and description; wired ports offer a
   one-click disconnect. Edges can also be selected and removed with Delete.
+- Deleting a node reconnects wires along a continuation that node declares.
+  A passthrough output (`fromInput`, such as Preview **output** or Delay
+  **value**) and an output marked `rewireFrom` (Review Gate **response**
+  continues **result**) splice the single incoming wire onto every compatible
+  outgoing wire of that output. When several wires feed that input and the
+  output accepts only one source, those wires leave with the node. Outputs
+  without a continuation (Preview **text**, Review Gate **feedback**)
+  disconnect with the node. A splice that would loop a node back to itself
+  is skipped. Deleting a chain of nodes splices one node at a time, so
+  `A → B → C → D` with `B` and `C` both removed becomes `A → D` when each
+  middle node declares that continuation.
 
 **Editing values on a node:**
 

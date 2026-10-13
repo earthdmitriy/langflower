@@ -50,6 +50,11 @@ export type PortMeta = {
 	/** Passthrough source input port id — `undefined` for non-passthrough outputs. */
 	readonly fromInput?: string;
 	/**
+	 * Input port id this output continues when the node is deleted.
+	 * Does not change wire-type inference (`fromInput` does).
+	 */
+	readonly rewireFrom?: string;
+	/**
 	 * Design-time default for an **unconnected** input. Applied by the runner at
 	 * `start` / `startNode` when no edge targets the port (see
 	 * `applyPortDefaults`). Server may also persist the same value in
@@ -375,9 +380,12 @@ export type RuntimeEditorApi = {
 		next: Omit<RuntimeNode, 'nodeId'>,
 	): SwapNodeResult | false;
 
-	/** Must fail while runner status is `'running'`.
+	/**
+	 * Must fail while runner status is `'running'`.
 	 *
-	 * return false while running or node not found
+	 * Returns `false` while running or when `nodeId` is missing.
+	 * On success, splices edges across outputs that declare `fromInput` or
+	 * `rewireFrom` before dropping wires the removal made incompatible.
 	 */
 	removeNode(nodeId: NodeId): RuntimeNode | false;
 

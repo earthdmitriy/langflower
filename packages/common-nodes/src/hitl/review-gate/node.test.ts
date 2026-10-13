@@ -9,6 +9,21 @@ describe('common-hitl-review-gate pending', () => {
 		).toEqual(['response', 'feedback']);
 	});
 
+	it('continues result through response when the gate is deleted', () => {
+		const response = hitlReviewGateNode.outputsConfigs.find(
+			(entry) => entry.portId === 'response',
+		);
+		const feedback = hitlReviewGateNode.outputsConfigs.find(
+			(entry) => entry.portId === 'feedback',
+		);
+
+		expect(response).toMatchObject({
+			wireType: 'string',
+			rewireFrom: 'result',
+		});
+		expect(feedback).not.toHaveProperty('rewireFrom');
+	});
+
 	it('response stays pending after result until approve', async () => {
 		const gate = hitlReviewGateNode.getInstance();
 		const pendingSeen: boolean[] = [];

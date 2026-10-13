@@ -428,6 +428,41 @@ describe('applyEditorRemoveNode', () => {
 
 		expect(applyEditorRemoveNode(session, 'missing' as NodeId)).toEqual([]);
 	});
+
+	it('splices a preview passthrough between string and delay', () => {
+		const session = new LangflowerSession();
+		seedActiveWorkflow(session, [
+			stringNode('string-1'),
+			previewNode('preview-1'),
+			delayNode('delay-1'),
+		]);
+		applyEditorAddEdge(session, {
+			fromNodeId: 'string-1' as NodeId,
+			fromPort: ['value', 0],
+			toNodeId: 'preview-1' as NodeId,
+			toPort: ['input', 0],
+		});
+		applyEditorAddEdge(session, {
+			fromNodeId: 'preview-1' as NodeId,
+			fromPort: ['output', 0],
+			toNodeId: 'delay-1' as NodeId,
+			toPort: ['value', 0],
+		});
+
+		applyEditorRemoveNode(session, 'preview-1' as NodeId);
+
+		expect(session.runtime.editor.getEdges()).toEqual([
+			expect.objectContaining({
+				fromNodeId: 'string-1',
+				fromPort: ['value', 0],
+				toNodeId: 'delay-1',
+				toPort: ['value', 0],
+			}),
+		]);
+		expect(session.activeWorkflow?.graph.edges).toEqual(
+			session.runtime.editor.getEdges(),
+		);
+	});
 });
 
 describe('applyEditorRemoveEdge', () => {

@@ -441,17 +441,21 @@ describe('FlowCanvasComponent', () => {
 		});
 	});
 
-	it('emits removeNode.requested and removeEdge.requested on handleSelectionRemoved', () => {
+	it('emits removeNode and skips edges incident to the deleted nodes', () => {
 		const nodeSpy = vi.spyOn(raw['editor.removeNode.requested'], 'next');
 		const edgeSpy = vi.spyOn(raw['editor.removeEdge.requested'], 'next');
 
 		canvas.handlers.handleSelectionRemoved({
 			deletedNodes: [{ id: 'n1' }],
-			deletedEdges: [{ id: 'e1' }],
+			deletedEdges: [
+				{ id: 'incident', source: 'n1', target: 'n2' },
+				{ id: 'free', source: 'n3', target: 'n4' },
+			],
 		} as any);
 
 		expect(nodeSpy).toHaveBeenCalledWith('n1');
-		expect(edgeSpy).toHaveBeenCalledWith('e1');
+		expect(edgeSpy).toHaveBeenCalledTimes(1);
+		expect(edgeSpy).toHaveBeenCalledWith('free');
 	});
 
 	it('emits editor.selectNode.requested on handleSelectionChanged', () => {

@@ -289,6 +289,37 @@ describe('defineReactiveNode', () => {
 
 		expect(instance.outputs.value).toBeDefined();
 	});
+
+	it('stores rewireFrom without making the output a passthrough', () => {
+		const node = defineReactiveNode({
+			type: 'test-rewire-from',
+			displayName: 'Rewire',
+			uiSchema: [] as const,
+			bind(_ctx, { makeInput, configureOutput }) {
+				const result = makeInput<string>('result', {
+					name: 'result',
+					wireType: 'string',
+				});
+
+				return {
+					inputs: [result],
+					outputs: [
+						configureOutput('response', result, {
+							wireType: 'string',
+							rewireFrom: 'result',
+						}),
+					],
+				};
+			},
+		});
+
+		expect(node.outputsConfigs[0]).toMatchObject({
+			portId: 'response',
+			wireType: 'string',
+			rewireFrom: 'result',
+		});
+		expect(node.outputsConfigs[0]).not.toHaveProperty('fromInput');
+	});
 });
 
 describe('resolveMultilineInlineLayout', () => {
