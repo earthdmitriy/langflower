@@ -38,7 +38,9 @@ contract.
 - `my-nodes/git-diff-tool.ts` — `defineToolRegistrations`; emits `git_diff`
   ToolHandle for agent `tools` ports (on demand).
 - `my-nodes/review-gate.ts` — `defineReactiveNode`; runs `npm run test`,
-  emits on **`ok`** or **`fail`** independently.
+  emits on **`ok`** or **`fail`** independently. `fail` text that feeds
+  an agent must be filtered to failures (failing names, diffs, formatter
+  errors), not the raw test or formatter log.
 
 `git-diff` / `git-diff-tool` use `child_process` until a shell Cap exists on
 `ExecutionContext`.

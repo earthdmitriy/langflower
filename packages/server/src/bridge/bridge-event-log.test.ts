@@ -95,7 +95,7 @@ describe('attachBridgeEventLog', () => {
 		const text = await fs.readFile(log.filePath, 'utf8');
 		const frames = parseFrames(text);
 
-		expect(log.filePath).toMatch(/\.langflower[\\/]logs[\\/].+\.log$/);
+		expect(log.filePath).toMatch(/\.langflower[\\/]logs[\\/].+\.jsonl$/);
 		expect(frames).toEqual(
 			expect.arrayContaining([
 				[
@@ -188,6 +188,72 @@ describe('attachBridgeEventLog', () => {
 			'workflow.current.snapshot',
 			{ second: true },
 		]);
+	});
+
+	it('writes one line when a reasoning series closes and drops an open series', async () => {
+		const projectDir = await createTemporaryProject();
+		const port = new Subject<unknown>();
+		const done = new Subject<unknown>();
+		const rootSubscription = new Subscription();
+		const log = attachBridgeEventLog(
+			asBridge({
+				'runner.port': port,
+				'runner.done': done,
+				connections$: new Subject<LangflowerClient>(),
+			}),
+			projectDir,
+			rootSubscription,
+		);
+		const chunk = (value: string): unknown => [
+			'out',
+			'agent',
+			'reasoning',
+			{ value },
+			0,
+			['edge-1'],
+			{ role: 'reasoning', streaming: true },
+		];
+
+		port.next(chunk('token1'));
+		port.next(chunk('token2'));
+		port.next(chunk('token3'));
+		log.writeServerClosing();
+		rootSubscription.unsubscribe();
+		await log.flush();
+		await expect(fs.access(log.filePath)).rejects.toMatchObject({
+			code: 'ENOENT',
+		});
+
+		const closed = attachBridgeEventLog(
+			asBridge({
+				'runner.port': port,
+				'runner.done': done,
+				connections$: new Subject<LangflowerClient>(),
+			}),
+			projectDir,
+			new Subscription(),
+		);
+		port.next(chunk('token1'));
+		port.next(chunk('token2'));
+		port.next(chunk('token3'));
+		done.next(['done', 'run-1']);
+		closed.writeServerClosing();
+		await closed.flush();
+
+		const frames = parseFrames(await fs.readFile(closed.filePath, 'utf8'));
+		expect(frames).toHaveLength(2);
+		expect(frames[0]?.[2]).toBe('runner.port');
+		expect(frames[0]?.[3]).toEqual([
+			'out',
+			'agent',
+			'reasoning',
+			{ value: 'token1token2token3' },
+			0,
+			['edge-1'],
+			{ role: 'reasoning', streaming: true },
+		]);
+		expect(frames[1]?.[2]).toBe('runner.done');
+		expect(frames[1]?.[3]).toEqual(['done', 'run-1']);
 	});
 
 	it('logs secrets save as REDACTED and keeps token on other events', async () => {

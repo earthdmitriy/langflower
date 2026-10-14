@@ -1,6 +1,7 @@
 import { statefulObservable } from '@rx-evo/stateful-observable';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { describe, expect, it } from 'vitest';
+import type { NodeStateHook, NodeStateJson } from '../../node-state.js';
 import {
 	defineLlmNode,
 	LLM_INVENTORY_INPUT_PORT_IDS,
@@ -136,5 +137,49 @@ describe('defineLlmNode', () => {
 				},
 			}),
 		).toThrow(/do not redeclare inventory inputs/);
+	});
+
+	it('forwards state from the inner bind onto the live instance', () => {
+		const restored: (NodeStateJson | null)[] = [];
+		const hooks: NodeStateHook[] = [];
+		const node = defineLlmNode({
+			type: 'test-llm-state',
+			displayName: 'Test LLM state',
+			uiSchema: [] as const,
+			bind(_ctx, { configureOutput }, _inventory) {
+				const hook: NodeStateHook = {
+					persist$: new Subject<NodeStateJson>(),
+					restore: (state) => {
+						restored.push(state);
+						return { ok: true };
+					},
+				};
+				hooks.push(hook);
+				const stream$ = idle$();
+
+				return {
+					inputs: [],
+					outputs: [
+						configureOutput('response', stream$, {
+							wireType: 'string',
+						}),
+					],
+					inventoryOutputs: {
+						toolLog$: stream$,
+						recovery$: stream$,
+					},
+					state: hook,
+				};
+			},
+		});
+
+		expect(hooks).toHaveLength(1);
+		expect(restored).toEqual([]);
+
+		const instance = node.getInstance();
+
+		expect(hooks).toHaveLength(2);
+		expect(restored).toEqual([]);
+		expect(instance.state).toBe(hooks[1]);
 	});
 });

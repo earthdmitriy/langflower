@@ -42,17 +42,28 @@ re-call `bind`.
 Nodes may **intentionally** keep internal state across runs (counters,
 closures, once-per-instance streams) for the life of the loaded workflow:
 
-| Event                                          | Instance / intentional state                         |
-| ---------------------------------------------- | ---------------------------------------------------- |
-| `done` → `idle` or `interrupt` → `stopped`     | Kept — same `RuntimeNode` ports and closures         |
-| Next `start` / `startNode` on the same graph   | Same instances; state still available if authored so |
-| Load another workflow / rematerialize graph    | Fresh `getInstance()` — state discarded              |
-| Remove / re-add the canvas node                | Fresh instance                                       |
-| Shut down Langflower / kill the server process | Gone (not durable). Use checkpoints for disk resume  |
+| Event                                          | Instance / intentional state                                                                                                          |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `done` → `idle` or `interrupt` → `stopped`     | Kept — same `RuntimeNode` ports and closures                                                                                          |
+| Next `start` / `startNode` on the same graph   | Same instances. Closures remain. `restore` is what that run uses when the runner passes state into a node state hook                  |
+| Load another workflow / rematerialize graph    | Fresh `getInstance()` — closures discarded                                                                                            |
+| Remove / re-add the canvas node                | Fresh instance                                                                                                                        |
+| Shut down Langflower / kill the server process | Closures are gone. A node with a state hook can `restore` JSON from the workflow session file. Nodes without the hook persist nothing |
 
-This is **in-memory session state**, not checkpoint resume. Durable continue
-after process restart remains explicit Checkpoint nodes
-([ADR-018](architecture/ADR.md#adr-018--durable-workflow-checkpoints)).
+In-memory closures survive `done` until rematerialize. That memory is not a
+disk transcript. The way a node persists across a process restart is the
+optional state hook on the bind result (`persist$` + `restore`).
+`@langflower/node-sdk` owns `NodeStateHook`; `@langflower/runtime` keeps a
+structural twin and does not import the author package
+([ADR-027](architecture/ADR.md#adr-027--author-sdk-owns-port-types-no-production-runtime-dep)).
+The runner calls `restore` before wiring. `null` starts fresh. `{ ok: false }`
+starts that node fresh and does not abort the run. OpenAI, Fake, Review, and
+Critique implement the hook (`{ history }` after a completed turn). Repeat
+persists `{ nextIndex, done, count }` after each slot that has already left
+the node. Sub-Agent does not: its result is a tool call on the parent. Checkpoint nodes stay an explicit boundary
+([ADR-018](architecture/ADR.md#adr-018--durable-workflow-checkpoints)); the
+point is stored on the bound workflow session
+([ADR-040](architecture/ADR.md#adr-040--workflow-sessions-own-points)).
 
 Regression: `packages/runtime/src/testing/workflows/share-replay-rerun.workflow.test.ts`
 (passthrough buffer + counter across finish → second start).

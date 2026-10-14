@@ -200,7 +200,7 @@ describe('RuntimeRunner.resume', () => {
 				'delay-ms-src' as NodeId,
 				'router' as NodeId,
 			],
-			// Checkpoint shape from RunCheckpointSession / demo example.json
+			// Output snapshots keyed by node id → port id.
 			outputSnapshots: {
 				'value-src': { value: 'hello' },
 				'delay-ms-src': { value: delayMs },

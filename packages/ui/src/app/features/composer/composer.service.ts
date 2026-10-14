@@ -38,6 +38,8 @@ import { ExecutionFeedService } from '../feed-folding/execution-feed.service';
 import { createHitlTriggeredNodes$ } from './execution-hitl-fold';
 import { createPendingAskUserAsks$ } from './execution-ask-user-fold';
 import { createPendingPermissionAsks$ } from './execution-permission-fold';
+import { composerAwaitingNodeIds } from './composer-awaiting-node-ids';
+import { navigationLocked as isNavigationLocked } from './composer-footer-mode';
 import { wrapSteerHitlPayload } from './hitl-action-payload';
 import { nodeInputString } from './node-input-string';
 
@@ -200,28 +202,30 @@ export class ComposerService {
 		initialValue: [] as readonly RunnerAskUserAskPayload[],
 	});
 
+	/** True only while the graph is executing, not while it waits on a person. */
+	readonly navigationLocked = computed(() =>
+		isNavigationLocked({
+			hasPermissionAsk: this.pendingPermissionAsks().length > 0,
+			hasAskUser: this.pendingAskUserAsks().length > 0,
+			isRunning: this.execution.isRunning(),
+			hitlTabCount: this.hitlTriggeredNodes().size,
+		}),
+	);
+
+	/** Gates opened by the feed. Idle chat-entry prompts are not included. */
+	hasAwaitingHitl(): boolean {
+		return this.hitlTriggeredNodes().size > 0;
+	}
+
 	hitlTriggered(nodeId: string): boolean {
-		return (
-			this.hitlTriggeredNodes().has(nodeId) ||
-			this.idleChatEntryNodeIds().includes(nodeId)
-		);
+		return this.hitlTriggeredNodeIds().includes(nodeId);
 	}
 
 	hitlTriggeredNodeIds(): readonly string[] {
-		const awaiting = [...this.hitlTriggeredNodes()];
-		const chatEntries = this.idleChatEntryNodeIds();
-		if (chatEntries.length === 0) {
-			return awaiting;
-		}
-		const seen = new Set(awaiting);
-		const merged = [...awaiting];
-		for (const id of chatEntries) {
-			if (!seen.has(id)) {
-				seen.add(id);
-				merged.push(id);
-			}
-		}
-		return merged;
+		return composerAwaitingNodeIds(
+			this.hitlTriggeredNodes(),
+			this.idleChatEntryNodeIds(),
+		);
 	}
 
 	hitlControls(nodeId: string): readonly HitlControlProjection[] {

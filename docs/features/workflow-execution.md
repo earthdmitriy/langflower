@@ -96,13 +96,24 @@ it does not auto-complete just because things went quiet. Soft Pause is **not**
 that end condition.
 
 **Continue after hard Stop / restart:** durable resume at **explicit** Checkpoint
-nodes (or `createCheckpoint` on output meta). On load, **Continue from…**
-lists labeled checkpoints; the operator picks one, Discards, or Runs fresh.
-Hard Stop without crossing a boundary does not create a resume point. Soft
-Pause / Steer MUST NOT invent auto-checkpoints. Fingerprint mismatch → clear
-error + Discard. See
-[resumable-checkpoint-jobs](../use-cases/resumable-checkpoint-jobs.md) and
-[ADR-018](../architecture/ADR.md#adr-018--durable-workflow-checkpoints).
+nodes (or `createCheckpoint` on output meta), stored as a **point** on the
+open workflow session. **Continue from…** lists that session’s points; the
+operator picks one, Discards, or Runs. A Run continues the session head
+(stored transcripts). Continue sends `runner.resume.requested` `{ pointId }`
+and rewinds to that point. Hard Stop without crossing a boundary does not
+create a point. With no session open, a boundary writes nothing. Soft Pause /
+Steer MUST NOT invent auto-checkpoints. Fingerprint mismatch → `POINT_STALE`
+
+- Discard. Session tabs cannot be renamed, and they cannot be switched while
+  a run is active. Any listed tab can be deleted after confirmation, including
+  one that is not open and a corrupt file that cannot be selected. The workflow
+  file is the tab to their left; Save for that
+  file appears only while it is dirty and no session is open. Session tabs
+  stay in name order and scroll horizontally. See
+  [resumable-checkpoint-jobs](../use-cases/resumable-checkpoint-jobs.md),
+  [ADR-018](../architecture/ADR.md#adr-018--durable-workflow-checkpoints)
+  (boundary), and
+  [ADR-040](../architecture/ADR.md#adr-040--workflow-sessions-own-points).
 
 Browser disconnect / reopen while the process stays up is
 [detachable-long-run](../use-cases/detachable-long-run.md) — **not** Pause.
@@ -132,10 +143,12 @@ Browser disconnect / reopen while the process stays up is
   [docs/architecture/ARCHITECTURE.md](../architecture/ARCHITECTURE.md) § WebSocket Protocol.
 - Runtime engine internals (v2 `Runtime`, StatefulObservable graph):
   `packages/runtime/spec.md`, `packages/runtime/ADR.md`.
-- Durable checkpoints + resume (Epic 14):
-  [EXECUTION_ARCHITECTURE.md](../architecture/EXECUTION_ARCHITECTURE.md) § Durable
-  checkpoints; `packages/server/src/checkpoint/`;
-  `RuntimeRunner.resume` in `@langflower/runtime`.
+- Workflow session points + resume:
+  [EXECUTION_ARCHITECTURE.md](../architecture/EXECUTION_ARCHITECTURE.md)
+  § Workflow session points; `packages/server/src/workflow-sessions/`;
+  boundary resolver in `packages/server/src/checkpoint/`;
+  `RuntimeRunner.resume` in `@langflower/runtime`. Resume payload is
+  `{ pointId }`.
 - Hard Stop: `runner.interrupt.requested` / `'cancel'` only.
 - Soft Pause: [ADR-032](../architecture/ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port)
   — `runner.hitl.event` → `pushIntoInput` on `steerControl` (`pause` / `steer`).

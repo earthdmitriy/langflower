@@ -128,7 +128,11 @@ Rules baked into this shape:
 - Keep `bind` free of module-level I/O and shared mutation; instance-local
   closures are allowed and **may intentionally keep state across runs** until
   the user loads another workflow, the node is rematerialized, or Langflower
-  shuts down. See [REACTIVE_NODES](REACTIVE_NODES.md) § Instance lifetime.
+  shuts down. Those closures still survive `done` until rematerialize. They
+  do not survive a process restart. The way a node persists across a restart
+  is an optional state hook on the bind result (`persist$` + `restore`,
+  owned by `@langflower/node-sdk`). See
+  [REACTIVE_NODES](REACTIVE_NODES.md) § Instance lifetime.
 - Ports are `StatefulConnection` / `StatefulObservable`, not raw Subjects.
 - Always pass a generic to `makeInput<T>(...)`.
 
@@ -458,8 +462,12 @@ Production references:
 
 Do **not** put `feedback` in the same `combineInputs` as prompt/tools/system/`ctx`.
 Init re-emissions recreate the session (`switchMap`); feedback advances turns
-inside the current session. Real history lives in **openai-llm**; **fake-llm**
-only imitates streaming for demos (same port split, no message history).
+inside the current session. OpenAI, Fake, Review, and Critique share
+`createLlmSessionCycle$`, which returns a state hook and persists
+`{ history }` when a turn completes. Fake still imitates the provider; it
+does keep that transcript. Sub-Agent does not use the cycle and persists
+nothing. In-memory closures on a node without the hook still survive `done`
+until rematerialize and are gone after a process restart.
 
 ```ts
 const context$ = combineInputs(

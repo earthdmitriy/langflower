@@ -4,6 +4,7 @@ import { llmRecoveryUiSchema } from '../../features/ui-schema/llm-recovery-ui-sc
 import {
 	llmMaxIterationsUiField,
 	llmPanelUiSchema,
+	llmResetSessionOnInputUiField,
 } from '../../features/ui-schema/llm-panel-ui-schema.js';
 import { insertReasoningEffortAfterModel } from '../../features/ui-schema/llm-reasoning-effort-ui-schema.js';
 import {
@@ -74,6 +75,7 @@ Typical uses:
 		),
 		...llmCompactionUiSchema,
 		...llmRecoveryUiSchema,
+		llmResetSessionOnInputUiField,
 	] as const,
 	bind(ctx, helpers, inventory) {
 		return bindPathChoiceSession(ctx, helpers, inventory, {

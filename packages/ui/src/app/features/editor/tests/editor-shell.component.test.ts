@@ -92,6 +92,7 @@ const sessionSnapshot = {
 describe('EditorShellComponent palette chrome', () => {
 	let fixture: ComponentFixture<EditorShellComponent>;
 	let paletteVisible$: BehaviorSubject<boolean>;
+	let connectionStatus$: BehaviorSubject<string>;
 	let requestShow: ReturnType<typeof vi.fn>;
 
 	beforeAll(() => {
@@ -112,6 +113,7 @@ describe('EditorShellComponent palette chrome', () => {
 	beforeEach(async () => {
 		TestBed.resetTestingModule();
 		paletteVisible$ = new BehaviorSubject(true);
+		connectionStatus$ = new BehaviorSubject('connected');
 		requestShow = vi.fn();
 		const session$ = new BehaviorSubject(sessionSnapshot);
 
@@ -143,7 +145,7 @@ describe('EditorShellComponent palette chrome', () => {
 							'editor.dividers.snapshot': new Subject(),
 						},
 						raw: {
-							status$: new BehaviorSubject('connected'),
+							status$: connectionStatus$,
 							'editor.dividers.requested': new Subject(),
 						},
 					},
@@ -212,5 +214,39 @@ describe('EditorShellComponent palette chrome', () => {
 		expect(show).not.toBeNull();
 		show?.click();
 		expect(requestShow).toHaveBeenCalledOnce();
+	});
+
+	it('shows connection text only while not connected', () => {
+		const status = fixture.nativeElement.querySelector(
+			'[role="status"]',
+		) as HTMLElement | null;
+		expect(status?.getAttribute('aria-label')).toBe(
+			'Connection status: connected',
+		);
+		expect(status?.textContent?.trim()).toBe('');
+
+		connectionStatus$.next('connecting');
+		fixture.detectChanges();
+
+		expect(status?.textContent?.trim()).toBe('connecting');
+		expect(status?.className).not.toContain('border-zinc-200');
+	});
+
+	it('shows the product mark from the asset', () => {
+		const mark = fixture.nativeElement.querySelector(
+			'img[alt="Langflower"]',
+		) as HTMLImageElement | null;
+		expect(mark?.getAttribute('src')).toBe('assets/langflower-mark.svg');
+		expect(mark?.className).toContain('h-6');
+		expect(fixture.nativeElement.querySelector('h1')).toBeNull();
+	});
+
+	it('uses a sun icon to leave dark theme', () => {
+		const theme = fixture.nativeElement.querySelector(
+			'[aria-label="Switch to light theme"]',
+		) as HTMLButtonElement | null;
+		expect(theme).toBeInstanceOf(HTMLButtonElement);
+		expect(theme?.textContent?.trim()).toBe('');
+		expect(theme?.querySelector('svg')).toBeInstanceOf(SVGElement);
 	});
 });

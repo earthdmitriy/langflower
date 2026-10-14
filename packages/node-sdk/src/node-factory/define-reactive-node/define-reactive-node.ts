@@ -93,6 +93,7 @@ export type {
 	ReactiveNodeInstance,
 } from './types.js';
 export type { UISchemaConstItem } from './ui-schema-inference.js';
+export type { NodeStateHook, NodeStateJson } from '../../node-state.js';
 
 export const contextSymbol = Symbol.for('langflower.node.context');
 
@@ -138,6 +139,7 @@ export const defineReactiveNode = <
 		CtxError,
 		PortMeta
 	>();
+	// Probe graph is discarded — do not copy `state` or call `restore`.
 	const { inputs: inputsConfigs, outputs: outputsConfigs } = config.bind(
 		probeCtx,
 		bindHelpers,
@@ -189,8 +191,11 @@ export const defineReactiveNode = <
 				},
 			});
 
-			const { inputs: instanceInputs, outputs: instanceOutputs } =
-				config.bind(ctxConnection, bindHelpers);
+			const {
+				inputs: instanceInputs,
+				outputs: instanceOutputs,
+				state,
+			} = config.bind(ctxConnection, bindHelpers);
 
 			const inputs = instanceInputs.reduce(
 				(acc, curr) => ((acc[curr.meta.portId] = curr), acc),
@@ -216,6 +221,7 @@ export const defineReactiveNode = <
 				...(feedVisitBoundary === true
 					? { feedVisitBoundary: true as const }
 					: {}),
+				...(state !== undefined ? { state } : {}),
 				bypassPorts: bypassPorts ?? ({} as Record<string, WireType>),
 				inputs,
 				outputs,

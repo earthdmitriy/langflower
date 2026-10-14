@@ -20,7 +20,7 @@ import { waitSessionReady } from '@langflower/shared/langflower-ws-waits';
 const readCompletedLog = async (logsDir: string): Promise<string> => {
 	for (let attempt = 0; attempt < 50; attempt++) {
 		const files = await fs.readdir(logsDir);
-		const logFile = files.find((file) => file.endsWith('.log'));
+		const logFile = files.find((file) => file.endsWith('.jsonl'));
 
 		if (logFile !== undefined) {
 			const text = await fs.readFile(path.join(logsDir, logFile), 'utf8');

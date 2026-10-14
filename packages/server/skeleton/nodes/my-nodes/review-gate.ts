@@ -37,6 +37,11 @@ type GateResult =
  * Hard QA gate: runs `npm run test` in `ctx.projectDir`.
  * Pass → emit on `ok`. Fail → emit on `fail` (independent ports).
  *
+ * `fail` is agent feedback. Filter test and formatter output to
+ * failures (names, diffs, error lines) before it is emitted. Passing
+ * suites and progress bloat the next turn. A length cap is not that
+ * filter.
+ *
  * `defineReactiveNode` is required here: `defineNode` cannot emit on one
  * output and stay silent on the other.
  *

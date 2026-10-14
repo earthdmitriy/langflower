@@ -27,6 +27,17 @@ const llmProviderModelSkillUiSchema = [
 	},
 ] as const;
 
+/**
+ * OpenAI / Fake / Review / Critique only. Not part of {@link llmPanelUiSchema}
+ * — Sub-Agent reuses that list and must not show this control.
+ */
+export const llmResetSessionOnInputUiField = {
+	field: 'resetSessionOnInput',
+	type: 'boolean',
+	label: 'Reset session on input',
+	default: false,
+} as const;
+
 export const llmMaxIterationsUiField = (defaultValue: number, maxCap: number) =>
 	({
 		field: 'maxIterations',

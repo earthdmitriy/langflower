@@ -139,18 +139,76 @@ describe('resolveWaitPredicate', () => {
 		expect(predicate!({ events: [['done']] })).toBe(false);
 	});
 
-	it('correlates checkpoint discard to missing runId', () => {
-		const predicate = resolveWaitPredicate(
-			'runner.checkpoint.discard.requested',
-			{ runId: 'r1' },
-		);
-		expect(predicate!({ workflowId: 'w', checkpoints: [] })).toBe(true);
+	it('leaves resume correlation to the next started fact', () => {
 		expect(
-			predicate!({
-				workflowId: 'w',
-				checkpoints: [{ runId: 'r1' }],
+			resolveWaitPredicate('runner.resume.requested', {
+				pointId: 'point-1',
+			}),
+		).toBeUndefined();
+	});
+
+	it('correlates session select, delete, and discard', () => {
+		const select = resolveWaitPredicate(
+			'workflowSession.select.requested',
+			{ sessionId: 's1' },
+		);
+		expect(select?.({ sessionId: 's1', points: [] })).toBe(true);
+		expect(select?.({ sessionId: null, points: [] })).toBe(false);
+
+		const leave = resolveWaitPredicate('workflowSession.select.requested', {
+			sessionId: null,
+		});
+		expect(leave?.({ sessionId: null, points: [] })).toBe(true);
+
+		const deleted = resolveWaitPredicate(
+			'workflowSession.delete.requested',
+			{ sessionId: 's1' },
+		);
+		expect(
+			deleted?.({
+				workflowId: 'wf',
+				sessions: [{ sessionId: 's2', label: '2026-10-14 #1' }],
+			}),
+		).toBe(true);
+		expect(
+			deleted?.({
+				workflowId: 'wf',
+				sessions: [{ sessionId: 's1', label: '2026-10-14 #1' }],
 			}),
 		).toBe(false);
+
+		const discarded = resolveWaitPredicate(
+			'workflowSession.discardPoint.requested',
+			{ sessionId: 's1', pointId: 'p1' },
+		);
+		expect(
+			discarded?.({
+				sessionId: 's1',
+				points: [{ pointId: 'p2' }],
+			}),
+		).toBe(true);
+		expect(
+			discarded?.({
+				sessionId: 's1',
+				points: [{ pointId: 'p1' }],
+			}),
+		).toBe(false);
+
+		const reset = resolveWaitPredicate(
+			'workflowSession.resetConversation.requested',
+			{ sessionId: 's1' },
+		);
+		expect(reset?.({ sessionId: 's1', points: [] })).toBe(true);
+		expect(
+			reset?.({
+				sessionId: 's1',
+				points: [{ pointId: 'p1' }],
+			}),
+		).toBe(false);
+
+		expect(
+			resolveWaitPredicate('workflowSession.create.requested', {}),
+		).toBeUndefined();
 	});
 
 	it('leaves uncorrelated intents as next-broadcast-wins', () => {
@@ -170,14 +228,14 @@ describe('resolveWaitPredicate', () => {
 });
 
 describe('resolveResumeFailedPredicate', () => {
-	it('matches failed frames for the requested runId', () => {
-		const predicate = resolveResumeFailedPredicate({ runId: 'r1' });
+	it('matches failed frames for the requested pointId', () => {
+		const predicate = resolveResumeFailedPredicate({ pointId: 'p1' });
 		expect(
-			predicate!({ code: 'NOT_FOUND', message: 'x', runId: 'r1' }),
+			predicate!({ code: 'NOT_FOUND', message: 'x', pointId: 'p1' }),
 		).toBe(true);
 		expect(predicate!({ code: 'BUSY', message: 'x' })).toBe(true);
 		expect(
-			predicate!({ code: 'NOT_FOUND', message: 'x', runId: 'r2' }),
+			predicate!({ code: 'NOT_FOUND', message: 'x', pointId: 'p2' }),
 		).toBe(false);
 	});
 });

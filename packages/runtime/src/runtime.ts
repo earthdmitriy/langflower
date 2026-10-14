@@ -5,6 +5,8 @@ import type { RuntimeOptions } from './types.js';
 export { bypassOutputPortId, parseBypassOutputPortId } from './bypass-ports.js';
 export { RuntimeEditor } from './runtime-editor.js';
 export type { GraphCluster } from './runtime-helpers.js';
+export { foldFeedLogEvent } from './feed-log-fold.js';
+export type { FeedLogFoldStep } from './feed-log-fold.js';
 export { RuntimeRunner } from './runtime-runner.js';
 export type {
 	MetaFromStatefulObservable,
@@ -18,7 +20,10 @@ export type {
 	RuntimeFeedRole,
 	PortTelemetry,
 	RuntimeDoneTelemetry,
+	NodeStateHook,
+	NodeStateJson,
 	RuntimeNode,
+	RuntimeNodeStates,
 	RuntimeResumeOptions,
 	RuntimeRunnerApi,
 	RuntimeRunnerEvent,

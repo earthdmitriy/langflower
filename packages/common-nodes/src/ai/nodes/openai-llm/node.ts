@@ -4,7 +4,10 @@ import type {
 } from '../../features/chat-completion-stream.js';
 import { Observable } from 'rxjs';
 import { defineLlmNode } from '@langflower/node-sdk/llm';
-import { llmPanelUiSchema } from '../../features/ui-schema/llm-panel-ui-schema.js';
+import {
+	llmPanelUiSchema,
+	llmResetSessionOnInputUiField,
+} from '../../features/ui-schema/llm-panel-ui-schema.js';
 import { insertReasoningEffortAfterModel } from '../../features/ui-schema/llm-reasoning-effort-ui-schema.js';
 import { llmCompactionUiSchema } from '../../features/ui-schema/llm-compaction-ui-schema.js';
 import { llmRecoveryUiSchema } from '../../features/ui-schema/llm-recovery-ui-schema.js';
@@ -88,6 +91,7 @@ Wire tools and skills so the model can search, edit files, or call specialists. 
 		...insertReasoningEffortAfterModel(llmPanelUiSchema),
 		...llmCompactionUiSchema,
 		...llmRecoveryUiSchema,
+		llmResetSessionOnInputUiField,
 	] as const,
 	bind(ctx, helpers, inventory) {
 		return bindLlmAgentSession<OpenAiLlmContext, OpenAiLlmChunk>(

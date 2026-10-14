@@ -194,6 +194,39 @@ export const isRuntimeDone = (
 ): event is RuntimeDoneTelemetry => Array.isArray(event) && event[0] === 'done';
 
 /**
+ * Structural twin of `@langflower/node-sdk` `NodeStateJson` (ADR-027).
+ * The author package owns the type; runtime does not import it.
+ */
+export type NodeStateJson =
+	| null
+	| boolean
+	| number
+	| string
+	| readonly NodeStateJson[]
+	| { readonly [key: string]: NodeStateJson };
+
+/**
+ * Structural twin of `@langflower/node-sdk` `NodeStateHook` (ADR-027).
+ * Optional on {@link RuntimeNode}. The runner restores it before wiring.
+ */
+export type NodeStateHook = {
+	/** Full JSON-safe state after each committed unit of work. */
+	readonly persist$: Observable<NodeStateJson>;
+	/**
+	 * Called by the runner before wiring. `null` starts fresh.
+	 * `{ ok: false }` does not throw and does not abort the run.
+	 */
+	readonly restore: (
+		state: NodeStateJson | null,
+	) =>
+		| { readonly ok: true }
+		| { readonly ok: false; readonly message: string };
+};
+
+/** `nodeId` → JSON state supplied to `restore` for one run. */
+export type RuntimeNodeStates = Readonly<Record<string, NodeStateJson>>;
+
+/**
  * Seed value pushed into an input port slot on {@link RuntimeRunner.start}.
  * Plain values are wrapped in `of`; Observables are connected as the stream.
  */
@@ -223,6 +256,11 @@ export type RuntimeResumeOptions = {
 	readonly initialPayload?: Readonly<
 		Record<string, ReadonlyArray<RuntimeSeedPortValue>>
 	>;
+	/**
+	 * JSON state passed to each hooked node's `restore`. A missing id
+	 * restores `null` so a stale pending restore cannot survive the run.
+	 */
+	readonly nodeStates?: RuntimeNodeStates;
 };
 
 export type RuntimeNode = {
@@ -302,6 +340,13 @@ export type RuntimeNode = {
 	 * metadata for factories and tests.
 	 */
 	readonly emitOncePerActivation?: boolean;
+
+	/**
+	 * Optional JSON state hook. The runner calls `restore` before wiring
+	 * and merges `persist$` into {@link RuntimeRunnerApi.nodeState$} while
+	 * this node is in the active run scope.
+	 */
+	readonly state?: NodeStateHook;
 };
 
 export type RuntimeEdge = {
@@ -425,6 +470,9 @@ export type RuntimeRunnerApi = {
 	 *
 	 * Throws if status is already `'running'`.
 	 *
+	 * Optional `options.nodeStates` is restored onto hooked in-scope nodes
+	 * before wiring. A missing entry restores `null`.
+	 *
 	 * @returns runId — correlates {@link RuntimeRunnerEvent} for the server
 	 * adapter; runtime does not persist runs.
 	 */
@@ -433,6 +481,7 @@ export type RuntimeRunnerApi = {
 			Record<string, ReadonlyArray<RuntimeSeedPortValue>>
 		>,
 		runId?: RunId,
+		options?: { readonly nodeStates?: RuntimeNodeStates },
 	): RunId | false;
 
 	/**
@@ -448,6 +497,9 @@ export type RuntimeRunnerApi = {
 	 * Flow: `RuntimeEditorApi.getClusterByNodeId(nodeId)` -> internal runner
 	 * `runScope` (cluster node/edge sets).
 	 *
+	 * Optional `options.nodeStates` is restored onto hooked nodes in this
+	 * cluster only. Nodes outside the cluster are left untouched.
+	 *
 	 * @returns runId — same semantics as {@link RuntimeRunnerApi.start}.
 	 */
 	startNode(
@@ -456,6 +508,7 @@ export type RuntimeRunnerApi = {
 			Record<string, ReadonlyArray<RuntimeSeedPortValue>>
 		>,
 		runId?: RunId,
+		options?: { readonly nodeStates?: RuntimeNodeStates },
 	): RunId | false;
 
 	/**
@@ -505,6 +558,13 @@ export type RuntimeRunnerApi = {
 	 */
 	clearEventLog(): void;
 
+	/**
+	 * Replace {@link eventLog} with `events`. No-op unless status is
+	 * `'idle'` and the runner was constructed with `{ log: true }`.
+	 * Does not throw when the runner is not idle.
+	 */
+	seedEventLog(events: readonly RuntimeRunnerEvent[]): void;
+
 	dispose(): void;
 
 	/**
@@ -525,6 +585,26 @@ export type RuntimeRunnerApi = {
 	 * execution events.
 	 */
 	readonly events$: Observable<RuntimeRunnerEvent>;
+
+	/**
+	 * Server-internal fact stream. Emits `{ nodeId, state }` when a hooked
+	 * in-scope node's `persist$` emits during the active run. Quiet when
+	 * the scope has no state hook. Not a WebSocket event.
+	 */
+	readonly nodeState$: Observable<{
+		readonly nodeId: string;
+		readonly state: NodeStateJson;
+	}>;
+
+	/**
+	 * Nodes whose `restore` returned `{ ok: false }` on the latest
+	 * `start` / `startNode` / `resume`. Cleared when that run begins.
+	 * Does not abort the run.
+	 */
+	readonly lastRestoreFailures: readonly {
+		readonly nodeId: string;
+		readonly message: string;
+	}[];
 
 	/**
 	 * In-memory run event log when {@link RuntimeRunner} is constructed with

@@ -252,15 +252,22 @@ streaming / visit-boundary from the palette. There are no
 [`langflower-bus-config.ts`](../../packages/shared/src/langflower-bus-config.ts).
 
 The same events are retained in `RuntimeRunner.eventLog` because the session
-constructs the facade with `{ log: true }`. On connect/reconnect,
-`executionFeed.snapshot` contains the run id, workflow id, derived progress
-status, and the chronological event log. It is `null` when the session has no
-run id or active workflow id, including after an allowed feed clear.
+constructs the facade with `{ log: true }`. Each appended frame is folded by
+`foldFeedLogEvent` on that log: a streaming series stays one tail frame whose
+`value` is the concatenation. Live `events$` frames stay raw. On
+connect/reconnect, `executionFeed.snapshot` contains the run id, workflow id,
+derived progress status, and the folded log. It is `null` when the process
+session has no run id or active workflow id, including after an allowed feed
+clear. While a workflow session is bound and no run is active, the snapshot
+is that session’s latest feed-log run instead (the last run only; `null` still
+clears).
 
 Relevant bootstrap order is:
 
-`runner.snapshot` → `executionFeed.snapshot` →
-`runner.checkpoints.snapshot` → later workflow and palette snapshots.
+`runner.snapshot` → `executionFeed.snapshot` → `toolConfig.snapshot` →
+`workflow.list.snapshot` → `workflow.current.snapshot` →
+`workflowSession.list.snapshot` → `workflowSession.current.snapshot` →
+later config and palette snapshots.
 
 The UI treats the feed as replay data, then appends new `runner.*` facts.
 Visit/role folding reads slot 6 on each frame. Labels and HITL copy still
@@ -361,31 +368,52 @@ Sources:
 - `packages/ui/src/app/features/composer/execution-hitl-fold.ts`
 - `packages/ui/src/app/features/composer/execution-permission-fold.ts`
 
-## Durable checkpoints
+## Workflow session points
 
-Checkpoints are server-owned persistence around runtime events:
+A **point** is the durable resume record. It lives on a workflow session
+file (`.langflower/sessions/<workflowId>/<label>.json`, feed in
+`<label>.feed.jsonl`), not under
+`.langflower/runs/`. Old `checkpoint.json` files are not read.
 
-1. a run begins with the active workflow fingerprint and accumulator;
-2. each `'out'` port signal is checked against output metadata;
-3. only an explicit `createCheckpoint: true` boundary requests a running
-   checkpoint write;
-4. after a boundary has been crossed, `done` persists the checkpoint as
-   completed and interruption persists it as stopped;
-5. checkpoint summaries and the refreshed resumable list are broadcast.
+While a workflow session is bound:
 
-Resume validates that no run is active, an active workflow exists, the stored
-checkpoint loads, its workflow fingerprint still matches, and it contains
-completed stages. The server then rebuilds execution-context seeds and calls
-`RuntimeRunner.resume`.
+1. a run starts with head `nodeStates` restored on every hooked node;
+2. `RunProgressAccumulator` watches port signals;
+3. only an explicit `createCheckpoint: true` boundary appends a point
+   (progress, head node states, folded feed, fingerprint);
+4. Stop or `done` with no new boundary does not append a point and does not
+   rewrite existing points;
+5. `workflowSession.current.snapshot` lists the session’s points. `stale` is
+   computed from the fingerprint; it is not stored.
+
+With no session bound, a boundary writes nothing.
+
+Head `nodeStates` are written on a 1000 ms trailing debounce after a port
+frame whose feed is not streaming, and only when they changed. Closed feed
+frames are appended to the feed log on that same debounce. A missing feed
+counts (chat text, string values, preview, `role: 'result'`). Streaming
+frames (`reasoning`, `draft`, `progress`, `shell`, `tool`, `recovery`) do
+not schedule a write. Hard Stop flushes immediately and cancels a pending
+debounce. `runner.done` does not flush: finish means the work is done and
+there is nothing to continue. A process kill inside the open debounce drops
+that write.
+
+Resume (`runner.resume.requested` `{ pointId }`) refuses when no session is
+bound (`NO_SESSION`), a run is active (`BUSY`), the point is missing, the
+file is corrupt, a value is unsupported, or the fingerprint differs
+(`POINT_STALE`). Otherwise the server seeds the point’s folded feed (same
+`runId`, so the UI does not wipe), restores that point’s node states, and
+calls `RuntimeRunner.resume`.
 
 The runtime resume path wires the full current graph, skips completed target
 nodes, and substitutes stored output snapshots for completed source nodes.
 Missing required snapshots fail rather than silently re-running a completed
-stage.
+stage. A normal Run does not use this path; it continues the session head.
 
 Sources:
 
-- `packages/server/src/checkpoint/run-checkpoint-session.ts`
+- `packages/server/src/workflow-sessions/`
+- `packages/server/src/checkpoint/run-progress-accumulator.ts`
 - `packages/server/src/checkpoint/resolve-checkpoint-boundary.ts`
 - `packages/server/src/bridge/wire-runner-handlers.ts`
 - `packages/runtime/src/runtime-runner.ts`

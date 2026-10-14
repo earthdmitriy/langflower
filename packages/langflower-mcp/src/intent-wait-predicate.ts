@@ -114,28 +114,52 @@ const matchExecutionFeedCleared = (): WaitPredicate => (event) => {
 	return event['events'].length === 0;
 };
 
-const matchCheckpointDiscarded =
-	(runId: string): WaitPredicate =>
-	(event) => {
-		if (!isRecord(event) || !Array.isArray(event['checkpoints'])) {
-			return false;
-		}
-		return !event['checkpoints'].some(
-			(entry) =>
-				isRecord(entry) &&
-				typeof entry['runId'] === 'string' &&
-				entry['runId'] === runId,
-		);
-	};
-
 const matchResumeFailed =
-	(runId: string): WaitPredicate =>
+	(pointId: string): WaitPredicate =>
 	(event) => {
 		if (!isRecord(event)) {
 			return false;
 		}
-		const failedRunId = event['runId'];
-		return failedRunId === undefined || failedRunId === runId;
+		const failedPointId = event['pointId'];
+		return failedPointId === undefined || failedPointId === pointId;
+	};
+
+const matchCurrentSessionId =
+	(sessionId: string | null): WaitPredicate =>
+	(event) =>
+		isRecord(event) && event['sessionId'] === sessionId;
+
+const matchSessionAbsentFromList =
+	(sessionId: string): WaitPredicate =>
+	(event) => {
+		if (!isRecord(event) || !Array.isArray(event['sessions'])) {
+			return false;
+		}
+		return !event['sessions'].some(
+			(entry) => isRecord(entry) && entry['sessionId'] === sessionId,
+		);
+	};
+
+const matchConversationReset =
+	(sessionId: string): WaitPredicate =>
+	(event) =>
+		isRecord(event) &&
+		event['sessionId'] === sessionId &&
+		Array.isArray(event['points']) &&
+		event['points'].length === 0;
+
+const matchPointDiscarded =
+	(sessionId: string, pointId: string): WaitPredicate =>
+	(event) => {
+		if (!isRecord(event) || event['sessionId'] !== sessionId) {
+			return false;
+		}
+		if (!Array.isArray(event['points'])) {
+			return false;
+		}
+		return !event['points'].some(
+			(entry) => isRecord(entry) && entry['pointId'] === pointId,
+		);
 	};
 
 const matchLoadFailed =
@@ -199,18 +223,41 @@ export const resolveWaitPredicate = (
 				? matchHitlInputReceived(nodeId, portId)
 				: undefined;
 		}
-		case 'runner.executionFeed.clear.requested':
-			return matchExecutionFeedCleared();
-		case 'runner.resume.requested': {
-			const runId = readStringField(payload, 'runId');
-			return runId !== undefined ? matchRunId(runId) : undefined;
+		case 'workflowSession.select.requested':
+		case 'workflowSession.replaceSnapshotFromWorkflow.requested':
+		case 'workflowSession.writeSnapshotToWorkflow.requested': {
+			if (!isRecord(payload)) {
+				return undefined;
+			}
+			const sessionId = payload['sessionId'];
+			if (sessionId === null || typeof sessionId === 'string') {
+				return matchCurrentSessionId(sessionId);
+			}
+			return undefined;
 		}
-		case 'runner.checkpoint.discard.requested': {
-			const runId = readStringField(payload, 'runId');
-			return runId !== undefined
-				? matchCheckpointDiscarded(runId)
+		case 'workflowSession.delete.requested': {
+			const sessionId = readStringField(payload, 'sessionId');
+			return sessionId !== undefined
+				? matchSessionAbsentFromList(sessionId)
 				: undefined;
 		}
+		case 'workflowSession.resetConversation.requested': {
+			const sessionId = readStringField(payload, 'sessionId');
+			return sessionId !== undefined
+				? matchConversationReset(sessionId)
+				: undefined;
+		}
+		case 'workflowSession.discardPoint.requested': {
+			const sessionId = readStringField(payload, 'sessionId');
+			const pointId = readStringField(payload, 'pointId');
+			return sessionId !== undefined && pointId !== undefined
+				? matchPointDiscarded(sessionId, pointId)
+				: undefined;
+		}
+		case 'runner.executionFeed.clear.requested':
+			return matchExecutionFeedCleared();
+		case 'runner.resume.requested':
+			return undefined;
 		default:
 			return undefined;
 	}
@@ -220,8 +267,8 @@ export const resolveWaitPredicate = (
 export const resolveResumeFailedPredicate = (
 	payload: unknown,
 ): WaitPredicate | undefined => {
-	const runId = readStringField(payload, 'runId');
-	return runId !== undefined ? matchResumeFailed(runId) : undefined;
+	const pointId = readStringField(payload, 'pointId');
+	return pointId !== undefined ? matchResumeFailed(pointId) : undefined;
 };
 
 /** Predicate for `workflow.load.failed` when racing with current snapshot. */

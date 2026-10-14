@@ -8,20 +8,21 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import type {
-	RunnerResumeFailedPayload,
-	WorkflowCheckpointSummary,
-} from '@langflower/shared/types/workflow-checkpoint';
+	WorkflowSessionPointSummary,
+	WorkflowSessionResumeFailedPayload,
+} from '@langflower/shared/types/workflow-session';
 import { map, merge, scan, startWith } from 'rxjs';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 
-type CheckpointUiState = {
-	readonly checkpoints: readonly WorkflowCheckpointSummary[];
-	readonly resumeError: RunnerResumeFailedPayload | null;
+type PointUiState = {
+	readonly sessionId: string | null;
+	readonly points: readonly WorkflowSessionPointSummary[];
+	readonly resumeError: WorkflowSessionResumeFailedPayload | null;
 };
 
-const formatCheckpointTime = (iso: string): string => {
+const formatPointTime = (iso: string): string => {
 	const date = new Date(iso);
 	if (Number.isNaN(date.getTime())) {
 		return iso;
@@ -35,12 +36,12 @@ const formatCheckpointTime = (iso: string): string => {
 	});
 };
 
-const checkpointTitle = (entry: WorkflowCheckpointSummary): string => {
+const pointTitle = (entry: WorkflowSessionPointSummary): string => {
 	if (entry.label !== undefined && entry.label.length > 0) {
 		return entry.label;
 	}
 
-	return `Checkpoint · ${entry.completedNodeIds.length} stage(s)`;
+	return 'Checkpoint';
 };
 
 @Component({
@@ -53,19 +54,21 @@ const checkpointTitle = (entry: WorkflowCheckpointSummary): string => {
 				<p class="lf-text-caption text-rose-700 dark:text-rose-300">
 					Resume failed ({{ err.code }}): {{ err.message }}
 				</p>
-				@if (err.runId; as runId) {
-					<lf-hover-tip tip="Discard the failed checkpoint">
-						<button
-							type="button"
-							class="lf-btn lf-btn--ghost rounded-md border border-rose-300 px-2 py-1 text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-950/40"
-							(click)="discard(runId)"
-						>
-							Discard
-						</button>
-					</lf-hover-tip>
+				@if (err.pointId; as pointId) {
+					@if (sessionId(); as activeSessionId) {
+						<lf-hover-tip tip="Discard this point">
+							<button
+								type="button"
+								class="lf-btn lf-btn--ghost rounded-md border border-rose-300 px-2 py-1 text-rose-700 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-950/40"
+								(click)="discard(activeSessionId, pointId)"
+							>
+								Discard
+							</button>
+						</lf-hover-tip>
+					}
 				}
 			</div>
-		} @else if (hasCheckpoints()) {
+		} @else if (hasPoints()) {
 			<div
 				class="flex min-w-0 flex-col gap-1.5"
 				[class.w-full]="!compact"
@@ -91,18 +94,18 @@ const checkpointTitle = (entry: WorkflowCheckpointSummary): string => {
 					<ul
 						class="lf-scroll flex max-h-48 flex-col gap-1 overflow-y-auto rounded-md border border-zinc-200 bg-white p-1 dark:border-zinc-700 dark:bg-zinc-900"
 						role="listbox"
-						aria-label="Resumable checkpoints"
+						aria-label="Session points"
 					>
-						@for (entry of checkpoints(); track entry.runId) {
+						@for (entry of points(); track entry.pointId) {
 							<li
 								class="flex min-w-0 flex-col gap-1 rounded px-2 py-1.5"
 								[class.bg-rose-50]="
-									entry.corrupt === true ||
-									entry.stale === true
+									entry.stale === true ||
+									entry.unsupported !== undefined
 								"
 								[class.dark:bg-rose-950/30]="
-									entry.corrupt === true ||
-									entry.stale === true
+									entry.stale === true ||
+									entry.unsupported !== undefined
 								"
 							>
 								<div
@@ -117,13 +120,12 @@ const checkpointTitle = (entry: WorkflowCheckpointSummary): string => {
 										<p
 											class="lf-text-caption truncate text-zinc-500 dark:text-zinc-400"
 										>
-											{{ formatTime(entry.updatedAt) }}
-											· {{ entry.status }}
+											{{ formatTime(entry.createdAt) }}
 											@if (entry.stale === true) {
 												· stale
 											}
-											@if (entry.corrupt === true) {
-												· corrupt
+											@if (entry.unsupported) {
+												· unsupported
 											}
 										</p>
 									</div>
@@ -136,19 +138,26 @@ const checkpointTitle = (entry: WorkflowCheckpointSummary): string => {
 												type="button"
 												class="lf-btn lf-btn--ghost rounded border border-sky-400 px-2 py-0.5 text-sky-700 dark:border-sky-500 dark:text-sky-300"
 												(click)="
-													continueFrom(entry.runId)
+													continueFrom(entry.pointId)
 												"
 											>
 												Continue
 											</button>
 										}
-										<button
-											type="button"
-											class="lf-btn lf-btn--ghost rounded border border-zinc-300 px-2 py-0.5 text-zinc-600 dark:border-zinc-600 dark:text-zinc-300"
-											(click)="discard(entry.runId)"
-										>
-											Discard
-										</button>
+										@if (sessionId(); as activeSessionId) {
+											<button
+												type="button"
+												class="lf-btn lf-btn--ghost rounded border border-zinc-300 px-2 py-0.5 text-zinc-600 dark:border-zinc-600 dark:text-zinc-300"
+												(click)="
+													discard(
+														activeSessionId,
+														entry.pointId
+													)
+												"
+											>
+												Discard
+											</button>
+										}
 									</div>
 								</div>
 							</li>
@@ -171,12 +180,13 @@ export class ContinueButtonComponent {
 
 	private readonly uiState = toSignal(
 		merge(
-			this.bridge.cached['runner.checkpoints.snapshot'].pipe(
+			this.bridge.cached['workflowSession.current.snapshot'].pipe(
 				map(
 					(snapshot) =>
 						({
 							type: 'snapshot' as const,
-							checkpoints: snapshot.checkpoints,
+							sessionId: snapshot.sessionId,
+							points: snapshot.points,
 						}) as const,
 				),
 			),
@@ -191,79 +201,80 @@ export class ContinueButtonComponent {
 			),
 		).pipe(
 			scan(
-				(state: CheckpointUiState, action): CheckpointUiState => {
+				(state: PointUiState, action): PointUiState => {
 					switch (action.type) {
 						case 'snapshot':
 							return {
-								checkpoints: action.checkpoints,
+								sessionId: action.sessionId,
+								points: action.points,
 								resumeError: null,
 							};
 						case 'error':
 							return {
-								checkpoints: state.checkpoints,
+								sessionId: state.sessionId,
+								points: state.points,
 								resumeError: action.error,
 							};
 						case 'clearError':
 							return {
-								checkpoints: state.checkpoints,
+								sessionId: state.sessionId,
+								points: state.points,
 								resumeError: null,
 							};
 					}
 				},
-				{ checkpoints: [], resumeError: null },
+				{ sessionId: null, points: [], resumeError: null },
 			),
 			startWith({
-				checkpoints: [] as WorkflowCheckpointSummary[],
-				resumeError: null as RunnerResumeFailedPayload | null,
+				sessionId: null as string | null,
+				points: [] as WorkflowSessionPointSummary[],
+				resumeError: null as WorkflowSessionResumeFailedPayload | null,
 			}),
 		),
 		{
 			initialValue: {
-				checkpoints: [],
+				sessionId: null,
+				points: [],
 				resumeError: null,
-			} satisfies CheckpointUiState,
+			} satisfies PointUiState,
 		},
 	);
 
 	readonly resumeError = computed(() => this.uiState().resumeError);
+	readonly sessionId = computed(() => this.uiState().sessionId);
+	readonly points = computed(() => this.uiState().points);
 
-	readonly checkpoints = computed(() => this.uiState().checkpoints);
-
-	readonly hasCheckpoints = computed(
-		() => this.checkpoints().length > 0 && !this.isRunning(),
+	readonly hasPoints = computed(
+		() => this.points().length > 0 && !this.isRunning(),
 	);
 
-	readonly resumableCount = computed(() => this.checkpoints().length);
+	readonly resumableCount = computed(() => this.points().length);
 
 	togglePicker(): void {
 		this.pickerOpen.update((open) => !open);
 	}
 
-	titleFor(entry: WorkflowCheckpointSummary): string {
-		return checkpointTitle(entry);
+	titleFor(entry: WorkflowSessionPointSummary): string {
+		return pointTitle(entry);
 	}
 
 	formatTime(iso: string): string {
-		return formatCheckpointTime(iso);
+		return formatPointTime(iso);
 	}
 
-	canResumeEntry(entry: WorkflowCheckpointSummary): boolean {
-		return (
-			entry.corrupt !== true &&
-			entry.stale !== true &&
-			entry.completedNodeIds.length > 0 &&
-			(entry.status === 'stopped' ||
-				entry.status === 'failed' ||
-				entry.status === 'running')
-		);
+	canResumeEntry(entry: WorkflowSessionPointSummary): boolean {
+		return entry.stale !== true && entry.unsupported === undefined;
 	}
 
-	continueFrom(runId: string): void {
+	continueFrom(pointId: string): void {
 		this.pickerOpen.set(false);
-		this.bridge.raw['runner.resume.requested'].next({ runId });
+		this.bridge.raw['runner.resume.requested'].next({ pointId });
 	}
 
-	discard(runId: string): void {
-		this.bridge.raw['runner.checkpoint.discard.requested'].next({ runId });
+	discard(sessionId: string, pointId: string): void {
+		this.bridge.raw['workflowSession.discardPoint.requested'].next({
+			sessionId,
+			pointId,
+		});
 	}
 }

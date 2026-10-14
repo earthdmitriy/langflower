@@ -1,4 +1,6 @@
 import {
+	type NodeStateHook,
+	type NodeStateJson,
 	type ToolHandle,
 	type configureOutput,
 	type makeInput,
@@ -24,7 +26,9 @@ import {
 	map,
 	pipe,
 	startWith,
+	Subject,
 	switchMap,
+	tap,
 	type Observable,
 	type OperatorFunction,
 } from 'rxjs';
@@ -85,6 +89,12 @@ export type LlmAgentInventoryContext = {
 	) => Promise<'allow' | 'deny'>;
 	readonly compaction: LlmCompactionConfig;
 	readonly recovery: LlmRecoveryPolicy;
+	/**
+	 * When true, a non-blank turn input replaces the live session with a
+	 * fresh prelude before that turn. Panel seed (`ec.params`), captured
+	 * when the context is assembled — not read live mid-run.
+	 */
+	readonly resetSessionOnInput: boolean;
 	/**
 	 * Chat Completions `reasoning_effort`. Omitted when the inspector is
 	 * left on provider default.
@@ -263,6 +273,9 @@ export const assembleLlmAgentInventoryContext = (
 			maxCap: AGENT_MAX_ITERATIONS_CAP,
 		}),
 		maxFeedbackTurns: normalizeMaxFeedbackTurns(ec.params.maxFeedbackTurns),
+		// Panel params are next-run seeds (`ec.params`). This flag is read
+		// when the cycle context is assembled, not live mid-run.
+		resetSessionOnInput: ec.params.resetSessionOnInput === true,
 		requestPermission: ec.requestPermission,
 		compaction: normalizeCompactionConfig(ec.params),
 		recovery: normalizeLlmRecoveryPolicy(ec.params),
@@ -331,16 +344,181 @@ const demuxLlmAgentPorts = <Deps, Meta extends PortMeta | undefined>(
 	),
 });
 
+type JsonObject = { readonly [key: string]: NodeStateJson };
+
+const isJsonObject = (value: NodeStateJson): value is JsonObject =>
+	value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const readString = (value: NodeStateJson | undefined): string | undefined =>
+	typeof value === 'string' ? value : undefined;
+
+const readToolCall = (
+	value: NodeStateJson,
+):
+	| { readonly id: string; readonly name: string; readonly arguments: string }
+	| undefined => {
+	if (!isJsonObject(value)) {
+		return undefined;
+	}
+
+	const id = readString(value['id']);
+	const name = readString(value['name']);
+	const args = readString(value['arguments']);
+	if (id === undefined || name === undefined || args === undefined) {
+		return undefined;
+	}
+
+	return { id, name, arguments: args };
+};
+
+/**
+ * Rebuild a message from JSON fields. Returns undefined when the value is
+ * not a chat message — callers must not cast.
+ */
+const readChatMessage = (
+	value: NodeStateJson,
+): ChatCompletionMessage | undefined => {
+	if (!isJsonObject(value)) {
+		return undefined;
+	}
+
+	const role = readString(value['role']);
+	const content = readString(value['content']);
+	if (role === undefined || content === undefined) {
+		return undefined;
+	}
+
+	if (role === 'system' || role === 'user') {
+		return { role, content };
+	}
+
+	if (role === 'tool') {
+		const toolCallId = readString(value['tool_call_id']);
+		if (toolCallId === undefined) {
+			return undefined;
+		}
+
+		return { role: 'tool', content, tool_call_id: toolCallId };
+	}
+
+	if (role !== 'assistant') {
+		return undefined;
+	}
+
+	const toolCallsValue = value['tool_calls'];
+	if (toolCallsValue === undefined) {
+		return { role: 'assistant', content };
+	}
+
+	if (!Array.isArray(toolCallsValue)) {
+		return undefined;
+	}
+
+	const toolCalls: {
+		readonly id: string;
+		readonly name: string;
+		readonly arguments: string;
+	}[] = [];
+	for (const item of toolCallsValue) {
+		const call = readToolCall(item);
+		if (call === undefined) {
+			return undefined;
+		}
+
+		toolCalls.push(call);
+	}
+
+	return { role: 'assistant', content, tool_calls: toolCalls };
+};
+
+/** `{ history }` only. Any other shape is refused. */
+const readPersistedHistory = (
+	value: NodeStateJson,
+): readonly ChatCompletionMessage[] | undefined => {
+	if (!isJsonObject(value)) {
+		return undefined;
+	}
+
+	const keys = Object.keys(value);
+	if (keys.length !== 1 || keys[0] !== 'history') {
+		return undefined;
+	}
+
+	const history = value['history'];
+	if (!Array.isArray(history)) {
+		return undefined;
+	}
+
+	const messages: ChatCompletionMessage[] = [];
+	for (const item of history) {
+		const message = readChatMessage(item);
+		if (message === undefined) {
+			return undefined;
+		}
+
+		messages.push(message);
+	}
+
+	return messages;
+};
+
+const toolCallToJson = (call: {
+	readonly id: string;
+	readonly name: string;
+	readonly arguments: string;
+}): JsonObject => ({
+	id: call.id,
+	name: call.name,
+	arguments: call.arguments,
+});
+
+/** Copy a message into an index-signature JSON object (no optional undefined). */
+const messageToJson = (message: ChatCompletionMessage): JsonObject => {
+	if (message.role === 'tool') {
+		return {
+			role: message.role,
+			content: message.content,
+			tool_call_id: message.tool_call_id,
+		};
+	}
+
+	if (message.role === 'assistant') {
+		if (message.tool_calls === undefined) {
+			return { role: message.role, content: message.content };
+		}
+
+		return {
+			role: message.role,
+			content: message.content,
+			tool_calls: message.tool_calls.map(toolCallToJson),
+		};
+	}
+
+	return { role: message.role, content: message.content };
+};
+
+const historyToState = (
+	history: readonly ChatCompletionMessage[],
+): NodeStateJson => ({
+	history: history.map(messageToJson),
+});
+
 /**
  * Shared LLM session cycle (ADR-016): init context recreates the session;
  * turn$ drives turn 0 + later turns with accumulated `messages[]`.
  *
  * All LLM nodes (openai / fake / critique / review / future) MUST use this —
  * do not invent per-node cold-start `switchMap` history.
+ *
+ * `state` persists `{ history }` only. `feedbackTurns` and `turn0Done` stay
+ * in the cycle closure.
  */
 export const createLlmSessionCycle$ = <
 	Context extends {
 		readonly maxFeedbackTurns: number;
+		readonly prompt?: string;
+		/** Absent means false. Captured on the assembled context. */
+		readonly resetSessionOnInput?: boolean;
 		readonly requestPermission?: (
 			request: PermissionAskRequest,
 		) => Promise<'allow' | 'deny'>;
@@ -360,7 +538,10 @@ export const createLlmSessionCycle$ = <
 		session: Session,
 	) => Observable<Chunk>,
 	options?: LlmSessionCycleOptions,
-): StatefulObservable<Chunk, Deps, Meta> => {
+): {
+	readonly cycle$: StatefulObservable<Chunk, Deps, Meta>;
+	readonly state: NodeStateHook;
+} => {
 	const primeTurn0 = options?.primeTurn0 ?? true;
 
 	type CycleTick = {
@@ -380,6 +561,47 @@ export const createLlmSessionCycle$ = <
 	);
 
 	let state: LlmSessionState<Session, Chunk> | undefined;
+	let pendingHistory: readonly ChatCompletionMessage[] | undefined;
+	const persisted$ = new Subject<NodeStateJson>();
+
+	const commitHistory = (history: readonly ChatCompletionMessage[]): void => {
+		persisted$.next(historyToState(history));
+	};
+
+	const freshSession = (
+		prep: LlmFeedbackSessionPrep<Session>,
+		turn0Done: boolean,
+	): LlmSessionState<Session, Chunk> => ({
+		history: [...prep.history],
+		turn0Done,
+		feedbackTurns: 0,
+		preparation: prep,
+	});
+
+	const sessionFromPending = (
+		prep: LlmFeedbackSessionPrep<Session>,
+		context: Context,
+		stored: readonly ChatCompletionMessage[],
+	): LlmSessionState<Session, Chunk> => {
+		if (!primeTurn0) {
+			return {
+				history: [...stored],
+				turn0Done: true,
+				feedbackTurns: 0,
+				preparation: prep,
+			};
+		}
+
+		return {
+			history: [
+				...stored,
+				{ role: 'user', content: context.prompt ?? '' },
+			],
+			turn0Done: false,
+			feedbackTurns: 0,
+			preparation: prep,
+		};
+	};
 
 	const isSkippableTick = (tick: CycleTick): boolean => {
 		const prepChanged =
@@ -395,27 +617,61 @@ export const createLlmSessionCycle$ = <
 		filter((tick) => !isSkippableTick(tick)),
 	);
 
+	const restore: NodeStateHook['restore'] = (incoming) => {
+		if (incoming === null) {
+			pendingHistory = undefined;
+			return { ok: true };
+		}
+
+		const history = readPersistedHistory(incoming);
+		if (history === undefined) {
+			return {
+				ok: false,
+				message:
+					'Node state must be { history: ChatCompletionMessage[] }',
+			};
+		}
+
+		pendingHistory = history;
+		// Drop the live cycle so the next creation is the
+		// `state === undefined` branch and consumes this transcript.
+		// A later prep change still builds a fresh session.
+		state = undefined;
+		return { ok: true };
+	};
+
 	// pipeValue uses switchMap and would cancel an in-flight turn when the
 	// next tick arrives (startWith + a blank BehaviorSubject, or feedback
 	// during a stream). Queue turns with concatMap so pending comes from
 	// the loader, matching withLoading() + sequential I/O.
-	return statefulObservable({
+	const cycle$ = statefulObservable({
 		input: workTicks$.value$,
 		mapOperator: concatMap,
 		loader: (tick: CycleTick) => {
 			const { context, prep, raw } = tick;
-			if (state === undefined || state.preparation !== prep) {
-				state = {
-					history: [...prep.history],
-					turn0Done: false,
-					feedbackTurns: 0,
-					preparation: prep,
-				};
+			let session = state;
+			if (session === undefined) {
+				const stored = pendingHistory;
+				pendingHistory = undefined;
+				session =
+					stored === undefined
+						? freshSession(prep, false)
+						: sessionFromPending(prep, context, stored);
+			} else if (session.preparation !== prep) {
+				session = freshSession(prep, false);
+				commitHistory(session.history);
 			}
+
+			if (context.resetSessionOnInput === true && !isBlankTurn(raw)) {
+				session = freshSession(prep, primeTurn0);
+				commitHistory(session.history);
+			}
+
+			state = session;
 
 			return runTurnFromState(
 				context,
-				state,
+				session,
 				raw,
 				primeTurn0,
 				runTurn,
@@ -423,6 +679,13 @@ export const createLlmSessionCycle$ = <
 				map((next) => {
 					state = next;
 					return next;
+				}),
+				tap({
+					complete: () => {
+						if (state !== undefined) {
+							commitHistory(state.history);
+						}
+					},
 				}),
 				filter(
 					(
@@ -435,6 +698,14 @@ export const createLlmSessionCycle$ = <
 			);
 		},
 	}) as StatefulObservable<Chunk, Deps, Meta>;
+
+	return {
+		cycle$,
+		state: {
+			persist$: persisted$.asObservable(),
+			restore,
+		},
+	};
 };
 
 type BindLlmAgentSessionOptions<
@@ -518,7 +789,7 @@ export const bindLlmAgentSession = <
 	);
 
 	// 3. feedback cycle$ (ADR-016 Soft↔Hard: primeTurn0)
-	const cycle$ = createLlmSessionCycle$(
+	const { cycle$, state } = createLlmSessionCycle$(
 		context$,
 		feedback.value$,
 		options.prepareSession,
@@ -556,5 +827,6 @@ export const bindLlmAgentSession = <
 			}),
 		],
 		inventoryOutputs: { toolLog$, recovery$ },
+		state,
 	};
 };

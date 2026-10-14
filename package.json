@@ -1,6 +1,6 @@
 {
 	"name": "langflower",
-	"version": "0.2.2",
+	"version": "0.3.0",
 	"description": "Visual LLM-chain builder",
 	"type": "module",
 	"bin": {

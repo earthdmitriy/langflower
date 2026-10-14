@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	ElementRef,
+	HostListener,
+	inject,
+	input,
+	signal,
+} from '@angular/core';
 
 /**
  * Styled hover/focus tooltip for controls. Prefer this over bare `title`
@@ -27,27 +35,8 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 		@if (tip().trim().length > 0) {
 			<span
 				role="tooltip"
-				class="pointer-events-none absolute z-20 hidden whitespace-nowrap rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-700 shadow-sm group-hover:block group-focus-within:block dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-				[class.bottom-full]="side() === 'top'"
-				[class.mb-2]="side() === 'top'"
-				[class.top-full]="side() === 'bottom'"
-				[class.mt-2]="side() === 'bottom'"
-				[class.right-full]="side() === 'left'"
-				[class.mr-2]="side() === 'left'"
-				[class.left-full]="side() === 'right'"
-				[class.ml-2]="side() === 'right'"
-				[class.right-0]="isVerticalSide() && align() === 'end'"
-				[class.left-0]="isVerticalSide() && align() === 'start'"
-				[class.left-1/2]="isVerticalSide() && align() === 'center'"
-				[class.-translate-x-1/2]="
-					isVerticalSide() && align() === 'center'
-				"
-				[class.top-0]="isHorizontalSide() && align() === 'start'"
-				[class.bottom-0]="isHorizontalSide() && align() === 'end'"
-				[class.top-1/2]="isHorizontalSide() && align() === 'center'"
-				[class.-translate-y-1/2]="
-					isHorizontalSide() && align() === 'center'
-				"
+				class="pointer-events-none fixed z-40 hidden whitespace-nowrap rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-700 shadow-sm group-hover:block group-focus-within:block dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+				[style]="tipStyle()"
 			>
 				{{ tip() }}
 			</span>
@@ -55,6 +44,8 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 	`,
 })
 export class LfHoverTipComponent {
+	private readonly host = inject(ElementRef<HTMLElement>);
+
 	/** Tooltip copy; empty string hides the tip. */
 	readonly tip = input.required<string>();
 	/**
@@ -65,13 +56,70 @@ export class LfHoverTipComponent {
 	/** Side of the control where the tip appears. */
 	readonly side = input<'top' | 'bottom' | 'left' | 'right'>('top');
 
-	protected isVerticalSide(): boolean {
-		const side = this.side();
-		return side === 'top' || side === 'bottom';
-	}
+	/**
+	 * Fixed so the tip escapes the session-tab scroller. That scroller
+	 * clips overflow, which left the tip as a line under the active tab.
+	 */
+	readonly tipStyle = signal('');
 
-	protected isHorizontalSide(): boolean {
-		const side = this.side();
-		return side === 'left' || side === 'right';
+	@HostListener('pointerenter')
+	@HostListener('focusin')
+	protected placeTip(): void {
+		this.tipStyle.set(
+			hoverTipStyle(
+				this.host.nativeElement.getBoundingClientRect(),
+				this.side(),
+				this.align(),
+				{
+					width: window.innerWidth,
+					height: window.innerHeight,
+				},
+			),
+		);
 	}
 }
+
+const TIP_GAP_PX = 8;
+
+/** Viewport coordinates for a fixed tooltip. */
+export const hoverTipStyle = (
+	rect: Pick<
+		DOMRect,
+		'top' | 'left' | 'right' | 'bottom' | 'width' | 'height'
+	>,
+	side: 'top' | 'bottom' | 'left' | 'right',
+	align: 'start' | 'center' | 'end',
+	viewport: { readonly width: number; readonly height: number },
+): string => {
+	const parts: string[] = [];
+
+	if (side === 'bottom') {
+		parts.push(`top:${rect.bottom + TIP_GAP_PX}px`);
+	} else if (side === 'top') {
+		parts.push(`bottom:${viewport.height - rect.top + TIP_GAP_PX}px`);
+	} else if (side === 'left') {
+		parts.push(`right:${viewport.width - rect.left + TIP_GAP_PX}px`);
+	} else {
+		parts.push(`left:${rect.right + TIP_GAP_PX}px`);
+	}
+
+	if (side === 'top' || side === 'bottom') {
+		if (align === 'start') {
+			parts.push(`left:${rect.left}px`);
+		} else if (align === 'end') {
+			parts.push(`right:${viewport.width - rect.right}px`);
+		} else {
+			parts.push(`left:${rect.left + rect.width / 2}px`);
+			parts.push('transform:translateX(-50%)');
+		}
+	} else if (align === 'start') {
+		parts.push(`top:${rect.top}px`);
+	} else if (align === 'end') {
+		parts.push(`bottom:${viewport.height - rect.bottom}px`);
+	} else {
+		parts.push(`top:${rect.top + rect.height / 2}px`);
+		parts.push('transform:translateY(-50%)');
+	}
+
+	return parts.join(';');
+};

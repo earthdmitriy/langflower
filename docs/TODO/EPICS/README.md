@@ -1,7 +1,8 @@
 # Epics — use-case readiness queue (active)
 
-**Active** under [`docs/TODO/`](../README.md). Epics **00–48** are
-archived in [`docs/DONE/EPICS/`](../../DONE/EPICS/README.md) once landed.
+**Active** under [`docs/TODO/`](../README.md). Epics **00–49** are
+archived in [`docs/DONE/EPICS/`](../../DONE/EPICS/README.md). The queue
+is empty.
 
 Further product work also comes from
 [`docs/code-regression/`](../../code-regression/SUMMARY.md) (orchestrator may
@@ -30,6 +31,7 @@ Do **not** re-open epic 15.
 | Desktop launcher            | **46 landed** — [Tauri shell + CI/release](../../DONE/EPICS/46-launcher.md)                             |
 | Feed frame authority        | **47 landed** — [self-describing frames](../../DONE/EPICS/47-self-describing-feed-frames.md)            |
 | Node capabilities           | **48 landed** — [declared `requires`](../../DONE/EPICS/48-declared-node-capabilities.md)                |
+| Workflow sessions           | **49 landed** — [sessions](../../DONE/EPICS/49-sessions.md) (tabs, node state hook, points, folded log) |
 
 ## Order
 
@@ -44,7 +46,7 @@ Do **not** re-open epic 15.
 | 47  | [47-self-describing-feed-frames.md](../../DONE/EPICS/47-self-describing-feed-frames.md) | **Landed** — frames carry feed meta; fold drops catalog + rebuild state   |
 | 48  | [48-declared-node-capabilities.md](../../DONE/EPICS/48-declared-node-capabilities.md)   | **Landed** — `requires` on definitions; ctx built per declaration         |
 
-Queue is empty. Pack-visible host `chat` / `embed` stays
+Active queue: empty. Pack-visible host `chat` / `embed` stays
 [TBD-012](../../TBD.md#tbd-012--pack-visible-host-chat--embed). Next:
 code-regression Critical findings and remaining use-case Missing parts.
 

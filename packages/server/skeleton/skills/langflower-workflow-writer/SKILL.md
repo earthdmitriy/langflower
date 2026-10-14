@@ -99,7 +99,10 @@ Custom exclusive-branch nodes (`defineReactiveNode`, seed `review-gate.ts`):
 - in **`trigger`** (dynamic)
 - out **`ok`** — **pulse** (`boolean` `true`, seed) **or** **passthrough of
   `trigger`** (`inferTypeFrom`) when the next stage must keep the payload
-- out **`fail`** — string (stripped errors) → Preview / LLM `feedback`
+- out **`fail`** — string → Preview / LLM `feedback`. Filter test and
+  formatter output to **failures** (failing names, assertion diffs,
+  formatter errors). Drop passing suites and progress. Raw logs bloat
+  the next agent turn. A green formatter emits nothing on `fail`.
 
 Do **not** emit boolean `true` on `ok` if the downstream graph needs the
 trigger payload. Do not use `defineNode` that returns `{ ok: true }` for
@@ -123,8 +126,24 @@ graph the first time.
 
 ## When drafting
 
+These steps are tool calls (`write` / `edit` / `create`). A summary of a graph
+you did not write is not a draft.
+
 1. Pick a stable filename stem and metadata name.
 2. Place nodes with real `type` / `params` / `inputs` / `ui.position`.
 3. Wire edges with `[portId, slotIndex]` tuples.
 4. Prefer copying structure from an existing sample, then editing.
 5. Remind the user to reload the workflow in the topbar and Save if repair ran.
+
+## Before you send a final answer
+
+A message with no tool call is the final result Helper will treat as done.
+Plain text does not write or compile files.
+
+- Create and edit files with `write`, `edit`, or `create` under
+  `.langflower/workflows/` and `.langflower/nodes/`.
+- After writing or editing `.langflower/nodes/` files, call
+  `compile_custom_nodes` with no arguments. Quote status from that tool result.
+- The closing summary lists only paths and compile status that appear in tool
+  results from this task, plus open risks. If the file is not written yet, call
+  the tool instead of summarizing.

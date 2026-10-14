@@ -290,6 +290,14 @@ Icon / run-control rules:
 events — density must match [grok-feed](../use-cases/grok-feed.md) S6 (not a
 richer dump than live).
 
+A bound workflow session restores the folded feed of its **last run**
+(the latest run in `<label>.feed.jsonl`, emitted on `executionFeed.snapshot`).
+Earlier runs of that session stay in the agent transcript, not in the work
+log. Live sockets still receive every raw `runner.*` frame. The retained log
+is what `foldFeedLogEvent` has folded (one frame per streaming series).
+**Clear** starts an empty run in that log and does not rewrite point offsets.
+**Reset session on input** does not clear the feed.
+
 **Partial re-runs:** upstream entries stay; only re-executed nodes clear and
 replay.
 

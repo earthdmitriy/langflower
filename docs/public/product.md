@@ -38,10 +38,15 @@ Versus cloud graph tools: the same idea of wiring nodes, but aimed at a
 folder on your machine — home or a closed network with internal
 providers — not at hosting a service or cloning ETL in the cloud.
 
+## Pick up where you left off
+
+Close Langflower today, open it tomorrow, and your conversation is still
+there. Every run is saved in a session tab next to the workflow name, and
+the latest one opens when you start again. **Reset** gives you a clean
+slate and keeps your workflow.
+
 ## What it lacks
 
-- **Chat sessions.** Node-internal state is the current architecture, so
-  serializable chat-session mechanics are hard. Maybe later.
 - **Image and video.** No asset management for multimodal models. Not yet.
 - **No built-in IDE or git UI.** We are not reinventing those wheels. Use
   the editor and git tools you already have.

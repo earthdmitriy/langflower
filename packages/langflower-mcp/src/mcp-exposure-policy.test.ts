@@ -12,16 +12,18 @@ describe('mcp-exposure-policy', () => {
 		}
 	});
 
-	it('listActionIntents stays in workflow.* / runner.* (no editor.*)', () => {
+	it('listActionIntents stays in workflow / session / runner (no editor.*)', () => {
 		const intents = listActionIntents();
 
 		expect(intents.some((intent) => intent.startsWith('editor.'))).toBe(
 			false,
 		);
+		expect(intents).toContain('workflowSession.create.requested');
 		expect(
 			intents.every(
 				(intent) =>
 					intent.startsWith('workflow.') ||
+					intent.startsWith('workflowSession.') ||
 					intent.startsWith('runner.'),
 			),
 		).toBe(true);

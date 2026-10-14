@@ -13,8 +13,11 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { merge, scan, startWith } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
+import { ComposerService } from '../../composer/composer.service';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
+import { settleParkedRunThen } from '../settle-parked-run';
+import { WorkflowSessionTabsComponent } from './workflow-session-tabs.component';
 import {
 	initialWorkflowTopbarState,
 	workflowChangeControlTip,
@@ -26,20 +29,27 @@ import {
 @Component({
 	selector: 'lf-workflow-topbar',
 	standalone: true,
-	imports: [LfHoverTipComponent],
+	imports: [LfHoverTipComponent, WorkflowSessionTabsComponent],
 	template: `
-		<div class="relative flex min-w-0 items-center gap-2">
-			<lf-hover-tip tip="Show workflows" align="center" side="bottom">
+		<div
+			class="relative flex h-full w-full min-w-0 flex-nowrap items-center gap-2"
+		>
+			<lf-hover-tip
+				class="shrink-0"
+				tip="Show workflows"
+				align="center"
+				side="bottom"
+			>
 				<button
 					type="button"
-					class="rounded-md border border-zinc-200 p-1 text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+					class="inline-flex items-center justify-center rounded-md border border-zinc-200 p-1 text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
 					aria-label="Show workflows"
 					[attr.aria-expanded]="isDropdownOpen()"
 					(click)="toggleDropdown()"
 				>
 					<svg
 						viewBox="0 0 20 20"
-						class="h-4 w-4"
+						class="h-4 w-4 translate-y-px"
 						fill="currentColor"
 						aria-hidden="true"
 					>
@@ -50,72 +60,157 @@ import {
 				</button>
 			</lf-hover-tip>
 
-			@if (isRenaming()) {
-				<input
-					#renameInput
-					type="text"
-					class="min-w-0 rounded-md border border-zinc-400 bg-white px-2 py-1 text-sm text-zinc-950 outline-none ring-2 ring-zinc-400/20 dark:border-zinc-500 dark:bg-zinc-950 dark:text-zinc-100"
-					[value]="renameDraft()"
-					(input)="handleRenameInput($event)"
-					(keydown.enter)="commitRename()"
-					(keydown.escape)="cancelRename()"
-					(blur)="commitRename()"
-					aria-label="Rename workflow"
-				/>
-			} @else {
+			@if (!isSessionBound()) {
+				<div class="relative shrink-0">
+					<lf-hover-tip
+						tip="Workflow actions"
+						align="center"
+						side="bottom"
+					>
+						<button
+							type="button"
+							class="inline-flex items-center justify-center rounded-md border border-zinc-200 p-1.5 text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+							aria-label="Workflow actions"
+							[attr.aria-expanded]="isActionsOpen()"
+							(click)="toggleActions()"
+						>
+							<svg
+								viewBox="0 0 20 20"
+								class="h-4 w-4"
+								fill="currentColor"
+								aria-hidden="true"
+							>
+								<path
+									d="M6 10a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm5.5 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm5.5 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"
+								/>
+							</svg>
+						</button>
+					</lf-hover-tip>
+					@if (isActionsOpen()) {
+						<div
+							class="absolute left-0 top-full z-20 mt-2 w-44 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+							role="menu"
+							aria-label="Workflow actions"
+						>
+							<lf-hover-tip
+								[tip]="renameTip()"
+								align="start"
+								side="bottom"
+								class="w-full"
+								[class.cursor-not-allowed]="!canRename()"
+							>
+								<button
+									type="button"
+									class="flex w-full items-center px-3 py-2 text-left text-sm text-zinc-900 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-100 dark:hover:bg-zinc-800"
+									role="menuitem"
+									[disabled]="!canRename()"
+									(click)="startRename()"
+								>
+									Rename
+								</button>
+							</lf-hover-tip>
+							<lf-hover-tip
+								[tip]="deleteTip()"
+								align="start"
+								side="bottom"
+								class="w-full"
+								[class.cursor-not-allowed]="!canDelete()"
+							>
+								<button
+									type="button"
+									class="flex w-full items-center px-3 py-2 text-left text-sm text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-rose-300 dark:hover:bg-rose-950/30"
+									role="menuitem"
+									[disabled]="!canDelete()"
+									(click)="requestDelete()"
+								>
+									Delete
+								</button>
+							</lf-hover-tip>
+						</div>
+					}
+				</div>
+			}
+
+			<div class="flex h-full min-w-0 shrink-0 items-center self-stretch">
+				@if (isRenaming()) {
+					<input
+						#renameInput
+						type="text"
+						class="w-48 min-w-0 rounded-md border border-zinc-400 bg-white px-2 py-1 text-sm text-zinc-950 outline-none ring-2 ring-zinc-400/20 dark:border-zinc-500 dark:bg-zinc-950 dark:text-zinc-100"
+						[value]="renameDraft()"
+						(input)="handleRenameInput($event)"
+						(keydown.enter)="commitRename()"
+						(keydown.escape)="cancelRename()"
+						(blur)="commitRename()"
+						aria-label="Rename workflow"
+					/>
+				} @else {
+					<div
+						class="relative grid min-w-0 grid-rows-[1fr_auto_1fr]"
+						[class.h-full]="!isSessionBound()"
+						[class.rounded-md]="isSessionBound()"
+						[class.hover:bg-zinc-100]="isSessionBound()"
+						[class.dark:hover:bg-zinc-800]="isSessionBound()"
+					>
+						@if (!isSessionBound()) {
+							<div
+								class="pointer-events-none col-start-1 row-span-2 row-start-2 -mb-px rounded-t-md border border-b-0 border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-950"
+								aria-hidden="true"
+							></div>
+						}
+						<lf-hover-tip
+							class="z-10 col-start-1 row-start-2 min-w-0"
+							align="center"
+							side="bottom"
+							[class.cursor-not-allowed]="fileTabDisabled()"
+							[tip]="fileTabTip()"
+						>
+							<button
+								type="button"
+								class="inline-flex min-w-0 max-w-48 items-center gap-1.5 bg-transparent px-2 py-1 text-sm font-medium text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-100"
+								[class.font-semibold]="!isSessionBound()"
+								[disabled]="fileTabDisabled()"
+								[attr.aria-pressed]="!isSessionBound()"
+								(click)="onFileTabClick()"
+								(dblclick)="startRename()"
+							>
+								@if (isDirty()) {
+									<span
+										class="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"
+										aria-hidden="true"
+									></span>
+								}
+								<span class="truncate">
+									{{
+										activeWorkflowName() ??
+											'No workflow loaded'
+									}}
+								</span>
+							</button>
+						</lf-hover-tip>
+					</div>
+				}
+			</div>
+
+			<lf-workflow-session-tabs />
+
+			@if (canSave()) {
 				<lf-hover-tip
+					class="shrink-0"
+					tip="Save the active workflow"
 					align="center"
 					side="bottom"
-					[class.cursor-not-allowed]="!canRename()"
-					[tip]="renameTip()"
 				>
 					<button
 						type="button"
-						class="truncate rounded-md px-2 py-1 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-100 dark:hover:bg-zinc-800"
-						[disabled]="!canRename()"
-						(click)="startRename()"
+						class="rounded-md border border-zinc-400 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-700 transition dark:border-zinc-500 dark:bg-zinc-950/40 dark:text-zinc-300"
+						aria-label="Save workflow"
+						(click)="saveCurrent()"
 					>
-						{{ activeWorkflowName() ?? 'No workflow loaded' }}
+						Save
 					</button>
 				</lf-hover-tip>
 			}
-
-			<lf-hover-tip [tip]="saveTip()" align="center" side="bottom">
-				<button
-					type="button"
-					class="rounded-md border px-3 py-1 text-xs font-medium transition disabled:opacity-50"
-					[class.border-zinc-400]="isDirty()"
-					[class.bg-zinc-50]="isDirty()"
-					[class.text-zinc-700]="isDirty()"
-					[class.dark:border-zinc-500]="isDirty()"
-					[class.dark:bg-zinc-950/40]="isDirty()"
-					[class.dark:text-zinc-300]="isDirty()"
-					[class.border-zinc-200]="!isDirty()"
-					[class.text-zinc-700]="!isDirty()"
-					[class.dark:border-zinc-700]="!isDirty()"
-					[class.dark:text-zinc-200]="!isDirty()"
-					[disabled]="!canSave()"
-					(click)="saveCurrent()"
-				>
-					Save
-				</button>
-			</lf-hover-tip>
-
-			<lf-hover-tip
-				align="center"
-				side="bottom"
-				[class.cursor-not-allowed]="!canDelete()"
-				[tip]="deleteTip()"
-			>
-				<button
-					type="button"
-					class="rounded-md border border-zinc-200 px-3 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-rose-300 dark:hover:bg-rose-950/30"
-					[disabled]="!canDelete()"
-					(click)="requestDelete()"
-				>
-					Delete
-				</button>
-			</lf-hover-tip>
 
 			@if (isDropdownOpen()) {
 				<div
@@ -128,13 +223,13 @@ import {
 						align="start"
 						side="bottom"
 						class="w-full"
-						[class.cursor-not-allowed]="isRunning()"
+						[class.cursor-not-allowed]="navigationLocked()"
 					>
 						<button
 							type="button"
 							class="flex w-full items-center px-3 py-2 text-left text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-100 dark:hover:bg-zinc-800"
 							role="option"
-							[disabled]="isRunning()"
+							[disabled]="navigationLocked()"
 							(click)="createWorkflow()"
 						>
 							New
@@ -165,12 +260,12 @@ import {
 								align="start"
 								side="bottom"
 								class="min-w-0 flex-1"
-								[class.cursor-not-allowed]="isRunning()"
+								[class.cursor-not-allowed]="navigationLocked()"
 							>
 								<button
 									type="button"
 									class="flex min-w-0 w-full flex-col items-start rounded-md px-2 py-2 text-left text-sm transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-zinc-800"
-									[disabled]="isRunning()"
+									[disabled]="navigationLocked()"
 									(click)="loadWorkflow(workflow.workflowId)"
 								>
 									<span
@@ -189,13 +284,13 @@ import {
 								[tip]="copyTip()"
 								align="center"
 								side="bottom"
-								[class.cursor-not-allowed]="isRunning()"
+								[class.cursor-not-allowed]="navigationLocked()"
 							>
 								<button
 									type="button"
 									class="shrink-0 self-center rounded-md border border-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-700"
 									aria-label="Copy workflow"
-									[disabled]="isRunning()"
+									[disabled]="navigationLocked()"
 									(click)="
 										copyWorkflow(
 											workflow.workflowId,
@@ -285,11 +380,14 @@ import {
 export class WorkflowTopbarComponent {
 	private readonly bridge = inject(LangflowerBridgeService);
 	private readonly execution = inject(WorkflowExecutionService);
+	private readonly composer = inject(ComposerService);
+	readonly navigationLocked = this.composer.navigationLocked;
 	private readonly destroyRef = inject(DestroyRef);
 	private readonly renameInput =
 		viewChild<ElementRef<HTMLInputElement>>('renameInput');
 
 	readonly isDropdownOpen = signal(false);
+	readonly isActionsOpen = signal(false);
 	readonly isRenaming = signal(false);
 	readonly renameDraft = signal('');
 	readonly showDeleteConfirm = signal(false);
@@ -359,87 +457,166 @@ export class WorkflowTopbarComponent {
 	readonly isDirty = computed(
 		() => this.topbarState().currentStatus === 'dirty',
 	);
-	readonly isRunning = this.execution.isRunning;
+	readonly isSessionBound = toSignal(
+		this.bridge.cached['workflowSession.current.snapshot'].pipe(
+			map((snapshot) => snapshot.sessionId !== null),
+			startWith(false),
+		),
+		{ initialValue: false },
+	);
 	readonly canSave = computed(
 		() =>
+			!this.isSessionBound() &&
 			this.topbarState().activeWorkflow !== null &&
 			this.topbarState().currentStatus === 'dirty',
 	);
 	readonly canRename = computed(
-		() => this.activeWorkflowName() !== null && !this.isRunning(),
+		() =>
+			this.activeWorkflowName() !== null &&
+			!this.navigationLocked() &&
+			!this.isSessionBound(),
 	);
 	readonly canDelete = computed(
-		() => this.topbarState().activeWorkflow !== null && !this.isRunning(),
+		() =>
+			this.topbarState().activeWorkflow !== null &&
+			!this.navigationLocked() &&
+			!this.isSessionBound(),
 	);
-	readonly renameTip = computed(() =>
-		workflowChangeControlTip(
-			this.isRunning(),
+	readonly renameTip = computed(() => {
+		if (this.isSessionBound()) {
+			return 'Return to the workflow first';
+		}
+		return workflowChangeControlTip(
+			this.navigationLocked(),
 			this.activeWorkflowName() === null
 				? 'Load or create a workflow first'
 				: 'Rename workflow',
-		),
-	);
-	readonly deleteTip = computed(() =>
-		workflowChangeControlTip(
-			this.isRunning(),
+		);
+	});
+	readonly deleteTip = computed(() => {
+		if (this.isSessionBound()) {
+			return 'Return to the workflow first';
+		}
+		return workflowChangeControlTip(
+			this.navigationLocked(),
 			this.topbarState().activeWorkflow === null
 				? 'No workflow loaded'
 				: 'Delete this workflow from disk',
-		),
-	);
+		);
+	});
 	readonly copyTip = computed(() =>
-		workflowChangeControlTip(this.isRunning(), 'Copy this workflow'),
+		workflowChangeControlTip(this.navigationLocked(), 'Copy this workflow'),
 	);
 	readonly createTip = computed(() =>
-		workflowChangeControlTip(this.isRunning(), 'Create a new workflow'),
+		workflowChangeControlTip(
+			this.navigationLocked(),
+			'Create a new workflow',
+		),
 	);
 	readonly loadTip = computed(() =>
-		workflowChangeControlTip(this.isRunning(), 'Load this workflow'),
+		workflowChangeControlTip(this.navigationLocked(), 'Load this workflow'),
 	);
 
-	readonly saveTip = computed(() => {
-		if (this.topbarState().activeWorkflow === null) {
+	readonly fileTabDisabled = computed(
+		() => this.navigationLocked() || this.activeWorkflowName() === null,
+	);
+	readonly fileTabTip = computed(() => {
+		if (this.isSessionBound()) {
+			return workflowChangeControlTip(
+				this.navigationLocked(),
+				'Show the saved workflow',
+			);
+		}
+		if (this.activeWorkflowName() === null) {
 			return 'Load or create a workflow first';
 		}
-		if (!this.canSave()) {
-			return 'No unsaved changes';
-		}
-		return 'Save the active workflow';
+		return workflowChangeControlTip(
+			this.navigationLocked(),
+			'Double-click to rename',
+		);
 	});
 
 	toggleDropdown(): void {
 		this.isDropdownOpen.update((open) => !open);
+		this.isActionsOpen.set(false);
 		this.showDeleteConfirm.set(false);
+	}
+
+	toggleActions(): void {
+		this.isActionsOpen.update((open) => !open);
+		this.isDropdownOpen.set(false);
+		this.showDeleteConfirm.set(false);
+	}
+
+	onFileTabClick(): void {
+		if (!this.isSessionBound()) {
+			return;
+		}
+		this.selectWorkflow();
+	}
+
+	selectWorkflow(): void {
+		if (this.navigationLocked()) {
+			return;
+		}
+		this.isDropdownOpen.set(false);
+		this.isActionsOpen.set(false);
+		this.showDeleteConfirm.set(false);
+		this.settleThen(() => {
+			this.bridge.raw['workflowSession.select.requested'].next({
+				sessionId: null,
+			});
+		});
+	}
+
+	private settleThen(action: () => void): void {
+		void settleParkedRunThen({
+			running: this.execution.isRunning(),
+			requestInterrupt: () => {
+				this.bridge.raw['runner.interrupt.requested'].next('cancel');
+			},
+			interrupted$: this.bridge.raw['runner.interrupted'],
+			action,
+		});
 	}
 
 	loadWorkflow(workflowId: string): void {
-		if (this.isRunning()) {
+		if (this.navigationLocked()) {
 			return;
 		}
-		this.bridge.raw['workflow.load.requested'].next({ workflowId });
 		this.isDropdownOpen.set(false);
+		this.settleThen(() => {
+			this.bridge.raw['workflow.load.requested'].next({ workflowId });
+		});
 	}
 
 	createWorkflow(): void {
-		if (this.isRunning()) {
+		if (this.navigationLocked()) {
 			return;
 		}
-		this.bridge.raw['workflow.create.requested'].next({});
 		this.isDropdownOpen.set(false);
 		this.showDeleteConfirm.set(false);
+		this.settleThen(() => {
+			this.bridge.raw['workflow.create.requested'].next({});
+		});
 	}
 
 	copyWorkflow(workflowId: string, event: Event): void {
 		event.stopPropagation();
-		if (this.isRunning()) {
+		if (this.navigationLocked()) {
 			return;
 		}
-		this.bridge.raw['workflow.copy.requested'].next({ workflowId });
 		this.isDropdownOpen.set(false);
 		this.showDeleteConfirm.set(false);
+		this.settleThen(() => {
+			this.bridge.raw['workflow.copy.requested'].next({ workflowId });
+		});
 	}
 
 	saveCurrent(): void {
+		if (!this.canSave()) {
+			return;
+		}
 		this.bridge.raw['workflow.saveCurrent.requested'].next({});
 		this.showDeleteConfirm.set(false);
 	}
@@ -465,6 +642,7 @@ export class WorkflowTopbarComponent {
 		this.renameDraft.set(name);
 		this.isRenaming.set(true);
 		this.isDropdownOpen.set(false);
+		this.isActionsOpen.set(false);
 		this.showDeleteConfirm.set(false);
 
 		queueMicrotask(() => {
@@ -487,7 +665,7 @@ export class WorkflowTopbarComponent {
 
 		this.isRenaming.set(false);
 
-		if (this.isRunning()) {
+		if (this.navigationLocked()) {
 			return;
 		}
 
@@ -499,8 +677,10 @@ export class WorkflowTopbarComponent {
 			return;
 		}
 
-		this.bridge.raw['workflow.renameCurrent.requested'].next({
-			name: nextName,
+		this.settleThen(() => {
+			this.bridge.raw['workflow.renameCurrent.requested'].next({
+				name: nextName,
+			});
 		});
 	}
 
@@ -515,6 +695,7 @@ export class WorkflowTopbarComponent {
 
 		this.showDeleteConfirm.set(true);
 		this.isDropdownOpen.set(false);
+		this.isActionsOpen.set(false);
 	}
 
 	cancelDelete(): void {
@@ -526,7 +707,7 @@ export class WorkflowTopbarComponent {
 	}
 
 	confirmDelete(): void {
-		if (this.isRunning()) {
+		if (this.navigationLocked() || this.isSessionBound()) {
 			this.showDeleteConfirm.set(false);
 			return;
 		}
@@ -536,13 +717,16 @@ export class WorkflowTopbarComponent {
 			return;
 		}
 
-		this.bridge.raw['workflow.delete.requested'].next({ workflowId });
 		this.showDeleteConfirm.set(false);
+		this.settleThen(() => {
+			this.bridge.raw['workflow.delete.requested'].next({ workflowId });
+		});
 	}
 
 	@HostListener('document:keydown.escape')
 	protected handleEscape(): void {
 		this.isDropdownOpen.set(false);
+		this.isActionsOpen.set(false);
 		this.showDeleteConfirm.set(false);
 		this.repairNotice.set(null);
 		this.cancelRename();

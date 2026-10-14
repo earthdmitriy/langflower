@@ -1,11 +1,11 @@
 import { defineReactiveNode } from '@langflower/node-sdk';
 
 /**
- * Author-visible durable resume boundary (ADR-018 D).
+ * Author-visible resume boundary.
  *
- * Passthrough on `value`; when the output emits, the server writes a
- * JSON-safe upstream checkpoint. Optional inline `label` is stored on the
- * checkpoint summary for the operator picker.
+ * Passthrough on `value`. When the output emits and a workflow session is
+ * bound, the server appends an immutable point. Optional inline `label`
+ * is stored on that point.
  */
 export const checkpointNode = defineReactiveNode({
 	type: 'common-checkpoint',

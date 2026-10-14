@@ -75,10 +75,10 @@ const NAMED_SCHEMAS = {
 		required: ['runId', 'askId', 'text'],
 		additionalProperties: false,
 	},
-	RunnerResumeRequestedPayload: {
+	WorkflowSessionResumeRequestedPayload: {
 		type: 'object',
-		properties: { runId: { type: 'string' } },
-		required: ['runId'],
+		properties: { pointId: { type: 'string' } },
+		required: ['pointId'],
 		additionalProperties: false,
 	},
 	CustomPaletteUpdateRequestedPayload: {

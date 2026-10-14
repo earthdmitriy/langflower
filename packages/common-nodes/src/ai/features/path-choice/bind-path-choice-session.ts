@@ -208,7 +208,7 @@ export const bindPathChoiceSession = (
 		},
 	);
 
-	const cycle$ = createLlmSessionCycle$(
+	const { cycle$, state } = createLlmSessionCycle$(
 		context$,
 		turn.value$,
 		(context) => ({
@@ -299,5 +299,6 @@ export const bindPathChoiceSession = (
 			}),
 		],
 		inventoryOutputs: { toolLog$, recovery$ },
+		state,
 	};
 };

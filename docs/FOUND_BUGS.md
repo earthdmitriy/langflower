@@ -54,6 +54,90 @@ Copy for each new bug:
 
 Newest first.
 
+### BUG-2026-10-16 — a corrupt session cannot be deleted while another is open
+
+| Field                  | Value                                                                                                                                                                                                    |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**               | 2026-10-16                                                                                                                                                                                               |
+| **Area**               | server · sessions · topbar                                                                                                                                                                               |
+| **Status**             | fixed                                                                                                                                                                                                    |
+| **Symptom**            | × on an inactive tab fails with “Workflow session is not the active session”. A file with an outdated schema cannot be selected, so it can never be deleted.                                             |
+| **Repro**              | Bind a valid session. Leave a second file that fails schema parse. Click × on that tab and confirm.                                                                                                      |
+| **Root cause**         | `deleteWorkflowSession` treated “bound to a different id” as a stale tab. Select already refuses corrupt files, so the guard made those files permanent.                                                 |
+| **Fix**                | Delete unlinks any listed file for the open workflow. The bound session is left only when that file is the one being deleted. The tab asks in a modal before sending `workflowSession.delete.requested`. |
+| **Design flaw signal** | **A mutation required the record to be current.** Delete is not a stale-tab action. Binding is required to replace the canvas, not to remove a file.                                                     |
+| **Regression test**    | `workflow-session-actions.test.ts` (`deletes a session that is not bound, including a corrupt file`); `workflow-topbar.component.test.ts` (`confirms deletion of a session that is not open`)            |
+
+### BUG-2026-10-15b — overlapping session creates share one tab file
+
+| Field                  | Value                                                                                                                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**               | 2026-10-15                                                                                                                                                                          |
+| **Area**               | server · sessions                                                                                                                                                                   |
+| **Status**             | fixed                                                                                                                                                                               |
+| **Symptom**            | Two New clicks, or New and Run together, can leave a single tab. The second write replaces the first session file.                                                                  |
+| **Repro**              | Fire `createWorkflowSession` twice without waiting. Both read the same next ordinal and `copyFile` the same `YYYY-MM-DD #N.json`.                                                   |
+| **Root cause**         | The write chain is keyed by `sessionId`. New sessions have different ids, and the filename is the label. `nextOrdinal` and `write` were not one critical section.                   |
+| **Fix**                | `WorkflowSessionStore.exclusiveDirectory` holds the workflow directory across ordinal allocation and the first write. `ensureSessionForRun` re-checks the binding inside that lock. |
+| **Design flaw signal** | **The lock matched the id, the path matched the label.** A chain per record does not serialize two creates that have not picked a record yet.                                       |
+| **Regression test**    | `packages/server/src/workflow-sessions/workflow-session-actions.test.ts` (`assigns distinct labels when two creates overlap`, `binds one session when two runs ensure together`)    |
+
+### BUG-2026-10-15 — closing the server drops the session head
+
+| Field                  | Value                                                                                                                                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**               | 2026-10-15                                                                                                                                                                                         |
+| **Area**               | server · sessions                                                                                                                                                                                  |
+| **Status**             | fixed                                                                                                                                                                                              |
+| **Symptom**            | Stop Langflower within a second of the last agent turn. The next start restores the previous transcript, not the turn that just finished. A point that was still copying can be read half-written. |
+| **Repro**              | Bound session, non-streaming port frame (schedules the 1s head flush), then `server.close` before the timer. Detach returns without writing `nodeStates` or the closed feed frames.                |
+| **Root cause**         | Detach called `headFlush.cancel()` and only `autosave.flush()` (the graph). Point appends are `void` promises and were not joined.                                                                 |
+| **Fix**                | Detach unsubscribes, then `await headFlush.flushNow()`, then awaits the in-flight point writes, then flushes autosave.                                                                             |
+| **Design flaw signal** | **Process stop waited on the graph debounce and dropped the conversation debounce.** Durability of the head is the same flush as the graph, and close has to join both.                            |
+| **Regression test**    | `none` — the write is `flushWorkflowSessionHead` (`workflow-session-run.test.ts`); detach now calls `flushNow` instead of `cancel`.                                                                |
+
+### BUG-2026-10-14c — session file reads corrupt when the server stops mid-flush
+
+| Field                  | Value                                                                                                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**               | 2026-10-14                                                                                                                                                                                        |
+| **Area**               | server · sessions                                                                                                                                                                                 |
+| **Status**             | fixed                                                                                                                                                                                             |
+| **Symptom**            | Resume after a process restart fails with `Session JSON is not parseable`. The integration point-resume test times out on that failure.                                                           |
+| **Repro**              | Run until a point, interrupt, stop the server, start it again, resume by point id. `server.close` returns while detach is still copying the session file.                                         |
+| **Root cause**         | Session replace uses `copyFile` over the live `.json`. `read` did not wait on the per-file write chain, so it parsed a half-copied file. `server.close` also returned before that flush finished. |
+| **Fix**                | `read` retries a JSON parse failure (`copyFile` mid-replace). An `update` mutator can still read without joining that chain. `server.close(callback)` waits until detach finishes the flush.      |
+| **Design flaw signal** | **Process stop is not "sockets closed".** Session durability is an async flush. Callers that treat `close`'s callback as "the files are stable" were reading a copy in progress.                  |
+| **Regression test**    | Existing `tests/integration/ws/workflow-sessions.ws.test.ts` (`appends a point on the bound session and resumes by pointId`) fails when close returns early.                                      |
+
+### BUG-2026-10-14b — idle Ask tab sits beside a restored Review gate
+
+| Field                  | Value                                                                                                                                                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**               | 2026-10-14                                                                                                                                                                                           |
+| **Area**               | ui · composer                                                                                                                                                                                        |
+| **Status**             | fixed                                                                                                                                                                                                |
+| **Symptom**            | After leaving a session that is waiting on Review and coming back, the composer shows Review and Ask. Ask is the idle Chat Input prompt ("What should be improved?").                                |
+| **Repro**              | Run starter → wait until Review → switch to another session → switch back.                                                                                                                           |
+| **Root cause**         | Session select interrupts the parked run, so the runner is idle, and the restored feed still opens Review. `hitlTriggeredNodeIds` then appended every idle chat-entry node beside that awaiting set. |
+| **Fix**                | Composer tabs are the awaiting set when it is non-empty. Idle chat-entry ids are the tabs only when nothing is awaiting.                                                                             |
+| **Design flaw signal** | **Idle start surface and in-loop gates were one list.** Chat Input is the composer when the graph is idle. It is not a second gate beside a Review that the feed still has open.                     |
+| **Regression test**    | `packages/ui/src/app/features/composer/tests/composer-awaiting-node-ids.test.ts`                                                                                                                     |
+
+### BUG-2026-10-14 — event log survives into the next run
+
+| Field                  | Value                                                                                                                                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**               | 2026-10-14                                                                                                                                                                                         |
+| **Area**               | execution                                                                                                                                                                                          |
+| **Status**             | fixed                                                                                                                                                                                              |
+| **Symptom**            | After two runs without Clear, a reconnect replays the first run's frames under the second run's id.                                                                                                |
+| **Repro**              | Start the same graph twice on one runner with `log: true` and without `clearEventLog`. `runner.eventLog` contains a `done` frame for both run ids.                                                 |
+| **Root cause**         | The retained log was cleared only by Clear and by a document switch. `start` appended into the same buffer, and port frames do not carry a run id, so the snapshot adopted the new run's id.       |
+| **Fix**                | `RuntimeRunner.runScope` clears `eventLogBuffer` when the start is not a resume, before the run emits frames. Resume, and empty-graph `finishRun` paths that never enter `runScope`, do not clear. |
+| **Design flaw signal** | The log's lifetime was "until Clear", while run identity lived only on the `done` frame and the server snapshot. The buffer outlived the run it recorded.                                          |
+| **Regression test**    | `packages/runtime/src/runtime.test.ts` (`clears eventLog when a later run starts`)                                                                                                                 |
+
 ### BUG-2026-10-06 — Steer composer requires text to continue a suspended turn
 
 | Field                  | Value                                                                                                                                                                                                                                             |

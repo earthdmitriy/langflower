@@ -210,31 +210,34 @@ domains restore from their latest full slice; execution projections replay the
 bounded `executionFeed.snapshot` event log. After bootstrap, domains update
 differently:
 
-| Domain                               | Model                | Reconnect source                                                                                                                      | Live updates                                                                      |
-| ------------------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Session chrome                       | snapshot only        | slim `session.state.snapshot`: `version`, effective redacted `langflowerConfig`, `dividerPositions`, `paletteVisible`, `selectedNode` | divider, palette visibility, and selection bridge facts                           |
-| Langflower config layers             | snapshot only        | `langflower.config.snapshot`                                                                                                          | full slice replace                                                                |
-| Settings unsaved draft               | snapshot only        | `langflower.config.draft.snapshot`                                                                                                    | full slice replace (session memory; connection statuses)                          |
-| Workflow catalog                     | snapshot only        | `workflow.list.snapshot`                                                                                                              | full slice replace                                                                |
-| Active workflow document + status    | snapshot only        | `workflow.current.snapshot`                                                                                                           | full replace for workflow operations; status-only snapshot after editor mutations |
-| Canvas topology                      | snapshot + deltas    | graph in `workflow.current.snapshot`                                                                                                  | `editor.*` node/edge facts                                                        |
-| Canvas viewport                      | snapshot + deltas    | `activeWorkflow.graph.viewport` in `workflow.current.snapshot`                                                                        | `editor.viewport.delta`                                                           |
-| Runtime session status + checkpoints | snapshot only        | `runner.snapshot`, `runner.checkpoints.snapshot`                                                                                      | runner lifecycle/checkpoint facts                                                 |
-| UI execution projections             | snapshot + event log | `executionFeed.snapshot`                                                                                                              | new `runner.*` facts only                                                         |
-| Tool config                          | snapshot only        | `toolConfig.snapshot`                                                                                                                 | full slice replace                                                                |
-| Palette (system)                     | snapshot only        | `palette.snapshot`                                                                                                                    | full slice replace                                                                |
-| Custom palette                       | snapshot only        | `customPalette.snapshot`                                                                                                              | full slice replace                                                                |
+| Domain                            | Model                | Reconnect source                                                                                                                      | Live updates                                                                      |
+| --------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Session chrome                    | snapshot only        | slim `session.state.snapshot`: `version`, effective redacted `langflowerConfig`, `dividerPositions`, `paletteVisible`, `selectedNode` | divider, palette visibility, and selection bridge facts                           |
+| Langflower config layers          | snapshot only        | `langflower.config.snapshot`                                                                                                          | full slice replace                                                                |
+| Settings unsaved draft            | snapshot only        | `langflower.config.draft.snapshot`                                                                                                    | full slice replace (session memory; connection statuses)                          |
+| Workflow catalog                  | snapshot only        | `workflow.list.snapshot`                                                                                                              | full slice replace                                                                |
+| Active workflow document + status | snapshot only        | `workflow.current.snapshot`                                                                                                           | full replace for workflow operations; status-only snapshot after editor mutations |
+| Canvas topology                   | snapshot + deltas    | graph in `workflow.current.snapshot`                                                                                                  | `editor.*` node/edge facts                                                        |
+| Canvas viewport                   | snapshot + deltas    | `activeWorkflow.graph.viewport` in `workflow.current.snapshot`                                                                        | `editor.viewport.delta`                                                           |
+| Workflow sessions                 | snapshot only        | `workflowSession.list.snapshot`, `workflowSession.current.snapshot`                                                                   | full slice replace                                                                |
+| Runtime session status            | snapshot only        | `runner.snapshot`                                                                                                                     | runner lifecycle facts                                                            |
+| UI execution projections          | snapshot + event log | `executionFeed.snapshot`                                                                                                              | new `runner.*` facts only                                                         |
+| Tool config                       | snapshot only        | `toolConfig.snapshot`                                                                                                                 | full slice replace                                                                |
+| Palette (system)                  | snapshot only        | `palette.snapshot`                                                                                                                    | full slice replace                                                                |
+| Custom palette                    | snapshot only        | `customPalette.snapshot`                                                                                                              | full slice replace                                                                |
 
 **Reconnect order** (see `packages/server/src/bridge/emit-bootstrap.ts`):
 `session.state.snapshot` → `runner.snapshot` → `executionFeed.snapshot` →
-`runner.checkpoints.snapshot` → `toolConfig.snapshot` →
-`workflow.list.snapshot` → `workflow.current.snapshot` → `session.ready` →
+`toolConfig.snapshot` → `workflow.list.snapshot` →
+`workflow.current.snapshot` → `workflowSession.list.snapshot` →
+`workflowSession.current.snapshot` → `session.ready` →
 `langflower.config.snapshot` → `langflower.config.draft.snapshot` →
 (async) `langflower.models.catalog.snapshot` → replay each in-flight
-`runner.permission.ask` → `palette.snapshot` → `customPalette.snapshot`.
+`runner.permission.ask` / `runner.askUser.ask` → `palette.snapshot` →
+`customPalette.snapshot`. There is no `runner.checkpoints.snapshot`.
 
 The first payload is intentionally slim: workflow graph and viewport, runner
-status, execution history, checkpoints, tool config, and palette never belong
+status, execution history, workflow sessions, tool config, and palette never belong
 in `session.state.snapshot`. The UI run gate currently hydrates from
 `executionFeed.snapshot`; `runner.snapshot` is a transport/session snapshot, not
 that fold's input.

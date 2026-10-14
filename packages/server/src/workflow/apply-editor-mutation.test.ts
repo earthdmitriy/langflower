@@ -1,5 +1,12 @@
+import { statefulObservable } from '@rx-evo/stateful-observable';
 import { resolveWorkflowNodeDefinition } from '@langflower/common-nodes';
-import { defineNode } from '@langflower/node-sdk';
+import {
+	defineNode,
+	defineReactiveNode,
+	type NodeStateHook,
+	type NodeStateJson,
+} from '@langflower/node-sdk';
+import { of, Subject } from 'rxjs';
 import type { EdgeId, NodeId, RuntimeEdge } from '@langflower/runtime';
 import type {
 	EditorAddEdgeRequestedPayload,
@@ -1005,5 +1012,58 @@ describe('swapCustomNodesInEditor', () => {
 			before,
 		);
 		expect(session.currentStatus).toBe('pristine');
+	});
+});
+
+describe('materializeRuntimeNode state hook', () => {
+	it('keeps state on the runtime node', () => {
+		const persist$ = new Subject<NodeStateJson>();
+		const hook: NodeStateHook = {
+			persist$,
+			restore: () => ({ ok: true }),
+		};
+		const definition = defineReactiveNode({
+			type: 'state-hook-test',
+			displayName: 'State hook',
+			uiSchema: [] as const,
+			bind(_ctx, { configureOutput }) {
+				return {
+					inputs: [],
+					outputs: [
+						configureOutput(
+							'out',
+							statefulObservable({ loader: () => of('ok') }),
+							{ wireType: 'string' },
+						),
+					],
+					state: hook,
+				};
+			},
+		});
+		const session = new LangflowerSession();
+
+		seedActiveWorkflow(
+			session,
+			[
+				{
+					id: 'n1',
+					type: 'state-hook-test',
+					params: {},
+					inputs: {},
+					ui: { position: { x: 0, y: 0 } },
+				},
+			],
+			[],
+			(node) =>
+				node.type === 'state-hook-test' ? definition : undefined,
+		);
+
+		const runtimeNode = session.runtime.editor.getNode('n1' as NodeId);
+
+		if (runtimeNode === false) {
+			throw new Error('expected runtime node');
+		}
+
+		expect(runtimeNode.state).toBe(hook);
 	});
 });

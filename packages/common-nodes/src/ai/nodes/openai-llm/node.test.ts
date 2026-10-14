@@ -621,6 +621,7 @@ describe('common-openai-llm', () => {
 			'deadLoopMinRepetitions',
 			'deadLoopMinPatternTokens',
 			'deadLoopStructuralRunCap',
+			'resetSessionOnInput',
 		]);
 		expect(fields).not.toContain('tokenDelayMs');
 		expect(

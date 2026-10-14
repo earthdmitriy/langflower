@@ -80,6 +80,27 @@ describe('ExecutionFeedService replay', () => {
 		expect(harness.latestNodes()).toEqual([]);
 	});
 
+	it('keeps a snapshot when runner.started repeats the same runId', async () => {
+		const harness = createExecutionFeedHarness();
+		harness.seedCatalog({ 'agent-a': 'agent' }, [agent], {
+			startRun: false,
+		});
+		harness.raw.executionFeedSnapshot$.next({
+			runId: runId('run-keep'),
+			workflowId: 'wf-1',
+			status: 'completed',
+			events: [outputEvent('agent-a', 'draft', 'kept')],
+		});
+
+		startRun(harness, 'run-keep');
+
+		expect(
+			(await readItems(harness.latestNodes()[0]!, 'draft')).map(
+				(item) => item.value,
+			),
+		).toEqual(['kept']);
+	});
+
 	it('keeps the same graph node in different runs separate', () => {
 		const harness = createExecutionFeedHarness();
 		harness.seedCatalog({ 'agent-a': 'agent' }, [agent], {

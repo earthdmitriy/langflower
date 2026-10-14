@@ -48,7 +48,7 @@ After rebuild: restart the Cursor MCP server `langflower`.
 
 ## Auto-expose
 
-Allowlisted client→server keys (`workflow.*`, `runner.*`) become tools after
+Allowlisted client→server keys (`workflow.*`, `workflowSession.*`, `runner.*`) become tools after
 `npm run build -w @langflower/mcp` (codegen + `Object.keys` reflection). Expand
 or shrink surface in `src/mcp-exposure-policy.ts` only.
 

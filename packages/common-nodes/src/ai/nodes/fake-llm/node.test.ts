@@ -743,6 +743,7 @@ describe('common-fake-llm', () => {
 			'deadLoopMinRepetitions',
 			'deadLoopMinPatternTokens',
 			'deadLoopStructuralRunCap',
+			'resetSessionOnInput',
 			'tokenDelayMs',
 		]);
 		expect(fields).not.toContain('reasoningEffort');

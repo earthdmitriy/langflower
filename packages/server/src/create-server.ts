@@ -81,16 +81,33 @@ export async function createServer(
 			: {}),
 	});
 
-	httpServer.on('close', () => {
-		void detachBridge();
-		bridge.close();
-	});
+	let stopped: Promise<void> | undefined;
+	const stopBridge = (): Promise<void> => {
+		if (stopped === undefined) {
+			stopped = detachBridge().then(() => {
+				bridge.close();
+			});
+		}
+		return stopped;
+	};
+
+	// `server.close(cb)` must wait until detach finishes the session head
+	// flush and any in-flight point write. The close event fires before
+	// that async work, and a new server can read a half-copied JSON file.
+	const nativeClose = httpServer.close.bind(httpServer);
+	httpServer.close = (callback) => {
+		nativeClose((error) => {
+			void stopBridge().finally(() => {
+				callback?.(error);
+			});
+		});
+		return httpServer;
+	};
 
 	try {
 		await listenHttpServer(httpServer, port, '127.0.0.1');
 	} catch (error) {
-		await detachBridge();
-		bridge.close();
+		await stopBridge();
 		httpServer.close();
 		throw error;
 	}

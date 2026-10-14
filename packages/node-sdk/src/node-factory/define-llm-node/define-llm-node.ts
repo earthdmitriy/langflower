@@ -11,6 +11,7 @@ import {
 	type NodeCapabilityId,
 	type OutputConfig,
 } from '../define-reactive-node/define-reactive-node.js';
+import type { NodeStateHook } from '../../node-state.js';
 import type { LlmExecutionCaps } from '../define-reactive-node/types.js';
 import type { UISchemaConstItem } from '../define-reactive-node/ui-schema-inference.js';
 import {
@@ -32,6 +33,7 @@ type LlmBindResult = {
 	readonly inputs: readonly InputConfig[];
 	readonly outputs: readonly OutputConfig[];
 	readonly inventoryOutputs: LlmInventoryOutputStreams;
+	readonly state?: NodeStateHook;
 };
 
 type LlmMergedRequires<Extra extends readonly NodeCapabilityId[] = []> =
@@ -123,6 +125,7 @@ export const defineLlmNode = <
 						result.inventoryOutputs,
 					),
 				],
+				...(result.state !== undefined ? { state: result.state } : {}),
 			};
 		},
 	});

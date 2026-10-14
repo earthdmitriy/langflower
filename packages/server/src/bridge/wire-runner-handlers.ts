@@ -1,7 +1,9 @@
 import {
 	isPortTelemetry,
 	isRuntimeDone,
+	type NodeId,
 	type RunId,
+	type RuntimeNodeStates,
 	type RuntimeRunnerApi,
 	type RuntimeRunnerEvent,
 	type RuntimeSeedPortValue,
@@ -14,17 +16,28 @@ import type {
 	RunnerPermissionReplyPayload,
 } from '@langflower/shared/types/langflower-config.js';
 import type {
-	RunnerCheckpointDiscardRequestedPayload,
-	RunnerResumeRequestedPayload,
-} from '@langflower/shared/types/workflow-checkpoint.js';
+	WorkflowSessionResumeFailedCode,
+	WorkflowSessionResumeRequestedPayload,
+} from '@langflower/shared/types/workflow-session.js';
 import { Subscription } from 'rxjs';
-import { listResumableCheckpoints } from '../checkpoint/list-resumable-checkpoints.js';
 import { resolveCheckpointBoundary } from '../checkpoint/resolve-checkpoint-boundary.js';
-import { RunCheckpointSession } from '../checkpoint/run-checkpoint-session.js';
+import { RunProgressAccumulator } from '../checkpoint/run-progress-accumulator.js';
 import type { ServerContext } from '../server-context.js';
 import type { ResolveNodeDefinition } from '../workflow/workflow-document.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
 import { resetSessionExecutionFeed } from '../session/reset-session-execution-feed.js';
+import type { WorkflowSessionAutosave } from '../workflow-sessions/workflow-session-autosave.js';
+import { ensureSessionForRun } from '../workflow-sessions/workflow-session-actions.js';
+import {
+	appendWorkflowSessionPoint,
+	applyPointToSessionHead,
+	applyWorkflowSessionNodeState,
+	beginSessionFeedRun,
+	decidePointResume,
+	logWorkflowSessionRestoreFailures,
+} from '../workflow-sessions/workflow-session-run.js';
+import { readWorkflowSessionSnapshots } from '../workflow-sessions/workflow-session-snapshots.js';
+import type { WorkflowSessionStore } from '../workflow-sessions/workflow-session-store.js';
 import { buildContextSeeds } from './build-execution-context.js';
 import { getLiveWiredTools } from './get-live-wired-tools.js';
 import { createLangflowerToolsRpc } from './langflower-tools-rpc.js';
@@ -33,14 +46,13 @@ import { findClientById } from './client-index.js';
 import { isInboundEvent } from './inbound-guards.js';
 import type { LangflowerBridge } from './langflower-bridge.types.js';
 
-const logCheckpointStoreFailure = (
-	operation: 'persist' | 'complete' | 'stop',
-	error: unknown,
-): void => {
-	const message = error instanceof Error ? error.message : String(error);
-	process.stderr.write(
-		`Langflower checkpoint ${operation} failed: ${message}\n`,
-	);
+const publishWorkflowSessionCurrent = async (
+	bridge: LangflowerBridge,
+	session: LangflowerSession,
+	store: WorkflowSessionStore,
+): Promise<void> => {
+	const snapshots = await readWorkflowSessionSnapshots(session, store);
+	bridgeEmit(bridge, 'workflowSession.current.snapshot', snapshots.current);
 };
 
 const mergeSeeds = (
@@ -63,35 +75,21 @@ const mergeSeeds = (
 	return result;
 };
 
-const broadcastCheckpoints = async (
-	bridge: LangflowerBridge,
-	session: LangflowerSession,
-	checkpoints: RunCheckpointSession,
-): Promise<void> => {
-	const workflowId = session.activeWorkflowId ?? null;
-	const list = await listResumableCheckpoints(
-		checkpoints.getStore(),
-		workflowId,
-		session.activeWorkflow,
-	);
-
-	bridgeEmit(bridge, 'runner.checkpoints.snapshot', {
-		workflowId,
-		checkpoints: list,
-	});
-};
-
 /**
- * Checkpoint observe / persist / terminal broadcast for one runner event.
+ * Boundary observe / point append for one runner event.
  * Called from the always-on `events$` composer in attach (forward first).
+ * No bound session appends nothing.
+ * The returned promise is the in-flight point write. Detach must await it
+ * so `server.close` does not return during `copyFile`.
  */
-export const persistCheckpointFromRunnerEvent = (
+export const appendSessionPointFromRunnerEvent = (
 	bridge: LangflowerBridge,
 	session: LangflowerSession,
-	checkpoints: RunCheckpointSession,
+	progress: RunProgressAccumulator,
 	event: RuntimeRunnerEvent,
 	resolveDefinition: ResolveNodeDefinition,
-): void => {
+	workflowSessions: WorkflowSessionStore,
+): Promise<void> | undefined => {
 	const [, nodeId, portId] = isPortTelemetry(event) ? event : [];
 	const boundary =
 		isPortTelemetry(event) &&
@@ -106,7 +104,7 @@ export const persistCheckpointFromRunnerEvent = (
 				)
 			: undefined;
 
-	const shouldPersist = checkpoints.observe(
+	const shouldAppend = progress.observe(
 		event,
 		boundary === undefined
 			? undefined
@@ -115,35 +113,37 @@ export const persistCheckpointFromRunnerEvent = (
 				: {},
 	);
 
-	if (shouldPersist) {
-		void checkpoints
-			.persist('running')
-			.then((summary) => {
-				if (summary === undefined) {
-					return;
-				}
+	const captured = shouldAppend ? progress.snapshot() : undefined;
+	const pointWrite =
+		captured === undefined
+			? undefined
+			: appendWorkflowSessionPoint(session, workflowSessions, captured)
+					.then(async (result) => {
+						if (!result.ok || !result.appended) {
+							return;
+						}
 
-				bridgeEmit(bridge, 'runner.checkpointed', summary);
-			})
-			.catch((error: unknown) => {
-				logCheckpointStoreFailure('persist', error);
-			});
-	}
+						await publishWorkflowSessionCurrent(
+							bridge,
+							session,
+							workflowSessions,
+						);
+					})
+					.catch((error: unknown) => {
+						const message =
+							error instanceof Error
+								? error.message
+								: String(error);
+						process.stderr.write(
+							`Langflower workflow session failed: code=WRITE_FAILED ${message}\n`,
+						);
+					});
 
 	if (isRuntimeDone(event)) {
-		void checkpoints
-			.markCompleted()
-			.then(async (summary) => {
-				if (summary !== undefined) {
-					bridgeEmit(bridge, 'runner.checkpointed', summary);
-				}
-
-				await broadcastCheckpoints(bridge, session, checkpoints);
-			})
-			.catch((error: unknown) => {
-				logCheckpointStoreFailure('complete', error);
-			});
+		progress.clearActive();
 	}
+
+	return pointWrite;
 };
 
 /**
@@ -154,7 +154,10 @@ export const wireRunnerHandlers = (
 	bridge: LangflowerBridge,
 	context: ServerContext,
 	session: LangflowerSession,
-	checkpoints: RunCheckpointSession,
+	progress: RunProgressAccumulator,
+	workflowSessions: WorkflowSessionStore,
+	autosave: WorkflowSessionAutosave,
+	flushSessionHead: () => Promise<void>,
 ): Subscription => {
 	const subscription = new Subscription();
 
@@ -175,6 +178,12 @@ export const wireRunnerHandlers = (
 	const requestLangflowerBus = createLangflowerToolsRpc(bridge);
 	const liveWiredTools = (agentNodeId: string) =>
 		getLiveWiredTools(session, agentNodeId);
+
+	subscription.add(
+		session.runtime.runner.nodeState$.subscribe((event) => {
+			applyWorkflowSessionNodeState(session, event);
+		}),
+	);
 
 	const seedLiveContext = async (resolvedRunId: RunId) =>
 		buildContextSeeds(
@@ -203,6 +212,7 @@ export const wireRunnerHandlers = (
 		readonly start: (
 			seeds: Record<string, ReadonlyArray<RuntimeSeedPortValue>>,
 			runId: RunId,
+			nodeStates?: RuntimeNodeStates,
 		) => RunId | false;
 		readonly announce: (runId: RunId) => void;
 	}): Promise<RunId | false> => {
@@ -211,26 +221,84 @@ export const wireRunnerHandlers = (
 		}
 
 		startHeld = true;
-		session.runnerStatus = 'running';
 		let started = false;
 
 		try {
-			const contextSeeds = await seedLiveContext(args.resolvedRunId);
-			const initialPayload = mergeSeeds(contextSeeds, args.clientSeeds);
-			if (session.activeWorkflow !== null) {
-				checkpoints.beginRun(
-					args.resolvedRunId,
-					session.activeWorkflow,
+			const wasBound = session.binding.kind === 'workflowSession';
+			const ensured = await ensureSessionForRun({
+				session,
+				store: workflowSessions,
+				workflowService: context.workflowService,
+				resolveDefinition: context.resolveDefinition,
+				autosave,
+			});
+
+			if (!ensured.ok) {
+				bridgeEmit(bridge, 'workflowSession.action.failed', {
+					code: ensured.code,
+					message: ensured.message,
+				});
+				return false;
+			}
+
+			if (!wasBound && session.binding.kind === 'workflowSession') {
+				const snapshots = await readWorkflowSessionSnapshots(
+					session,
+					workflowSessions,
+				);
+				bridgeEmit(
+					bridge,
+					'workflowSession.list.snapshot',
+					snapshots.list,
+				);
+				bridgeEmit(
+					bridge,
+					'workflowSession.current.snapshot',
+					snapshots.current,
+				);
+				bridgeEmit(
+					bridge,
+					'executionFeed.snapshot',
+					session.buildExecutionFeed(),
 				);
 			}
 
-			const runId = args.start(initialPayload, args.resolvedRunId);
+			session.runnerStatus = 'running';
+			const contextSeeds = await seedLiveContext(args.resolvedRunId);
+			const initialPayload = mergeSeeds(contextSeeds, args.clientSeeds);
+			if (session.activeWorkflow !== null) {
+				progress.beginRun(args.resolvedRunId);
+			}
+
+			if (autosave.isDirty()) {
+				await autosave.flush();
+			}
+
+			if (session.binding.kind === 'workflowSession') {
+				await beginSessionFeedRun(
+					session,
+					workflowSessions,
+					args.resolvedRunId,
+				);
+			}
+
+			const nodeStates =
+				session.binding.kind === 'workflowSession'
+					? session.headNodeStates
+					: undefined;
+			const runId = args.start(
+				initialPayload,
+				args.resolvedRunId,
+				nodeStates,
+			);
 			if (runId === false) {
 				return false;
 			}
 
 			started = true;
+			session.boundFeedSnapshot = undefined;
 			session.runId = runId;
+			logWorkflowSessionRestoreFailures(session);
 			// Same turn as `start()` so `runner.started` precedes port telemetry
 			// (wiring flushes on a later microtask). Do not announce after `await`.
 			args.announce(runId);
@@ -239,7 +307,7 @@ export const wireRunnerHandlers = (
 			startHeld = false;
 			if (!started) {
 				session.runnerStatus = 'idle';
-				checkpoints.clearActive();
+				progress.clearActive();
 			}
 		}
 	};
@@ -266,8 +334,14 @@ export const wireRunnerHandlers = (
 				await beginSeededRun({
 					resolvedRunId,
 					clientSeeds: clientInitialPayload,
-					start: (seeds, id) =>
-						session.runtime.runner.start(seeds, id),
+					start: (seeds, id, nodeStates) =>
+						session.runtime.runner.start(
+							seeds,
+							id,
+							nodeStates === undefined
+								? undefined
+								: { nodeStates },
+						),
 					announce: (id) => bridgeEmit(bridge, 'runner.started', id),
 				});
 			})();
@@ -298,8 +372,15 @@ export const wireRunnerHandlers = (
 				await beginSeededRun({
 					resolvedRunId,
 					clientSeeds: clientInitialPayload,
-					start: (seeds, id) =>
-						session.runtime.runner.startNode(nodeId, seeds, id),
+					start: (seeds, id, nodeStates) =>
+						session.runtime.runner.startNode(
+							nodeId,
+							seeds,
+							id,
+							nodeStates === undefined
+								? undefined
+								: { nodeStates },
+						),
 					announce: (id) =>
 						bridgeEmit(bridge, 'runner.startNode.started', id),
 				});
@@ -309,171 +390,11 @@ export const wireRunnerHandlers = (
 
 	subscription.add(
 		bridge['runner.interrupt.requested'].subscribe((raw) => {
-			if (
-				!isInboundEvent<Parameters<RuntimeRunnerApi['interrupt']>[0]>(
-					raw,
-				)
-			) {
-				return;
-			}
-
-			const connected = findClientById(bridge, raw.clientId);
-
-			if (connected === undefined) {
-				return;
-			}
-
-			session.runtime.runner.interrupt(raw.payload);
-			bridgeEmit(bridge, 'runner.interrupted', raw.payload);
-
-			void checkpoints
-				.markStopped()
-				.then(async (summary) => {
-					if (summary !== undefined) {
-						bridgeEmit(bridge, 'runner.checkpointed', summary);
-					}
-
-					await broadcastCheckpoints(bridge, session, checkpoints);
-				})
-				.catch((error: unknown) => {
-					logCheckpointStoreFailure('stop', error);
-				});
-		}),
-	);
-
-	subscription.add(
-		bridge['runner.resume.requested'].subscribe((raw) => {
-			void (async () => {
-				if (!isInboundEvent<RunnerResumeRequestedPayload>(raw)) {
-					return;
-				}
-
-				const connected = findClientById(bridge, raw.clientId);
-
-				if (connected === undefined) {
-					return;
-				}
-
-				const fail = (
-					code:
-						| 'CORRUPT'
-						| 'STALE_WORKFLOW'
-						| 'UNSUPPORTED_VALUE'
-						| 'NOT_FOUND'
-						| 'BUSY'
-						| 'NO_WORKFLOW',
-					message: string,
-					runId?: string,
-				): void => {
-					clientEmit(connected, 'runner.resume.failed', {
-						code,
-						message,
-						...(runId !== undefined ? { runId } : {}),
-					});
-				};
-
-				if (isStartBusy()) {
-					fail('BUSY', 'A run is already active');
-					return;
-				}
-
-				startHeld = true;
-				let started = false;
-
-				try {
-					const workflow = session.activeWorkflow;
-					if (
-						workflow === null ||
-						session.activeWorkflowId === undefined
-					) {
-						fail('NO_WORKFLOW', 'No active workflow to resume');
-						return;
-					}
-
-					const runId = raw.payload.runId;
-
-					const loaded = await checkpoints
-						.getStore()
-						.load(session.activeWorkflowId, runId);
-
-					if (!loaded.ok) {
-						fail(loaded.code, loaded.message, runId);
-						return;
-					}
-
-					const checkpoint = loaded.checkpoint;
-
-					const fingerprint = buildWorkflowFingerprint(
-						workflow.graph.nodes,
-						workflow.graph.edges,
-					);
-
-					if (fingerprint !== checkpoint.workflowFingerprint) {
-						fail(
-							'STALE_WORKFLOW',
-							'Workflow topology changed since the checkpoint was written',
-							runId,
-						);
-						return;
-					}
-
-					if (checkpoint.completedNodeIds.length === 0) {
-						fail(
-							'NOT_FOUND',
-							'Checkpoint has no completed stages to resume from',
-							runId,
-						);
-						return;
-					}
-
-					const unsupported =
-						checkpoints.getUnsupportedValueMessage();
-					if (unsupported !== undefined) {
-						fail('UNSUPPORTED_VALUE', unsupported, runId);
-						return;
-					}
-
-					session.runnerStatus = 'running';
-
-					const contextSeeds = await seedLiveContext(
-						checkpoint.runId as RunId,
-					);
-
-					checkpoints.hydrateFromCheckpoint(checkpoint, workflow);
-					const resumeOptions =
-						checkpoints.resumeOptionsFromCheckpoint(checkpoint);
-
-					const resumed = session.runtime.runner.resume({
-						...resumeOptions,
-						initialPayload: contextSeeds,
-					});
-
-					if (resumed === false) {
-						fail('BUSY', 'Runner rejected resume', runId);
-						return;
-					}
-
-					started = true;
-					session.runId = resumed;
-					bridgeEmit(bridge, 'runner.resume.started', resumed);
-				} finally {
-					startHeld = false;
-					if (!started) {
-						session.runnerStatus = 'idle';
-						checkpoints.clearActive();
-					}
-				}
-			})();
-		}),
-	);
-
-	subscription.add(
-		bridge['runner.checkpoint.discard.requested'].subscribe((raw) => {
 			void (async () => {
 				if (
-					!isInboundEvent<RunnerCheckpointDiscardRequestedPayload>(
-						raw,
-					)
+					!isInboundEvent<
+						Parameters<RuntimeRunnerApi['interrupt']>[0]
+					>(raw)
 				) {
 					return;
 				}
@@ -484,16 +405,172 @@ export const wireRunnerHandlers = (
 					return;
 				}
 
-				const workflowId = session.activeWorkflowId;
-				if (workflowId === undefined) {
+				session.runtime.runner.interrupt(raw.payload);
+				progress.clearActive();
+				try {
+					await flushSessionHead();
+				} catch {
+					// The flush logs its own write failure. The client
+					// still has to hear that the run stopped.
+				}
+				bridgeEmit(bridge, 'runner.interrupted', raw.payload);
+			})();
+		}),
+	);
+
+	subscription.add(
+		bridge['runner.resume.requested'].subscribe((raw) => {
+			void (async () => {
+				if (
+					!isInboundEvent<WorkflowSessionResumeRequestedPayload>(raw)
+				) {
 					return;
 				}
 
-				await checkpoints
-					.getStore()
-					.discard(workflowId, raw.payload.runId);
-				checkpoints.clearActive();
-				await broadcastCheckpoints(bridge, session, checkpoints);
+				const connected = findClientById(bridge, raw.clientId);
+
+				if (connected === undefined) {
+					return;
+				}
+
+				const pointId = raw.payload.pointId;
+
+				const fail = (
+					code: WorkflowSessionResumeFailedCode,
+					message: string,
+				): void => {
+					clientEmit(connected, 'runner.resume.failed', {
+						code,
+						message,
+						pointId,
+					});
+				};
+
+				const workflow = session.activeWorkflow;
+				const bound = session.binding.kind === 'workflowSession';
+				const workflowId = session.activeWorkflowId;
+
+				if (
+					!bound ||
+					workflow === null ||
+					workflowId === undefined ||
+					session.binding.kind !== 'workflowSession'
+				) {
+					const decision = decidePointResume({
+						busy: isStartBusy(),
+						bound: false,
+						corrupt: false,
+						point: undefined,
+						currentFingerprint: '',
+					});
+
+					if (!decision.ok) {
+						fail(decision.code, decision.message);
+					}
+
+					return;
+				}
+
+				const sessionId = session.binding.sessionId;
+				const loaded = await workflowSessions.read(
+					workflowId,
+					sessionId,
+				);
+				const fingerprint = buildWorkflowFingerprint(
+					workflow.graph.nodes,
+					workflow.graph.edges,
+				);
+				const point = loaded.ok
+					? loaded.value.points.find(
+							(entry) => entry.pointId === pointId,
+						)
+					: undefined;
+				const decision = decidePointResume({
+					busy: isStartBusy(),
+					bound: true,
+					corrupt: !loaded.ok && loaded.code === 'CORRUPT',
+					...(!loaded.ok ? { corruptMessage: loaded.message } : {}),
+					point,
+					currentFingerprint: fingerprint,
+				});
+
+				if (!decision.ok) {
+					fail(decision.code, decision.message);
+					return;
+				}
+
+				startHeld = true;
+				let started = false;
+
+				try {
+					const chosen = decision.point;
+					const slice = await workflowSessions.readFeedSlice(
+						workflowId,
+						sessionId,
+						chosen.runOffset,
+						chosen.feedOffset,
+					);
+					const resumedFeed = slice.ok ? slice.value : null;
+					session.runtime.runner.seedEventLog(
+						resumedFeed?.events ?? [],
+					);
+					bridgeEmit(bridge, 'executionFeed.snapshot', resumedFeed);
+					session.runnerStatus = 'running';
+
+					const contextSeeds = await seedLiveContext(
+						chosen.runId as RunId,
+					);
+					progress.hydrate({
+						runId: chosen.runId,
+						completedNodeIds: chosen.completedNodeIds,
+						outputSnapshots: chosen.outputSnapshots,
+					});
+
+					const outputSnapshots: Record<
+						string,
+						Record<string, unknown>
+					> = {};
+
+					for (const [nodeId, ports] of Object.entries(
+						chosen.outputSnapshots,
+					)) {
+						outputSnapshots[nodeId] = Object.fromEntries(
+							Object.entries(ports).map(([port, snap]) => [
+								port,
+								snap.value,
+							]),
+						);
+					}
+
+					const resumed = session.runtime.runner.resume({
+						runId: chosen.runId as RunId,
+						completedNodeIds: chosen.completedNodeIds as NodeId[],
+						outputSnapshots,
+						initialPayload: contextSeeds,
+						nodeStates: chosen.nodeStates,
+					});
+
+					if (resumed === false) {
+						fail('BUSY', 'Runner rejected resume');
+						return;
+					}
+
+					started = true;
+					session.runId = resumed;
+					await applyPointToSessionHead(
+						session,
+						workflowSessions,
+						chosen,
+					);
+					logWorkflowSessionRestoreFailures(session);
+					bridgeEmit(bridge, 'runner.resume.started', resumed);
+				} finally {
+					startHeld = false;
+					if (!started) {
+						session.runnerStatus = 'idle';
+						progress.clearActive();
+					}
+				}
 			})();
 		}),
 	);
@@ -524,11 +601,14 @@ export const wireRunnerHandlers = (
 					const resolvedRunId = crypto.randomUUID() as RunId;
 					const runId = await beginSeededRun({
 						resolvedRunId,
-						start: (seeds, id) =>
+						start: (seeds, id, nodeStates) =>
 							session.runtime.runner.startNode(
 								pushPayload.nodeId,
 								seeds,
 								id,
+								nodeStates === undefined
+									? undefined
+									: { nodeStates },
 							),
 						announce: (id) =>
 							bridgeEmit(bridge, 'runner.started', id),
@@ -592,6 +672,22 @@ export const wireRunnerHandlers = (
 			}
 
 			resetSessionExecutionFeed(session);
+
+			if (session.binding.kind === 'workflowSession') {
+				session.boundFeedSnapshot = null;
+				session.feedMarkerRunId = undefined;
+				session.feedPersistedEvents = 0;
+				session.runId = undefined;
+				const workflowId = session.activeWorkflowId;
+
+				if (workflowId !== undefined) {
+					void beginSessionFeedRun(
+						session,
+						workflowSessions,
+						crypto.randomUUID(),
+					);
+				}
+			}
 
 			// Re-broadcast the (now empty) feed to every tab.
 			bridgeEmit(

@@ -10,6 +10,7 @@ import type {
 } from './capabilities.js';
 import type { ResolveSecret } from './resolve-secret.js';
 import type { CtxError } from './ctx-error.js';
+import type { NodeStateHook } from '../../node-state.js';
 import {
 	configureOutput,
 	InputConfig,
@@ -67,6 +68,11 @@ export type LlmExecutionCaps = CapsFor<readonly LlmRequiredCapabilityId[]>;
 type ReactiveNodeBindResult = {
 	readonly inputs: InputConfig[];
 	readonly outputs: OutputConfig[];
+	/**
+	 * Optional JSON state hook. The probe `bind()` result is discarded;
+	 * only the live `getInstance()` bind is copied onto the instance.
+	 */
+	readonly state?: NodeStateHook;
 };
 
 /** Author-time config passed to {@link defineReactiveNode}. */
@@ -198,6 +204,8 @@ export type ReactiveNodeInstance<
 	readonly chatEntry?: boolean;
 	readonly feedVisitBoundary?: boolean;
 	readonly emitOncePerActivation?: boolean;
+	/** Live `bind()` state hook. Absent when the node persists nothing. */
+	readonly state?: NodeStateHook;
 	readonly ctxConnection: StatefulConnection<
 		ExecutionContext<UI, Caps>,
 		CtxError,

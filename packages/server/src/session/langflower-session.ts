@@ -1,3 +1,4 @@
+import type { NodeStateJson } from '@langflower/node-sdk';
 import type { RunId, RuntimeRunnerStatus } from '@langflower/runtime';
 import { RuntimeFacade } from '@langflower/runtime';
 import type {
@@ -21,6 +22,10 @@ import {
 const SESSION_READY_VERSION = 1;
 const SNAPSHOT_VERSION = 7;
 
+export type WorkflowSessionBinding =
+	| { readonly kind: 'workflow' }
+	| { readonly kind: 'workflowSession'; readonly sessionId: string };
+
 export class LangflowerSession {
 	readonly runtime = new RuntimeFacade({ log: true });
 	/** Feed permission.ask pause/resume for the internal tool loop. */
@@ -30,6 +35,35 @@ export class LangflowerSession {
 
 	activeWorkflow: WorkflowLoadedPayload | null = null;
 	activeWorkflowId: string | undefined;
+	/**
+	 * `{ kind: 'workflow' }` shows the workflow file.
+	 * While `workflowSession` is bound, `activeWorkflow` is that session's
+	 * snapshot document.
+	 */
+	binding: WorkflowSessionBinding = { kind: 'workflow' };
+	/**
+	 * Workflow file loaded from disk. Session tabs compare it with each
+	 * session graph. Refreshed after a successful workflow-file write.
+	 */
+	savedWorkflowDocument: WorkflowLoadedPayload | null = null;
+	/** Head node state for the bound workflow session. */
+	headNodeStates: Readonly<Record<string, NodeStateJson>> = {};
+	/**
+	 * Feed to publish while a session is bound and no run is active.
+	 * `undefined` uses the live runner log. `null` clears the feed.
+	 */
+	boundFeedSnapshot: ExecutionFeedSnapshotPayload | null | undefined =
+		undefined;
+	/** Events of the current run already appended to the feed log. */
+	feedPersistedEvents = 0;
+	/** Byte offset of the current run marker. */
+	feedRunOffset = 0;
+	/** Byte length of the feed log after the last append. */
+	feedBytes = 0;
+	/** Run id of the marker already written for the open run. */
+	feedMarkerRunId: string | undefined;
+	/** JSON of `nodeStates` last written to the session record. */
+	persistedNodeStatesJson = '{}';
 	currentStatus: WorkflowCurrentStatus = 'pristine';
 	pendingPreviousId: string | undefined;
 	runnerStatus: RuntimeRunnerStatus = 'idle';
@@ -53,6 +87,7 @@ export class LangflowerSession {
 
 	private readonly subscriptions = new Subscription();
 	private mcpDispose: (() => Promise<void>) | undefined;
+	private workflowSessionAutosave: { markDirty(): void } | undefined;
 
 	constructor() {
 		this.subscriptions.add(
@@ -106,7 +141,22 @@ export class LangflowerSession {
 		return this.runnerStatus === 'running';
 	}
 
+	/**
+	 * Bound sessions debounce into the session file and stay pristine.
+	 * Unbound sessions keep the workflow dirty flag.
+	 */
+	attachWorkflowSessionAutosave(
+		autosave: { markDirty(): void } | undefined,
+	): void {
+		this.workflowSessionAutosave = autosave;
+	}
+
 	markDirty(): void {
+		if (this.binding.kind === 'workflowSession') {
+			this.workflowSessionAutosave?.markDirty();
+			return;
+		}
+
 		this.currentStatus = 'dirty';
 	}
 
@@ -116,6 +166,14 @@ export class LangflowerSession {
 	}
 
 	buildExecutionFeed(): ExecutionFeedSnapshotPayload | null {
+		if (
+			this.binding.kind === 'workflowSession' &&
+			this.runnerStatus !== 'running' &&
+			this.boundFeedSnapshot !== undefined
+		) {
+			return this.boundFeedSnapshot;
+		}
+
 		if (this.runId === undefined || this.activeWorkflowId === undefined) {
 			return null;
 		}

@@ -200,6 +200,18 @@ export default defineReactiveNode({
 If the product needs independent `ok` and `fail` wires, **always** choose
 `defineReactiveNode`. Do not “simplify” to `defineNode`.
 
+### `fail` is agent feedback — failures only
+
+`fail` is usually wired to an LLM `feedback` port. Raw test and formatter
+output does not belong there. Filter it to failures before emit:
+
+- keep failing test names, assertion diffs, and formatter error lines
+- drop passing suites, progress, and full file dumps
+- a green formatter or a passing test emits nothing on `fail`
+
+A length cap on the raw log is not a filter. The kept text is still
+mostly noise and bloats the next agent turn.
+
 ## Why TypeScript
 
 TypeScript is your friend: it catches many mistakes in the **IDE** and at

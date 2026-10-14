@@ -4,6 +4,7 @@
  * Test-only relative imports.
  */
 import type {
+	NodeStateHook as RuntimeNodeStateHook,
 	PortMeta as RuntimePortMeta,
 	RuntimeNode,
 	RuntimeWireType,
@@ -12,6 +13,7 @@ import {
 	assertTypeEqual,
 	type ExpectEqual,
 } from '../../../../websocket-bridge/src/testing/expect-type.js';
+import type { NodeStateHook as SdkNodeStateHook } from '../../node-state.js';
 import type {
 	PortMeta as SdkPortMeta,
 	WireType as SdkWireType,
@@ -20,6 +22,9 @@ import type { ReactiveNodeInstance } from './types.js';
 
 /** Wire brand must match so bypass maps assign both ways. */
 assertTypeEqual<ExpectEqual<SdkWireType, RuntimeWireType>>();
+
+/** Node state hook is a structural twin (ADR-027); runtime does not import SDK. */
+assertTypeEqual<ExpectEqual<SdkNodeStateHook, RuntimeNodeStateHook>>();
 
 /** Port meta must be identical (not merely one-way assignable). */
 assertTypeEqual<ExpectEqual<SdkPortMeta, RuntimePortMeta>>();

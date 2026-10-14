@@ -28,12 +28,16 @@ import type {
 	RunnerAskUserReplyPayload,
 } from './types/langflower-config.js';
 import type {
-	RunnerCheckpointDiscardRequestedPayload,
-	RunnerCheckpointsSnapshotPayload,
-	RunnerResumeFailedPayload,
-	RunnerResumeRequestedPayload,
-	WorkflowCheckpointSummary,
-} from './types/workflow-checkpoint.js';
+	WorkflowSessionActionFailedPayload,
+	WorkflowSessionCreateRequestedPayload,
+	WorkflowSessionCurrentSnapshotPayload,
+	WorkflowSessionDiscardPointRequestedPayload,
+	WorkflowSessionListSnapshotPayload,
+	WorkflowSessionResumeFailedPayload,
+	WorkflowSessionResumeRequestedPayload,
+	WorkflowSessionScopedRequestedPayload,
+	WorkflowSessionSelectRequestedPayload,
+} from './types/workflow-session.js';
 import type {
 	EditorAddEdgeRequestedPayload,
 	EditorAddNodeRequestedPayload,
@@ -73,7 +77,8 @@ import type {
 /**
  * Route tables merged into {@link langflowerWsConfig} (no transport).
  *
- * Each partial owns one event namespace prefix (`editor.*`, `runner.*`, ...).
+ * Each partial owns one event namespace prefix (`editor.*`, `runner.*`,
+ * `workflowSession.*`, ...).
  * Keep prefixes unique so the final spread merge cannot shadow another route.
  */
 type WsBridgeRoutes = Pick<
@@ -343,16 +348,11 @@ const runnerConfig = {
 		'runner.executionFeed.clear.requested': message<{}>(),
 
 		/**
-		 * Continue from a durable checkpoint after Stop / process restart.
-		 * Payload requires `runId` (picker-chosen entry; no latest-only omit).
+		 * Continue from a point on the bound workflow session.
+		 * Payload is `{ pointId }`.
 		 */
-		'runner.resume.requested': message<RunnerResumeRequestedPayload>(),
-
-		/**
-		 * Discard a durable checkpoint (corrupt / abandoned job).
-		 */
-		'runner.checkpoint.discard.requested':
-			message<RunnerCheckpointDiscardRequestedPayload>(),
+		'runner.resume.requested':
+			message<WorkflowSessionResumeRequestedPayload>(),
 	},
 	fromServerToClient: {
 		/**
@@ -374,9 +374,10 @@ const runnerConfig = {
 			message<ReturnType<RuntimeRunnerApi['resume']>>(),
 
 		/**
-		 * Resume rejected — corrupt / stale / missing checkpoint, or busy.
+		 * Resume rejected — no session, missing or stale point, unsupported
+		 * value, corrupt session file, or a run already active.
 		 */
-		'runner.resume.failed': message<RunnerResumeFailedPayload>(),
+		'runner.resume.failed': message<WorkflowSessionResumeFailedPayload>(),
 
 		/**
 		 * {@link RuntimeRunnerApi.interrupt} applied — payload is reason
@@ -419,18 +420,6 @@ const runnerConfig = {
 		 * Every client removes that ask from its UI only on this fact.
 		 */
 		'runner.askUser.accepted': message<RunnerAskUserReplyPayload>(),
-
-		/**
-		 * Resumable checkpoints for the active workflow (bootstrap + after
-		 * Stop / discard / complete).
-		 */
-		'runner.checkpoints.snapshot':
-			message<RunnerCheckpointsSnapshotPayload>(),
-
-		/**
-		 * One checkpoint write succeeded (stage boundary or Stop).
-		 */
-		'runner.checkpointed': message<WorkflowCheckpointSummary>(),
 	},
 } as const satisfies WsBridgeRoutes;
 
@@ -753,6 +742,88 @@ const workflowManagerConfig = {
 } as const satisfies WsBridgeRoutes;
 
 /**
+ * **Workflow sessions** — tabs, graph snapshot, and points for one workflow.
+ *
+ * Several tabs share one server session. After each intent the server
+ * broadcasts `workflowSession.list.snapshot` and
+ * `workflowSession.current.snapshot`. There is no command-reply success
+ * event. A refusal is the fact `workflowSession.action.failed`.
+ */
+const workflowSessionConfig = {
+	fromClientToServer: {
+		/**
+		 * Create a session from the open saved workflow and bind it.
+		 * An empty object is enough; the server uses the open workflow.
+		 */
+		'workflowSession.create.requested':
+			message<WorkflowSessionCreateRequestedPayload>(),
+
+		/**
+		 * Bind a session, or leave it when `sessionId` is null.
+		 * Refusals arrive as `workflowSession.action.failed`.
+		 */
+		'workflowSession.select.requested':
+			message<WorkflowSessionSelectRequestedPayload>(),
+
+		/**
+		 * Delete one session. Refused when that session is not active
+		 * or a run is in progress.
+		 */
+		'workflowSession.delete.requested':
+			message<WorkflowSessionScopedRequestedPayload>(),
+
+		/**
+		 * Replace the session workflow snapshot from the saved workflow
+		 * file. Points whose fingerprint no longer matches go stale.
+		 */
+		'workflowSession.replaceSnapshotFromWorkflow.requested':
+			message<WorkflowSessionScopedRequestedPayload>(),
+
+		/**
+		 * Write the session graph onto the workflow file. This is the
+		 * session action that updates the saved workflow.
+		 */
+		'workflowSession.writeSnapshotToWorkflow.requested':
+			message<WorkflowSessionScopedRequestedPayload>(),
+
+		/**
+		 * Drop one point from the active session. The session stays.
+		 */
+		'workflowSession.discardPoint.requested':
+			message<WorkflowSessionDiscardPointRequestedPayload>(),
+
+		/**
+		 * Clear the active session's conversation. The graph snapshot stays.
+		 * Refused while a run is in progress.
+		 */
+		'workflowSession.resetConversation.requested':
+			message<WorkflowSessionScopedRequestedPayload>(),
+	},
+	fromServerToClient: {
+		/**
+		 * Sessions for one workflow. Clients replace the list from this
+		 * snapshot.
+		 */
+		'workflowSession.list.snapshot':
+			message<WorkflowSessionListSnapshotPayload>(),
+
+		/**
+		 * Active session, banner flag, and point summaries. `sessionId`
+		 * null means the workflow file is showing.
+		 */
+		'workflowSession.current.snapshot':
+			message<WorkflowSessionCurrentSnapshotPayload>(),
+
+		/**
+		 * Broadcast refusal for a `workflowSession.*` intent. UI does not
+		 * fold this fact into session state.
+		 */
+		'workflowSession.action.failed':
+			message<WorkflowSessionActionFailedPayload>(),
+	},
+} as const satisfies WsBridgeRoutes;
+
+/**
  * Typed internal WebSocket registry for co-versioned Langflower
  * UI/server/runtime (ws-bridge, **pure event-driven**).
  *
@@ -780,18 +851,20 @@ const workflowManagerConfig = {
  * | Live provider model catalogs | **snapshot only** | `langflower.models.catalog.snapshot` after config (async on connect) + after Save | full map replace |
  * | Tool config | **snapshot only** | `toolConfig.snapshot` | full slice replace |
  * | Workflow catalog + active doc | **snapshot only** | `workflow.list.snapshot` / `workflow.current.snapshot` | full slice replace |
+ * | Workflow sessions | **snapshot only** | `workflowSession.list.snapshot` / `workflowSession.current.snapshot` | full slice replace |
  * | Workflow dirty/pristine | **snapshot only** | `currentStatus` in `workflow.current.snapshot`; `workflow.currentStatus.snapshot` after editor mutations | status slice replace |
  * | Palette (system) | **snapshot only** | `palette.snapshot` on connect (server-pushed) | full slice replace |
  * | Custom palette | **snapshot only** | `customPalette.snapshot` after system palette | full slice replace |
  * | Canvas graph (topology) | **snapshot** in workflow slice | `activeWorkflow` in `workflow.current.snapshot` | `editor.*.delta` (broadcast to all tabs) |
  * | Canvas viewport (pan/zoom) | **snapshot + event-sourcing** | `activeWorkflow.graph.viewport` in `workflow.current.snapshot` | `editor.viewport.delta` (broadcast to all tabs) |
- * | Runtime / execution on graph | **snapshot + event-sourcing** | `runner.snapshot` + `executionFeed.snapshot` (+ `runner.checkpoints.snapshot`) | `runner.*` (`RuntimeRunnerEvent`) — **new events only** |
+ * | Runtime / execution on graph | **snapshot + event-sourcing** | `runner.snapshot` + `executionFeed.snapshot` | `runner.*` (`RuntimeRunnerEvent`) — **new events only** |
  *
  * **Reconnect sequence** (authoritative:
  * `packages/server/src/bridge/emit-bootstrap.ts`):
  * `session.state.snapshot` → `runner.snapshot` → `executionFeed.snapshot` →
- * `runner.checkpoints.snapshot` → `toolConfig.snapshot` →
- * `workflow.list.snapshot` → `workflow.current.snapshot` → `session.ready` →
+ * `toolConfig.snapshot` → `workflow.list.snapshot` →
+ * `workflow.current.snapshot` → `workflowSession.list.snapshot` →
+ * `workflowSession.current.snapshot` → `session.ready` →
  * `langflower.config.snapshot` → (async) `langflower.models.catalog.snapshot` →
  * `palette.snapshot` → `customPalette.snapshot`. Later workflow intents
  * broadcast `workflow.*.snapshot`.
@@ -803,7 +876,7 @@ const workflowManagerConfig = {
  * Partials: {@link editorConfig} | {@link runnerConfig} |
  * {@link bootstrapConfig} | {@link langflowerProjectConfig} |
  * {@link paletteConfig} | {@link customPaletteConfig} |
- * {@link workflowManagerConfig}.
+ * {@link workflowManagerConfig} | {@link workflowSessionConfig}.
  */
 export const langflowerWsConfig = {
 	transport: { path: '/ws', port: 4010 },
@@ -815,6 +888,7 @@ export const langflowerWsConfig = {
 		...paletteConfig.fromClientToServer,
 		...customPaletteConfig.fromClientToServer,
 		...workflowManagerConfig.fromClientToServer,
+		...workflowSessionConfig.fromClientToServer,
 	},
 	fromServerToClient: {
 		...editorConfig.fromServerToClient,
@@ -824,5 +898,6 @@ export const langflowerWsConfig = {
 		...paletteConfig.fromServerToClient,
 		...customPaletteConfig.fromServerToClient,
 		...workflowManagerConfig.fromServerToClient,
+		...workflowSessionConfig.fromServerToClient,
 	},
 } as const satisfies WsBridgeConfig;

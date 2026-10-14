@@ -22,6 +22,8 @@ import {
 	isRuntimeDone,
 	type NodeId,
 	type PortTelemetry,
+	type RuntimeNode,
+	type RuntimeRunnerEvent,
 } from './types.js';
 
 function createTypedSourceTestNode(options: {
@@ -83,6 +85,28 @@ function createDynamicPassthroughTestNode(nodeId: string): RuntimeNode {
 		nodeId,
 		inputs: { value: input },
 		outputs: { value: output },
+		bypassPorts: {},
+	};
+}
+
+function createStreamingDraftNode(
+	nodeId: string,
+	chunks: readonly string[],
+): RuntimeNode {
+	const output = statefulObservable({
+		loader: () => of(...chunks),
+		meta: {
+			dir: 'out',
+			portId: 'draft',
+			wireType: 'string',
+			feed: { role: 'draft', streaming: true },
+		} satisfies PortMeta,
+	});
+
+	return {
+		nodeId: nodeId as NodeId,
+		inputs: {},
+		outputs: { draft: output },
 		bypassPorts: {},
 	};
 }
@@ -730,6 +754,164 @@ describe('Runtime (v2)', () => {
 
 		const noLog = createRuntimeHarness();
 		expect(() => noLog.runner.clearEventLog()).not.toThrow();
+	});
+
+	it('clears eventLog when a later run starts', async () => {
+		const runtime = createRuntimeHarness({ log: true });
+		runtime.editor.addNode(
+			createConstantTestNode({ nodeId: 'A', value: 'hello' }),
+		);
+		runtime.editor.addNode(createFinishTestNode({ nodeId: 'finish' }));
+		runtime.editor.addEdge({
+			fromNodeId: 'A',
+			fromPort: ['value', 0],
+			toNodeId: 'finish',
+			toPort: ['value', 0],
+		});
+
+		const waitForDone = () =>
+			firstValueFrom(
+				runtime.runner.events$.pipe(
+					filter(
+						(event): event is readonly ['done', string] =>
+							isRuntimeDone(event) && event.length === 2,
+					),
+				),
+			);
+
+		const firstDone = waitForDone();
+		const firstRunId = runtime.runner.start();
+		expect((await firstDone)[1]).toBe(firstRunId);
+		const firstLog = [...runtime.runner.eventLog];
+		expect(firstLog.length).toBeGreaterThan(0);
+
+		const secondDone = waitForDone();
+		const secondRunId = runtime.runner.start();
+		expect((await secondDone)[1]).toBe(secondRunId);
+
+		expect(runtime.runner.eventLog).toEqual(
+			firstLog.map((event) =>
+				isRuntimeDone(event) && event.length === 2
+					? ['done', secondRunId]
+					: event,
+			),
+		);
+		expect(
+			runtime.runner.eventLog.some(
+				(event) => isRuntimeDone(event) && event[1] === firstRunId,
+			),
+		).toBe(false);
+	});
+
+	it('resume keeps frames already recorded in the event log', async () => {
+		const runtime = createRuntimeHarness({ log: true });
+		runtime.editor.addNode(
+			createConstantTestNode({ nodeId: 'src', value: 'stage-a' }),
+		);
+		runtime.editor.addNode(
+			createDelayTestNode({ nodeId: 'stage-a', delayMs: 5 }),
+		);
+		runtime.editor.addNode(createFinishTestNode({ nodeId: 'finish' }));
+		runtime.editor.addEdge({
+			fromNodeId: 'src',
+			fromPort: ['value', 0],
+			toNodeId: 'stage-a',
+			toPort: ['value', 0],
+		});
+		runtime.editor.addEdge({
+			fromNodeId: 'stage-a',
+			fromPort: ['value', 0],
+			toNodeId: 'finish',
+			toPort: ['value', 0],
+		});
+
+		const firstRunId = runtime.runner.start();
+		expect(firstRunId).not.toBe(false);
+		await waitForOutput(runtime, 'stage-a', 'value');
+		runtime.runner.interrupt('cancel');
+		const before = [...runtime.runner.eventLog];
+		expect(before.length).toBeGreaterThan(0);
+
+		const donePromise = firstValueFrom(
+			runtime.runner.events$.pipe(
+				filter(
+					(event): event is readonly ['done', string] =>
+						isRuntimeDone(event) && event.length === 2,
+				),
+			),
+		);
+		const resumeRunId = runtime.runner.resume({
+			...(firstRunId === false ? {} : { runId: firstRunId }),
+			completedNodeIds: ['src' as NodeId, 'stage-a' as NodeId],
+			outputSnapshots: {
+				src: { value: 'stage-a' },
+				'stage-a': { value: 'stage-a' },
+			},
+		});
+		expect(resumeRunId).not.toBe(false);
+		await donePromise;
+
+		expect(runtime.runner.eventLog.slice(0, before.length)).toEqual(before);
+	});
+
+	it('does not clear eventLog when an empty graph finishes', async () => {
+		const runtime = createRuntimeHarness({ log: true });
+		runtime.editor.addNode(
+			createConstantTestNode({ nodeId: 'A', value: 'hello' }),
+		);
+		runtime.editor.addNode(createFinishTestNode({ nodeId: 'finish' }));
+		runtime.editor.addEdge({
+			fromNodeId: 'A',
+			fromPort: ['value', 0],
+			toNodeId: 'finish',
+			toPort: ['value', 0],
+		});
+
+		const firstDone = firstValueFrom(
+			runtime.runner.events$.pipe(
+				filter(
+					(event): event is readonly ['done', string] =>
+						isRuntimeDone(event) && event.length === 2,
+				),
+			),
+		);
+		runtime.runner.start();
+		await firstDone;
+		const before = [...runtime.runner.eventLog];
+
+		expect(runtime.editor.removeNode('A' as NodeId)).not.toBe(false);
+		expect(runtime.editor.removeNode('finish' as NodeId)).not.toBe(false);
+		expect(runtime.editor.getNodes()).toHaveLength(0);
+
+		const emptyRunId = runtime.runner.start();
+		expect(runtime.runner.eventLog.slice(0, before.length)).toEqual(before);
+		expect(
+			runtime.runner.eventLog[runtime.runner.eventLog.length - 1],
+		).toEqual(['done', emptyRunId]);
+	});
+
+	it('folds streaming chunks in eventLog and leaves events$ raw', async () => {
+		const runtime = createRuntimeHarness({ log: true });
+		runtime.editor.addNode(createStreamingDraftNode('A', ['Hel', 'lo']));
+		const log = runtime.runner.eventLog;
+		const { events } = await runAndCollectEvents(runtime, () => {
+			const started = runtime.runner.start();
+			return started === false ? '' : started;
+		});
+		runtime.runner.interrupt('cancel');
+
+		const valuesOf = (frames: readonly RuntimeRunnerEvent[]): unknown[] =>
+			frames.flatMap((event) =>
+				isPortTelemetry(event) &&
+				event[0] === 'out' &&
+				'value' in event[3]
+					? [event[3].value]
+					: [],
+			);
+
+		expect(valuesOf(events)).toEqual(['Hel', 'lo']);
+		expect(runtime.runner.eventLog).toBe(log);
+		expect(valuesOf(runtime.runner.eventLog)).toEqual(['Hello']);
 	});
 
 	it('edgeIds on output-emitted and input-received events', async () => {

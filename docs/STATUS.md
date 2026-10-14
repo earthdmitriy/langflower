@@ -91,7 +91,7 @@ Last aligned with `catalog.ts`, use-cases README, and features README
 | Inline node inputs              | **done**    | `app/components/lf-inline-field.component.ts`                                                                                                                                       |
 | Typography / theme              | **done**    | `docs/TYPOGRAPHY.md`, `src/theme/`                                                                                                                                                  |
 | Palette                         | **done**    | `features/palette/`                                                                                                                                                                 |
-| Topbar / workflow chrome        | **partial** | `features/topbar/` + Settings gear (epic 18)                                                                                                                                        |
+| Topbar / workflow chrome        | **partial** | `features/topbar/` — project folder, workflow file tab, scrolling session tabs; Settings gear (epic 18)                                                                             |
 | Right sidebar — feed (work log) | **partial** | `features/feed/` + `features/feed-folding/` — chat-dense (epic 17) + hide unmarked (epic 43); [feed-panel](features/feed-panel.md), [grok-feed](use-cases/grok-feed.md) **Partial** |
 | Right sidebar — inspector       | **done**    | `lf-inspector-panel` — selection swap + post-Save LLM option rebind (epic 18; [inspector](features/inspector.md))                                                                   |
 | Right sidebar — Settings aside  | **partial** | Server-driven Settings; empty-provider Global open; [settings-panel](features/settings-panel.md)                                                                                    |
@@ -130,13 +130,13 @@ Last aligned with `catalog.ts`, use-cases README, and features README
 Common-node workflow execution via the WebSocket runner bus. See
 [architecture/EXECUTION_ARCHITECTURE.md](architecture/EXECUTION_ARCHITECTURE.md).
 
-| Area                                      | Status      | Path                                                                                                                                                        |
-| ----------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Batch / reactive runner                   | **done**    | `LangflowerSession` + `@langflower/runtime` `RuntimeRunner` (`wire-runner-handlers.ts`)                                                                     |
-| Durable checkpoints + resume (Epic 14+20) | **partial** | Explicit node + picker (epic 20); auto off; [resumable-checkpoint-jobs](use-cases/resumable-checkpoint-jobs.md) **Partial**                                 |
-| UI work log + canvas chrome (node + wire) | **partial** | Chrome/execution folds **done**; feed chat-density **Partial** (epics 17 + 43) — [grok-feed](use-cases/grok-feed.md) / [feed-panel](features/feed-panel.md) |
-| Detachable run (close browser, reopen)    | **partial** | Epic 19 — chrome/gate + CLI settle; [detachable-long-run](use-cases/detachable-long-run.md) **Partial**                                                     |
-| Integration tests                         | **done**    | `tests/integration/ws/execute-*.ws.test.ts`                                                                                                                 |
+| Area                                      | Status      | Path                                                                                                                                                                                              |
+| ----------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Batch / reactive runner                   | **done**    | `LangflowerSession` + `@langflower/runtime` `RuntimeRunner` (`wire-runner-handlers.ts`)                                                                                                           |
+| Durable checkpoints + resume (Epic 14+20) | **partial** | Explicit boundary writes a point on the open workflow session (ADR-040); auto off; no old checkpoint-file reader; [resumable-checkpoint-jobs](use-cases/resumable-checkpoint-jobs.md) **Partial** |
+| UI work log + canvas chrome (node + wire) | **partial** | Chrome/execution folds **done**; feed chat-density **Partial** (epics 17 + 43) — [grok-feed](use-cases/grok-feed.md) / [feed-panel](features/feed-panel.md)                                       |
+| Detachable run (close browser, reopen)    | **partial** | Epic 19 — chrome/gate + CLI settle; [detachable-long-run](use-cases/detachable-long-run.md) **Partial**                                                                                           |
+| Integration tests                         | **done**    | `tests/integration/ws/execute-*.ws.test.ts`                                                                                                                                                       |
 
 ## Product docs (use-cases + features)
 

@@ -90,11 +90,10 @@ describe('execute workflow runtime (WS bridge)', () => {
 	});
 
 	it('runs from a selected node cluster via runner.startNode', async () => {
-		await seedWorkflowFromDisk(
-			client,
-			projectDir,
-			stringPreviewWorkflow('from-node'),
-		);
+		await seedWorkflowFromDisk(client, projectDir, {
+			...stringPreviewWorkflow('from-node'),
+			workflowId: 'smoke-from-node',
+		});
 
 		const { output } = await runFromNodeAndWaitForOutput(
 			client,

@@ -4,7 +4,10 @@ import type {
 } from '../../features/chat-completion-stream.js';
 import { concat, interval, map, of, take, type Observable } from 'rxjs';
 import { defineLlmNode } from '@langflower/node-sdk/llm';
-import { llmPanelUiSchema } from '../../features/ui-schema/llm-panel-ui-schema.js';
+import {
+	llmPanelUiSchema,
+	llmResetSessionOnInputUiField,
+} from '../../features/ui-schema/llm-panel-ui-schema.js';
 import { llmRecoveryUiSchema } from '../../features/ui-schema/llm-recovery-ui-schema.js';
 import {
 	appendToolInventory,
@@ -229,6 +232,7 @@ Typical uses:
 	uiSchema: [
 		...llmPanelUiSchema,
 		...llmRecoveryUiSchema,
+		llmResetSessionOnInputUiField,
 		{
 			field: 'tokenDelayMs',
 			type: 'number',

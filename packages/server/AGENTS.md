@@ -10,15 +10,15 @@ Regression gate: [`tests/unit/package-boundaries/`](../../tests/unit/package-bou
 Server is **transport + project wiring + secrets**. It must **not** grow domain
 implementations for agent runtime, KB, crawl, MCP, or LLM providers.
 
-| Server may own                                              | Server must **not** own                                   |
-| ----------------------------------------------------------- | --------------------------------------------------------- |
-| WS bridge / session / HITL pause-reply                      | Builtin tool handlers, path fence, `postProcess`          |
-| Workflow CRUD, palette, bootstrap                           | KB store / chunk / embed / search                         |
-| Config + credential resolve                                 | SSRF policy, `webFetch`, crawl page persist               |
-| Checkpoints under `.langflower/runs/` (explicit boundaries) | MCP stdio client / tool inventory merge                   |
-| Skills read under `.langflower/skills/`                     | OpenAI (or other) HTTP client adapters                    |
-| `buildExecutionContext` **composer** (inject only)          | Re-implementing factories that belong in tools/nodes      |
-| Thin binds (`bind-llm-context.ts`, `bind-embed-context.ts`) | New `src/kb/`, `src/crawl/`, `src/mcp/`, `src/llm/` trees |
+| Server may own                                                                  | Server must **not** own                                   |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| WS bridge / session / HITL pause-reply                                          | Builtin tool handlers, path fence, `postProcess`          |
+| Workflow CRUD, palette, bootstrap                                               | KB store / chunk / embed / search                         |
+| Config + credential resolve                                                     | SSRF policy, `webFetch`, crawl page persist               |
+| Workflow sessions under `.langflower/sessions/` (points at explicit boundaries) | MCP stdio client / tool inventory merge                   |
+| Skills read under `.langflower/skills/`                                         | OpenAI (or other) HTTP client adapters                    |
+| `buildExecutionContext` **composer** (inject only)                              | Re-implementing factories that belong in tools/nodes      |
+| Thin binds (`bind-llm-context.ts`, `bind-embed-context.ts`)                     | New `src/kb/`, `src/crawl/`, `src/mcp/`, `src/llm/` trees |
 
 **Placement rule (agents):** before adding a file under `packages/server/src/`,
 ask “is this WS/session/config/secrets, or is it project runtime / provider
@@ -61,7 +61,8 @@ src/
 │   └── …
 ├── harness/pending-permission-asks.ts  # WS permission HITL only
 │   harness/pending-ask-user-asks.ts    # WS ask_user HITL only
-├── checkpoint/
+├── checkpoint/                      # boundary resolver + run progress; no file store
+├── workflow-sessions/               # `.langflower/sessions/` files, actions, autosave
 ├── bootstrap/
 ├── config/
 ├── session/

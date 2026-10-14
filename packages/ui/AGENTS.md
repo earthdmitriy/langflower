@@ -124,10 +124,10 @@ Classify an edge by what it does, not just by whether it uses `.subscribe()` or
 Several tabs share one server session. On **reconnect** (refresh, new tab) each
 client must show the same state without asking which tab caused a change.
 
-| Domain                       | Model                         | What the UI does                                                                    |
-| ---------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
-| Session, workflow, palette   | **snapshot only**             | Replace projection from full slice                                                  |
-| Runtime / execution on graph | **snapshot + event-sourcing** | Replace from `executionFeed` on connect; then append **new** `runner.*` events only |
+| Domain                                        | Model                         | What the UI does                                                                    |
+| --------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
+| Session, workflow, workflow sessions, palette | **snapshot only**             | Replace projection from full slice                                                  |
+| Runtime / execution on graph                  | **snapshot + event-sourcing** | Replace from `executionFeed` on connect; then append **new** `runner.*` events only |
 
 **Reconnect sequence:**
 
@@ -140,13 +140,16 @@ client must show the same state without asking which tab caused a change.
 2. Authoritative connect/reconnect order from
    `packages/server/src/bridge/emit-bootstrap.ts`:
    `session.state.snapshot` → `runner.snapshot` →
-   `executionFeed.snapshot` → `runner.checkpoints.snapshot` →
-   `toolConfig.snapshot` → `workflow.list.snapshot` →
-   `workflow.current.snapshot` → `session.ready` →
-   `langflower.config.snapshot` → `langflower.config.draft.snapshot` →
+   `executionFeed.snapshot` → `toolConfig.snapshot` →
+   `workflow.list.snapshot` → `workflow.current.snapshot` →
+   `workflowSession.list.snapshot` → `workflowSession.current.snapshot` →
+   `session.ready` → `langflower.config.snapshot` →
+   `langflower.config.draft.snapshot` →
    replayed `runner.permission.ask` / `runner.askUser.ask` events →
    `palette.snapshot` then warm `customPalette.snapshot` (compiled at
    `createServer` before listen — not on connect).
+   There is no `runner.checkpoints.snapshot`. Workflow session slices follow
+   `workflow.current.snapshot` so folds already have the workflow id.
 3. Feed / HITL folds must therefore wait for real workflow and palette Subjects
    — do **not** hydrate with `withLatestFrom` + `startWith(empty)` lookup maps
    (false-ready: HITL replies dropped). Canvas palette streams and WES
@@ -239,6 +242,14 @@ Current features:
 - `src/app/services/theme.service.ts` — UI-only dark/light mode.
 
 ## Workflow Topbar
+
+Chrome, left to right: product mark (`src/assets/langflower-mark.svg`), project folder (`<folder> — Langflower`
+document title), workflow catalog, actions menu (Rename / Delete, hidden
+while a session is bound), workflow file tab, scrollable session tabs
+(name order, no overflow menu) with **+** stuck to the last tab, then
+Save (dirty workflow file only).
+Returning to the file sends `workflowSession.select.requested` with
+`sessionId: null`.
 
 Workflow management is bridge-first. The server owns dirty/pristine state and the
 in-memory active workflow graph.

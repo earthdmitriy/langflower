@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { foldFeedLogEvent } from '@langflower/runtime';
+import type { PortTelemetry, RuntimeRunnerEvent } from '@langflower/runtime';
 import { langflowerWsConfig } from '@langflower/shared/langflower-bus-config.js';
 import { encodeBridgeFrame } from '@langflower/websocket-bridge/bridge-codec';
 import { Subscription } from 'rxjs';
@@ -50,7 +52,7 @@ const logPath = (projectDir: string): string =>
 		projectDir,
 		'.langflower',
 		'logs',
-		`${toSafeTimestamp(new Date())}-${process.pid}-${randomUUID()}.log`,
+		`${toSafeTimestamp(new Date())}-${process.pid}-${randomUUID()}.jsonl`,
 	);
 
 export const attachBridgeEventLog = (
@@ -66,6 +68,7 @@ export const attachBridgeEventLog = (
 	let reportedFailure = false;
 	let directoryReady = false;
 	let writeQueue: Promise<void> = Promise.resolve();
+	let heldPort: PortTelemetry | null = null;
 
 	const reportFailure = (error: unknown): void => {
 		if (reportedFailure) {
@@ -107,6 +110,46 @@ export const attachBridgeEventLog = (
 		});
 	};
 
+	const isRunnerEvent = (payload: unknown): payload is RuntimeRunnerEvent =>
+		Array.isArray(payload) &&
+		(payload[0] === 'in' || payload[0] === 'out' || payload[0] === 'done');
+
+	const commitHeld = (): void => {
+		if (heldPort === null) {
+			return;
+		}
+		const frame = heldPort;
+		heldPort = null;
+		writeFrame('out', 'runner.port', frame);
+	};
+
+	const dropHeld = (): void => {
+		heldPort = null;
+	};
+
+	const noteOutbound = (type: string, payload: unknown): void => {
+		if (!enabled || !acceptingWrites || closed) {
+			return;
+		}
+		if (type !== 'runner.port' || !isRunnerEvent(payload)) {
+			commitHeld();
+			writeFrame('out', type, payload);
+			return;
+		}
+		const step = foldFeedLogEvent(heldPort ?? undefined, payload);
+		if (step.kind === 'merge') {
+			heldPort = step.frame;
+			return;
+		}
+		if (step.kind === 'open') {
+			commitHeld();
+			heldPort = step.frame;
+			return;
+		}
+		commitHeld();
+		writeFrame('out', type, payload);
+	};
+
 	const bridgeChannels = bridge as unknown as Record<string, unknown>;
 	const inboundKeys = Object.keys(langflowerWsConfig.fromClientToServer);
 	const outboundKeys = Object.keys(langflowerWsConfig.fromServerToClient);
@@ -133,7 +176,7 @@ export const attachBridgeEventLog = (
 		}
 		subscriptions.add(
 			channel.subscribe((payload) => {
-				writeFrame('out', type, payload);
+				noteOutbound(type, payload);
 			}),
 		);
 	}
@@ -151,7 +194,7 @@ export const attachBridgeEventLog = (
 				}
 				clientSubscriptions.add(
 					channel.subscribe((payload) => {
-						writeFrame('out', type, payload);
+						noteOutbound(type, payload);
 					}),
 				);
 			}
@@ -168,11 +211,16 @@ export const attachBridgeEventLog = (
 		filePath,
 		setEnabled: (nextEnabled) => {
 			enabled = nextEnabled;
+			if (!nextEnabled) {
+				dropHeld();
+			}
 		},
 		writeServerClosing: () => {
+			dropHeld();
 			closed = true;
 		},
 		flush: async () => {
+			dropHeld();
 			await writeQueue;
 		},
 	};

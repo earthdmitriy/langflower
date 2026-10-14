@@ -1,6 +1,6 @@
 # Epics — use-case readiness roadmap (completed)
 
-**Archived** under [`docs/DONE/`](../README.md). Epics **00–48** are
+**Archived** under [`docs/DONE/`](../README.md). Epics **00–49** are
 landed. Active queue: see [`docs/TODO/EPICS/`](../../TODO/EPICS/README.md).
 Further work also follows use-case Missing parts
 and [`docs/code-regression/`](../../code-regression/SUMMARY.md) Critical
@@ -27,6 +27,7 @@ Status only after `verify`.
 | Global KV secrets (45)       | **Landed** — workspace-hidden secrets + MCP HTTP `headers` proof                          |
 | Feed frames (47)             | **Landed** — `runner.port` slot 6 authoritative; work-log fold drops catalog fallback     |
 | Node capabilities (48)       | **Landed** — `requires` on definitions; execution ctx built per declared caps             |
+| Workflow sessions (49)       | **Landed** — session tabs, node state hook, points, folded last-run feed                  |
 
 ## Order
 
@@ -109,6 +110,7 @@ Status only after `verify`.
 | 46  | [46-launcher.md](46-launcher.md)                                                       | Desk   | **landed** — thin Slint supervisor (Tauri then FLTK tried and rejected)                       |
 | 47  | [47-self-describing-feed-frames.md](47-self-describing-feed-frames.md)                 | Feed   | **landed** — self-describing `runner.port` frames; fold drops catalog + rebuild state         |
 | 48  | [48-declared-node-capabilities.md](48-declared-node-capabilities.md)                   | SDK    | **landed** — declared `requires`; ctx built on demand (pack `chat`/`embed` = TBD-012)         |
+| 49  | [49-sessions.md](49-sessions.md)                                                       | Sess   | **landed** — workflow sessions, node state hook, points, folded last-run feed (ADR-040)       |
 
 ## Contracts
 

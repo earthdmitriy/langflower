@@ -552,15 +552,19 @@ Simple nodes and the Fake LLM can be used without a model key.
 
 ---
 
+# Pick up where you left off
+
+Close Langflower today, open it tomorrow, and your conversation is still there.
+
+Every run is saved in a session tab next to the workflow name. Start Langflower again and the latest session opens, ready to continue.
+
+Want a clean slate? **Reset** clears the conversation and keeps your workflow.
+
+---
+
 # What it lacks
 
 Langflower is intentionally still small, and some things are not implemented yet.
-
-### Chat sessions
-
-You cannot save a chat and reopen it tomorrow as a persistent conversation.
-
-Agent state currently lives inside the node.
 
 ### Image and video
 

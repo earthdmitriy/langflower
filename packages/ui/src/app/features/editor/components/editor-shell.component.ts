@@ -107,56 +107,99 @@ type MeasuredLayout = {
 			}
 
 			<header
-				class="flex h-12 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-900"
+				class="flex h-12 shrink-0 items-center justify-between bg-white px-4 shadow-[inset_0_-1px_0_0_#e4e4e7] dark:bg-zinc-900 dark:shadow-[inset_0_-1px_0_0_#27272a]"
 			>
-				<div class="flex min-w-0 flex-1 items-center gap-4">
-					<h1 class="text-base font-semibold tracking-tight">
-						Langflower
-					</h1>
+				<div
+					class="flex min-w-0 flex-1 items-center gap-4 self-stretch"
+				>
+					<lf-hover-tip side="bottom" align="start" tip="Langflower">
+						<img
+							src="assets/langflower-mark.svg"
+							alt="Langflower"
+							class="h-6 w-6"
+						/>
+					</lf-hover-tip>
 					<lf-project-dir class="shrink-0" />
-					<lf-workflow-topbar class="min-w-0 flex-1" />
+					<lf-workflow-topbar class="min-w-0 flex-1 self-stretch" />
 				</div>
 
-				<div class="flex items-center gap-3 text-xs">
-					<div
-						class="flex items-center gap-2 rounded-full border border-zinc-200 px-3 py-1 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
-					>
-						<span
-							class="h-2 w-2 rounded-full"
-							[class.bg-amber-400]="
-								connectionStatus() === 'connecting'
-							"
-							[class.bg-emerald-400]="
-								connectionStatus() === 'connected'
-							"
-							[class.bg-rose-400]="
-								connectionStatus() === 'disconnected'
-							"
-						></span>
-						<span>{{ connectionStatus() }}</span>
-					</div>
-
+				<div class="flex items-center gap-2 self-stretch text-xs">
 					<lf-hover-tip
 						side="bottom"
-						[tip]="
-							theme() === 'dark'
-								? 'Switch to light theme'
-								: 'Switch to dark theme'
-						"
+						align="end"
+						[tip]="connectionStatus()"
 					>
+						<div
+							class="inline-flex items-center justify-center gap-2 border border-transparent p-1.5 text-zinc-600 dark:text-zinc-300"
+							role="status"
+							[attr.aria-label]="
+								'Connection status: ' + connectionStatus()
+							"
+						>
+							<span
+								class="inline-flex h-4 w-4 items-center justify-center"
+								aria-hidden="true"
+							>
+								<span
+									class="h-2 w-2 rounded-full"
+									[class.bg-amber-400]="
+										connectionStatus() === 'connecting'
+									"
+									[class.bg-emerald-400]="
+										connectionStatus() === 'connected'
+									"
+									[class.bg-rose-400]="
+										connectionStatus() === 'disconnected'
+									"
+								></span>
+							</span>
+							@if (connectionStatus() !== 'connected') {
+								<span>{{ connectionStatus() }}</span>
+							}
+						</div>
+					</lf-hover-tip>
+
+					<lf-hover-tip side="bottom" align="end" [tip]="themeTip()">
 						<button
 							type="button"
-							class="rounded-md border border-zinc-200 px-3 py-1 font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+							class="inline-flex items-center justify-center rounded-md border border-zinc-200 p-1.5 text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+							[attr.aria-label]="themeTip()"
 							(click)="toggleTheme()"
 						>
-							{{ themeButtonLabel() }}
+							@if (theme() === 'dark') {
+								<svg
+									viewBox="0 0 20 20"
+									class="h-4 w-4"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.5"
+									aria-hidden="true"
+								>
+									<circle cx="10" cy="10" r="3.25" />
+									<path
+										stroke-linecap="round"
+										d="M10 2.75v1.5M10 15.75v1.5M2.75 10h1.5M15.75 10h1.5M4.7 4.7l1.05 1.05M14.25 14.25l1.05 1.05M4.7 15.3l1.05-1.05M14.25 5.75l1.05-1.05"
+									/>
+								</svg>
+							} @else {
+								<svg
+									viewBox="0 0 20 20"
+									class="h-4 w-4"
+									fill="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										d="M14.2 11.4A4.8 4.8 0 0 1 8.6 5.8 5.6 5.6 0 1 0 14.2 11.4Z"
+									/>
+								</svg>
+							}
 						</button>
 					</lf-hover-tip>
 
 					<lf-hover-tip side="bottom" tip="Settings">
 						<button
 							type="button"
-							class="rounded-md border border-zinc-200 p-1.5 text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+							class="inline-flex items-center justify-center rounded-md border border-zinc-200 p-1.5 text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
 							[class.bg-zinc-100]="settingsOpen()"
 							[class.dark:bg-zinc-800]="settingsOpen()"
 							aria-label="Settings"
@@ -323,8 +366,10 @@ export class EditorShellComponent {
 	readonly theme = toSignal(this.themeService.theme$, {
 		initialValue: this.themeService.snapshot,
 	});
-	readonly themeButtonLabel = computed(() =>
-		this.theme() === 'dark' ? 'Light' : 'Dark',
+	readonly themeTip = computed(() =>
+		this.theme() === 'dark'
+			? 'Switch to light theme'
+			: 'Switch to dark theme',
 	);
 
 	/**

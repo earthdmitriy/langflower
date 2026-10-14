@@ -1,7 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import type { NodeStateJson } from '@langflower/node-sdk';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 import { toCheckpointJsonValue } from './json-value.js';
 
 describe('toCheckpointJsonValue', () => {
+	it('is typed as NodeStateJson or undefined', () => {
+		expectTypeOf(toCheckpointJsonValue({ a: 1 })).toEqualTypeOf<
+			NodeStateJson | undefined
+		>();
+	});
+
 	it('accepts primitives, arrays, and plain objects', () => {
 		expect(toCheckpointJsonValue(null)).toBe(null);
 		expect(toCheckpointJsonValue('a')).toBe('a');

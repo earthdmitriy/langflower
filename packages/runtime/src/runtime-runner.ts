@@ -11,6 +11,7 @@ import {
 	BehaviorSubject,
 	filter,
 	isObservable,
+	map,
 	merge,
 	Observable,
 	of,
@@ -24,6 +25,7 @@ import {
 	getBypassConnection,
 	isBypassPort,
 } from './bypass-ports.js';
+import { foldFeedLogEvent } from './feed-log-fold.js';
 import { normalizePortErrorValue } from './normalize-port-error-value.js';
 import {
 	edgePortSlotKey,
@@ -47,6 +49,8 @@ import {
 	RuntimeRunnerEvent,
 	RuntimeRunnerStatus,
 	RuntimeSeedPortValue,
+	type NodeStateJson,
+	type RuntimeNodeStates,
 	type EdgeId,
 	type NodeId,
 	type RunId,
@@ -113,6 +117,15 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		'idle',
 	);
 	private readonly eventsSubject = new Subject<RuntimeRunnerEvent>();
+	private readonly nodeStateSubject = new Subject<{
+		readonly nodeId: string;
+		readonly state: NodeStateJson;
+	}>();
+	private nodeStateSub: Subscription | undefined;
+	private readonly restoreFailures: {
+		nodeId: string;
+		message: string;
+	}[] = [];
 	private readonly logEvents: boolean;
 	private readonly eventLogBuffer: RuntimeRunnerEvent[] = [];
 
@@ -129,6 +142,16 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 	}
 	readonly events$: Observable<RuntimeRunnerEvent> =
 		this.eventsSubject.asObservable();
+	readonly nodeState$: Observable<{
+		readonly nodeId: string;
+		readonly state: NodeStateJson;
+	}> = this.nodeStateSubject.asObservable();
+	get lastRestoreFailures(): readonly {
+		readonly nodeId: string;
+		readonly message: string;
+	}[] {
+		return this.restoreFailures;
+	}
 	readonly eventLog: readonly RuntimeRunnerEvent[];
 
 	constructor(
@@ -146,6 +169,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			Record<string, ReadonlyArray<RuntimeSeedPortValue>>
 		>,
 		runId?: RunId,
+		options?: { readonly nodeStates?: RuntimeNodeStates },
 	): RunId | false {
 		this.assertNotDisposed();
 
@@ -158,6 +182,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		const nodes = this.editor.getNodes();
 
 		if (nodes.length === 0) {
+			this.clearRestoreFailures();
 			this.setStatus('running');
 			this.finishRun(resolvedRunId);
 			return resolvedRunId;
@@ -191,6 +216,8 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			scopeEdgeIds,
 			initialPayload,
 			resolvedRunId,
+			undefined,
+			options?.nodeStates,
 		);
 	}
 
@@ -200,6 +227,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			Record<string, ReadonlyArray<RuntimeSeedPortValue>>
 		>,
 		runId?: RunId,
+		options?: { readonly nodeStates?: RuntimeNodeStates },
 	): RunId | false {
 		const cluster = this.editor.getClusterByNodeId(nodeId);
 		if (cluster === false) {
@@ -210,6 +238,8 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			cluster.edgeIds,
 			initialPayload,
 			runId,
+			undefined,
+			options?.nodeStates,
 		);
 	}
 
@@ -242,6 +272,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 					node.stopsRun === true && completedNodeIds.has(node.nodeId),
 			)
 		) {
+			this.clearRestoreFailures();
 			this.editor.setLocked(true);
 			this.setStatus('running');
 			this.activeRun = {
@@ -257,6 +288,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		}
 
 		if (nodes.length === 0) {
+			this.clearRestoreFailures();
 			this.setStatus('running');
 			this.finishRun(resolvedRunId);
 			return resolvedRunId;
@@ -273,6 +305,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 				completedNodeIds,
 				outputSnapshots,
 			},
+			options.nodeStates,
 		);
 	}
 
@@ -352,6 +385,18 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		}
 	}
 
+	seedEventLog(events: readonly RuntimeRunnerEvent[]): void {
+		this.assertNotDisposed();
+
+		if (!this.logEvents || this.statusSubject.value !== 'idle') {
+			return;
+		}
+
+		const next = [...events];
+		this.eventLogBuffer.length = 0;
+		this.eventLogBuffer.push(...next);
+	}
+
 	dispose(): void {
 		if (this.disposed) {
 			return;
@@ -373,6 +418,10 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 
 		if (!this.eventsSubject.closed) {
 			this.eventsSubject.complete();
+		}
+
+		if (!this.nodeStateSubject.closed) {
+			this.nodeStateSubject.complete();
 		}
 	}
 
@@ -396,7 +445,14 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		}
 
 		if (this.logEvents) {
-			this.eventLogBuffer.push(event);
+			const tail = this.eventLogBuffer[this.eventLogBuffer.length - 1];
+			const step = foldFeedLogEvent(tail, event);
+			if (step.kind === 'merge') {
+				this.eventLogBuffer[this.eventLogBuffer.length - 1] =
+					step.frame;
+			} else {
+				this.eventLogBuffer.push(event);
+			}
 		}
 
 		this.eventsSubject.next(event);
@@ -699,6 +755,79 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		}
 	}
 
+	private clearRestoreFailures(): void {
+		this.restoreFailures.length = 0;
+	}
+
+	/**
+	 * Restore every hooked in-scope node before wiring. A missing map entry
+	 * is `null` so a pending restore from the previous run cannot stick.
+	 * `{ ok: false }` is recorded and the run continues.
+	 */
+	private restoreScopedNodeStates(
+		scopeNodeIds: ReadonlySet<NodeId>,
+		nodeStates: RuntimeNodeStates | undefined,
+	): void {
+		this.clearRestoreFailures();
+
+		for (const nodeId of scopeNodeIds) {
+			const node = this.editor.getNode(nodeId);
+
+			if (node === false || node.state === undefined) {
+				continue;
+			}
+
+			const result = node.state.restore(nodeStates?.[nodeId] ?? null);
+
+			if (!result.ok) {
+				this.restoreFailures.push({
+					nodeId,
+					message: result.message,
+				});
+			}
+		}
+	}
+
+	/** Merge `persist$` of hooked in-scope nodes for this run only. */
+	private subscribeScopedNodeState(scopeNodeIds: ReadonlySet<NodeId>): void {
+		this.nodeStateSub?.unsubscribe();
+		this.nodeStateSub = undefined;
+
+		const streams: Observable<{
+			readonly nodeId: string;
+			readonly state: NodeStateJson;
+		}>[] = [];
+
+		for (const nodeId of scopeNodeIds) {
+			const node = this.editor.getNode(nodeId);
+
+			if (node === false || node.state === undefined) {
+				continue;
+			}
+
+			streams.push(
+				node.state.persist$.pipe(
+					map((state) => ({
+						nodeId,
+						state,
+					})),
+				),
+			);
+		}
+
+		if (streams.length === 0) {
+			return;
+		}
+
+		this.nodeStateSub = merge(...streams).subscribe((event) => {
+			if (this.disposed || this.nodeStateSubject.closed) {
+				return;
+			}
+
+			this.nodeStateSubject.next(event);
+		});
+	}
+
 	private cancelPendingWire(): void {
 		this.pendingWire = undefined;
 		this.pendingWireRunId = undefined;
@@ -722,6 +851,7 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 		>,
 		runId?: RunId,
 		resumeOverlay?: ResumeOverlay,
+		nodeStates?: RuntimeNodeStates,
 	): RunId | false {
 		this.assertNotDisposed();
 
@@ -729,9 +859,17 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 			return false;
 		}
 
+		// Resume keeps the log so a later phase can seed it. Empty-graph
+		// starts never enter runScope, so they leave the log as it is.
+		if (resumeOverlay === undefined) {
+			this.eventLogBuffer.length = 0;
+		}
+
 		const resolvedRunId = runId ?? (crypto.randomUUID() as RunId);
+		this.restoreScopedNodeStates(scopeNodeIds, nodeStates);
 		this.setStatus('running');
 		this.editor.setLocked(true);
+		this.subscribeScopedNodeState(scopeNodeIds);
 		this.pendingWireRunId = resolvedRunId;
 		this.pendingWire = () => {
 			try {
@@ -743,6 +881,8 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 					resumeOverlay,
 				);
 			} catch (error) {
+				this.nodeStateSub?.unsubscribe();
+				this.nodeStateSub = undefined;
 				this.editor.setLocked(false);
 				this.setStatus('idle');
 				throw error;
@@ -764,6 +904,8 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 
 	private teardownRun(): void {
 		this.cancelPendingWire();
+		this.nodeStateSub?.unsubscribe();
+		this.nodeStateSub = undefined;
 		if (this.activeRun === undefined) {
 			this.editor.setLocked(false);
 			return;

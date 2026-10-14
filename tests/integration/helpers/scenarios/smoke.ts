@@ -92,7 +92,7 @@ export const delayPreviewWorkflow = (): WorkflowSavePayload => {
 };
 
 /**
- * @see execute-checkpoint-resume.ws.test.ts / demo checkpoint-resume.json
+ * @see tests/integration/ws/workflow-sessions.ws.test.ts / demo checkpoint-resume.json
  * Stage A is short; explicit Checkpoint; Stage B is long so Stop lands after
  * the boundary.
  */

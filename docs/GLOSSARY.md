@@ -195,12 +195,41 @@ See [inspector](features/inspector.md).
 
 #### Checkpoint
 
-Author-placed save point you can continue from later. Not the same as
-[Pause](#pause) (soft interrupt) or [Detachable long run](#detachable-long-run)
-(closing the browser).
+Author-placed save boundary (`common-checkpoint`, or `createCheckpoint` on an
+output). Crossing it writes a [Point](#point) on the open
+[workflow session](#workflow-session). Not the same as [Pause](#pause) (soft
+interrupt) or [Detachable long run](#detachable-long-run) (closing the
+browser).
 
 See [workflow-execution](features/workflow-execution.md),
 [resumable-checkpoint-jobs](use-cases/resumable-checkpoint-jobs.md).
+
+#### Workflow session
+
+A saved conversation of one workflow: graph snapshot, agent transcripts, the
+last run’s work log, and [points](#point). The workflow is the parent.
+Sessions are stored and listed under that workflow; the snapshot is the
+conversation’s copy of the graph. Tab label is the server-local date plus
+an ordinal (`YYYY-MM-DD #N`). While the tab is open the canvas shows that
+snapshot, and the workflow file stays as it was. A Run continues the
+session head; **Continue from…** rewinds to a point.
+
+Not the process owner `LangflowerSession` (Part 2 [Session](#session)).
+
+See [workflow-execution](features/workflow-execution.md),
+[ADR-040](architecture/ADR.md#adr-040--workflow-sessions-own-points).
+
+#### Point
+
+One immutable checkpoint inside a [workflow session](#workflow-session):
+completed nodes, JSON-safe outputs, node state, and the folded feed from the
+run that wrote it. **Continue from…** lists the open session’s points.
+
+#### Reset session on input
+
+Inspector switch on OpenAI, Fake, Review, and Critique (default off). The
+next run drops that node’s stored transcript when a new turn input arrives.
+No reset button. It does not clear the work log. Sub-Agent has no switch.
 
 #### Detachable long run
 
@@ -319,8 +348,9 @@ adapter over the same runtime). Definition-time `bind` is a **probe** for
 port metadata (discarded); each canvas placement gets a fresh
 `getInstance()` bind for the live ports. That instance (and any intentional
 closures it holds) survives `done` / Stop / Start until the workflow is
-reloaded, the node is rematerialized, or Langflower shuts down — not the same
-as durable Checkpoint resume.
+reloaded, the node is rematerialized, or Langflower shuts down. Closures are
+not a disk transcript. A node that returns a state hook persists JSON across
+a process restart; see [REACTIVE_NODES](REACTIVE_NODES.md) § Instance lifetime.
 
 See [REACTIVE_NODES](REACTIVE_NODES.md) § Instance lifetime,
 [HOW_TO_WRITE_REACTIVE_NODES](HOW_TO_WRITE_REACTIVE_NODES.md),
@@ -340,8 +370,39 @@ root `packages/server/skeleton/` (includes starter workflows).
 Product meaning: [Checkpoint](#checkpoint).
 
 Mechanics: author boundary via `common-checkpoint` / `createCheckpoint`
-metadata; continue-from picker. See
-[EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md).
+metadata (`resolveCheckpointBoundary`). A crossing appends a
+[point](#point) on the bound workflow session. Nothing is written when no
+session is bound. Old `.langflower/runs/**/checkpoint.json` files are not
+read. See
+[ADR-040](architecture/ADR.md#adr-040--workflow-sessions-own-points).
+
+#### Workflow session
+
+Product meaning: [Workflow session](#workflow-session).
+
+Mechanics: `packages/server/src/workflow-sessions/`; bus `workflowSession.*`;
+one record per session under `.langflower/sessions/<workflowId>/`, named
+like the tab (`2026-10-14 #1.json`) plus `<label>.feed.jsonl`. The
+workflow is the parent directory and the `workflowId` inside the file.
+`LangflowerSession.binding` selects the workflow file or that snapshot.
+Distinct from [Session](#session).
+
+#### Point
+
+Product meaning: [Point](#point).
+
+Mechanics: `WorkflowSessionPoint` in
+`packages/shared/src/types/workflow-session.ts`. Continue sends
+`runner.resume.requested` `{ pointId }`. Fingerprint mismatch refuses with
+`POINT_STALE`.
+
+#### Reset session on input
+
+Product meaning: [Reset session on input](#reset-session-on-input).
+
+Mechanics: panel param `resetSessionOnInput` on the four agent nodes that
+implement `NodeStateHook`. Read from `ec.params` at the next start. Sub-Agent
+does not include the field.
 
 #### Cluster
 
@@ -538,10 +599,16 @@ See [EXECUTION_ARCHITECTURE](architecture/EXECUTION_ARCHITECTURE.md).
 
 #### Session
 
-`LangflowerSession`: process-side owner of the active workflow document and
-one RuntimeFacade.
+Two owners. Do not mix them.
 
-See [NAVIGATION](architecture/NAVIGATION.md) (session state owner).
+- **`LangflowerSession`** — process-side owner of the active document and one
+  RuntimeFacade (`packages/server/src/session/`, bus `session.*`). One shared
+  instance per server process.
+- **[Workflow session](#workflow-session)** — a durable tab
+  (`packages/server/src/workflow-sessions/`, bus `workflowSession.*`).
+
+See [NAVIGATION](architecture/NAVIGATION.md) (session state owner),
+[ADR-040](architecture/ADR.md#adr-040--workflow-sessions-own-points).
 
 ### Node authoring
 

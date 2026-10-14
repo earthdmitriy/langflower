@@ -23,6 +23,7 @@ Start with [PRODUCT](docs/PRODUCT.md), then the relevant feature/use-case doc.
 | [EXECUTION_ARCHITECTURE](docs/architecture/EXECUTION_ARCHITECTURE.md) | Runtime/bridge execution flow                              |
 | [EXTENSION_POINT](docs/architecture/EXTENSION_POINT.md)               | Extension seams: node, pack, tool, bus event, provider     |
 | [HOW_TO_WRITE_REACTIVE_NODES](docs/HOW_TO_WRITE_REACTIVE_NODES.md)    | Node authoring                                             |
+| [SESSIONS](docs/SESSIONS.md)                                          | Workflow sessions: head, points, node-state hook           |
 | [LLM_RECOVERY](docs/LLM_RECOVERY.md)                                  | Stuck stream / dead-loop recovery (idle, autokick)         |
 | [EMBEDDING](docs/EMBEDDING.md)                                        | OpenAI embeddings vs chat (`encoding_format`, EmbedHandle) |
 | [TESTING](docs/TESTING.md)                                            | Unit/API/integration tests                                 |

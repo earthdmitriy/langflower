@@ -1,5 +1,6 @@
 import { resolveWorkflowNodeDefinition } from '@langflower/common-nodes';
 import type { WorkflowLoadedPayload } from '@langflower/shared/types/langflower-workflow.js';
+import type { WorkflowSessionFile } from '@langflower/shared/types/workflow-session.js';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -8,6 +9,7 @@ import { LangflowerSession } from '../session/langflower-session.js';
 import { renameActiveWorkflow } from './rename-active-workflow.js';
 import type { ResolveNodeDefinition } from './workflow-document.js';
 import { WorkflowService } from './workflow.service.js';
+import { WorkflowSessionStore } from '../workflow-sessions/workflow-session-store.js';
 
 const resolveDefinition: ResolveNodeDefinition = resolveWorkflowNodeDefinition;
 
@@ -46,10 +48,12 @@ const emptyDocument = (
 describe('renameActiveWorkflow', () => {
 	let projectDir: string;
 	let service: WorkflowService;
+	let sessions: WorkflowSessionStore;
 
 	beforeEach(async () => {
 		projectDir = await fs.mkdtemp(path.join(os.tmpdir(), 'lf-wf-rename-'));
 		service = new WorkflowService(projectDir, resolveDefinition);
+		sessions = new WorkflowSessionStore(projectDir);
 	});
 
 	afterEach(async () => {
@@ -59,7 +63,9 @@ describe('renameActiveWorkflow', () => {
 	it('returns null when no active workflow', async () => {
 		const session = new LangflowerSession();
 
-		expect(await renameActiveWorkflow(session, service, 'Next')).toBeNull();
+		expect(
+			await renameActiveWorkflow(session, service, 'Next', sessions),
+		).toBeNull();
 	});
 
 	it('renames identity on disk without committing dirty graph edits', async () => {
@@ -74,6 +80,7 @@ describe('renameActiveWorkflow', () => {
 			session,
 			service,
 			'Renamed Flow',
+			sessions,
 		);
 
 		expect(renamed?.document.metadata.name).toBe('Renamed Flow');
@@ -104,6 +111,7 @@ describe('renameActiveWorkflow', () => {
 			session,
 			service,
 			'Fresh Name',
+			sessions,
 		);
 
 		expect(renamed?.catalogChanged).toBe(false);
@@ -123,6 +131,7 @@ describe('renameActiveWorkflow', () => {
 			session,
 			service,
 			'Renamed Flow',
+			sessions,
 		);
 
 		expect(renamed?.catalogChanged).toBe(true);
@@ -137,10 +146,94 @@ describe('renameActiveWorkflow', () => {
 		session.activeWorkflow = emptyDocument('demo', 'Demo');
 		session.activeWorkflowId = 'demo';
 
-		expect(await renameActiveWorkflow(session, service, '   ')).toBeNull();
 		expect(
-			await renameActiveWorkflow(session, service, 'Taken'),
+			await renameActiveWorkflow(session, service, '   ', sessions),
+		).toBeNull();
+		expect(
+			await renameActiveWorkflow(session, service, 'Taken', sessions),
 		).toBeNull();
 		expect(session.activeWorkflow?.workflowId).toBe('demo');
 	});
+
+	it('moves session files onto the new workflow id', async () => {
+		await service.save(emptyDocument('demo', 'Demo', 'on-disk'));
+		await sessions.write(sessionFile('demo', 'session-1'));
+
+		const session = new LangflowerSession();
+		session.activeWorkflow = emptyDocument('demo', 'Demo', 'on-disk');
+		session.activeWorkflowId = 'demo';
+
+		const renamed = await renameActiveWorkflow(
+			session,
+			service,
+			'Renamed Flow',
+			sessions,
+		);
+
+		expect(renamed?.document.workflowId).toBe('renamed-flow');
+		const moved = await sessions.read('renamed-flow', 'session-1');
+		expect(moved.ok).toBe(true);
+		if (moved.ok) {
+			expect(moved.value.workflowId).toBe('renamed-flow');
+			expect(moved.value.workflowSnapshot.workflowId).toBe(
+				'renamed-flow',
+			);
+		}
+		expect((await sessions.read('demo', 'session-1')).ok).toBe(false);
+	});
+
+	it('moves the sessions directory back when the workflow rename fails', async () => {
+		await service.save(emptyDocument('demo', 'Demo', 'on-disk'));
+		await sessions.write(sessionFile('demo', 'session-1'));
+
+		const failing = new WorkflowService(projectDir, resolveDefinition);
+		failing.save = async () => ({
+			ok: false,
+			code: 'INVALID_GRAPH',
+			message: 'boom',
+		});
+
+		const session = new LangflowerSession();
+		session.activeWorkflow = emptyDocument('demo', 'Demo', 'on-disk');
+		session.activeWorkflowId = 'demo';
+
+		expect(
+			await renameActiveWorkflow(
+				session,
+				failing,
+				'Renamed Flow',
+				sessions,
+			),
+		).toBeNull();
+		expect(session.activeWorkflow?.workflowId).toBe('demo');
+		expect(await service.exists('demo')).toBe(true);
+		expect(await service.exists('renamed-flow')).toBe(false);
+
+		const restored = await sessions.read('demo', 'session-1');
+		expect(restored.ok).toBe(true);
+		if (restored.ok) {
+			expect(restored.value.workflowId).toBe('demo');
+		}
+		expect((await sessions.read('renamed-flow', 'session-1')).ok).toBe(
+			false,
+		);
+	});
+});
+
+const sessionFile = (
+	workflowId: string,
+	sessionId: string,
+): WorkflowSessionFile => ({
+	schemaVersion: 1,
+	sessionId,
+	workflowId,
+	label: '2026-10-14 #1',
+	localDay: '2026-10-14',
+	ordinal: 1,
+	createdAt: '2026-10-14T00:00:00.000Z',
+	updatedAt: '2026-10-14T00:00:00.000Z',
+	workflowSnapshot: emptyDocument(workflowId, 'Demo'),
+	nodeStates: {},
+	headOffset: null,
+	points: [],
 });

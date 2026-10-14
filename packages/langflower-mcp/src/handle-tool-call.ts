@@ -183,6 +183,54 @@ const emitAction = async (
 		};
 	}
 
+	// Session actions always republish snapshots, including after
+	// `workflowSession.action.failed`. Race the refusal so a correlated
+	// success predicate does not wait out the timeout.
+	if (tool.intent.startsWith('workflowSession.')) {
+		const settledOutcome = waitBusEvent(
+			observeEvent$(session.client, asObserveEventKey(waitEvent)),
+			{
+				timeoutMs,
+				...(predicate !== undefined ? { predicate } : {}),
+			},
+		).then((result) => ({
+			outcome: 'settled' as const,
+			result,
+		}));
+		const failedOutcome = waitBusEvent(
+			observeEvent$(session.client, 'workflowSession.action.failed'),
+			{ timeoutMs },
+		).then((result) => ({
+			outcome: 'failed' as const,
+			result,
+		}));
+		void settledOutcome.catch(() => undefined);
+		void failedOutcome.catch(() => undefined);
+		const failedEmit = emit();
+		if (failedEmit !== null) {
+			return failedEmit;
+		}
+		const raced = await Promise.race([settledOutcome, failedOutcome]);
+		if (raced.outcome === 'failed') {
+			return {
+				ok: false,
+				text: jsonText({
+					emitted: tool.intent,
+					waitEvent: 'workflowSession.action.failed',
+					result: raced.result,
+				}),
+			};
+		}
+		return {
+			ok: true,
+			text: jsonText({
+				emitted: tool.intent,
+				waitEvent,
+				result: raced.result,
+			}),
+		};
+	}
+
 	const resultPromise = waitBusEvent(
 		observeEvent$(session.client, asObserveEventKey(waitEvent)),
 		{

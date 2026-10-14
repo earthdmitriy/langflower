@@ -1,4 +1,4 @@
-import type { WorkflowCheckpointJsonValue } from '../types/workflow-checkpoint.js';
+import type { NodeStateJson } from '@langflower/node-sdk';
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' &&
@@ -10,11 +10,12 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
  * Convert an unknown runtime port value into a JSON-safe checkpoint payload.
  * Returns `undefined` when the value cannot be persisted (functions, symbols,
  * class instances, circular structures, bigint, …).
+ * Successful values are {@link NodeStateJson}.
  */
 export const toCheckpointJsonValue = (
 	value: unknown,
 	seen = new WeakSet<object>(),
-): WorkflowCheckpointJsonValue | undefined => {
+): NodeStateJson | undefined => {
 	if (value === null) {
 		return null;
 	}
@@ -40,7 +41,7 @@ export const toCheckpointJsonValue = (
 	seen.add(value as object);
 
 	if (Array.isArray(value)) {
-		const items: WorkflowCheckpointJsonValue[] = [];
+		const items: NodeStateJson[] = [];
 
 		for (const item of value) {
 			const converted = toCheckpointJsonValue(item, seen);
@@ -60,7 +61,7 @@ export const toCheckpointJsonValue = (
 	}
 
 	const entries = Object.entries(value);
-	const result: Record<string, WorkflowCheckpointJsonValue> = {};
+	const result: Record<string, NodeStateJson> = {};
 
 	for (const [key, entryValue] of entries) {
 		const converted = toCheckpointJsonValue(entryValue, seen);

@@ -31,17 +31,29 @@ same project consistent with each other.
 From the toolbar, a user can:
 
 - **Load** a previously saved workflow into the editor.
-- **Save** the current in-editor graph to disk under its current name.
-- **Rename** the active workflow — updates display name, id, and the
+- **Save** the workflow file to disk under its current name. The button is
+  shown only when that file is dirty and no session is open. Session graph
+  edits autosave and do not use this button.
+- **Rename** the active workflow — double-click the workflow file tab, or
+  choose Rename in the actions menu. Updates display name, id, and the
   `{id}.json` file immediately (partial save). Unsaved nodes/edges edits stay
   dirty until the next full save.
 - **Copy** a workflow — write `{id}-copy.json` (deduped) and open the copy,
   leaving the original file untouched. This is how a user turns a sample or an
   existing workflow into a starting point for their own, without risking the
   source.
-- **Delete** a saved workflow from the catalog.
+- **Delete** a saved workflow from the actions menu. That menu is hidden
+  while a session is open.
 - **Create new** — start an empty graph (dirty) to build a fresh workflow;
   nothing is written to disk until Save.
+
+The active workflow name is the first topbar tab, to the left of the session
+tabs. Click it while a session is open to return to the saved file. A dot on
+that tab means the file is dirty. Session tabs stay in name order and scroll
+horizontally; they are not collapsed into a menu.
+
+**Several project windows:** the browser tab title is
+`<folder> — Langflower`.
 
 The toolbar/catalog shows every saved workflow's metadata (not the full
 graph) so browsing the list stays fast even as a project accumulates many
@@ -61,11 +73,12 @@ rather than edit the original in place.
 editing inline values) marks the current workflow dirty. The editor tracks
 this so a user always knows whether their latest edits are persisted.
 
-**While a run is active** (`runnerStatus === 'running'`, including HITL /
-pending): topbar **rename**, **Delete**, catalog **load**, **New**, and
-**Copy** are disabled (`cursor-not-allowed`; tip “Stop the run to change
-workflows”). **Save** stays available. The server already rejects those
-catalog mutations while the graph is locked.
+**While the graph is executing:** topbar **rename**, **Delete**, catalog
+**load**, **New**, and **Copy** are disabled (`cursor-not-allowed`; tip
+“Stop the run to change workflows”). HITL and steering leave those controls
+usable; the click stops the parked run, then the switch proceeds. **Save**
+stays available. The server still rejects those catalog mutations while
+`runnerStatus` is `running`.
 
 **Multiple tabs / windows:** if the same project is open in two browser tabs,
 both stay in sync. Saving, renaming, loading, or deleting in one tab updates

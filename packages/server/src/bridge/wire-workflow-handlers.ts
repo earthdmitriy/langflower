@@ -5,9 +5,8 @@ import type {
 	WorkflowLoadPayload,
 	WorkflowRenameCurrentPayload,
 } from '@langflower/shared/types/langflower-workflow.js';
+import type { WorkflowSessionActionFailedPayload } from '@langflower/shared/types/workflow-session.js';
 import { Subscription } from 'rxjs';
-import { listResumableCheckpoints } from '../checkpoint/list-resumable-checkpoints.js';
-import { WorkflowCheckpointStore } from '../checkpoint/workflow-checkpoint-store.js';
 import type { ServerContext } from '../server-context.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
 import { resetSessionExecutionFeed } from '../session/reset-session-execution-feed.js';
@@ -16,6 +15,13 @@ import { copyWorkflowToSession } from '../workflow/copy-workflow-to-session.js';
 import { createEmptyWorkflowInSession } from '../workflow/create-empty-workflow-in-session.js';
 import { loadWorkflowIntoSession } from '../workflow/load-workflow-into-session.js';
 import { renameActiveWorkflow } from '../workflow/rename-active-workflow.js';
+import {
+	bindLatestWorkflowSession,
+	leaveWorkflowSession,
+} from '../workflow-sessions/workflow-session-actions.js';
+import type { WorkflowSessionAutosave } from '../workflow-sessions/workflow-session-autosave.js';
+import { readWorkflowSessionSnapshots } from '../workflow-sessions/workflow-session-snapshots.js';
+import type { WorkflowSessionStore } from '../workflow-sessions/workflow-session-store.js';
 import { bridgeEmit, clientEmit } from './bridge-outbound.js';
 import { findClientById } from './client-index.js';
 import { isInboundEvent } from './inbound-guards.js';
@@ -30,13 +36,14 @@ type SyncAfterWorkflowMutationOptions = {
 		| { readonly kind: 'none' }
 		| { readonly kind: 'broadcast' }
 		| { readonly kind: 'emitToClient' };
-	/** Drop the previous run's work log before emitting current snapshot. */
 	readonly resetFeed?: boolean;
+	readonly workflowSessions: WorkflowSessionStore;
 };
 
 /**
  * Composer: optional feed reset → clear selection → current snapshot →
- * optional catalog sync. Sibling steps — handlers do not nest these.
+ * workflow session snapshots → optional catalog sync. Sibling steps —
+ * handlers do not nest these.
  */
 const syncAfterWorkflowMutation = async (
 	bridge: LangflowerBridge,
@@ -71,17 +78,17 @@ const syncAfterWorkflowMutation = async (
 		currentStatus: { status: session.currentStatus },
 	});
 
-	// 4. Resumable checkpoints for the active workflow (explicit boundaries)
-	const workflowId = session.activeWorkflowId ?? null;
-	const checkpoints = await listResumableCheckpoints(
-		new WorkflowCheckpointStore(context.projectDir),
-		workflowId,
-		session.activeWorkflow,
+	// 4. Workflow session list + current (after the workflow id is known)
+	const sessionSnapshots = await readWorkflowSessionSnapshots(
+		session,
+		options.workflowSessions,
 	);
-	bridgeEmit(bridge, 'runner.checkpoints.snapshot', {
-		workflowId,
-		checkpoints,
-	});
+	bridgeEmit(bridge, 'workflowSession.list.snapshot', sessionSnapshots.list);
+	bridgeEmit(
+		bridge,
+		'workflowSession.current.snapshot',
+		sessionSnapshots.current,
+	);
 
 	// 5. Catalog sync
 	if (options.catalog.kind === 'broadcast') {
@@ -100,8 +107,41 @@ export const wireWorkflowHandlers = (
 	bridge: LangflowerBridge,
 	context: ServerContext,
 	session: LangflowerSession,
+	workflowSessions: WorkflowSessionStore,
+	autosave: WorkflowSessionAutosave,
 ): Subscription => {
 	const subscription = new Subscription();
+	const sessionDeps = {
+		session,
+		store: workflowSessions,
+		workflowService: context.workflowService,
+		resolveDefinition: context.resolveDefinition,
+		autosave,
+	};
+
+	const sessionBoundRefusal = (): WorkflowSessionActionFailedPayload => ({
+		code: 'SESSION_BOUND',
+		message:
+			'A workflow session is bound; the workflow file was not changed',
+	});
+
+	const leaveBoundSession = async (): Promise<boolean> => {
+		if (session.binding.kind !== 'workflowSession') {
+			return true;
+		}
+
+		const left = await leaveWorkflowSession(sessionDeps);
+
+		if (!left.ok) {
+			bridgeEmit(bridge, 'workflowSession.action.failed', {
+				code: left.code,
+				message: left.message,
+			});
+			return false;
+		}
+
+		return true;
+	};
 
 	subscription.add(
 		bridge['workflow.list.requested'].subscribe(async (raw) => {
@@ -136,40 +176,43 @@ export const wireWorkflowHandlers = (
 			let resetFeed = false;
 
 			if (!session.isGraphLocked()) {
-				// 1. Load document into session
-				const loaded = await loadWorkflowIntoSession(
-					session,
-					context.workflowService,
-					raw.payload.workflowId,
-					context.resolveDefinition,
-				);
-
-				// 2. Persist current-workflow id when load succeeded
-				if (loaded.ok) {
-					resetFeed = true;
-					await context.langflowerConfigService.setCurrentWorkflowId(
+				// Leave a bound session before opening another workflow.
+				if (await leaveBoundSession()) {
+					const loaded = await loadWorkflowIntoSession(
+						session,
+						context.workflowService,
 						raw.payload.workflowId,
+						context.resolveDefinition,
 					);
 
-					if (loaded.repaired) {
-						const nodeCount = loaded.droppedNodeIds.length;
-						const edgeCount = loaded.droppedEdgeIds.length;
-						clientEmit(connected, 'workflow.load.repaired', {
+					if (loaded.ok) {
+						resetFeed = true;
+						session.savedWorkflowDocument = session.activeWorkflow;
+						await bindLatestWorkflowSession(sessionDeps);
+						await context.langflowerConfigService.setCurrentWorkflowId(
+							raw.payload.workflowId,
+						);
+
+						if (loaded.repaired) {
+							const nodeCount = loaded.droppedNodeIds.length;
+							const edgeCount = loaded.droppedEdgeIds.length;
+							clientEmit(connected, 'workflow.load.repaired', {
+								workflowId: raw.payload.workflowId,
+								droppedNodeIds: loaded.droppedNodeIds,
+								droppedEdgeIds: loaded.droppedEdgeIds,
+								message: `Loaded with ${nodeCount} node(s) / ${edgeCount} edge(s) removed (invalid). Save to keep.`,
+							});
+						}
+					} else {
+						clientEmit(connected, 'workflow.load.failed', {
 							workflowId: raw.payload.workflowId,
-							droppedNodeIds: loaded.droppedNodeIds,
-							droppedEdgeIds: loaded.droppedEdgeIds,
-							message: `Loaded with ${nodeCount} node(s) / ${edgeCount} edge(s) removed (invalid). Save to keep.`,
+							code: loaded.code,
+							message: loaded.message,
 						});
 					}
-				} else {
-					clientEmit(connected, 'workflow.load.failed', {
-						workflowId: raw.payload.workflowId,
-						code: loaded.code,
-						message: loaded.message,
-					});
-				}
 
-				clearSelection = true;
+					clearSelection = true;
+				}
 			} else {
 				clientEmit(connected, 'workflow.load.failed', {
 					workflowId: raw.payload.workflowId,
@@ -178,13 +221,17 @@ export const wireWorkflowHandlers = (
 				});
 			}
 
-			// 3. Sync outbound
 			await syncAfterWorkflowMutation(
 				bridge,
 				context,
 				session,
 				connected,
-				{ clearSelection, catalog: { kind: 'none' }, resetFeed },
+				{
+					clearSelection,
+					catalog: { kind: 'none' },
+					resetFeed,
+					workflowSessions,
+				},
 			);
 		}),
 	);
@@ -201,6 +248,15 @@ export const wireWorkflowHandlers = (
 				return;
 			}
 
+			if (session.binding.kind === 'workflowSession') {
+				bridgeEmit(
+					bridge,
+					'workflowSession.action.failed',
+					sessionBoundRefusal(),
+				);
+				return;
+			}
+
 			let catalogChanged = false;
 
 			if (!session.isGraphLocked()) {
@@ -212,6 +268,7 @@ export const wireWorkflowHandlers = (
 					if (result.ok) {
 						session.activeWorkflow = result.document;
 						session.activeWorkflowId = result.document.workflowId;
+						session.savedWorkflowDocument = result.document;
 						session.markPristine();
 						catalogChanged = true;
 					}
@@ -228,6 +285,7 @@ export const wireWorkflowHandlers = (
 					catalog: catalogChanged
 						? { kind: 'broadcast' }
 						: { kind: 'none' },
+					workflowSessions,
 				},
 			);
 		}),
@@ -245,6 +303,15 @@ export const wireWorkflowHandlers = (
 				return;
 			}
 
+			if (session.binding.kind === 'workflowSession') {
+				bridgeEmit(
+					bridge,
+					'workflowSession.action.failed',
+					sessionBoundRefusal(),
+				);
+				return;
+			}
+
 			let catalogChanged = false;
 
 			if (!session.isGraphLocked()) {
@@ -252,6 +319,7 @@ export const wireWorkflowHandlers = (
 					session,
 					context.workflowService,
 					raw.payload.name,
+					workflowSessions,
 				);
 
 				if (renamed !== null) {
@@ -272,6 +340,7 @@ export const wireWorkflowHandlers = (
 					catalog: catalogChanged
 						? { kind: 'broadcast' }
 						: { kind: 'none' },
+					workflowSessions,
 				},
 			);
 		}),
@@ -292,7 +361,7 @@ export const wireWorkflowHandlers = (
 			let clearSelection = false;
 			let resetFeed = false;
 
-			if (!session.isGraphLocked()) {
+			if (!session.isGraphLocked() && (await leaveBoundSession())) {
 				const created = await createEmptyWorkflowInSession(
 					session,
 					context.workflowService,
@@ -300,6 +369,9 @@ export const wireWorkflowHandlers = (
 				);
 				clearSelection = true;
 				resetFeed = created;
+				if (created) {
+					session.savedWorkflowDocument = null;
+				}
 			}
 
 			await syncAfterWorkflowMutation(
@@ -307,7 +379,12 @@ export const wireWorkflowHandlers = (
 				context,
 				session,
 				connected,
-				{ clearSelection, catalog: { kind: 'none' }, resetFeed },
+				{
+					clearSelection,
+					catalog: { kind: 'none' },
+					resetFeed,
+					workflowSessions,
+				},
 			);
 		}),
 	);
@@ -328,7 +405,7 @@ export const wireWorkflowHandlers = (
 			let clearSelection = false;
 			let resetFeed = false;
 
-			if (!session.isGraphLocked()) {
+			if (!session.isGraphLocked() && (await leaveBoundSession())) {
 				const copied = await copyWorkflowToSession(
 					session,
 					context.workflowService,
@@ -339,6 +416,7 @@ export const wireWorkflowHandlers = (
 				if (copied && session.activeWorkflowId !== undefined) {
 					catalogChanged = true;
 					resetFeed = true;
+					session.savedWorkflowDocument = session.activeWorkflow;
 					await context.langflowerConfigService.setCurrentWorkflowId(
 						session.activeWorkflowId,
 					);
@@ -358,6 +436,7 @@ export const wireWorkflowHandlers = (
 					catalog: catalogChanged
 						? { kind: 'broadcast' }
 						: { kind: 'none' },
+					workflowSessions,
 				},
 			);
 		}),
@@ -375,22 +454,34 @@ export const wireWorkflowHandlers = (
 				return;
 			}
 
+			if (session.binding.kind === 'workflowSession') {
+				bridgeEmit(
+					bridge,
+					'workflowSession.action.failed',
+					sessionBoundRefusal(),
+				);
+				return;
+			}
+
 			let catalogChanged = false;
 			let clearSelection = false;
 
 			if (!session.isGraphLocked()) {
-				// 1. Delete persisted workflow
 				const result = await context.workflowService.delete(
 					raw.payload.workflowId,
 				);
 
 				if (result.ok) {
 					catalogChanged = true;
+					await workflowSessions.deleteAll(raw.payload.workflowId);
 
-					// 2. If it was active — deactivate session + clear config
 					if (session.activeWorkflowId === raw.payload.workflowId) {
 						session.activeWorkflow = null;
 						session.activeWorkflowId = undefined;
+						session.binding = { kind: 'workflow' };
+						session.headNodeStates = {};
+						session.boundFeedSnapshot = undefined;
+						session.savedWorkflowDocument = null;
 						session.markPristine();
 						await context.langflowerConfigService.setCurrentWorkflowId(
 							undefined,
@@ -400,7 +491,6 @@ export const wireWorkflowHandlers = (
 				}
 			}
 
-			// 3. Sync outbound (broadcast catalog on success; else refresh list for requester)
 			await syncAfterWorkflowMutation(
 				bridge,
 				context,
@@ -411,6 +501,7 @@ export const wireWorkflowHandlers = (
 					catalog: catalogChanged
 						? { kind: 'broadcast' }
 						: { kind: 'emitToClient' },
+					workflowSessions,
 				},
 			);
 		}),

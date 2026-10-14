@@ -1,17 +1,22 @@
 import { AsyncPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs/operators';
 import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { projectFolderName } from '../utils/project-folder-name';
+import { formatDocumentTitle } from '../utils/project-identity';
 
 @Component({
 	selector: 'lf-project-dir',
 	standalone: true,
 	imports: [AsyncPipe],
+	host: {
+		class: 'inline-flex items-center',
+	},
 	template: `
 		@if (view$ | async; as view) {
 			<span
-				class="max-w-48 truncate rounded-full border border-zinc-200 px-3 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
+				class="inline-flex max-w-64 truncate text-sm font-medium text-zinc-700 dark:text-zinc-200"
 				[title]="view.fullPath"
 				[attr.aria-label]="'Project directory: ' + view.fullPath"
 			>
@@ -30,4 +35,14 @@ export class ProjectDirComponent {
 			fullPath: payload.config.projectDir,
 		})),
 	);
+
+	constructor() {
+		this.bridge.cached['toolConfig.snapshot']
+			.pipe(takeUntilDestroyed())
+			.subscribe((payload) => {
+				document.title = formatDocumentTitle(
+					projectFolderName(payload.config.projectDir),
+				);
+			});
+	}
 }

@@ -137,20 +137,35 @@ and `session.state.snapshot.langflowerConfig` after provider redaction. There ar
 
 See [ADR-016](architecture/ADR.md#adr-016--llm-session-init-vs-feedback-defaultvalue-vs-turn-startwith).
 
-**All LLM nodes MUST use the shared session machine.**
+**OpenAI, Fake, Review, and Critique use the shared session machine.**
 `createLlmSessionCycle$` is the thin bind composer;
 `runLlmSessionMachine` owns the queued turns, history, and feedback count in one
 immutable `mergeScan` fold. Per-node mutable or cold-start history is forbidden
-— otherwise Soft↔Hard / Critique / Review rediscover the same “agent forgot
-prior messages” bug.
+on those nodes — otherwise Soft↔Hard / Critique / Review rediscover the same
+“agent forgot prior messages” bug. Sub-Agent uses the shared inventory context
+and the provider loop. It is not on `createLlmSessionCycle$` and has no state
+hook.
 
-| Node                | Role                                                                                                                                                             |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `common-openai-llm` | Real session: init ports → context; turn driver = `feedback` (`primeTurn0`); history via assistant `response` chunks                                             |
-| `common-fake-llm`   | **Imitate** LLM for demos / feed UX; same init/turn split so Soft↔Hard loops run; **not** a history/mechanics test twin                                          |
-| `common-sub-agent`  | Same OpenAI session cycle as openai-llm; turn driver is an **internal** invoke `Subject` (`primeTurn0: false`); OUT `subagent-registration` announces one handle |
-| `common-critique`   | Same cycle: init = `assignment` / system / inventory; turn driver = `packet` (no empty prime); history via `historySync`                                         |
-| `common-review`     | Same cycle: init = `task` / system / inventory; turn driver = `result`; history via `historySync`                                                                |
+| Node                | Role                                                                                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `common-openai-llm` | Real session: init ports → context; turn driver = `feedback` (`primeTurn0`); history via assistant `response` chunks                                       |
+| `common-fake-llm`   | **Imitate** LLM for demos / feed UX; same init/turn split and the same `{ history }` hook so Soft↔Hard loops run; not the OpenAI provider                  |
+| `common-sub-agent`  | OpenAI provider loop; no state hook and no reset switch; turn driver is an **internal** invoke `Subject`; OUT `subagent-registration` announces one handle |
+| `common-critique`   | Same cycle: init = `assignment` / system / inventory; turn driver = `packet` (no empty prime); history via `historySync`                                   |
+| `common-review`     | Same cycle: init = `task` / system / inventory; turn driver = `result`; history via `historySync`                                                          |
+
+OpenAI, Fake, Review, and Critique return a `NodeStateHook` from
+`createLlmSessionCycle$` and persist `{ history }` when a turn’s stream
+completes (not on error or Stop mid-turn). A workflow session stores that
+JSON and passes it back as `restore` on the next Run, so the transcript
+survives a process restart. OpenAI and Fake append the new `userPrompt` to
+the stored history. Review and Critique keep the stored history and wait for
+the next turn input. `feedbackTurns` is a per-run budget and is not stored.
+**Reset session on input** (`resetSessionOnInput`, default off) is a panel
+param on those four nodes only: the next run replaces history with a fresh
+prelude when a non-blank turn input arrives. It does not clear the work log.
+Sub-Agent does not use the cycle, has no hook, and has no reset switch.
+In-memory closures on any other node still survive `done` until rematerialize.
 
 Init input changes recreate the session (never ignored). For openai/fake,
 `startWith('')` primes turn 0 on the feedback turn stream only — never on

@@ -1,17 +1,21 @@
 # Resumable checkpoint jobs
 
-**Status:** Partial — explicit `common-checkpoint` / `createCheckpoint` + labeled
-picker landed (epic 20); Prefer Partial until manual demo claims Implementable.
+**Status:** Partial — explicit `common-checkpoint` / `createCheckpoint`
+boundaries write points inside a workflow session; Prefer Partial until a
+manual demo claims Implementable.
 
 ## Value
 
 Operator on a long, costly **graph-shaped job** can Stop, close the UI, or
-restart the process, then **pick an author-placed checkpoint** and continue
-without replaying work before that boundary — **not** “keep the chat tab
-open,” not a live chat-harness session, not surprise Continue from every
-node completion, and **not** soft Pause / Steer mid-turn
-([run-interruption](run-interruption.md)). Hard Stop without a boundary still
-does not create resume (S3).
+restart the process, then **pick an author-placed point** inside a workflow
+session and continue without replaying work before that boundary — **not**
+“keep the browser tab open,” not surprise Continue from every node
+completion, and **not** soft Pause / Steer mid-turn
+([run-interruption](run-interruption.md)). A workflow session is the durable
+conversation (graph snapshot, transcripts, last-run work log, points). It is
+not `LangflowerSession`, the process owner. Hard Stop without a boundary
+still does not create resume (S3). A normal Run continues the session head;
+**Continue from…** rewinds to a point.
 
 ## UX scenarios
 
@@ -42,9 +46,16 @@ does not create resume (S3).
 
 **Expect:**
 
-- Crossing the boundary MUST write a JSON-safe upstream snapshot under
-  `.langflower/runs/<workflowId>/<runId>/…`.
-- The snapshot MUST be listed later with enough identity (time, workflow,
+- While a workflow session is bound, crossing the boundary MUST append an
+  immutable point on
+  `.langflower/sessions/<workflowId>/<label>.json` (completed nodes,
+  JSON-safe outputs, node state, feed byte offsets, fingerprint, optional label).
+- With no session bound, that crossing MUST NOT write a session file or a
+  `.langflower/runs/**/checkpoint.json`.
+- A Run, a single-node start, or a composer cold start with no tab open
+  creates and binds a session from the graph on screen before the run
+  starts, so a finished run is on disk. Continue does not create a session.
+- The point MUST be listed later on that session with enough identity (time,
   boundary label when present, fingerprint ok/stale).
 
 ### S3 — Stop without a boundary does not create resume
@@ -64,20 +75,26 @@ does not create resume (S3).
 
 ### S4 — Continue from a chosen checkpoint after Stop / restart
 
-**Who:** Operator after Stop, overnight pause, or process restart — with at
-least one valid checkpoint on disk.
+**Who:** Operator after Stop, overnight pause, or process restart — with a
+workflow session that has at least one valid point.
 
 **Want:** Resume Stage B without redoing Stage A; choose which boundary, not
 only “latest.”
 
-**Do:** Open the project or workflow; open the checkpoint list; choose
-**Continue from…** a specific run/boundary.
+**Do:** Restart, or open the workflow. The newest non-corrupt session is
+already open (its snapshot on the canvas, its last run in the work log).
+Open **Continue from…** and choose a point. The **Workflow** button stays
+on the workflow file.
 
 **Expect:**
 
-- UI MUST show which checkpoints exist (not latest-only Continue).
-- Resume MUST skip completed nodes before that boundary and replay
-  JSON-safe snapshots; remaining stages MUST run.
+- UI MUST list that session’s points (not latest-only Continue, and not
+  points from another session).
+- Resume MUST be `runner.resume.requested` `{ pointId }`: skip completed
+  nodes before that boundary and replay JSON-safe snapshots; remaining
+  stages MUST run. The work log MUST show that point’s folded feed.
+- A Run on the same session MUST continue the head transcript and MUST NOT
+  silently rewind to a point.
 - “Continue = latest only” MUST NOT be the product contract.
 
 ### S5 — Discard or Run fresh
@@ -86,29 +103,30 @@ only “latest.”
 
 **Want:** Clear control — resume, discard, or start clean.
 
-**Do:** **Discard** a listed checkpoint, or ignore the list and **Run** fresh.
+**Do:** **Discard** a listed point, or ignore the list and **Run**.
 
 **Expect:**
 
-- Discard MUST remove that resume option.
-- Run fresh MUST start a new run — MUST NOT silently resume a prior
-  checkpoint.
+- Discard MUST remove that point (`workflowSession.discardPoint.requested`).
+- Run MUST start a new run from the session head — MUST NOT silently resume
+  a prior point.
 
 ### S6 — Fingerprint mismatch after editing the graph
 
-**Who:** Operator who checkpointed after stage A, then edited downstream
-(or the graph fingerprint no longer matches).
+**Who:** Operator who crossed a boundary after stage A, then edited the
+session graph so its fingerprint no longer matches that point.
 
 **Want:** A clear failure, not a wrong silent resume.
 
-**Do:** Edit the workflow after a checkpoint exists; try Continue from that
-entry.
+**Do:** Edit the session snapshot after a point exists; try Continue from
+that point.
 
 **Expect:**
 
-- Fingerprint mismatch / stale MUST surface a clear error
-  (`STALE_WORKFLOW` / `runner.resume.failed` path per ADR-018).
-- Operator MUST be able to **Discard** and proceed without a broken overlay.
+- Fingerprint mismatch MUST surface a clear error
+  (`POINT_STALE` on `runner.resume.failed`). `STALE_WORKFLOW` is not a
+  resume code.
+- The point stays listed as stale. **Discard** MUST remain available.
 
 ## UI specs
 
@@ -125,13 +143,13 @@ restart — no separate feature doc.
 
 Acid test only — if we never build it, which Expect dies?
 
-| Need                                                               | Why (scenario)                                                                                                                                                             | Today                                           |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Explicit checkpoint node and/or `createCheckpoint` output meta     | Author-visible boundaries; write only on cross ([S1](#s1--author-places-explicit-save-boundaries), [S2](#s2--crossing-a-boundary-persists-a-durable-snapshot))             | **Shipped** (`common-checkpoint` + output meta) |
-| Durable store + `RuntimeRunner.resume` overlay                     | Skip completed + replay JSON-safe snapshots ([S2](#s2--crossing-a-boundary-persists-a-durable-snapshot), [S4](#s4--continue-from-a-chosen-checkpoint-after-stop--restart)) | **Shipped**                                     |
-| Persist only at explicit boundaries (no auto node/Stop writes)     | No surprise Continue ([S3](#s3--stop-without-a-boundary-does-not-create-resume))                                                                                           | **Shipped**                                     |
-| Checkpoint list + resume/discard WS (multi-entry, not latest-only) | Picker Continue / Discard / Run fresh ([S4](#s4--continue-from-a-chosen-checkpoint-after-stop--restart), [S5](#s5--discard-or-run-fresh))                                  | **Shipped** (labeled picker)                    |
-| Fingerprint / stale → `runner.resume.failed` + Discard             | Safe refuse after graph edit ([S6](#s6--fingerprint-mismatch-after-editing-the-graph))                                                                                     | **Shipped** (`stale` on summary + resume fail)  |
+| Need                                                               | Why (scenario)                                                                                                                                                             | Today                                                          |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Explicit checkpoint node and/or `createCheckpoint` output meta     | Author-visible boundaries; write only on cross ([S1](#s1--author-places-explicit-save-boundaries), [S2](#s2--crossing-a-boundary-persists-a-durable-snapshot))             | **Shipped** (`common-checkpoint` + output meta)                |
+| Durable store + `RuntimeRunner.resume` overlay                     | Skip completed + replay JSON-safe snapshots ([S2](#s2--crossing-a-boundary-persists-a-durable-snapshot), [S4](#s4--continue-from-a-chosen-checkpoint-after-stop--restart)) | **Shipped** — points on the session file; resume `{ pointId }` |
+| Persist only at explicit boundaries (no auto node/Stop writes)     | No surprise Continue ([S3](#s3--stop-without-a-boundary-does-not-create-resume))                                                                                           | **Shipped** — and only while a session is bound                |
+| Checkpoint list + resume/discard WS (multi-entry, not latest-only) | Picker Continue / Discard / Run ([S4](#s4--continue-from-a-chosen-checkpoint-after-stop--restart), [S5](#s5--discard-or-run-fresh))                                        | **Shipped** — active session’s points                          |
+| Fingerprint / stale → `runner.resume.failed` + Discard             | Safe refuse after graph edit ([S6](#s6--fingerprint-mismatch-after-editing-the-graph))                                                                                     | **Shipped** (`POINT_STALE`; stale is not stored)               |
 
 ## Workflow shape
 
@@ -162,36 +180,45 @@ flowchart LR
 
 ## Status
 
-**Partial** — epic 20 landed explicit boundaries, labeled picker, STALE+Discard
-regression, and green `execute-checkpoint-resume.ws.test.ts`. Prefer **Partial**
+**Partial** — explicit boundaries still write labeled points, now on the
+bound workflow session (`runner.resume.requested` `{ pointId }`,
+`POINT_STALE` + Discard). Integration coverage is
+`tests/integration/ws/workflow-sessions.ws.test.ts`. Prefer **Partial**
 until an operator manual demo claims Implementable. HITL / Memory in the
-payload remains out of the Implementable bar.
+point payload remains out of the Implementable bar. Old
+`.langflower/runs/**/checkpoint.json` files are not read or migrated.
 
 **Implementable when** S1–S6 Expects pass (incl. manual demo): author places
-checkpoint nodes (or port flags); crossing them writes labeled checkpoints;
-on load the operator sees a clear list and Continues from a chosen entry;
-fingerprint mismatch → clear error + Discard; demo + integration cover
-explicit boundary → Stop/restart → picker → Finish.
+checkpoint nodes (or port flags); with a session open, crossing them writes
+labeled points; the operator sees that session’s list and Continues from a
+chosen point; fingerprint mismatch → `POINT_STALE` + Discard; demo +
+integration cover explicit boundary → Stop/restart → picker → Finish.
 
 ### Missing parts
 
 | Layer             | Gap                                      | Scenarios | Done when                                                              |
 | ----------------- | ---------------------------------------- | --------- | ---------------------------------------------------------------------- |
-| Runtime _(later)_ | HITL / Memory in checkpoint payload      | —         | Gated answers / Memory survive resume (not in Implementable bar above) |
+| Runtime _(later)_ | HITL / Memory in the point payload       | —         | Gated answers / Memory survive resume (not in Implementable bar above) |
 | End-user proof    | Manual demo S1–S6 on `checkpoint-resume` | S1–S6     | Operator confirms; then Status → Implementable                         |
 
 ### Workarounds
 
-None required for the explicit-boundary path — use Checkpoint nodes and the
-Continue-from picker. Auto every-node Continue remains rejected (ADR-018 C).
+Open a workflow session, place Checkpoint nodes, and use **Continue from…**.
+A Run continues the head; it does not rewind. Auto every-node Continue
+remains rejected (ADR-018 C). Old checkpoint files are not a workaround.
 
 ### Demo / CI
 
-- Demo `checkpoint-resume` — explicit Checkpoint after Stage A.
-- Integration `tests/integration/ws/execute-checkpoint-resume.ws.test.ts`
-  covers boundary → Stop → restart → Continue + STALE fingerprint path.
-- Epic: [20-explicit-checkpoints](../DONE/EPICS/20-explicit-checkpoints.md)
-  (infra: [14-checkpoints-resume](../DONE/EPICS/14-checkpoints-resume.md)).
-- ADR: [ADR-018](../architecture/ADR.md#adr-018--durable-workflow-checkpoints).
+- Demo `checkpoint-resume` — explicit Checkpoint after Stage A. Resume
+  requires a workflow session; the demo graph alone does not create a point.
+- Integration `tests/integration/ws/workflow-sessions.ws.test.ts`.
+- Epic 20 landed the explicit boundary
+  ([20-explicit-checkpoints](../DONE/EPICS/20-explicit-checkpoints.md);
+  infra: [14-checkpoints-resume](../DONE/EPICS/14-checkpoints-resume.md)).
+  Sessions: [49-sessions](../DONE/EPICS/49-sessions.md).
+- ADR: [ADR-018](../architecture/ADR.md#adr-018--durable-workflow-checkpoints)
+  (boundary) and
+  [ADR-040](../architecture/ADR.md#adr-040--workflow-sessions-own-points)
+  (store).
 - Architecture:
-  [EXECUTION_ARCHITECTURE — Durable checkpoints](../architecture/EXECUTION_ARCHITECTURE.md#durable-checkpoints-adr-018-d--epic-20).
+  [EXECUTION_ARCHITECTURE — Workflow session points](../architecture/EXECUTION_ARCHITECTURE.md#workflow-session-points).

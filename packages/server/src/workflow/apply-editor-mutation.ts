@@ -292,6 +292,7 @@ const materializeRuntimeNode = (
 		...(instance.feedVisitBoundary === true
 			? { feedVisitBoundary: true }
 			: {}),
+		...(instance.state !== undefined ? { state: instance.state } : {}),
 	};
 };
 

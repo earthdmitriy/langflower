@@ -97,7 +97,7 @@ runner gate (`runner.snapshot` / start / interrupt / done) via
 ## Act (workflow + runner)
 
 Tools are **generated** from `langflowerWsConfig` for allowlisted intents
-(`workflow.*`, `runner.*`). Names: dots → underscores
+(`workflow.*`, `workflowSession.*`, `runner.*`). Names: dots → underscores
 (`workflow.load.requested` → `workflow_load_requested`).
 
 **Not exposed:** `editor.*` (canvas mutations) — policy deny.
@@ -119,7 +119,16 @@ explicit entry in `intent-wait-map.ts`). Where payload fields allow it, waits
 are **field-correlated** (ADR-024: no bus `requestId` for single-agent CI):
 e.g. `workflow_load_requested` matches `activeWorkflow.workflowId`,
 `runner_hitl_event` matches `nodeId`/`portId`, `runner_resume_requested`
-races `runner.resume.started` vs `runner.resume.failed`. Intents with empty
+races `runner.resume.started` vs `runner.resume.failed`. Resume payload is
+`{ "pointId": "<uuid>" }` on the bound workflow session. Refusal codes are
+`POINT_STALE`, `NO_SESSION`, `BUSY`, `CORRUPT`, `UNSUPPORTED_VALUE`, and
+`NOT_FOUND`. There is no checkpoint snapshot or checkpoint-discard tool.
+`workflowSession.*` actions wait on `workflowSession.current.snapshot`
+(delete waits on `workflowSession.list.snapshot`) and race
+`workflowSession.action.failed` (`RUN_ACTIVE`, `DIRTY_WORKFLOW`,
+`SESSION_BOUND`, `NOT_FOUND`, `CORRUPT`, `WRITE_FAILED`). Select, replace,
+write, and discard correlate on `sessionId`; discard also requires the
+`pointId` to be gone. Create uses the next current snapshot. Intents with empty
 payloads (`list` / `save` / `create` / `interrupt`) still use **next broadcast
 wins**. For `runner_start_*`, pass an explicit `runId` in the tuple when a UI
 tab may also start runs — otherwise the wait cannot filter. Bus-wide
@@ -127,15 +136,17 @@ tab may also start runs — otherwise the wait cannot filter. Bus-wide
 
 ### Common actions
 
-| Tool                         | Payload sketch                                                           |
-| ---------------------------- | ------------------------------------------------------------------------ |
-| `workflow_list_requested`    | `{ "payload": {} }`                                                      |
-| `workflow_load_requested`    | `{ "payload": { "workflowId": "fake-llm" } }`                            |
-| `runner_start_requested`     | `{ "payload": [] }`                                                      |
-| `runner_interrupt_requested` | `{ "payload": "cancel" }`                                                |
-| `runner_hitl_event`          | `{ "payload": { "nodeId": "…", "portId": "approve", "payload": true } }` |
-| `runner_permission_reply`    | `{ "payload": { "runId", "askId", "decision": "allow" \| "deny" } }`     |
-| `runner_askUser_reply`       | `{ "payload": { "runId", "askId", "text" } }`                            |
+| Tool                               | Payload sketch                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------ |
+| `workflow_list_requested`          | `{ "payload": {} }`                                                      |
+| `workflow_load_requested`          | `{ "payload": { "workflowId": "fake-llm" } }`                            |
+| `workflowSession_create_requested` | `{ "payload": {} }`                                                      |
+| `workflowSession_select_requested` | `{ "payload": { "sessionId": "<uuid>" } }`                               |
+| `runner_start_requested`           | `{ "payload": [] }`                                                      |
+| `runner_interrupt_requested`       | `{ "payload": "cancel" }`                                                |
+| `runner_hitl_event`                | `{ "payload": { "nodeId": "…", "portId": "approve", "payload": true } }` |
+| `runner_permission_reply`          | `{ "payload": { "runId", "askId", "decision": "allow" \| "deny" } }`     |
+| `runner_askUser_reply`             | `{ "payload": { "runId", "askId", "text" } }`                            |
 
 HITL port ids depend on the node (e.g. review gate: `approve`,
 `requestChanges`). Discover node ids from `workflow.current.snapshot` or the

@@ -1,7 +1,7 @@
 # @langflower/shared
 
 Langflower's domain kernel: co-versioned WS protocol/config, persisted workflow
-and checkpoint shapes, project configuration types, and small deterministic
+and workflow-session shapes, project configuration types, and small deterministic
 helpers shared by server, UI, CLI, MCP, and tests. **No filesystem/network I/O,
 Angular, or server orchestration.**
 
@@ -57,23 +57,25 @@ The bus registry is an **internal, co-versioned** protocol for Langflower packag
 not a public stable WebSocket API. Keep transport defaults (`/ws`, port `4010`)
 with the registry so client and server share one source of truth. Each partial
 config owns a unique event namespace prefix (`editor.*`, `runner.*`,
-`session.*`, `palette.*`, `workflow.*`) before the final route merge.
+`session.*`, `palette.*`, `workflow.*`, `workflowSession.*`) before the
+final route merge.
 
 **Workflow manager (`workflowManagerConfig`):** several tabs can share one server
 session. Workflow state sync uses **broadcast snapshots**
 (`workflow.list.snapshot`, `workflow.current.snapshot`) — not command-reply events.
 See JSDoc on `workflowManagerConfig` in `langflower-bus-config.ts`.
 
-**State sync overview** (on `langflowerWsConfig`): session, workflow, and palette
-are **snapshot-only** (full slice replace). Runtime execution on the graph uses
-**snapshot + event-sourcing** — `executionFeed` on reconnect, then live `runner.*`
-events only.
+**State sync overview** (on `langflowerWsConfig`): session, workflow,
+workflow sessions, and palette are **snapshot-only** (full slice replace).
+Runtime execution on the graph uses **snapshot + event-sourcing** —
+`executionFeed` on reconnect, then live `runner.*` events only.
 
 `SessionReadyPayload` and `ExecutionProgressStatus` live in
 [`types/langflower-server.ts`](src/types/langflower-server.ts). Snapshot payloads
 live in [`types/langflower-bootstrap.ts`](src/types/langflower-bootstrap.ts);
-workflow, editor, palette, config, and checkpoint payloads stay in their
-corresponding `types/` modules.
+workflow, editor, palette, config, and workflow-session
+payloads stay in their corresponding `types/` modules. JSON conversion and
+the workflow fingerprint stay under `checkpoint/`.
 
 **WS wait helpers** ([`langflower-ws-waits.ts`](src/langflower-ws-waits.ts)): pure
 RxJS request/wait helpers over a `langflowerWsConfig` client (no filesystem).
@@ -87,7 +89,7 @@ waits for pristine active current; delete waits for id-absent list;
 ```
 src/
 ├── checkpoint/
-│   ├── json-value.ts                 # checkpoint-safe JSON conversion
+│   ├── json-value.ts                 # JSON-safe conversion for points and node state
 │   └── workflow-fingerprint.ts       # deterministic workflow fingerprint
 ├── constants/
 │   └── defaults.ts                   # port, tool config, divider defaults/clamps
@@ -112,7 +114,9 @@ src/
 │   ├── langflower-project-bootstrap.ts
 │   ├── langflower-server.ts
 │   ├── langflower-workflow.ts
-│   └── workflow-checkpoint.ts
+│   └── workflow-session.ts           # session file, points, bus payloads
+├── workflow/
+│   └── is-same-workflow-document.ts  # equality ignoring graph.viewport
 ├── langflower-bus-config.ts          # typed internal WS registry
 ├── langflower-ws-waits.ts            # pure request/wait helpers (tests + MCP)
 ```

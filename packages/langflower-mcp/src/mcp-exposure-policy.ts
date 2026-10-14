@@ -1,9 +1,15 @@
 /**
  * Allowlist for which `langflowerWsConfig` keys become MCP tools.
- * Namespace is `workflow.*` / `runner.*` only — `editor.*` never matches.
+ * Namespace is `workflow.*` / `workflowSession.*` / `runner.*` —
+ * `editor.*` never matches. `workflow.*` does not match `workflowSession.*`
+ * (`*` still requires the dot after `workflow`).
  */
 
-export const ACTION_NAMESPACE_GLOBS = ['workflow.*', 'runner.*'] as const;
+export const ACTION_NAMESPACE_GLOBS = [
+	'workflow.*',
+	'workflowSession.*',
+	'runner.*',
+] as const;
 
 /**
  * Server→client events agents may wait on / read via observe tools.
@@ -18,6 +24,9 @@ export const OBSERVE_EVENT_KEYS = [
 	'workflow.list.snapshot',
 	'workflow.current.snapshot',
 	'workflow.load.failed',
+	'workflowSession.list.snapshot',
+	'workflowSession.current.snapshot',
+	'workflowSession.action.failed',
 	'workflow.currentStatus.snapshot',
 	'langflower.config.snapshot',
 	'palette.snapshot',
@@ -34,8 +43,6 @@ export const OBSERVE_EVENT_KEYS = [
 	'runner.permission.accepted',
 	'runner.askUser.ask',
 	'runner.askUser.accepted',
-	'runner.checkpoints.snapshot',
-	'runner.checkpointed',
 ] as const;
 
 export type ObserveEventKey = (typeof OBSERVE_EVENT_KEYS)[number];

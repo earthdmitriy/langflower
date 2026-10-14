@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+	<defs>
+		<path id="petal" d="M-1.6-18.4Q0-19.6 1.6-18.4C5.2-15.8 7.5-13 7.5-9.5C7.5-4.8 4.3-1.4 0 0C-4.3-1.4-7.5-4.8-7.5-9.5C-7.5-13-5.2-15.8-1.6-18.4Z" />
+		<radialGradient id="glow">
+			<stop offset="0.45" stop-color="#f6f1ea" stop-opacity="0.95" />
+			<stop offset="1" stop-color="#f6f1ea" stop-opacity="0" />
+		</radialGradient>
+	</defs>
+	<g transform="translate(32 32)">
+		<use href="#petal" fill="#cd6f8a" transform="translate(0 -6)" />
+		<use href="#petal" fill="#708c75" transform="translate(5.5 -3.2) rotate(62)" />
+		<use href="#petal" fill="#375b4a" transform="translate(5.5 3.2) rotate(118)" />
+		<use href="#petal" fill="#cd6f8a" transform="translate(0 6) rotate(180)" />
+		<use href="#petal" fill="#708c75" transform="translate(-5.5 3.2) rotate(242)" />
+		<use href="#petal" fill="#375b4a" transform="translate(-5.5 -3.2) rotate(298)" />
+	</g>
+	<circle cx="32" cy="32" r="9" fill="url(#glow)" />
+	<g fill="#f2ebe3" stroke="#f2ebe3" stroke-width="1.3" stroke-linecap="butt">
+		<line x1="32" y1="32" x2="32" y2="17.5" />
+		<line x1="32" y1="32" x2="44.3" y2="24.9" />
+		<line x1="32" y1="32" x2="44.3" y2="39.1" />
+		<line x1="32" y1="32" x2="32" y2="46.2" />
+		<line x1="32" y1="32" x2="19.7" y2="39.1" />
+		<line x1="32" y1="32" x2="19.7" y2="24.9" />
+		<circle cx="32" cy="17.5" r="2.5" stroke="none" />
+		<circle cx="44.3" cy="24.9" r="2.5" stroke="none" />
+		<circle cx="44.3" cy="39.1" r="2.5" stroke="none" />
+		<circle cx="32" cy="46.2" r="2.5" stroke="none" />
+		<circle cx="19.7" cy="39.1" r="2.5" stroke="none" />
+		<circle cx="19.7" cy="24.9" r="2.5" stroke="none" />
+	</g>
+	<circle cx="32" cy="32" r="3.5" fill="#375b4a" />
+</svg>

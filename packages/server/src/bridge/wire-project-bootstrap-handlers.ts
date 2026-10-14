@@ -1,8 +1,6 @@
 import type { ProjectBootstrapResultPayload } from '@langflower/shared/types/langflower-project-bootstrap.js';
 import { Subscription } from 'rxjs';
 import { bootstrapProject } from '../bootstrap/project-bootstrap.service.js';
-import { listResumableCheckpoints } from '../checkpoint/list-resumable-checkpoints.js';
-import { WorkflowCheckpointStore } from '../checkpoint/workflow-checkpoint-store.js';
 import type { ServerContext } from '../server-context.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
 import { loadWorkflowIntoSession } from '../workflow/load-workflow-into-session.js';
@@ -74,16 +72,6 @@ export const wireProjectBootstrapHandlers = (
 				bridgeEmit(bridge, 'workflow.current.snapshot', {
 					activeWorkflow: session.activeWorkflow,
 					currentStatus: { status: session.currentStatus },
-				});
-
-				const checkpoints = await listResumableCheckpoints(
-					new WorkflowCheckpointStore(context.projectDir),
-					activeId,
-					session.activeWorkflow,
-				);
-				bridgeEmit(bridge, 'runner.checkpoints.snapshot', {
-					workflowId: activeId,
-					checkpoints,
 				});
 			}
 

@@ -6,6 +6,8 @@ import {
 	input,
 	signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import type {
 	AskUserQuestion,
 	RunnerAskUserAskPayload,
@@ -17,6 +19,7 @@ import {
 } from '@langflower/shared/langflower-config/format-ask-user-reply-text';
 import { LfAskUserQuestionsComponent } from './lf-ask-user-questions.component';
 import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component.js';
+import { LangflowerBridgeService } from '../../../services/langflower-bridge.service';
 import { NodeHoverService } from '../../../services/node-hover.service';
 import type { HitlControlProjection } from '../../../services/hitl-projection';
 import {
@@ -26,6 +29,7 @@ import {
 } from '../composer.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import { resolveComposerEnterPayload } from '../hitl-action-payload';
+import { showSessionConversationReset } from '../composer-awaiting-node-ids';
 import { resolveComposerFooterMode } from '../composer-footer-mode';
 import { LfHitlActionsComponent } from './lf-hitl-actions.component';
 import { LfHitlTextareaComponent } from './lf-hitl-textarea.component';
@@ -251,6 +255,39 @@ import { RunButtonComponent } from './run-button.component';
 									<lf-run-button [compact]="true" />
 									<lf-pause-button />
 								</div>
+							} @else if (showConversationReset()) {
+								<div class="mr-auto flex shrink-0 items-center">
+									<lf-hover-tip
+										align="start"
+										side="top"
+										tip="Clear this session's conversation. The graph stays."
+									>
+										<button
+											type="button"
+											class="lf-composer-icon-btn border border-zinc-300 text-zinc-500 hover:text-zinc-800 dark:border-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-100"
+											aria-label="Reset session"
+											(click)="requestReset()"
+										>
+											<svg
+												viewBox="0 0 20 20"
+												class="h-4 w-4"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="1.5"
+												aria-hidden="true"
+											>
+												<path
+													d="M4.5 10a5.5 5.5 0 0 1 9.4-3.9L16 8"
+												/>
+												<path d="M16 4.5V8h-3.5" />
+												<path
+													d="M15.5 10a5.5 5.5 0 0 1-9.4 3.9L4 12"
+												/>
+												<path d="M4 15.5V12h3.5" />
+											</svg>
+										</button>
+									</lf-hover-tip>
+								</div>
 							}
 							<div
 								class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2"
@@ -290,6 +327,44 @@ import { RunButtonComponent } from './run-button.component';
 					}
 				}
 			</div>
+			@if (pendingReset()) {
+				<div
+					class="absolute bottom-16 left-3 z-20 w-72 rounded-lg border border-zinc-200 bg-white p-4 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+					role="alertdialog"
+					aria-labelledby="reset-session-title"
+					aria-describedby="reset-session-desc"
+				>
+					<h2
+						id="reset-session-title"
+						class="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+					>
+						Reset session?
+					</h2>
+					<p
+						id="reset-session-desc"
+						class="mt-2 text-xs leading-5 text-zinc-500 dark:text-zinc-400"
+					>
+						This clears the conversation, the work log, and points.
+						The graph stays.
+					</p>
+					<div class="mt-4 flex justify-end gap-2">
+						<button
+							type="button"
+							class="rounded-md border border-zinc-200 px-3 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+							(click)="cancelReset()"
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							class="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-800 transition hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+							(click)="confirmReset()"
+						>
+							Reset
+						</button>
+					</div>
+				</div>
+			}
 		</section>
 	`,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -297,9 +372,26 @@ import { RunButtonComponent } from './run-button.component';
 export class LfComposerShellComponent {
 	readonly height = input.required<number>();
 
+	private readonly bridge = inject(LangflowerBridgeService);
 	readonly execution = inject(WorkflowExecutionService);
 	readonly composer = inject(ComposerService);
 	readonly hover = inject(NodeHoverService);
+
+	private readonly boundSessionId = toSignal(
+		this.bridge.cached['workflowSession.current.snapshot'].pipe(
+			map((snapshot) => snapshot.sessionId),
+		),
+		{ initialValue: null as string | null },
+	);
+
+	readonly pendingReset = signal(false);
+
+	readonly showConversationReset = computed(() =>
+		showSessionConversationReset(
+			this.execution.isRunning(),
+			this.composer.hasAwaitingHitl() ? 1 : 0,
+		),
+	);
 
 	readonly activePermissionAsk = computed(
 		() => this.composer.pendingPermissionAsks()[0] ?? null,
@@ -394,6 +486,28 @@ export class LfComposerShellComponent {
 
 	selectHitlTab(nodeId: string): void {
 		this.selectedHitlTab.set(nodeId);
+	}
+
+	requestReset(): void {
+		if (!this.showConversationReset()) {
+			return;
+		}
+		this.pendingReset.set(true);
+	}
+
+	cancelReset(): void {
+		this.pendingReset.set(false);
+	}
+
+	confirmReset(): void {
+		const sessionId = this.boundSessionId();
+		this.pendingReset.set(false);
+		if (sessionId === null) {
+			return;
+		}
+		this.bridge.raw['workflowSession.resetConversation.requested'].next({
+			sessionId,
+		});
 	}
 
 	onHitlSubmit(

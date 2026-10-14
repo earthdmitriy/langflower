@@ -1,11 +1,13 @@
 import { hasCustomNodePacks } from '@langflower/compiler/discover-packs';
 import { DEFAULT_CONFIG } from '@langflower/shared/constants/defaults.js';
-import { listResumableCheckpoints } from '../checkpoint/list-resumable-checkpoints.js';
-import type { RunCheckpointSession } from '../checkpoint/run-checkpoint-session.js';
 import type { ServerContext } from '../server-context.js';
 import { buildSessionBootstrap } from '../session/build-session-bootstrap.js';
 import { LangflowerSession } from '../session/langflower-session.js';
 import { loadWorkflowIntoSession } from '../workflow/load-workflow-into-session.js';
+import { bindLatestWorkflowSession } from '../workflow-sessions/workflow-session-actions.js';
+import type { WorkflowSessionAutosave } from '../workflow-sessions/workflow-session-autosave.js';
+import { readWorkflowSessionSnapshots } from '../workflow-sessions/workflow-session-snapshots.js';
+import type { WorkflowSessionStore } from '../workflow-sessions/workflow-session-store.js';
 import { buildLangflowerConfigSnapshot } from './build-langflower-config-snapshot.js';
 import { clientEmit } from './bridge-outbound.js';
 import type { LangflowerClient } from './langflower-bridge.types.js';
@@ -13,10 +15,11 @@ import { pushModelsCatalogToClient } from './push-models-catalog.js';
 import type { SettingsDraftController } from './settings-draft-controller.js';
 
 /**
- * Connect / reconnect bootstrap emit order (authoritative for docs):
+ * After the workflow file loads, the newest non-corrupt session is bound
+ * before these snapshots. Connect / reconnect bootstrap emit order:
  * session.state.snapshot → runner.snapshot → executionFeed.snapshot →
- * runner.checkpoints.snapshot → toolConfig.snapshot →
- * workflow.list/current.snapshot → session.ready →
+ * toolConfig.snapshot → workflow.list/current.snapshot →
+ * workflowSession.list/current.snapshot → session.ready →
  * langflower.config.snapshot → langflower.config.draft.snapshot →
  * (async) langflower.models.catalog.snapshot →
  * permission.ask / askUser.ask replay → palette.snapshot → customPalette.snapshot
@@ -26,7 +29,8 @@ export const emitBootstrap = async (
 	client: LangflowerClient,
 	context: ServerContext,
 	session: LangflowerSession,
-	checkpoints: RunCheckpointSession,
+	workflowSessions: WorkflowSessionStore,
+	autosave: WorkflowSessionAutosave,
 	draftController?: SettingsDraftController,
 ): Promise<void> => {
 	const langflowerConfig = await context.langflowerConfigService.read();
@@ -41,6 +45,16 @@ export const emitBootstrap = async (
 			langflowerConfig.currentWorkflowId,
 			context.resolveDefinition,
 		);
+		if (session.activeWorkflow !== null) {
+			session.savedWorkflowDocument = session.activeWorkflow;
+			await bindLatestWorkflowSession({
+				session,
+				store: workflowSessions,
+				workflowService: context.workflowService,
+				resolveDefinition: context.resolveDefinition,
+				autosave,
+			});
+		}
 	}
 
 	// Apply persisted divider positions from config
@@ -72,17 +86,6 @@ export const emitBootstrap = async (
 	});
 	clientEmit(client, 'executionFeed.snapshot', session.buildExecutionFeed());
 
-	const workflowId = session.activeWorkflowId ?? null;
-	const resumable = await listResumableCheckpoints(
-		checkpoints.getStore(),
-		workflowId,
-		session.activeWorkflow,
-	);
-	clientEmit(client, 'runner.checkpoints.snapshot', {
-		workflowId,
-		checkpoints: resumable,
-	});
-
 	const toolConfigRead = await context.configService.read();
 	const toolConfig = toolConfigRead.ok
 		? toolConfigRead.config
@@ -96,6 +99,17 @@ export const emitBootstrap = async (
 		activeWorkflow: session.activeWorkflow,
 		currentStatus: { status: session.currentStatus },
 	});
+
+	const sessionSnapshots = await readWorkflowSessionSnapshots(
+		session,
+		workflowSessions,
+	);
+	clientEmit(client, 'workflowSession.list.snapshot', sessionSnapshots.list);
+	clientEmit(
+		client,
+		'workflowSession.current.snapshot',
+		sessionSnapshots.current,
+	);
 
 	clientEmit(client, 'session.ready', {
 		version: LangflowerSession.sessionReadyVersion,

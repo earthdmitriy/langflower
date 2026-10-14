@@ -28,3 +28,15 @@ export const resolveComposerFooterMode = (args: {
 	}
 	return 'idleRun';
 };
+
+/**
+ * Workflow and session controls stay blocked only while the graph is
+ * executing. HITL, steering, a permission ask, and `ask_user` are parked
+ * waits, so those controls stay usable.
+ */
+export const navigationLocked = (args: {
+	readonly hasPermissionAsk: boolean;
+	readonly hasAskUser: boolean;
+	readonly isRunning: boolean;
+	readonly hitlTabCount: number;
+}): boolean => resolveComposerFooterMode(args) === 'working';

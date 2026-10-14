@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { resolveComposerFooterMode } from '../composer-footer-mode';
+import {
+	navigationLocked,
+	resolveComposerFooterMode,
+} from '../composer-footer-mode';
 
 describe('composer-footer-mode', () => {
 	it('working mode when running with no HITL — Pause chrome in working footer', () => {
@@ -55,5 +58,56 @@ describe('composer-footer-mode', () => {
 				hitlTabCount: 0,
 			}),
 		).toBe('idleRun');
+	});
+});
+
+describe('navigationLocked', () => {
+	it('locks only while the graph is executing', () => {
+		expect(
+			navigationLocked({
+				hasPermissionAsk: false,
+				hasAskUser: false,
+				isRunning: true,
+				hitlTabCount: 0,
+			}),
+		).toBe(true);
+	});
+
+	it('stays open for HITL, steering, a permission ask, and ask_user', () => {
+		expect(
+			navigationLocked({
+				hasPermissionAsk: false,
+				hasAskUser: false,
+				isRunning: true,
+				hitlTabCount: 1,
+			}),
+		).toBe(false);
+		expect(
+			navigationLocked({
+				hasPermissionAsk: true,
+				hasAskUser: false,
+				isRunning: true,
+				hitlTabCount: 0,
+			}),
+		).toBe(false);
+		expect(
+			navigationLocked({
+				hasPermissionAsk: false,
+				hasAskUser: true,
+				isRunning: true,
+				hitlTabCount: 0,
+			}),
+		).toBe(false);
+	});
+
+	it('stays open while idle', () => {
+		expect(
+			navigationLocked({
+				hasPermissionAsk: false,
+				hasAskUser: false,
+				isRunning: false,
+				hitlTabCount: 0,
+			}),
+		).toBe(false);
 	});
 });

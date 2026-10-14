@@ -66,6 +66,14 @@
 			"types": "./dist/execution/*.d.ts",
 			"import": "./dist/execution/*.js"
 		},
+		"./workflow/*": {
+			"types": "./dist/workflow/*.d.ts",
+			"import": "./dist/workflow/*.js"
+		},
+		"./workflow/*.js": {
+			"types": "./dist/workflow/*.d.ts",
+			"import": "./dist/workflow/*.js"
+		},
 		"./types/*": {
 			"types": "./dist/types/*.d.ts",
 			"import": "./dist/types/*.js"

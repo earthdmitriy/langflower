@@ -11,6 +11,17 @@ const INTENT_WAIT_OVERRIDES: Readonly<Record<string, string | null>> = {
 	'workflow.create.requested': 'workflow.current.snapshot',
 	'workflow.copy.requested': 'workflow.current.snapshot',
 	'workflow.delete.requested': 'workflow.list.snapshot',
+	'workflowSession.create.requested': 'workflowSession.current.snapshot',
+	'workflowSession.select.requested': 'workflowSession.current.snapshot',
+	'workflowSession.delete.requested': 'workflowSession.list.snapshot',
+	'workflowSession.replaceSnapshotFromWorkflow.requested':
+		'workflowSession.current.snapshot',
+	'workflowSession.writeSnapshotToWorkflow.requested':
+		'workflowSession.current.snapshot',
+	'workflowSession.discardPoint.requested':
+		'workflowSession.current.snapshot',
+	'workflowSession.resetConversation.requested':
+		'workflowSession.current.snapshot',
 	'runner.start.requested': 'runner.started',
 	'runner.startNode.requested': 'runner.startNode.started',
 	'runner.interrupt.requested': 'runner.interrupted',
@@ -19,7 +30,6 @@ const INTENT_WAIT_OVERRIDES: Readonly<Record<string, string | null>> = {
 	'runner.askUser.reply': null,
 	'runner.executionFeed.clear.requested': 'executionFeed.snapshot',
 	'runner.resume.requested': 'runner.resume.started',
-	'runner.checkpoint.discard.requested': 'runner.checkpoints.snapshot',
 };
 
 export const resolveWaitEvent = (intent: string): string | null => {
