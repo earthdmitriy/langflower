@@ -60,8 +60,8 @@ Load **Checkpoint resume** (`checkpoint-resume`): Source → Stage A → Preview
 3. **Continue** from that entry — Stage B / Preview B finish without redoing
    Stage A. **Discard** clears the resume option; **Run** starts fresh.
 
-See [docs/use-cases/resumable-checkpoint-jobs.md](../docs/use-cases/resumable-checkpoint-jobs.md)
-and [ADR-018](../docs/architecture/ADR.md#adr-018--durable-workflow-checkpoints).
+See [docs/product/use-cases/resumable-checkpoint-jobs.md](../docs/product/use-cases/resumable-checkpoint-jobs.md)
+and [ADR-018](../docs/adr/018-durable-workflow-checkpoints.md#adr-018--durable-workflow-checkpoints).
 CI: `tests/integration/ws/execute-checkpoint-resume.ws.test.ts`.
 
 ## Multi-role approval (parallel HITL gates)
@@ -132,7 +132,7 @@ provider/model.
 Real-LLM path documents the product claim; Fake CI is topology-only
 (`tests/integration/ws/execute-coding-agent.ws.test.ts` — Principles Review is
 a HITL stand-in for `common-review`). See
-`docs/use-cases/coding-agent.md`.
+`docs/product/use-cases/coding-agent.md`.
 
 ### Run path — basic coder (smoke only)
 
@@ -144,8 +144,8 @@ a HITL stand-in for `common-review`). See
 4. **Stop** ends the run; send another goal from the idle composer when ready.
 
 This is a **smoke** pilot only — not the full coding-agent product claim (see
-`docs/use-cases/coding-agent.md` and **Coding agent** above) and **not**
-[permission-escalation-ops](../docs/use-cases/permission-escalation-ops.md)
+`docs/product/use-cases/coding-agent.md` and **Coding agent** above) and **not**
+[permission-escalation-ops](../docs/product/use-cases/permission-escalation-ops.md)
 (dedicated explore → write → bash stages). It proves Chat Input entry +
 Plan→Coder handoff + harness tools + `permission.ask`.
 
@@ -166,7 +166,7 @@ CI: `tests/integration/ws/execute-basic-coder.ws.test.ts`.
 Stages are **graph nodes / role budgets** — there is no mid-run permission
 tier unlock. Fake CI is topology + scripted tools only
 (`tests/integration/ws/execute-permission-escalation-ops.ws.test.ts`). See
-`docs/use-cases/permission-escalation-ops.md`.
+`docs/product/use-cases/permission-escalation-ops.md`.
 
 ### Run path — KB contradiction curation
 
@@ -180,7 +180,7 @@ tier unlock. Fake CI is topology + scripted tools only
 
 Do **not** count epic 10 ingest-only / search-only graphs as this Value. Fake
 CI: `tests/integration/ws/execute-kb-contradiction-curation.ws.test.ts`. See
-`docs/use-cases/kb-contradiction-curation.md`.
+`docs/product/use-cases/kb-contradiction-curation.md`.
 
 ## Obsidian KB (epic 11)
 
@@ -197,7 +197,7 @@ Frontmatter patch → Wikilink rewrite → Build MOC → Preview.
 ```
 
 Then wire LLM + HITL + harness `write`/`create` on the accepted path (not in
-this offline demo). See [obsidian-kb](../docs/use-cases/obsidian-kb.md).
+this offline demo). See [obsidian-kb](../docs/product/use-cases/obsidian-kb.md).
 
 ## Eval / regression gate (epic 09)
 
@@ -218,7 +218,7 @@ node packages/cli/bin/langflower.js eval tests/fixtures/eval/golden-sample \
 
 In the UI: load **Eval regression gate**, Run; set Suite score &lt; Threshold to
 see Assert stop-on-regression. See
-[eval-regression-gate](../docs/use-cases/eval-regression-gate.md).
+[eval-regression-gate](../docs/product/use-cases/eval-regression-gate.md).
 
 ## Swarm primitives (epic 07)
 

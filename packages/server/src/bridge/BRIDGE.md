@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: server
+covers:
+    - 'packages/server/src/bridge/**'
+status: current
+---
+
 # WS bridge — call stack
 
 Transport wiring for `langflowerWsConfig`. Domain logic for workflows lives in
@@ -8,7 +16,7 @@ subscribes to bus intents and emits snapshots / deltas.
 `packages/server/src/`. Inject from `@langflower/tools` /
 `common-nodes` via [`build-execution-context.ts`](build-execution-context.ts)
 and [`bind-llm-context.ts`](bind-llm-context.ts). See
-[server AGENTS.md](../AGENTS.md) and
+[server AGENTS.md](../../AGENTS.md) and
 [PRINCIPLES.md § Thin server](../../../../docs/architecture/PRINCIPLES.md#thin-server--do-not-grow-domain-here).
 
 ## Entry
@@ -40,7 +48,7 @@ it is the composer entry (sibling wire steps, explicit order). Pattern:
    events during `runner.start()` are not dropped (`events$` is a
    non-replaying Subject). Late clients get backlog via
    `executionFeed.snapshot`.
-   See [FOUND_BUGS.md](../../../../docs/FOUND_BUGS.md) (pending race).
+   See [FOUND_BUGS.md](../../../../docs/bugs/README.md) (pending race).
 2. **Connect / disconnect** — [`client-index.ts`](client-index.ts) +
    [`emit-bootstrap.ts`](emit-bootstrap.ts).
 3. **Intent handlers** (bus namespaces, in attach order):
@@ -175,6 +183,6 @@ Outbound helpers: [`bridge-outbound.ts`](bridge-outbound.ts)
 | `langflower-bridge.types.ts` | `LangflowerBridge` / `LangflowerClient` |
 
 Protocol registry:
-[`packages/shared/src/langflower-bus-config.ts`](../../shared/src/langflower-bus-config.ts).
+[`packages/shared/src/langflower-bus-config.ts`](../../../shared/src/langflower-bus-config.ts).
 High-level sync model: [docs/architecture/ARCHITECTURE.md](../../../../docs/architecture/ARCHITECTURE.md)
 § WebSocket Protocol.

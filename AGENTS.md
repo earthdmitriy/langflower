@@ -5,33 +5,20 @@ docs, and UI copy for this project must be in English.
 
 Local coding agent on a visual workflow graph: CLI + server + Angular UI
 (ngDiagram), node registry, workflow CRUD, and reactive WebSocket execution.
-Start with [PRODUCT](docs/PRODUCT.md), then the relevant feature/use-case doc.
+Start at [docs/README.md](docs/README.md).
 
 ## Canonical docs
 
-| Doc                                                                   | Use for                                                    |
-| --------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [PRODUCT](docs/PRODUCT.md)                                            | Purpose, user, differentiators, scope                      |
-| [GLOSSARY](docs/GLOSSARY.md)                                          | Short term definitions (Part 1 users; Part 2 developers)   |
-| [Features](docs/features/README.md)                                   | Shipped user-facing behaviour                              |
-| [Use cases](docs/use-cases/README.md)                                 | Active scenarios and Status gaps                           |
-| [NAVIGATION](docs/architecture/NAVIGATION.md)                         | Where code belongs                                         |
-| [PRINCIPLES](docs/architecture/PRINCIPLES.md)                         | Functional-reactive flow, adapted slices, boundaries       |
-| [ARCHITECTURE](docs/architecture/ARCHITECTURE.md)                     | Startup, API, and system flows                             |
-| [ADR](docs/architecture/ADR.md)                                       | Non-obvious architecture decisions                         |
-| [REACTIVITY](docs/architecture/REACTIVITY.md)                         | RxJS folds and subscription rules                          |
-| [EXECUTION_ARCHITECTURE](docs/architecture/EXECUTION_ARCHITECTURE.md) | Runtime/bridge execution flow                              |
-| [EXTENSION_POINT](docs/architecture/EXTENSION_POINT.md)               | Extension seams: node, pack, tool, bus event, provider     |
-| [HOW_TO_WRITE_REACTIVE_NODES](docs/HOW_TO_WRITE_REACTIVE_NODES.md)    | Node authoring                                             |
-| [SESSIONS](docs/SESSIONS.md)                                          | Workflow sessions: head, points, node-state hook           |
-| [LLM_RECOVERY](docs/LLM_RECOVERY.md)                                  | Stuck stream / dead-loop recovery (idle, autokick)         |
-| [EMBEDDING](docs/EMBEDDING.md)                                        | OpenAI embeddings vs chat (`encoding_format`, EmbedHandle) |
-| [TESTING](docs/TESTING.md)                                            | Unit/API/integration tests                                 |
-| [VIRTUAL_SCROLL](docs/VIRTUAL_SCROLL.md)                              | Work-log window: why CDK autosize failed, current slice    |
-| [STATUS](docs/STATUS.md)                                              | Implemented versus stubbed                                 |
-| [FOUND_BUGS](docs/FOUND_BUGS.md)                                      | Reproduced bugs and design lessons                         |
-| [TODO](docs/TODO/README.md) / [DONE](docs/DONE/README.md)             | Queued / completed plans                                   |
-| [TBD](docs/TBD.md)                                                    | Long-horizon unresolved tradeoffs                          |
+Start at [docs/README.md](docs/README.md). It routes to layer indexes and
+the generated [DOC_MAP](docs/architecture/DOC_MAP.md). Read these first:
+
+| Doc                                                                   | Use for                                              |
+| --------------------------------------------------------------------- | ---------------------------------------------------- |
+| [PRINCIPLES](docs/architecture/PRINCIPLES.md)                         | Functional-reactive flow, adapted slices, boundaries |
+| [NAVIGATION](docs/architecture/NAVIGATION.md)                         | Where code belongs                                   |
+| [EXECUTION_ARCHITECTURE](docs/architecture/EXECUTION_ARCHITECTURE.md) | Runtime/bridge execution flow                        |
+| [SESSIONS](docs/reference/SESSIONS.md)                                | Workflow sessions: head, points, node-state hook     |
+| [Writing docs](docs/guides/writing-docs.md)                           | Placement, frontmatter, and freshness                |
 
 Feature docs describe **what** ships; technical docs and ADRs describe **how**.
 Do not plan against historical Stage labels.
@@ -57,6 +44,7 @@ Read the nested instructions before changing a package:
 | ------------------------------ | -------------------------------------------------------------------------- |
 | `@langflower/shared`           | [packages/shared/AGENTS.md](packages/shared/AGENTS.md)                     |
 | `@langflower/node-sdk`         | [packages/node-sdk/AGENTS.md](packages/node-sdk/AGENTS.md)                 |
+| `@langflower/runtime`          | [packages/runtime/AGENTS.md](packages/runtime/AGENTS.md)                   |
 | `@langflower/tools`            | [packages/tools/AGENTS.md](packages/tools/AGENTS.md)                       |
 | `@langflower/common-nodes`     | [packages/common-nodes/AGENTS.md](packages/common-nodes/AGENTS.md)         |
 | `@langflower/websocket-bridge` | [packages/websocket-bridge/AGENTS.md](packages/websocket-bridge/AGENTS.md) |
@@ -119,15 +107,16 @@ Full rationale and edge allow-list:
 - There is no separate batch engine and no `ReactivePortBus`. Do not reintroduce
   execution-mode adapters.
 
-See [ADR-004](docs/architecture/ADR.md#adr-004--functional--reactive-style-with-rxjs),
-[ADR-012](docs/architecture/ADR.md#adr-012--internal-websocket-bus-rest-for-bulk-escape-hatches),
+See [ADR-004](./docs/adr/004-functional-reactive-style-with-rxjs.md),
+[ADR-012](./docs/adr/012-internal-websocket-bus-rest-for-bulk-escape-hatches.md),
 and [EXECUTION_ARCHITECTURE](docs/architecture/EXECUTION_ARCHITECTURE.md).
 
 ## Found bugs
 
-After reproducing and fixing (or deferring) a non-trivial bug, append
-[FOUND_BUGS](docs/FOUND_BUGS.md) with the design flaw signal and regression test.
-Canvas-only incidents may also belong in
+After reproducing and fixing (or deferring) a non-trivial bug, add a new
+file under [docs/bugs/](docs/bugs/) using the bug template in
+[writing-docs](docs/guides/writing-docs.md). Do not append to
+`FOUND_BUGS.md`. Canvas-only incidents may also belong in
 [DIAGRAM_CANVAS](packages/ui/docs/DIAGRAM_CANVAS.md).
 
 ## Build and verify
@@ -135,6 +124,7 @@ Canvas-only incidents may also belong in
 Use `.cursor/skills/langflower-build/SKILL.md`.
 
 ```bash
+npm run format
 npm run typecheck
 npm run test
 node build/tools/agent-run.mjs typecheck
@@ -144,11 +134,17 @@ node build/tools/agent-run.mjs dead-code
 node build/tools/agent-run.mjs check-exports
 ```
 
-**Hard gate — do not skip.** Work is **not finished** until **both** pass:
+**Hard gate — do not skip.** Work is **not finished** until **all** pass:
 
+- `npm run format` (changed files; `npm run format --all` formats the whole tree)
 - `npm run typecheck` or `node build/tools/agent-run.mjs typecheck` (all
   packages)
 - `npm run test` or full `verify` (unit **and** integration)
+
+`npm run test` and full `verify` run `tests/unit/docs-boundaries`. A
+`DOC REMINDER` must be resolved: update the named doc or follow the
+reminder. Do not silence it by weakening a rule, narrowing `covers`,
+skipping the test, or deleting a doc.
 
 `verify` / `npm run test` do **not** run `tsc`. Agents must not:
 
@@ -156,15 +152,15 @@ node build/tools/agent-run.mjs check-exports
 - Treat green `verify` / `npm run test` as a typecheck
 - Put `verify --quick`, focused vitest, or tests without typecheck as the sole
   **Verify / DoD** step in a plan — intermediate only; close-out must be full
-  typecheck **and** `npm run test` or full `verify` (see
-  `.cursor/rules/plan-verify-dod.mdc`)
+  typecheck **and** `npm run test` or full `verify`, after `npm run format`
+  (see `.cursor/rules/plan-verify-dod.mdc`)
 - Skip, disable, `.skip`, or narrow the suite to hide failures
 - Declare done while typecheck or any test file or case still fails
 - Blame flakes and stop without reproducing and fixing (or asking the user)
 
 Execution, WebSocket, bootstrap, agent, or HITL changes require integration
-coverage; see [TESTING](docs/TESTING.md). Prefer `npm run typecheck` and
-`npm run test` or full `verify` before finishing.
+coverage; see [TESTING](docs/guides/TESTING.md). Prefer `npm run format`,
+`npm run typecheck`, and `npm run test` or full `verify` before finishing.
 
 `langflower start` and `npm run dev` are long-running on port 4010. Prefer
 one-shot verification. If a manual server was needed, stop it before finishing
@@ -174,14 +170,15 @@ unless the user explicitly asked to leave it running.
 
 - With a running server, the Langflower MCP can drive `workflow.*` / `runner.*`;
   call `ensure_connected` first. See
-  [LANGFLOWER_MCP](docs/LANGFLOWER_MCP.md).
+  [LANGFLOWER_MCP](docs/reference/LANGFLOWER_MCP.md).
 - Prefer the **ts-scan** MCP for local TypeScript definitions, references,
   callers, signatures, and file diagnostics — especially `resolve_symbol`
   instead of grepping symbol names. Full rules:
   [`.cursor/rules/ts-scan-code-intelligence.mdc`](.cursor/rules/ts-scan-code-intelligence.mdc).
   If ts-scan is disabled or unavailable, ask the user to re-enable it; do not
   silently fall back to Grep for symbol lookup. Use full build gates
-  (`npm run typecheck` and `npm run test` / `verify`) for project-wide proof.
+  (`npm run format`, `npm run typecheck`, and `npm run test` / `verify`) for
+  project-wide proof. `npm run format` covers changed files only.
 
 ## When stuck — ask
 

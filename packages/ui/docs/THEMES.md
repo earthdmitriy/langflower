@@ -1,3 +1,11 @@
+---
+kind: architecture
+owner: ui
+covers:
+    - 'packages/ui/src/**'
+status: current
+---
+
 # Themes (UI)
 
 Tailwind is the only theming system.
@@ -47,12 +55,12 @@ Use normal Tailwind classes:
   `side="bottom" align="center"`; composer footer actions keep the default
   `side="top" align="end"`.
 - **Composer normalize tokens** (shipped, epic 35; SSOT
-  [`docs/palette.html`](../../../docs/palette.html) §8): shared control height
+  [`docs/assets/palette.html`](../../../docs/assets/palette.html) §8): shared control height
   (`--lf-control-h`) and pill pad (`--lf-btn-pad`) in `src/styles.scss`; text
   CTAs use `.lf-composer-pill`; round icons use `.lf-composer-icon-btn`
   (both under `@layer components`).
 - **Run-control encoding**
-  ([ADR-031](../../../docs/architecture/ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer)):
+  ([ADR-031](../../../docs/adr/031-stop-hard-cancel-vs-pause-soft-interrupt-vs-steer.md)):
   **Start** = emerald; hard **Stop** = rose (left while running); soft
   **Pause** / Steer accents = amber (right while running). Do not reuse amber
   for hard Stop. Left-corner tip grows top-left; right-corner tip grows

@@ -1,7 +1,7 @@
 # @langflower/cli
 
 Workspace package that builds the CLI. The **npm-published** product is the
-**repository root** package `langflower` — see [docs/RELEASE.md](../../docs/RELEASE.md).
+**repository root** package `langflower` — see [docs/guides/RELEASE.md](../../docs/guides/RELEASE.md).
 
 ## Depends on
 

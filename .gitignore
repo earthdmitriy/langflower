@@ -47,3 +47,6 @@ launcher/dist/
 
 # Windows CMD redirect artifact
 nul
+
+# Dogfood agent memory is not the knowledge base (epic 50)
+.langflower/memory/

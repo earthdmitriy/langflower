@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: shared
+covers:
+    - 'packages/shared/**'
+status: current
+---
+
 # @langflower/shared
 
 Langflower's domain kernel: co-versioned WS protocol/config, persisted workflow
@@ -139,7 +147,7 @@ src/
   genuinely local.
 - Exception: DAG-forced twins of tools/compiler contracts stay copies until
   the DAG flips
-  ([ADR-039](../../docs/architecture/ADR.md#adr-039--dag-forced-twins-stay-copies-until-the-dag-flips)).
+  ([ADR-039](../../docs/adr/039-dag-forced-twins-stay-copies-until-the-dag-flips.md)).
   Do not import tools or compiler from shared to collapse them.
 
 ## Rules
@@ -151,7 +159,7 @@ src/
 - Change the owning type and every affected co-versioned consumer in the same
   change; do not introduce a temporary parallel payload.
 - **Found bugs:** execution/domain bugs fixed here → log in
-  [docs/FOUND_BUGS.md](../../docs/FOUND_BUGS.md).
+  [docs/bugs/README.md](../../docs/bugs/README.md).
 
 ## Build
 

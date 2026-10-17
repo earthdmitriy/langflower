@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/**'
+status: current
+---
+
 # @langflower/common-nodes
 
 Built-in Langflower node catalog and test registry.
@@ -23,7 +31,7 @@ facade; run-scoped host capabilities come from declared `requires` on
 the definition (`ec.chat`, `ec.toolHandles`, …) plus the private
 `getRunHostServices` bag. Pack nodes import
 `*_TOOL_CONFIGS` from tools and attach `handler` on wire registrations
-([ADR-019](../../docs/architecture/ADR.md#adr-019--tool-handlers-on-registration-not-harness-toolid-registry)).
+([ADR-019](../../docs/adr/019-toolhandle-invocation-not-harness-toolid-registry.md)).
 Crawl HTML helpers are owned by `@langflower/tools/html`; BFS crawl by
 `@langflower/tools/run-bfs-crawl` — do not duplicate under `src/crawl/`.
 
@@ -80,7 +88,7 @@ path-choice, OpenAI HTTP). Do not copy detector / autokick into a node folder.
 - Lockstep multi-outs (e.g. Repeat value/`done`): **one** paced session of
   `{ kind: '…' as const }` events, then demux — not a separate `switchMap` per
   out. Do **not** add `shareReplay`: `StatefulObservable` is already hot. See
-  [HOW_TO_WRITE_REACTIVE_NODES](../../docs/HOW_TO_WRITE_REACTIVE_NODES.md)
+  [HOW_TO_WRITE_REACTIVE_NODES](../../docs/guides/how-to-write-reactive-nodes.md)
   § Multi-output paced sessions; reference `flow/repeat/node.ts`.
 - Passthrough: **`configureOutput(portId, input, { inferTypeFrom: input })`** —
   no wrapper.
@@ -95,7 +103,7 @@ path-choice, OpenAI HTTP). Do not copy detector / autokick into a node folder.
 - **No fake port events / no silent refusals** — emit only real facts on
   feed/observability outs; refuse via `StatefulObservable` **error** (e.g.
   `maxFeedbackTurns`), not placeholders or bare `EMPTY`. See
-  [LLM_NODES.md](../../docs/LLM_NODES.md) § Port events.
+  [LLM_NODES.md](../../docs/reference/LLM_NODES.md) § Port events.
 - LLM nodes use `createLlmSessionCycle$` (`statefulObservable` + `concatMap`
   loader so pending is **per turn** and ticks queue) / `runTurnFromState` for
   queued turns/history and `runLlmLoop` for provider/tools/Sub-Agent/Steer.
@@ -110,7 +118,7 @@ path-choice, OpenAI HTTP). Do not copy detector / autokick into a node folder.
 - Recoverable provider failures reduce to loop suspension; only fatal failures
   enter the StatefulObservable error lane. Keep partial streamed text out of
   committed history after a failed round. Stuck / dead-loop strategy:
-  [LLM_RECOVERY.md](../../docs/LLM_RECOVERY.md).
+  [LLM_RECOVERY.md](../../docs/reference/LLM_RECOVERY.md).
 
 ## Package boundary
 

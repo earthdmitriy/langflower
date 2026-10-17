@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/crawl/fetch-url/**'
+status: current
+---
+
 # Fetch URL
 
 |              |                    |

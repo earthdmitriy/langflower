@@ -54,4 +54,4 @@ langflower
 langflower ./my-project
 ```
 
-Walkthrough: [Getting started](../docs/public/getting-started.md).
+Walkthrough: [Getting started](../docs/assets/public/getting-started.md).

@@ -2,7 +2,7 @@
 name: langflower-docs-draft
 description: >-
     Draft-only phase for Langflower docs. Writes or overwrites a feature UI spec
-    (docs/features) or use-case (docs/use-cases) from templates without roasting.
+    (docs/product/features) or use-case (docs/product/use-cases) from templates without roasting.
     Use when the user asks to draft a UI spec or use-case only, or as phase 1 of
     langflower-docs-refine.
 ---
@@ -14,7 +14,7 @@ Docs-only. For the full loop, prefer
 
 ## Instructions
 
-1. Determine kind: **feature** (`docs/features/`) or **use-case** (`docs/use-cases/`).
+1. Determine kind: **feature** (`docs/product/features/`) or **use-case** (`docs/product/use-cases/`).
 2. Read templates in
    [langflower-docs-refine/reference.md](../langflower-docs-refine/reference.md).
 3. Read related demos/JSON before claiming alignment.

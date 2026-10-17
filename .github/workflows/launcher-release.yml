@@ -222,7 +222,7 @@ jobs:
                       dist/langflower-launcher-macos-x64.zip
                       dist/SHA256SUMS.txt
                   body: |
-                      Unsigned desktop supervisor ([ADR-038](https://github.com/${{ github.repository }}/blob/master/docs/architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor)).
+                      Unsigned desktop supervisor ([ADR-038](https://github.com/${{ github.repository }}/blob/master/docs/adr/038-launcher-is-a-cli-supervisor.md)).
 
                       This zip is **not** the Langflower product. It does not include Node.js or the `langflower` CLI. Install Node.js ≥ 22 and `npm install -g langflower`, then run the Windows `.exe` or the macOS `Langflower.app`.
 

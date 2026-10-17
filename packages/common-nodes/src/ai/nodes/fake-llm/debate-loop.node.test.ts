@@ -9,7 +9,7 @@ import { fakeLlmNode } from './node.js';
 
 /**
  * Soft↔Hard smoke (fake imitates LLM — not a history oracle).
- * @see docs/architecture/ADR.md ADR-016
+ * @see docs/adr/README.md ADR-016
  */
 const llmContext = (
 	nodeId: string,

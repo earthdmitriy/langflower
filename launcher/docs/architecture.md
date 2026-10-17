@@ -4,7 +4,7 @@ How the launcher process is shaped, how events move, and what happens
 from “double-click” to “browser opens.”
 
 Product constraints are locked in
-[ADR-038](../../docs/architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor).
+[ADR-038](../../docs/adr/038-launcher-is-a-cli-supervisor.md).
 This page describes **the current code**, including multi-instance
 behaviour that the original epic 46 one-child sketch does not mention.
 

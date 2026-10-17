@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/mcp/mcp-http/**'
+status: current
+---
+
 # MCP http
 
 Owns **HTTP MCP** connect/close (optional local launch). Emits live

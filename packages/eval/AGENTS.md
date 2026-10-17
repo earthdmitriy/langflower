@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: eval
+covers:
+    - 'packages/eval/**'
+status: current
+---
+
 # @langflower/eval
 
 Fixture pack format, scoring, and fail-closed regression gate for agent

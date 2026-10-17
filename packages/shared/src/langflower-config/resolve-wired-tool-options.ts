@@ -10,7 +10,7 @@ const TOOLS_INPUT_PORT = 'tools';
 /**
  * Harness builtins for the Inspector — twin of
  * `@langflower/tools` `BUILTIN_TOOL_IDS`. Shared cannot import tools in
- * production ([ADR-039](../../../docs/architecture/ADR.md#adr-039--dag-forced-twins-stay-copies-until-the-dag-flips));
+ * production ([ADR-039](../../../docs/adr/039-dag-forced-twins-stay-copies-until-the-dag-flips.md));
  * parity is pinned by
  * `packages/tools/src/domain/wired-tool-options.parity.test.ts`.
  */

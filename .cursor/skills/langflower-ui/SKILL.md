@@ -14,7 +14,7 @@ disable-model-invocation: true
 1. `packages/ui/AGENTS.md`
 2. `packages/ui/docs/TYPOGRAPHY.md` — fonts, tokens, Aria, Tailwind theme
 3. `docs/architecture/NAVIGATION.md` — feature → file map
-4. `docs/STATUS.md` — canvas and bridge **done**; feed / Settings **partial**
+4. `docs/product/STATUS.md` — canvas and bridge **done**; feed / Settings **partial**
 
 ## Feature map
 
@@ -47,7 +47,7 @@ Do **not** restore `node-inline-inputs.component.ts`,
   middleware file.
 - Inline primitive inputs on node body: `supportsInlinePortInput`, port
   `inline` → `lf-inline-field`.
-- **Typography:** `docs/TYPOGRAPHY.md`, `src/theme/`, `.lf-text-*` — no raw font sizes in SCSS.
+- **Typography:** `packages/ui/docs/TYPOGRAPHY.md`, `src/theme/`, `.lf-text-*` — no raw font sizes in SCSS.
 
 ## Patterns
 

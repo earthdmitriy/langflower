@@ -40,7 +40,7 @@ fail-closed.
 Compose a live provider as `EvalCaseRunner` and call
 `runEvalSuite({ packDir, projectRoot, runCase })` from
 `@langflower/eval/run-eval-suite`. Keep Fake / `--replay` for CI topology.
-Real-provider Expects are the product Implementable bar — not proven by this
+Real-provider Expects are the product Available / Ready bar — not proven by this
 pack’s Fake happy path alone.
 
 Programmatic API: `@langflower/eval/run-eval-suite`.

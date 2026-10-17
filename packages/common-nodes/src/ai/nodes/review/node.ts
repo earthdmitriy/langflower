@@ -51,8 +51,8 @@ const buildRevisedResultUserContent = (result: string): string =>
  *
  * Session history uses the shared {@link createLlmSessionCycle$} (ADR-016):
  * init = task / system / inventory; turn driver = `result`.
- * @see docs/DONE/EPICS/03-review-node.md
- * @see docs/DONE/EPICS/MECHANICS-tool-execution.md
+ * @see docs/_archive/DONE/EPICS/03-review-node.md
+ * @see docs/_archive/DONE/EPICS/MECHANICS-tool-execution.md
  */
 export const reviewNode = defineLlmNode({
 	type: 'common-review',

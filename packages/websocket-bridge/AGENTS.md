@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: websocket-bridge
+covers:
+    - 'packages/websocket-bridge/**'
+status: current
+---
+
 # @langflower/websocket-bridge
 
 Generic typed WebSocket bridge — event-driven RxJS API over a hidden transport.

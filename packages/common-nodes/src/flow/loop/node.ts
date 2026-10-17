@@ -16,11 +16,9 @@ export const loopNode = defineReactiveNode({
 	category: 'Flow',
 	paletteSecondary: true,
 	description: `
-For each item in a list, run the body you wire, then collect the results.
+Wire a list into **items**. **item** emits one entry at a time. Wire **item** into the body input, and wire that body's output back into **bodyResult**. The next **item** waits until **bodyResult** arrives. When every entry has one result, **results** emits a JSON array in the same order.
 
-Typical uses:
-- Process many files or topics without duplicating nodes
-- Map a list through an LLM or a file write
+**items** accepts an array, a JSON array, or one entry per line. An empty list emits **results** \`[]\`. A new **items** value starts the list over.
 `.trim(),
 	uiSchema: [] as const,
 	bind(_ctx, { makeInput, configureOutput }) {
@@ -34,15 +32,20 @@ Typical uses:
 			dynamic: true,
 			required: true,
 		});
+		const rerunItems = makeInput<unknown>('rerunItems', {
+			name: 'rerunItems',
+			dynamic: true,
+		});
 
 		const { item$, results$ } = createMapCollectStreams({
 			items,
 			bodyResult,
+			rerunItems,
 			normalize: normalizeLoopItems,
 		});
 
 		return {
-			inputs: [items, bodyResult],
+			inputs: [items, bodyResult, rerunItems],
 			outputs: [
 				configureOutput('item', item$, {
 					wireType: 'string',

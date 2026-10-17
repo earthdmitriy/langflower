@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: launcher
+covers:
+    - 'launcher/**'
+status: current
+---
+
 # langflower-launcher
 
 Slint supervisor. **Do not** import `@langflower/server`,
@@ -22,4 +30,4 @@ workspace package.
 
 Author guide (no Rust assumed): [docs/README.md](docs/README.md).
 Also [README.md](README.md) and
-[ADR-038](../docs/architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor).
+[ADR-038](../docs/adr/038-launcher-is-a-cli-supervisor.md).

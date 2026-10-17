@@ -11,7 +11,7 @@ Top to bottom:
 1. Flower mark + **Langflower** title + header pill (**Ready** green or
    **Working…** amber while an installer runs). The pill is **global**
    (install), not per-project. A **?** help icon opens the user manual
-   on GitHub (`docs/public/launcher.md`).
+   on GitHub (`docs/assets/public/launcher.md`).
 2. **Choose your project** — path field + **Browse** (native folder
    dialog via `rfd`).
 3. **Recent projects** — up to 8 rows. Each row: folder name, full path,

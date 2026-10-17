@@ -3,14 +3,14 @@
 Thin **Slint** supervisor window. It does **not** embed the editor, does
 not use WebView2, and does not bundle Node.js. The published npm CLI
 remains the product process. See
-[ADR-038](../docs/architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor).
+[ADR-038](../docs/adr/038-launcher-is-a-cli-supervisor.md).
 
 **Authors who do not know Rust:** start at
 [docs/README.md](docs/README.md) (primer, architecture, source map,
 window, build, tests). Agent rules:
 [AGENTS.md](AGENTS.md).
 
-**User manual:** [docs/public/launcher.md](../docs/public/launcher.md)
+**User manual:** [docs/assets/public/launcher.md](../docs/assets/public/launcher.md)
 (the **?** button in the window opens this file on GitHub).
 
 ## What the window does
@@ -71,7 +71,7 @@ git tag launcher-v0.1.0
 git push origin launcher-v0.1.0
 ```
 
-Full release notes: [docs/build-and-release.md](docs/build-and-release.md).
+Full release notes: [launcher/docs/build-and-release.md](./docs/build-and-release.md).
 
 ## Maintainer build (local)
 
@@ -104,6 +104,6 @@ Slint markup in `ui/app-window.slint`. Window and `.exe` icons from
 in Rust. Lives at repo-root `launcher/` (not under `packages/`, which
 is npm workspaces only). Not on the TS product DAG
 (`build/lib/paths.mjs` PACKAGES). File-by-file map:
-[docs/source-map.md](docs/source-map.md).
+[launcher/docs/source-map.md](./docs/source-map.md).
 
 Recents: user-global `launcher.json` next to `langflower.jsonc` (ADR-002).

@@ -21,4 +21,4 @@ timeouts — not a global QPS limiter. Unit tests mock the tools modules
 
 Demo: `demo-project/.langflower/workflows/crawl-research.json`.
 
-Spec: [node-library.md §7.8](../../../../docs/features/node-library.md#78-web-crawl).
+Spec: [node-library.md §7.8](../../../../docs/product/features/node-library-catalog.md#78-web-crawl).

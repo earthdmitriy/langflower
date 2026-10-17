@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/ai/nodes/sub-agent/**'
+status: current
+---
+
 # Sub-Agent
 
 |              |                    |
@@ -8,7 +16,7 @@
 ## Summary
 
 Ordinary OpenAI-compatible agent that announces **one** `ToolHandle` on
-`subagent-registration` ([ADR-021](../../../../../../docs/architecture/ADR.md#adr-021--sub-agent-registration--port-routed-spawn-nodeid-filter),
+`subagent-registration` ([ADR-021](../../../../../../docs/adr/021-sub-agent-registration-port-routed-spawn-nodeid-filter.md),
 epic 41). Parent agents wire that output into their `tools` inventory
 and invoke it like any other tool. `invoke` runs this node's in-node chat
 (same tool loop / compaction as `common-openai-llm`) and returns a **string**.
@@ -64,4 +72,4 @@ The first feed frame from this node closes the caller visit.
 `Error: …`).
 
 Layers (swarm serial default, nested recursive `tools`, Loop Monte Carlo):
-[ADR-022](../../../../../../docs/architecture/ADR.md#adr-022--sub-agent-layers-swarm-nested-monte-carlo).
+[ADR-022](../../../../../../docs/adr/022-sub-agent-layers-swarm-nested-monte-carlo.md).

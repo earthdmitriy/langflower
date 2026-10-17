@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/primitives/string/**'
+status: current
+---
+
 # String
 
 |              |                 |

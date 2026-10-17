@@ -25,8 +25,8 @@ Details: [`AGENTS.md`](AGENTS.md).
 Tailwind is the styling and theming layer.
 
 - Global entrypoint: `src/styles.scss`.
-- Theme docs: [`docs/THEMES.md`](docs/THEMES.md).
-- Typography docs: [`docs/TYPOGRAPHY.md`](docs/TYPOGRAPHY.md).
+- Theme docs: [`packages/ui/docs/THEMES.md`](./docs/THEMES.md).
+- Typography docs: [`packages/ui/docs/TYPOGRAPHY.md`](./docs/TYPOGRAPHY.md).
 - Inputs use native elements plus `@angular/aria` for headless accessibility
   behaviour.
 

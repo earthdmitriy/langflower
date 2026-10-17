@@ -19,8 +19,9 @@ provider. They are past bootstrap; do not lead with CLI start or provider setup.
   only path.
 - Answer **only** from allowed fact sources: the **Companion docs** (via
   `read` when relevant) and the **Knowledge base** below. If a fact is
-  missing, say **not in my facts** (or point at project use-case docs) —
-  do not invent.
+  missing, say **not in my facts** (or point at
+  `docs/product/use-cases/README.md` when the folder is the Langflower
+  repo) — do not invent.
 - User asks **where** something is in the UI or project → `read`
   `.langflower/skills/langflower-helper/layout.md` first, then answer from
   that file.
@@ -68,6 +69,15 @@ On-demand only (not auto-injected). Use harness `read`:
 - `.langflower/skills/langflower-helper/layout.md` — UI chrome + “where can I…?”
 - `.langflower/skills/langflower-helper/architecture.md` — trust / server-first /
   WS bus summary
+
+Langflower repository docs (not copied into a user project):
+
+- `docs/product/features/README.md` and `docs/product/use-cases/README.md`
+- `docs/reference/SESSIONS.md` (other mechanics sit beside it)
+- `docs/adr/README.md`
+- `docs/bugs/README.md`
+- `docs/_work/TODO/README.md` — planning notes
+- `docs/_archive/DONE/README.md` — frozen history
 
 ## Knowledge base
 
@@ -130,7 +140,7 @@ do not say coding pipelines “don’t exist” or are unavailable.
   macOS zip contains `Langflower.app`. Closing the launcher stops
   instances **it** started. Closing a browser tab does
   not. The **?** control opens the user manual on GitHub
-  (`docs/public/launcher.md`).
+  (`docs/assets/public/launcher.md`).
 - **Cannot:** Claim the launcher embeds the canvas, or that it is a
   Tauri / Electron / WebView app. (Tauri was tried for the thin window
   and rejected; the shipped launcher is Slint.)
@@ -147,9 +157,11 @@ do not say coding pipelines “don’t exist” or are unavailable.
   it as-is (no wipe).
 - **Can:** Configure providers via **Settings** (Global opens on first connect
   when none are configured) or `.langflower/langflower.jsonc` (prefer
-  `{env:VAR}`). Bootstrap never invents API keys. Simple nodes / Fake LLM work
-  without a provider; a real OpenAI-compatible provider is required for live
-  model runs and seeded coding samples.
+  `{env:VAR}`). Bootstrap never invents API keys. Simple nodes and Fake LLM
+  work without a provider. Fake LLM imitates a model for tests and showcase
+  when a real completion is expensive and not deterministic. A real
+  OpenAI-compatible provider is required for live model runs and seeded
+  coding samples.
 - **Cannot:** Claim bootstrap invents secrets, or that a polished
   **named-path** empty-provider fail-closed error on run is already shipped —
   tell users to add a provider in Settings or `langflower.jsonc`; prefer fail
@@ -176,7 +188,8 @@ do not say coding pipelines “don’t exist” or are unavailable.
 - **Can:** Gear opens **Settings** in the **right aside**, swapping feed /
   inspector; canvas stays. Open/close/scope are server-driven. Project and
   Global scopes; merge **project > global**; Save applies without a full app
-  reload. Keys are write-only; prefer `{env:VAR}`.
+  reload. Keys are write-only; prefer `{env:VAR}`. The panel is
+  **Ready**.
 - **Can:** With no providers configured, connect opens **Global Settings** with
   onboarding copy (add OpenAI-compatible provider; Fake LLM / simple nodes
   still work).
@@ -264,8 +277,9 @@ unwired — it is not a duplicate Helper, not a second node, and not a bug.
   one agent. Example: Langflower Tools **and** Writer Sub-Agent. Optional
   **Tool collection** (`common-tool-collection`) can still merge wires first;
   direct multi-wire still works.
-- **Can (Router):** `common-router` uses the same extra-slot growth for
-  channels (`ch` / `ch@1` / …) so many edges stay readable.
+- **Can (Router):** `common-router` channels are independent identity
+  passthrough (`ch` / `ch@1` / …). Extra slots grow as edges are added so
+  many wires stay short. The hub is **Available**.
 - **Cannot:** Claim every port grows this way — `userPrompt` / `systemPrompt`
   stay single. Claim the empty slot must be wired. Equate `merge` (each emit
   is a turn) with `combine` (inventory array) with `zip` (lockstep, e.g.
@@ -273,31 +287,31 @@ unwired — it is not a duplicate Helper, not a second node, and not a bug.
 
 ### 6. Coding workflows
 
-| Name               | Fact                                                                                                                                                                                                                                                                                              |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `starter`          | Onboarding chat + this skill + Writer Sub-Agent (`langflower-workflow-writer` + `langflower-node-writer`) — default open after seed                                                                                                                                                               |
-| Skeleton stubs     | `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`, `kb-ingest`, `kb-manual-search`, `kb-tool`, `kb-rag`, … seeded on first-run; with provider → Start                                                                                                                                  |
-| `simple-coder`     | Plan (`spec-architect`) ⇄ HITL → Coder ⇄ HITL → Finish smoke spine + `common-memory-tools` on Plan/Coder/Researcher/Worker; Researcher Sub-Agent under Plan, Worker under Coder — **not** full multi-loop `coding-agent`                                                                          |
-| `kb-create`        | Memory / project wiki create: Orchestrator **indexes** the repo with `glob`/`read`, persists `history/work-queue.md`, then **serially** calls Explorer → Composer **one unit at a time**; `common-memory-tools` writes `core/*` + `modules/*`; Review rejects non-empty Pending or thin overviews |
-| `kb-navigate`      | Memory navigate: Navigator + Searcher + memory tree/grep/section tools; HITL Review Gate for follow-ups                                                                                                                                                                                           |
-| `kb-ingest`        | Sample **hello-embed** ingest (Settings embedding model; pack compiles on `langflower start`)                                                                                                                                                                                                     |
-| `kb-manual-search` | Sample hello-embed query → Preview / Finish                                                                                                                                                                                                                                                       |
-| `kb-tool`          | Sample hello-embed `project_search` ToolHandle → agent                                                                                                                                                                                                                                            |
-| `kb-rag`           | Simplified RAG: hybrid retrieve packs Question + full chunks into the LLM; `project_search` + grep/read; Review feedback / Approve → Finish                                                                                                                                                       |
-| `basic-coder`      | Basic coding harness (Plan⇄HITL→Coder⇄HITL→Finish) — not a toy, **not** full multi-loop `coding-agent`                                                                                                                                                                                            |
-| `coding-agent`     | Clarify HITL → red team → plan gate → coder → QA → `common-review` → result HITL; **graph** orders stages                                                                                                                                                                                         |
-| Status             | Use-case **Partial**; real-LLM Implementable bar open; Fake CI ≠ end-user proof — **not** “no templates”                                                                                                                                                                                          |
+| Name               | Fact                                                                                                                                                                                                                                                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `starter`          | Onboarding chat + this skill + Writer Sub-Agent (`langflower-workflow-writer` + `langflower-node-writer`) — default open after seed                                                                                                                                                                                                |
+| Skeleton stubs     | `simple-coder`, `advanced-coder`, `kb-create`, `kb-navigate`, `kb-ingest`, `kb-manual-search`, `kb-tool`, `kb-rag`, … seeded on first-run; with provider → Start                                                                                                                                                                   |
+| `simple-coder`     | Plan (`spec-architect`) ⇄ HITL → Coder ⇄ HITL → Finish smoke spine + `common-memory-tools` on Plan/Coder/Researcher/Worker; Researcher Sub-Agent under Plan, Worker under Coder — **not** full multi-loop `coding-agent`                                                                                                           |
+| `kb-create`        | Memory / project wiki create: Orchestrator **indexes** the repo with `glob`/`read`, persists `history/work-queue.md`, then **serially** calls Explorer → Composer **one unit at a time**; `common-memory-tools` writes `core/*` + `modules/*`; Review rejects non-empty Pending or thin overviews                                  |
+| `kb-navigate`      | Memory navigate: Navigator + Searcher + memory tree/grep/section tools; HITL Review Gate for follow-ups                                                                                                                                                                                                                            |
+| `kb-ingest`        | Sample **hello-embed** ingest (Settings embedding model; pack compiles on `langflower start`)                                                                                                                                                                                                                                      |
+| `kb-manual-search` | Sample hello-embed query → Preview / Finish                                                                                                                                                                                                                                                                                        |
+| `kb-tool`          | Sample hello-embed `project_search` ToolHandle → agent                                                                                                                                                                                                                                                                             |
+| `kb-rag`           | Simplified RAG: hybrid retrieve packs Question + full chunks into the LLM; `project_search` + grep/read; Review feedback / Approve → Finish                                                                                                                                                                                        |
+| `basic-coder`      | Basic coding harness (Plan⇄HITL→Coder⇄HITL→Finish) — not a toy, **not** full multi-loop `coding-agent`                                                                                                                                                                                                                             |
+| `coding-agent`     | Clarify HITL → red team → plan gate → coder → QA → `common-review` → result HITL; **graph** orders stages                                                                                                                                                                                                                          |
+| Status             | **coding-agent** and MCP nodes are **Available**. Run interruption, the seed, close-tab, and session Continue are **Ready**. The eval pack runner and skill-pack scoring are **Available**. The sample graph and agent instructions are the user's configuration, not a universal result. Not every use case is Available or Ready |
 
 ### 7. Run lifecycle
 
-| Mechanism             | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hard Stop             | Cancel; does **not** by itself create checkpoint Continue                                                                                                                                                                                                                                                                                                                                                                                                            |
-| Soft Pause            | Per-node Steer pause of the last feed agent; siblings keep working; Send (typed text) or Continue (no text, `{ kind: 'resume' }`) continues that node                                                                                                                                                                                                                                                                                                                |
-| Provider recovery     | Idle: default **autokick** (abort, exponential backoff, full-store replay + kick). Dead-loop: abort + short `retryBaseDelayMs` wait (not idle backoff) + kick. 429/5xx/network: short transient budget, then autokick **wait** (no kick, no penalty). `'retry'` banner stays in the feed after reasoning/draft; does not open Steer. Off / cap exhausted → **Steer** (**Continue** needs no typed text). Auth/config stay fatal                                      |
-| Browser close         | If `langflower start` stays up, run continues; reopen live or settled                                                                                                                                                                                                                                                                                                                                                                                                |
-| Process kill / reboot | **Not** detachable resume of the live run. Restart opens the newest workflow session; a Run continues its head                                                                                                                                                                                                                                                                                                                                                       |
-| Checkpoint Continue   | Needs an open workflow session **and** an explicit boundary (`common-checkpoint` / `createCheckpoint`). That writes a **point** (`runOffset` / `feedOffset` into `<label>.feed.jsonl`, not a copied feed). **Continue from…** rewinds to a point and drops later events. A Run continues the head. A Run with no tab opens a session before the graph starts. Continue does not create a session. **No** every-node auto Continue. Old checkpoint files are not read |
+| Mechanism             | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hard Stop             | Cancel; does **not** by itself create checkpoint Continue                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Soft Pause            | Per-node Steer pause of the last feed agent; siblings keep working; Send (typed text) or Continue (no text, `{ kind: 'resume' }`) continues that node                                                                                                                                                                                                                                                                                                                                           |
+| Provider recovery     | Confirmed live 2026-10-17. Idle: default **autokick** (abort, exponential backoff, full-store replay + kick). Dead-loop: abort + short `retryBaseDelayMs` wait (not idle backoff) + kick. 5xx: autokick after the short transient budget; Steer opens when that budget is exhausted, not on every 5xx. `'retry'` banner stays in the feed; it does not open Steer. Pause → Steer → continue is confirmed, including several tabs of one run (drafts stay on the tab). Auth/config stay fatal    |
+| Browser close         | Confirmed: if `langflower start` stays up, a long run continues after the browser tab closes; reopen live or settled. An open launcher window reminds you that work is in progress; it is not a progress panel. Closing the launcher stops processes that window started                                                                                                                                                                                                                        |
+| Process kill / reboot | **Not** detachable resume of the live run. Restart opens the newest workflow session; a Run continues its head                                                                                                                                                                                                                                                                                                                                                                                  |
+| Checkpoint Continue   | Confirmed live 2026-10-17. Needs an open workflow session **and** an explicit boundary (`common-checkpoint` / `createCheckpoint`). That writes a **point** (`runOffset` / `feedOffset` into `<label>.feed.jsonl`, not a copied feed). **Continue from…** rewinds to a point and drops later events. A Run continues the head. A Run with no tab opens a session before the graph starts. Continue does not create a session. **No** every-node auto Continue. Old checkpoint files are not read |
 
 These four are **not** the same thing.
 
@@ -353,21 +367,29 @@ Sub-Agent is an **explicit canvas node** for **control and observability**
   specialist tool (`Writer(subagent)` / `toolId` `Writer_subagent`) with a
   `task`
   (optional `skillId` from the Inspector Skills enum). That call closes the
-  parent work-log visit; the specialist streams as its own card. Default swarm
-  invokes are **serial**. Wiki/memory create (`kb-create`) uses **serial**
-  scoped specialist calls driven by a persisted work queue — not parallel
-  whole-repo fan-out.
-- **Cannot / not yet:** Hide Sub-Agent work only inside a single LLM turn with
-  no graph node (anti-pattern). Parallel fan-out as the **default**. Nested
-  **workflow files** (far future). Do not look for `spawn_subagent` or
-  registration / spawn / result ports — those wires are gone.
+  parent work-log visit; the specialist streams as its own card. That
+  pass is the **handover** pattern and it is Available. **Fan-out and
+  fan-in** on nodes already on the canvas are Available (a drawn split
+  and a merge back, including static fan-out and Loop map-collect). Default
+  Sub-Agent invokes stay **serial**. Wiki/memory create (`kb-create`) uses
+  **serial** scoped specialist calls driven by a persisted work queue.
+- **Cannot:** **Dynamic swarm topology** is not a current promise. The run
+  does not add, remove, or rewire specialists that are not already nodes —
+  draw them before Start. Do not file that as a missing capability. Hide
+  Sub-Agent work only inside a single LLM turn with no graph node
+  (anti-pattern). Nested **workflow files** are not a current promise. Do
+  not look for `spawn_subagent` or registration / spawn / result ports —
+  those wires are gone.
 
 ### 10. Other demos
 
 - **article-writing:** Outline + draft are **one** LLM node; research/crawl not
   required for that demo.
-- **research-fanout:** Loop is **serial**; selective re-run of only disputed
-  axes is **deferred**.
+- **research-fanout:** Static Docs / Risks / Alternatives are separate nodes
+  and start together. `common-loop` is **serial** (one body, one item).
+  After a completed list, `rerunItems` re-runs matching entries and keeps
+  the other results. Pass the axis string. Review prose is not parsed. The
+  demo feedback edge still revises the synthesizer.
 - **project memory / wiki:** `common-memory-tools` + skeleton sample
   `kb-create` (index with `glob` → `history/work-queue.md` → serial
   Explorer/Composer units into `core/*` + `modules/*`) and `kb-navigate`.
@@ -377,7 +399,7 @@ Sub-Agent is an **explicit canvas node** for **control and observability**
   output, `feed.role: result`). There is no separate Plan mode. **Embeddings**
   catalog nodes + Settings default embedding model
   are shipped for API checks and pack **`EmbedHandle`** wiring — separate from
-  vector KB ([ADR-033](../../../../../docs/architecture/ADR.md#adr-033--markdown-memory-tools-no-embedding-as-base)).
+  vector KB (ADR-033, `docs/adr/033-markdown-memory-tools-no-embedding-as-base.md`).
   Obsidian vault helpers are **not** shipped (TBD-007).
 - **skill-refining:** CLI eval + `skillPath` / harness `read`; no canvas
   `skill-refining.json` demo.
@@ -501,8 +523,10 @@ They die on rematerialize or process exit if there is no hook.
 
 ### 12. Status vocabulary
 
-- Say **Partial** / Missing / Draft honestly when that is the product status.
-- “Landed in Fake CI / demo topology” ≠ **Implementable (real LLM)**.
+- **Available** means the scenario's capabilities are in the product and a live OpenAI-compatible run covered them. The user assembles the graph, prompts, and layout. `Missing parts: None` plus user configuration is not a gap.
+- **Ready** means the scenario needs no extra configuration. The seed, Settings, Stop / Pause, the work log, close-tab, and session Continue are Ready.
+- Say **Partial** only for a TODO-able capability. None are queued. A custom `ok` / `fail` review gate written with `defineReactiveNode` runs format, typecheck, and test and returns failure text on `feedback`; that is the plan-refine QA gate. An empty provider already fails on the OpenAI node port and the message tells the operator to open Settings and set up an OpenAI-compatible provider. Handover, fan-out, fan-in, independent Router channels, agent-swarm on a graph drawn before Start, Loop `rerunItems` (pass the axis string; the demo feedback edge still revises the synthesizer), and plan-refine QA are Available. Settings and bootstrap are Ready.
+- Do **not** file: dynamic swarm topology, nested workflow files, TBD entries, encrypted secrets, a universal knowledge base (memory tools + `hello-embed`), a node error killing the graph (`error$` stays alive; retry is in the node that failed), or browser E2E of the canvas. The canvas is a projection of the server snapshot.
 - Missing from this KB → **not in my facts** — do not invent.
 
 ## Before you send a final answer

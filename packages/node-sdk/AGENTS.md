@@ -1,7 +1,15 @@
+---
+kind: guide
+owner: node-sdk
+covers:
+    - 'packages/node-sdk/**'
+status: current
+---
+
 # @langflower/node-sdk
 
 Public SDK for Langflower node authors (`defineNode` + `defineReactiveNode`).
-Independent npm publish: [RELEASE.md](../../docs/RELEASE.md#publishing-langflowernode-sdk).
+Independent npm publish: [RELEASE.md](../../docs/guides/RELEASE.md#publishing-langflowernode-sdk).
 
 **No `index.ts`** — published paths only via `package.json` `exports`
 ([PRINCIPLES.md](../../docs/architecture/PRINCIPLES.md) § Module exports).
@@ -10,7 +18,7 @@ Independent npm publish: [RELEASE.md](../../docs/RELEASE.md#publishing-langflowe
 
 Each **node factory function** lives in its **own folder** under
 `src/node-factory/<factory-name>/`, with co-located types/utils/tests — same
-idea as one folder per node in [NODES.md](../../docs/NODES.md).
+idea as one folder per node in [NODES.md](../../docs/reference/NODES.md).
 
 ```text
 src/node-factory/
@@ -63,7 +71,7 @@ Out of scope: `defineAgentNode`, second batch execution engine.
 **Peer deps for custom packs:** `defineNode`-only authors peer on
 `@langflower/node-sdk`. Reactive authors also need `rxjs` and
 `@rx-evo/stateful-observable`. Pack layout / default seed `my-nodes`:
-[ADR-030](../../docs/architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model),
+[ADR-030](../../docs/adr/030-custom-node-pack-layout-and-npm-model.md),
 [skeleton README](../server/skeleton/nodes/my-nodes/README.md).
 Pack `tsc --noEmit` uses the pack `tsconfig.json`. `.ts` suffix imports need
 `allowImportingTsExtensions` + `noEmit` (hello-embed seed).
@@ -108,7 +116,7 @@ almost always a misplaced host concern.
 
 Production: `rxjs`, `@rx-evo/stateful-observable` — **no** `@langflower/runtime`,
 no `@langflower/shared`. Port / instance contracts are owned here
-([ADR-027](../../docs/architecture/ADR.md#adr-027--author-sdk-owns-port-types-no-production-runtime-dep));
+([ADR-027](../../docs/adr/027-author-sdk-owns-port-types-no-production-runtime-dep.md));
 structural parity with runtime is locked by `runtime-parity.types.test.ts`.
 
 `@langflower/runtime` is a **devDependency** only (sample/parity tests).
@@ -176,14 +184,14 @@ flowchart LR
    state. Side effects in bind would run on the discarded probe and again per
    instance. Instance-local closures may **intentionally** keep state across
    runs until workflow rematerialize or process exit — see
-   [REACTIVE_NODES](../../docs/REACTIVE_NODES.md) § Instance lifetime.
+   [REACTIVE_NODES](../../docs/reference/REACTIVE_NODES.md) § Instance lifetime.
 
 `defineNode` is an adapter: it builds that `bind` for you from `execute` and
 stamps pending via `withLoading` before the Promise/`execute` work.
 
 ## Reactive `bind()` rules
 
-**Full how-to (preferred):** [docs/HOW_TO_WRITE_REACTIVE_NODES.md](../../docs/HOW_TO_WRITE_REACTIVE_NODES.md).
+**Full how-to (preferred):** [docs/guides/how-to-write-reactive-nodes.md](../../docs/guides/how-to-write-reactive-nodes.md).
 
 **Unit of work is `@rx-evo/stateful-observable`** — not raw RxJS `Observable`.
 
@@ -199,7 +207,7 @@ stamps pending via `withLoading` before the Promise/`execute` work.
 | `uiSchema.byField(...).default` (static fallback)                         | `uiSchema.value$`                                                                           |
 
 `StatefulObservable` status (inactive / loading / value / **error**) is part of
-the dataflow — see [LLM_NODES.md](../../docs/LLM_NODES.md) § Port events.
+the dataflow — see [LLM_NODES.md](../../docs/reference/LLM_NODES.md) § Port events.
 
 Panel `params` are **empty** until `runtime.start()` (or server push). `uiSchema` on bind
 options is a **static** `TypedUISchema` for UI defaults / `byField` — not a reactive port.

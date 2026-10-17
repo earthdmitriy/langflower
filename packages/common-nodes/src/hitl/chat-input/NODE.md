@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/hitl/chat-input/**'
+status: current
+---
+
 # Chat Input
 
 |              |                     |
@@ -14,7 +22,7 @@ node body or type in the feed composer. **Start** cold-starts the weakly
 connected cluster (`pushIntoInput`). The typed text is stored on the node
 (`inputs.message`) so Stop then Start reuses it. Plain **Run** skips
 clusters that contain this node (see
-[workflow-execution.md](../../../../docs/features/workflow-execution.md)).
+[workflow-execution.md](../../../../../docs/product/features/workflow-execution.md)).
 
 Typically wire `message` → an agent's `userPrompt`. Multi-turn continues via
 Chat Loop / Review Gate / Review **feedback** edges (ADR-016), not by
@@ -39,4 +47,4 @@ None.
 
 ## Epic
 
-[13-chat-input.md](../../../../docs/DONE/EPICS/13-chat-input.md)
+13-chat-input.md (`docs/_archive/DONE/EPICS/13-chat-input.md`)

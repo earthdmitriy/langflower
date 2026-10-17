@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: runtime
+covers:
+    - 'packages/runtime/src/**'
+status: current
+---
+
 # Runtime editor/runner specification
 
 Status: **production** — `RuntimeFacade` (`RuntimeEditor` + `RuntimeRunner`).
@@ -6,7 +14,7 @@ Older Phase 1 / `WorkflowRuntime` names in this file are historical.
 Related:
 
 - Product execution docs: [`docs/architecture/EXECUTION_ARCHITECTURE.md`](../../docs/architecture/EXECUTION_ARCHITECTURE.md)
-- **ADR — editor/runner split:** [`ADR.md`](./ADR.md)
+- **ADR — editor/runner split:** [`ADR.md`](../../docs/adr/042-runtime-editor-runner.md)
 
 ---
 
@@ -83,7 +91,7 @@ server or UI.
 
 ## 4. Core types
 
-Public contracts live in [`types.ts`](./types.ts).
+Public contracts live in [`src/types.ts`](./src/types.ts).
 
 ### 4.1 `RuntimeNode`
 
@@ -249,7 +257,7 @@ Same rules are duplicated in UI (`canConnectPorts`) and server — intentional.
 `startNode` and `resume` share the same `runScope` deferral.
 
 Run stays `'running'` until {@link RuntimeRunner.interrupt} or a
-{@link RuntimeNode.stopsRun} node emits. See [`ADR.md`](./ADR.md).
+{@link RuntimeNode.stopsRun} node emits. See [`ADR.md`](../../docs/adr/042-runtime-editor-runner.md).
 
 Returns `runId` for server correlation. Runtime does not store run history.
 
@@ -363,7 +371,7 @@ changes.
 `emitOncePerActivation` on a node is declarative handler metadata (constant,
 delay); runtime does **not** auto-complete on that flag.
 
-See [`ADR.md`](./ADR.md).
+See [`ADR.md`](../../docs/adr/042-runtime-editor-runner.md).
 
 ### 7.3 Loop / hot-input graphs
 
@@ -451,7 +459,7 @@ inside the node Observable pipeline, not via `HitlChannel`.
 
 ## 12. Type reference
 
-See [`types.ts`](./types.ts) for the authoritative TypeScript definitions:
+See [`src/types.ts`](./src/types.ts) for the authoritative TypeScript definitions:
 
 - `RuntimeRunnerStatus`
 - `PortTelemetry` / `ResponseDto`

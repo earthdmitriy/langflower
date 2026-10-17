@@ -29,7 +29,9 @@ type OpenAiLlmContext = LlmAgentInventoryContext & {
 
 const requireChatConfig = (providerId: string, model: string): void => {
 	if (providerId.trim().length === 0) {
-		throw new Error('Provider is required for OpenAI-compatible chat');
+		throw new Error(
+			'Provider is required for OpenAI-compatible chat. Please open setting and setup openai-compatible provider',
+		);
 	}
 
 	if (model.trim().length === 0) {
@@ -75,8 +77,8 @@ const runOpenAiTurn = (
  * OpenAI-compatible LLM node: agent session with init context + feedback turns
  * and conversation history. Invokes allowlisted tools via `ctx.toolHandles` in an
  * internal tool loop (no per-call canvas edges).
- * @see docs/architecture/ADR.md ADR-016
- * @see docs/TODO/EPICS/01-tool-loop-builtins.md
+ * @see docs/adr/README.md ADR-016
+ * @see docs/_archive/DONE/EPICS/01-tool-loop-builtins.md
  */
 export const openAiLlmNode = defineLlmNode({
 	type: 'common-openai-llm',

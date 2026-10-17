@@ -35,6 +35,8 @@ const COMMANDS = {
 	'dead-code': 'dead-code.mjs',
 	'fix-exports': 'fix-single-use.mjs',
 	'clean-orphans': 'clean-orphans.mjs',
+	'docs-gen': 'docs-gen.mjs',
+	'docs-sync': 'docs-sync.mjs',
 };
 
 function printHelp() {
@@ -51,7 +53,7 @@ Commands:
   clean           Remove build artifacts
   cleanup         Remove node_modules and package-lock.json
   install         npm install
-  format          Prettier format (pass --check to verify)
+  format          Prettier on changed files (--all for the tree, --check to verify)
   lint            ESLint (pass --fix to auto-fix)
   test            Vitest (pass --unit, --integration, --watch)
   verify          build-all + exports check + unit + integration (pass --quick for unit only)
@@ -59,6 +61,8 @@ Commands:
   dead-code       List dead code: unused files, orphan exports, unused types (--json, --scope, --kind)
   fix-exports     Move single-use exports to consumer packages
   clean-orphans   Remove exports with zero consumers
+  docs-gen        Regenerate adr/bugs indexes, DOC_MAP, and the router registry (pass --check to verify)
+  docs-sync       Compare skeleton skills to demo-project and .langflower copies (pass --check). Write mode only after the user confirms those copies may be overwritten.
 
 Examples:
   node build/tools/agent-run.mjs build-all
@@ -71,6 +75,8 @@ Examples:
   node build/tools/agent-run.mjs dead-code
   node build/tools/agent-run.mjs dead-code --json
   node build/tools/agent-run.mjs build-package ui typecheck
+  node build/tools/agent-run.mjs docs-gen --check
+  node build/tools/agent-run.mjs docs-sync --check
 `);
 }
 

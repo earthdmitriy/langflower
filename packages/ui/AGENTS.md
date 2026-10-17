@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: ui
+covers:
+    - 'packages/ui/**'
+status: current
+---
+
 # @langflower/ui
 
 Angular 22 SPA for the Langflower editor. Rebuilt around the typed WebSocket
@@ -81,7 +89,7 @@ const diagramEdges = edges.map(persistedEdgeToDiagram);
 this.diagramModel.addEdges(diagramEdges);
 ```
 
-See [DIAGRAM_CANVAS](docs/DIAGRAM_CANVAS.md) for the live-edge projection
+See [DIAGRAM_CANVAS](./docs/DIAGRAM_CANVAS.md) for the live-edge projection
 contract and canvas incidents that led to it.
 
 ## Import boundaries
@@ -157,7 +165,7 @@ client must show the same state without asking which tab caused a change.
    empty custom `startWith`). **`withLatestFrom` is forbidden** unless
    a human explicitly confirms the call site — prefer `combineLatest`. Pattern:
    [docs/architecture/REACTIVITY.md](../../docs/architecture/REACTIVITY.md) § Hydration and
-   `withLatestFrom`; bugs: [FOUND_BUGS.md](../../docs/FOUND_BUGS.md)
+   `withLatestFrom`; bugs: [FOUND_BUGS.md](../../docs/bugs/README.md)
    BUG-2026-07-21b.
 4. Catalog-gated live event streams are hot. Events emitted after the feed
    snapshot but before workflow/palette readiness are not currently buffered;
@@ -214,7 +222,7 @@ Current features:
 - `composer/` — HITL composer, drafts, permission asks, Pause
 - `editor/` — editor shell (composes canvas, palette, feed, sidebar, composer)
 - `feed/` — work-log panel (visit timeline in the right sidebar);
-  sliding window: [VIRTUAL_SCROLL.md](../../docs/VIRTUAL_SCROLL.md)
+  sliding window: [VIRTUAL_SCROLL.md](../../docs/architecture/ui/VIRTUAL_SCROLL.md)
 - `feed-folding/` — work-log nested feed projection
 - `palette/` — node palette sidebar, drag preview, node previews
 - `sidebar/` — inspector and settings
@@ -317,7 +325,7 @@ field and omit the left handle. Input port `inline: InlineConfig` renders
 `'preview-markdown'` / `'preview-code'` — are skipped in the static palette
 card, nothing to preview without a run); `uiSchema.placement`
 (`panel` under card — `inline` placement is retired, see below).
-See [`docs/DIAGRAM_CANVAS.md`](docs/DIAGRAM_CANVAS.md) § Port layout.
+See [`packages/ui/docs/DIAGRAM_CANVAS.md`](./docs/DIAGRAM_CANVAS.md) § Port layout.
 
 ## Inline editing (port-attached)
 
@@ -370,7 +378,7 @@ Tailwind is the styling and theming system.
   utility from `src/styles.scss`. Without it, the OS/browser scrollbar shows
   unstyled (common miss on dropdowns, sidebars, overlays). Check light + dark.
 
-See `docs/THEMES.md` and `docs/TYPOGRAPHY.md`.
+See `packages/ui/docs/THEMES.md` and `packages/ui/docs/TYPOGRAPHY.md`.
 
 ## Inputs And Controls
 

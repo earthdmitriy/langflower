@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/tools/tool-invoke/**'
+status: current
+---
+
 # Tool invoke
 
 |              |                      |

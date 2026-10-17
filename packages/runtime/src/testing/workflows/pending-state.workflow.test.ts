@@ -24,7 +24,7 @@ import {
 } from './workflow-events.js';
 
 /**
- * **Reproduction of the production bug** (see `docs/FOUND_BUGS.md` BUG-2026-07-14).
+ * **Reproduction of the production bug** (see `docs/bugs/README.md` BUG-2026-07-14).
  *
  * The harness `createConstantTestNode` emits `pending` (it wraps the value in a
  * `statefulObservable({ loader })`), so the tests above can never catch a node

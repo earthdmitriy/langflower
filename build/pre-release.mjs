@@ -51,7 +51,7 @@ await runMain(async () => {
 	log.title('Langflower — pre-release');
 
 	log.step('format');
-	await runNodeScript('format.mjs');
+	await runNodeScript('format.mjs', ['--all']);
 
 	log.step('test');
 	await runNodeScript('test.mjs');

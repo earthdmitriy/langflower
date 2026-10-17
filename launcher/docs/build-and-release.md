@@ -162,7 +162,7 @@ releases.
 
 ## How to cut a launcher release
 
-From [docs/RELEASE.md](../../docs/RELEASE.md):
+From [docs/guides/RELEASE.md](../../docs/guides/RELEASE.md):
 
 1. Bump `version` in `launcher/Cargo.toml` (and commit `Cargo.lock` if
    it changed).

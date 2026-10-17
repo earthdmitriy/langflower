@@ -454,7 +454,9 @@ describe('common-openai-llm', () => {
 		const failed = await failedPromise;
 		expect(failed[0]).toBe('out');
 		if (failed[0] === 'out' && 'error' in failed[3]) {
-			expect(String(failed[3].error)).toMatch(/Provider is required/);
+			expect(String(failed[3].error)).toBe(
+				'Provider is required for OpenAI-compatible chat. Please open setting and setup openai-compatible provider',
+			);
 			expect(String(failed[3].error)).not.toMatch(/sk-|apiKey/);
 		}
 

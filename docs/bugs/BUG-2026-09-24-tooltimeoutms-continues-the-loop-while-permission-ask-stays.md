@@ -1,0 +1,24 @@
+---
+kind: bug
+owner: docs
+covers: []
+status: current
+date: 2026-09-24
+flaw: Watchdog timeout treated huma...
+package: ui
+fixed: yes
+---
+
+### BUG-2026-09-24 — toolTimeoutMs continues the loop while permission.ask stays in the composer
+
+| Field                  | Value                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**               | 2026-09-24                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Area**               | execution · hitl · tools                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Status**             | fixed                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Symptom**            | Operator takes longer than 60s to Allow/Deny a `permission.ask`. The agent continues (`Tool X timed out after 60000ms`) while Allow/Deny stays in the composer.                                                                                                                                                                                                                                          |
+| **Repro**              | Coder (or any `ask` tool). Trigger a builtin that needs Allow. Wait past `toolTimeoutMs` without clicking. Feed moves on; composer still shows the ask.                                                                                                                                                                                                                                                  |
+| **Root cause**         | `invokeTool` wrapped the **entire** `invokeInventoryTool` (including `authorize` → `permission.ask`) in RxJS `timeout({ first: toolTimeoutMs })`. Timeout aborted the tool signal and continued the loop, but `PendingPermissionAsks` did not listen to that signal. Runner stayed `running`, so `denyAll` never ran. Composer fold only clears on `permission.accepted` or runner start/done/interrupt. |
+| **Fix**                | `toolTimeoutMs` is opt-in (bash + non-harness inventory) and applies only to the tool **body** after authorize. `sleep` / FS / `ask_user` / Sub-Agent are exempt. AbortSignal on `PendingPermissionAsks` emits `runner.permission.accepted` (deny) so the composer cannot ghost.                                                                                                                         |
+| **Design flaw signal** | **Watchdog timeout treated human wait as hung I/O.** A default-on timer around the whole invoke mixed permission HITL with bash hang detection. Human waits need their own abort lane, not a tool-body timeout.                                                                                                                                                                                          |
+| **Regression test**    | `packages/common-nodes/src/ai/features/llm-loop/run-agent-loop.test.ts` (`does not apply toolTimeoutMs to permission.ask on a FS builtin`); `packages/server/src/harness/pending-permission-asks.test.ts`; `tests/integration/ws/execute-permission-ask-timeout.ws.test.ts`                                                                                                                              |

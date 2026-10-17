@@ -1,9 +1,17 @@
+---
+kind: architecture
+owner: docs
+covers:
+    - 'packages/node-sdk/src/**'
+status: current
+---
+
 # Extension points
 
 Map of the seams you extend Langflower through: what to touch, who enforces it,
 and how stable the surface is. This page **links** to the owning docs and code —
 it is not a second source of truth. User-facing instructions live in
-[docs/public/extending.md](../public/extending.md).
+[docs/assets/public/extending.md](../assets/public/extending.md).
 
 ## Seam table
 
@@ -25,7 +33,7 @@ registry entry in [`packages/common-nodes/src/catalog.ts`](../../packages/common
 The palette is derived from the catalog in
 [`packages/server/src/palette/palette.service.ts`](../../packages/server/src/palette/palette.service.ts),
 so an ordinary node needs **no UI change**. Authoring rules:
-[NODES.md](../NODES.md), [HOW_TO_WRITE_REACTIVE_NODES.md](../HOW_TO_WRITE_REACTIVE_NODES.md).
+[NODES.md](../reference/NODES.md), [HOW_TO_WRITE_REACTIVE_NODES.md](../guides/how-to-write-reactive-nodes.md).
 
 ## Custom node pack
 
@@ -33,7 +41,7 @@ The only seam that extends a running product without touching the monorepo.
 
 1. Author under `<project>/.langflower/nodes/<pack>/` with `export default`
    entries — layout and npm model:
-   [ADR-030](ADR.md#adr-030--custom-node-pack-layout--npm-model).
+   [ADR-030](../adr/030-custom-node-pack-layout-and-npm-model.md).
 2. Discovery / typecheck / esbuild / cache:
    [`packages/compiler`](../../packages/compiler/AGENTS.md)
    (`discover-packs.ts`, `compile-project-nodes.ts`, `load-project-nodes.ts`).
@@ -78,7 +86,7 @@ Packs live outside the repo, so only a narrow surface is a contract.
   `@langflower/shared` as a whole: co-versioned with the product, changed
   without notice.
 - `@langflower/runtime` — port and instance contracts are mirrored into the SDK
-  on purpose ([ADR-027](ADR.md#adr-027--author-sdk-owns-port-types-no-production-runtime-dep)).
+  on purpose ([ADR-027](../adr/027-author-sdk-owns-port-types-no-production-runtime-dep.md)).
 - `@langflower/tools`, `@langflower/common-nodes`, `@langflower/compiler`,
   `@langflower/server`: monorepo packages, not an add-on API.
 
@@ -92,8 +100,8 @@ product upgrade the peer version change invalidates the compile cache
 (`hostRuntimeStamp`) and every pack is recompiled; a pack that used removed API
 fails into its own `COMPILATION_ERRORS.md` and is skipped while the rest of the
 palette keeps working. Full matrix:
-[RELEASE.md § Pack ↔ SDK compatibility](../RELEASE.md#pack--sdk-compatibility),
-[ADR-030 consequences](ADR.md#adr-030--custom-node-pack-layout--npm-model).
+[RELEASE.md § Pack ↔ SDK compatibility](../guides/RELEASE.md#pack--sdk-compatibility),
+[ADR-030 consequences](../adr/030-custom-node-pack-layout-and-npm-model.md).
 
 ## Bus event
 
@@ -118,7 +126,7 @@ New protocol facts are added in one registry; most consumers derive.
 
 Snapshot versus event-sourcing rules:
 [EXECUTION_ARCHITECTURE.md](EXECUTION_ARCHITECTURE.md),
-[ADR-012](ADR.md#adr-012--internal-websocket-bus-rest-for-bulk-escape-hatches).
+[ADR-012](../adr/012-internal-websocket-bus-rest-for-bulk-escape-hatches.md).
 
 ## MCP exposure
 
@@ -134,13 +142,13 @@ purpose** in
 - Wait correlation semantics live in `intent-wait-predicate.ts`.
 
 Do not derive either from the bus registry. Usage:
-[LANGFLOWER_MCP.md](../LANGFLOWER_MCP.md), [ADR-024](ADR.md#adr-024--dev-mcp-control-plane-over-internal-ws-bus).
+[LANGFLOWER_MCP.md](../reference/LANGFLOWER_MCP.md), [ADR-024](../adr/024-dev-mcp-control-plane-over-internal-ws-bus.md).
 
 ## LLM and embedding providers
 
 Adding a **provider endpoint or model** is configuration: a `provider.<id>`
 entry with credentials and models in `.langflower/langflower.jsonc`
-([CONFIG.md](../CONFIG.md)). The server resolves credentials
+([CONFIG.md](../reference/CONFIG.md)). The server resolves credentials
 (`resolve-provider-credentials.ts`) and binds the adapters
 ([`bind-llm-context.ts`](../../packages/server/src/bridge/bind-llm-context.ts),
 [`bind-embed-context.ts`](../../packages/server/src/bridge/bind-embed-context.ts)).
@@ -150,14 +158,14 @@ implemented ([`common-nodes/src/ai/features/openai/`](../../packages/common-node
 [`create-embedding.ts`](../../packages/common-nodes/src/embeddings/create-embedding.ts)).
 `provider.<id>` selects endpoint, credentials, and model list — **not** the
 transport. A provider with a different wire protocol needs a new adapter plus a
-provider registry; there is no such demand in [TBD.md](../TBD.md), so no
+provider registry; there is no such demand in TBD.md (`docs/_work/TBD.md`), so no
 registry exists and none is planned in this pass.
 
 ## Palette grouping and UI presentation
 
 `category` groups nodes at Level 2; `paletteSecondary: true` moves a node into
 the collapsed **Advanced** group, subgrouped by `category`
-([ADR-023](ADR.md#adr-023--palette-palettesecondary--collapsed-advanced)). Both are plain
+([ADR-023](../adr/023-palette-palettesecondary-collapsed-advanced.md)). Both are plain
 definition metadata, so custom packs get the same grouping.
 
 The palette contract passes **any** definition metadata through:
@@ -183,5 +191,5 @@ A custom pack node that sets the same field gets the same behaviour.
 
 - [NAVIGATION.md](NAVIGATION.md) — where code belongs
 - [ARCHITECTURE.md](ARCHITECTURE.md) — packages, startup, build order
-- [ADR.md](ADR.md) — the decisions behind these seams
-- [docs/public/extending.md](../public/extending.md) — user-facing manual
+- [ADR.md](../adr/README.md) — the decisions behind these seams
+- [docs/assets/public/extending.md](../assets/public/extending.md) — user-facing manual

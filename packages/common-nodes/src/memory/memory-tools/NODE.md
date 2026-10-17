@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/memory/memory-tools/**'
+status: current
+---
+
 # Memory Tools
 
 Pack node: emits markdown memory ToolHandles for `.langflower/memory/`, plus a

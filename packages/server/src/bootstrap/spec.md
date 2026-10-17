@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: server
+covers:
+    - 'packages/server/src/bootstrap/**'
+status: current
+---
+
 # Specification: Bootstrap full skeleton + Settings reseed
 
 ## 1. Executive Summary & Intent
@@ -9,9 +17,9 @@
 - **User Prompt Source:** Product request — copy all skeleton workflows; CLI
   seeds only when `.langflower` is absent; Settings Bootstrap force-reseeds.
 - **External Context:**
-  [bootstrap-new-project](../../../../docs/use-cases/bootstrap-new-project.md),
-  [skeleton](../../../../docs/use-cases/skeleton.md),
-  [ADR-030](../../../../docs/architecture/ADR.md#adr-030--custom-node-pack-layout--npm-model).
+  [bootstrap-new-project](../../../../docs/product/use-cases/bootstrap-new-project.md),
+  [skeleton](../../../../docs/product/use-cases/skeleton.md),
+  [ADR-030](../../../../docs/adr/030-custom-node-pack-layout-and-npm-model.md).
 
 ## 2. Codebase Guardrails & Local Alignment
 

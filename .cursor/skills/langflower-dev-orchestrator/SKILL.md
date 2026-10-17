@@ -5,7 +5,7 @@ description: >-
     epic, context collector, developer, principles reviewer (loop), move epic to
     DONE, commit, repeat. Use when the user asks to run the development
     orchestrator, drain TODO epics, implement the next epic, epic implementation
-    loop, or queue through docs/TODO/EPICS.
+    loop, or queue through docs/_work/TODO/EPICS.
 ---
 
 # Langflower — development orchestrator
@@ -31,8 +31,8 @@ the user names a different epic or stop condition.
 5. **No background `npm run dev` / `langflower start`** unless the user asks to
    keep the server up — prefer verify / integration
    (`.cursor/rules/dev-server-lifecycle.mdc`).
-6. **Live LLM / MCP** — Fake/scripted CI ≠ Implementable agent/MCP proof. See
-   [TESTING.md live gap](../../../docs/TESTING.md#live-openai-compatible--mcp-tool-calling-gap).
+6. **Live LLM / MCP** — Fake/scripted CI ≠ Available or Ready agent/MCP proof. See
+   [TESTING.md live gap](../../../docs/guides/TESTING.md#live-openai-compatible--mcp-tool-calling).
    Do not claim live tool/MCP AC without that checklist.
 7. **Commit is part of this loop** when the user invoked this skill (implicit
    authorize per-epic commits). One commit per landed epic. Follow git safety
@@ -41,17 +41,18 @@ the user names a different epic or stop condition.
 ## When to use
 
 - “Run development orchestrator” / “drain TODO epics” / “implement next epic”
-- Walk [docs/TODO/EPICS/](../../../docs/TODO/EPICS/README.md) in order
+- Walk [docs/_work/TODO/EPICS/](../../../docs/_work/TODO/EPICS/README.md) in order
 - User names epic N and wants the full pick→…→commit pipeline
 
 ## Queue source
 
-| Item           | Path                                                               |
-| -------------- | ------------------------------------------------------------------ |
-| Active queue   | [docs/TODO/EPICS/README.md](../../../docs/TODO/EPICS/README.md)    |
-| Epic files     | `docs/TODO/EPICS/<NN>-*.md` (**Status:** queued)                   |
-| Landed archive | [docs/DONE/EPICS/](../../../docs/DONE/EPICS/README.md)             |
-| Status flips   | blocked use-cases under `docs/use-cases/` — only after AC + verify |
+| Item           | Path                                                                                                                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Active queue   | [docs/_work/TODO/EPICS/README.md](../../../docs/_work/TODO/EPICS/README.md)                                                                                                                                                    |
+| Epic files     | `docs/_work/TODO/EPICS/<NN>-*.md` (**Status:** queued)                                                                                                                                                                         |
+| Not this queue | [docs/_work/TODO/TASKS/](../../../docs/_work/TODO/TASKS/README.md) — one behavior on a shipped mechanism. See [Epic or task](../../../docs/_work/TODO/README.md#epic-or-task). Do not number a task or run this pipeline on it |
+| Landed archive | docs/_archive/DONE/EPICS/ (`docs/_archive/DONE/EPICS/README.md`)                                                                                                                                                               |
+| Status flips   | blocked use-cases under `docs/product/use-cases/` — only after AC + verify                                                                                                                                                     |
 
 Default pick: **lowest NN still queued** that is not blocked by unmet Depends on
 (see epic header + README DAG). User override wins (“do epic 20 first”).
@@ -79,7 +80,7 @@ Subagent prompt templates: [reference.md](reference.md).
 
 ### 1. PICK
 
-Read [TODO/EPICS/README.md](../../../docs/TODO/EPICS/README.md) Order table and
+Read [TODO/EPICS/README.md](../../../docs/_work/TODO/EPICS/README.md) Order table and
 the chosen epic file. Report to the user: epic #, title, Blocks, Depends on,
 one-line Goal. If Depends on is unmet, skip or AskQuestion — do not start half.
 
@@ -109,7 +110,7 @@ Return: files touched, how AC are met, test commands run, open questions.
 
 `Task` / `generalPurpose` (or `bugbot` only if user asked Bugbot). **Prefer
 no edits** — findings only. Bar = principles + epic AC + honesty (no fake
-Implementable).
+Available or Ready).
 
 Prompt must include: diff summary / paths, epic AC, checklist from
 [reference.md](reference.md) § Reviewer checklist.
@@ -137,11 +138,11 @@ Do not MOVE on red verify.
 ### 7. MOVE (orchestrator)
 
 1. Set epic **Status:** landed (or done) in the file body.
-2. `git mv` (or move) `docs/TODO/EPICS/<file>` → `docs/DONE/EPICS/<file>`.
-3. Update [TODO/EPICS/README.md](../../../docs/TODO/EPICS/README.md) index/DAG.
-4. Update [DONE/EPICS/README.md](../../../docs/DONE/EPICS/README.md) table.
+2. `git mv` (or move) `docs/_work/TODO/EPICS/<file>` → `docs/_archive/DONE/EPICS/<file>`.
+3. Update [TODO/EPICS/README.md](../../../docs/_work/TODO/EPICS/README.md) index/DAG.
+4. Update DONE/EPICS/README.md (`docs/_archive/DONE/EPICS/README.md`) table.
 5. Flip blocked use-case Status only if AC truly met; update Missing parts.
-6. Touch [STATUS.md](../../../docs/STATUS.md) if the epic’s area is listed.
+6. Touch [STATUS.md](../../../docs/product/STATUS.md) if the epic’s area is listed.
 
 ### 8. COMMIT
 

@@ -90,7 +90,7 @@ A path-choice output (`feedback`, or accept `response`) has one consumer.
 - Do not wire one LLM `response` to several next stages (clarify, red-team, and an approve gate). That node cannot choose a branch.
 - Do not wire one accept `response` to the next agent and also to later gates.
 - Use `common-critique` (`assignment` / `packet`) or `common-review` (`task` / `result`) so fail is `feedback` and pass is `response`. A Review Gate has the same split.
-- Copy `.langflower/workflows/red-team.json`. The same rule is in `docs/features/node-library.md` §5.2.
+- Copy `.langflower/workflows/red-team.json`. The same rule is in `docs/product/features/node-library.md` §5.2.
 
 ## Custom QA / review gates
 

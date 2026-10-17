@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/flow/loop/**'
+status: current
+---
+
 # Loop
 
 |              |               |
@@ -14,10 +22,11 @@ array. No hidden in-LLM spawn (MECHANICS C2/C8).
 
 ## Inputs
 
-| Port         | Type                        | Notes                                    |
-| ------------ | --------------------------- | ---------------------------------------- |
-| `items`      | array / JSON / newline list | Dynamic wire; empty → `results` = `[]`   |
-| `bodyResult` | any (dynamic)               | One emission per item from the body node |
+| Port         | Type                        | Notes                                                                                                                                                                                       |
+| ------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `items`      | array / JSON / newline list | Dynamic wire; empty → `results` = `[]`                                                                                                                                                      |
+| `bodyResult` | any (dynamic)               | One emission per item from the body node                                                                                                                                                    |
+| `rerunItems` | array / JSON / newline list | Optional. Re-runs matching entries of the last completed list. Other slots stay. Unknown strings and an empty value emit nothing. A value before the first completed `items` emits nothing. |
 
 ## Outputs
 
@@ -31,6 +40,10 @@ array. No hidden in-LLM spawn (MECHANICS C2/C8).
 - Body is **external** — author wires `item` → specialist → `bodyResult`.
 - Items are paced **serially** so a single LLM body gets a fresh init session
   per item (`switchMap` on `userPrompt`, ADR-016).
+- `rerunItems` selects entries of the last completed list by string. Only
+  those indexes emit on `item`, in original order. `results` then replaces
+  those slots and keeps the rest. A new `items` value discards that list and
+  walks the new one from the start.
 - Distinct role budgets still use separate specialist nodes (fixed swarm) or
   the same body template with Loop for dynamic N axes.
 - Memory is not required; handoff is the `results` payload.

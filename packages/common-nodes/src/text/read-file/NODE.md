@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/text/read-file/**'
+status: current
+---
+
 # Read File
 
 | **Type** | `common-read-file` |

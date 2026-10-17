@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: compiler
+covers:
+    - 'packages/compiler/**'
+status: current
+---
+
 # @langflower/compiler
 
 Discover, esbuild-bundle, and cache project custom-node packs under
@@ -35,7 +43,7 @@ No `index.ts` barrel.
 `CompilePackError` / `CompileDiagnostic` are re-exported from
 `load-project-nodes` so the server can assign `loaded.errors` onto the WS
 snapshot. Shared palette error types stay a DAG twin
-([ADR-039](../../docs/architecture/ADR.md#adr-039--dag-forced-twins-stay-copies-until-the-dag-flips)).
+([ADR-039](../../docs/adr/039-dag-forced-twins-stay-copies-until-the-dag-flips.md)).
 
 `loadProjectNodes` is the start-path API: cache hit loads existing `.mjs`;
 miss or `{ force: true }` dynamically imports `compile-project-nodes`.

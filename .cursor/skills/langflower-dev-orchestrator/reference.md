@@ -21,7 +21,7 @@ Read it fully. Then gather:
    tests/integration/ or package *.test.ts that should be extended.
 5. Risks: thin-server violations to avoid; FOUND_BUGS.md signals if related;
    live LLM/MCP gap if epic claims real provider proof
-   (docs/TESTING.md#live-openai-compatible--mcp-tool-calling-gap).
+   (docs/guides/TESTING.md#live-openai-compatible--mcp-tool-calling).
 6. Explicit Out of scope from the epic — developer must not expand.
 
 Return a brief (≤ ~80 lines) with sections:
@@ -76,7 +76,7 @@ Paths / summary from developer: <paste>
 Optionally: git diff --stat and key hunks.
 
 Review bar (fail on any Critical):
-1. AC met with honest evidence (tests/docs); no false Implementable claims.
+1. AC met with honest evidence (tests/docs); no false Available or Ready claims.
 2. PRINCIPLES: immutability, RxJS folds (no stray .subscribe / side effects
    in pipe), feature-sliced, no unnecessary abstractions, helpers shrink
    call sites.
@@ -113,11 +113,11 @@ short bullets or “none”
 
 ```text
 - [ ] Epic Status → landed/done in file
-- [ ] Move docs/TODO/EPICS/<NN>-*.md → docs/DONE/EPICS/
+- [ ] Move docs/_work/TODO/EPICS/<NN>-*.md → docs/_archive/DONE/EPICS/
 - [ ] TODO/EPICS/README.md — remove from Order/index/DAG or mark done
 - [ ] DONE/EPICS/README.md — add row + landed note
 - [ ] use-cases Status / Missing parts only if AC truly met
-- [ ] docs/STATUS.md touch if needed
+- [ ] docs/product/STATUS.md touch if needed
 - [ ] No duplicate epic file left in TODO
 ```
 

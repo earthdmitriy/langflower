@@ -120,7 +120,7 @@ const assertPackedContents = (files) => {
 	}
 
 	log.success(
-		'Pack smoke: ui-dist, bin, dist, server skeleton, docs/public manuals present; no sourcemaps',
+		'Pack smoke: ui-dist, bin, dist, server skeleton, docs/assets/public manuals present; no sourcemaps',
 	);
 };
 

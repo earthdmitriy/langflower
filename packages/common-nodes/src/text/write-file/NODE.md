@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/text/write-file/**'
+status: current
+---
+
 # Write File
 
 | **Type** | `common-write-file` |

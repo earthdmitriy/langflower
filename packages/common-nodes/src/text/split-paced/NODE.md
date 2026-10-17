@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/text/split-paced/**'
+status: current
+---
+
 # Split (paced)
 
 |              |                      |

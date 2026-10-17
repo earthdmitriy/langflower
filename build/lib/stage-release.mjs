@@ -32,7 +32,7 @@ const TSCONFIG_BASE_BACKUP = path.join(
 );
 
 /** User manuals shipped in the published tarball (`package.json` files). */
-export const PUBLISH_DOCS_DIR = 'docs/public';
+export const PUBLISH_DOCS_DIR = 'docs/assets/public';
 
 /** Paths included in the published `langflower` tarball (`package.json` files). */
 export const PUBLISH_FILES = [
@@ -48,14 +48,14 @@ export const PUBLISH_FILES = [
  * (README.md itself is always included by npm.)
  */
 export const README_REFERENCED_DOCS = [
-	'docs/public/README.md',
-	'docs/public/getting-started.md',
-	'docs/public/product.md',
-	'docs/public/using-the-editor.md',
-	'docs/public/workflows.md',
-	'docs/public/configuration.md',
-	'docs/public/extending.md',
-	'docs/public/how-it-works.md',
+	'docs/assets/public/README.md',
+	'docs/assets/public/getting-started.md',
+	'docs/assets/public/product.md',
+	'docs/assets/public/using-the-editor.md',
+	'docs/assets/public/workflows.md',
+	'docs/assets/public/configuration.md',
+	'docs/assets/public/extending.md',
+	'docs/assets/public/how-it-works.md',
 ];
 
 /**
@@ -421,7 +421,7 @@ export const buildPublishPackageJson = async () => {
 };
 
 /**
- * Assemble a product directory: dist, bin, ui-dist, vendor, docs/public,
+ * Assemble a product directory: dist, bin, ui-dist, vendor, docs/assets/public,
  * package.json.
  *
  * @param {string} productDir absolute path (repo root or .local-install/langflower)

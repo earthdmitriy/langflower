@@ -1,7 +1,5 @@
 # Langflower
 
-> **Disclaimer:** Langflower is currently in internal testing. Anyone can download and try it, but some functions may not be stable.
-
 **AI workflows where the graph controls what happens next.**
 
 Langflower is a local visual workflow for a project folder: a node graph that runs agents, tools, checks, and human gates on your machine.
@@ -10,7 +8,7 @@ You build the workflow on a canvas in the browser you already have. The LLM is a
 
 > **Not another chat harness. A local node graph.**
 
-![Ask feeds an Agent; Chat loop sends feedback back into the Agent](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/Hero.png)
+![Ask feeds an Agent; Chat loop sends feedback back into the Agent](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/Hero.png)
 
 A chat loop is just a graph.
 
@@ -30,7 +28,7 @@ Agent-to-agent dialogue is just another graph pattern.
 
 Connect one agent's output to another agent's input. Add feedback paths when the second agent needs to challenge or refine the first.
 
-![Planner and Red Team agents with a feedback path between them](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/plan-red-team.png)
+![Planner and Red Team agents with a feedback path between them](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/plan-red-team.png)
 
 There is no special "multi-agent mode".
 
@@ -44,7 +42,7 @@ Start with an agent. Then add the capabilities your workflow needs.
 
 Skills, tools, and specialized sub-agents can become parts of the same graph.
 
-![Crawl, Langflower, Memory, and MCP tools plus a sub-agent on one agent, with a chat loop and tool permissions open](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/capabilities.png)
+![Crawl, Langflower, Memory, and MCP tools plus a sub-agent on one agent, with a chat loop and tool permissions open](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/capabilities.png)
 
 Tools live on the graph too. Wire a pack, an MCP server, or a sub-agent only to the agent that needs it.
 
@@ -58,7 +56,7 @@ Don't ask an agent to certify its own work.
 
 Put the check in the graph.
 
-![Agent response routed through a review gate, with feedback returning to the agent](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/gate.png)
+![Agent response routed through a review gate, with feedback returning to the agent](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/gate.png)
 
 A check can:
 
@@ -79,9 +77,11 @@ Graphs don't have to be linear.
 
 A workflow can fan out into several independent pieces of work and later merge their results.
 
-![Question fanning out to Docs, Risks, and Alternatives, then merging through Concat](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/fan-out.png)
+![Question fanning out to Docs, Risks, and Alternatives, then merging through Concat](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/fan-out.png)
 
 **Parallel work is a graph, too.**
+
+That picture is three agent nodes on one question. They start together. `common-loop` is a different pattern: it paces one body, one item at a time ([research fan-out](docs/product/use-cases/research-fanout-merge.md)).
 
 ---
 
@@ -91,7 +91,7 @@ Don't give every agent every tool.
 
 Give each stage the capabilities it needs.
 
-![Plan wired to RO tools, then after Review a Coder wired to Write tools](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/permission.png)
+![Plan wired to RO tools, then after Review a Coder wired to Write tools](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/permission.png)
 
 A planning agent can inspect a project without being allowed to modify it.
 
@@ -116,7 +116,7 @@ The same primitives can be combined into a complete development workflow:
 - parallel work;
 - controlled capabilities.
 
-![Coding workflow from a goal through Planner, Red Team, Coder, QA, review, and Finish](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/coding_agent.png)
+![Coding workflow from a goal through Planner, Red Team, Coder, QA, review, and Finish](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/coding_agent.png)
 
 The graph remains the same abstraction whether the workflow has three nodes or thirty.
 
@@ -128,7 +128,7 @@ The graph is not just where you design the workflow.
 
 **It's where you watch it run.**
 
-![Running Starter workflow: green and yellow edges beside the Work log](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/feed.png)
+![Running Starter workflow: green and yellow edges beside the Work log](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/feed.png)
 
 ### See execution on the graph
 
@@ -158,7 +158,7 @@ Its output ports can represent different event streams:
 
 As the agent runs, those events can appear in the Work log as they happen.
 
-![Helper streaming reasoning in the Work log, with reasoning, draftResponse, toolLog, and response on the node](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/events.png)
+![Helper streaming reasoning in the Work log, with reasoning, draftResponse, toolLog, and response on the node](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/events.png)
 
 This makes intermediate work observable without turning it into a separate tracing system.
 
@@ -172,7 +172,7 @@ Inspect it.
 
 Any connection can be routed through a Preview node to see the payload of the event flowing through it.
 
-![Preview node showing the Langflower Tools payload, with the same value in the Work log](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/inspect.png)
+![Preview node showing the Langflower Tools payload, with the same value in the Work log](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/inspect.png)
 
 This is useful when building and debugging workflows:
 
@@ -190,7 +190,7 @@ The Work log is not just a text stream detached from the canvas.
 
 Hover an event in the Work log and Langflower highlights the node that produced the event.
 
-![Work log research highlighted on the Fan-out branch that produced it](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/highlight.png)
+![Work log research highlighted on the Fan-out branch that produced it](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/highlight.png)
 
 You can move from:
 
@@ -431,7 +431,7 @@ Langflower is developed using Langflower.
 
 The project itself uses a workflow to coordinate planning, coding, review, tests, tools, and human gates.
 
-![Langflower development workflow](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/lf_dev.png)
+![Langflower development workflow](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/lf_dev.png)
 
 The development workflow combines memory tools, MCP, custom Langflower development tools, review gates, and coding agents.
 
@@ -445,7 +445,7 @@ The point is simple:
 
 If you don't want to start Langflower from a terminal, use the desktop launcher.
 
-![Langflower desktop launcher](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/img/launcher.png)
+![Langflower desktop launcher](https://raw.githubusercontent.com/earthdmitriy/langflower/master/docs/assets/img/launcher.png)
 
 Pick a project folder, start Langflower, and the editor opens in the browser you already have.
 
@@ -580,14 +580,14 @@ Use the tools you already have for editing, reviewing, committing, and navigatin
 
 # Learn more
 
-- [Getting started](https://github.com/earthdmitriy/langflower/blob/master/docs/public/getting-started.md) — installation and first run
-- [Product overview](https://github.com/earthdmitriy/langflower/blob/master/docs/public/product.md) — the product model and core concepts
-- [Using the editor](https://github.com/earthdmitriy/langflower/blob/master/docs/public/using-the-editor.md) — canvas, workflows, and runs
-- [Workflow ideas](https://github.com/earthdmitriy/langflower/blob/master/docs/public/workflows.md) — examples of workflows you can build
-- [Configuration](https://github.com/earthdmitriy/langflower/blob/master/docs/public/configuration.md) — providers, keys, ports, and project configuration
-- [Extending Langflower](https://github.com/earthdmitriy/langflower/blob/master/docs/public/extending.md) — custom nodes, node packs, MCP, and skills
-- [How it works](https://github.com/earthdmitriy/langflower/blob/master/docs/public/how-it-works.md) — the builder/runtime architecture
-- [Desktop launcher](https://github.com/earthdmitriy/langflower/blob/master/docs/public/launcher.md) — running Langflower without the CLI
+- [Getting started](https://github.com/earthdmitriy/langflower/blob/master/docs/assets/public/getting-started.md) — installation and first run
+- [Product overview](https://github.com/earthdmitriy/langflower/blob/master/docs/assets/public/product.md) — the product model and core concepts
+- [Using the editor](https://github.com/earthdmitriy/langflower/blob/master/docs/assets/public/using-the-editor.md) — canvas, workflows, and runs
+- [Workflow ideas](https://github.com/earthdmitriy/langflower/blob/master/docs/assets/public/workflows.md) — examples of workflows you can build
+- [Configuration](https://github.com/earthdmitriy/langflower/blob/master/docs/assets/public/configuration.md) — providers, keys, ports, and project configuration
+- [Extending Langflower](https://github.com/earthdmitriy/langflower/blob/master/docs/assets/public/extending.md) — custom nodes, node packs, MCP, and skills
+- [How it works](https://github.com/earthdmitriy/langflower/blob/master/docs/assets/public/how-it-works.md) — the builder/runtime architecture
+- [Desktop launcher](https://github.com/earthdmitriy/langflower/blob/master/docs/assets/public/launcher.md) — running Langflower without the CLI
 
 ---
 

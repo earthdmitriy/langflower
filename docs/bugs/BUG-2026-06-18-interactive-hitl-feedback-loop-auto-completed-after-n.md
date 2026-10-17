@@ -1,0 +1,24 @@
+---
+kind: bug
+owner: docs
+covers: []
+status: current
+date: 2026-06-18
+flaw: Completion semantics conflate...
+package: ui
+fixed: yes
+---
+
+### BUG-2026-06-18 — Interactive HITL feedback loop auto-completed after N replies
+
+| Field                  | Value                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Date**               | 2026-06-18                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Area**               | execution · runtime · server · ws · ui · hitl                                                                                                                                                                                                                                                                                                                                                       |
+| **Status**             | fixed                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Symptom**            | Agent ↔ Ask User chat loop stopped after ~2–3 user replies (`hi → 1 → 2 → 3 → workflow stopped`). UI showed terminal completed; next agent question never arrived.                                                                                                                                                                                                                                  |
+| **Repro**              | Run `untitled` or `llm-hitl-inline` with mock/real LLM; answer repeatedly via Ask User; observe `execution.progress: completed` before the next `execution.awaiting_input`.                                                                                                                                                                                                                         |
+| **Root cause**         | Runtime treated interactive feedback loops like batch jobs: `collectRunResult()` ran when the graph looked idle. Settle raced with streaming LLM completion and Ask User `reply` propagation. Mitigations (`maxSettlePasses`, microtask/timer defer in batch settle, value-version waits) were timing heuristics without a stable “loop finished” signal.                                           |
+| **Fix**                | Classify interactive loops via `hasInteractiveHitlFeedbackLoop` (Ask User `reply` → agent `feedback`, scoped edges only). Skip auto `collectActiveRunResult()` for those runs; terminal completion only on `execute.stop`. Review accept loops unchanged. Terminal progress carries `runId`; UI filters stale events. ADR: [ADR-015](../adr/015-output-driven-run-completion-never-idle-settle.md). |
+| **Design flaw signal** | **Completion semantics conflated batch idle with conversational HITL** — a multi-turn user loop is not a finite DAG job; it needs an explicit end signal (Stop), not settle guesses.                                                                                                                                                                                                                |
+| **Regression test**    | `packages/runtime/src/runtime.test.ts` (`stopsRun` finish → done); `packages/runtime/src/testing/lyfecycle/lyfecycle.lifecycle.test.ts`. Live HITL WS: `tests/integration/ws/execute-ask-user.ws.test.ts`.                                                                                                                                                                                          |

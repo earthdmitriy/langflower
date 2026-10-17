@@ -4,13 +4,16 @@ import {
 	asapScheduler,
 	EMPTY,
 	map,
+	merge,
 	observeOn,
 	of,
+	shareReplay,
 	startWith,
-	switchMap,
 	take,
 	toArray,
+	Observable,
 } from 'rxjs';
+import { statefulObservable } from '@rx-evo/stateful-observable';
 
 const stringifyLoopValue = (value: unknown): string => {
 	if (typeof value === 'string') {
@@ -71,8 +74,83 @@ export const normalizeLoopItems = (raw: unknown): readonly string[] => {
 type MapCollectPorts = {
 	readonly items: StatefulConnection<unknown, unknown, PortMeta>;
 	readonly bodyResult: StatefulConnection<unknown, unknown, PortMeta>;
+	readonly rerunItems: StatefulConnection<unknown, unknown, PortMeta>;
 	readonly normalize: (raw: unknown) => readonly string[];
 };
+
+type LoopWalk =
+	| { readonly kind: 'full'; readonly list: readonly string[] }
+	| { readonly kind: 'rerun'; readonly indexes: readonly number[] };
+
+const matchRerunIndexes = (
+	list: readonly string[],
+	rerun: readonly string[],
+): readonly number[] => {
+	const wanted = new Set(rerun);
+	const indexes: number[] = [];
+
+	for (let index = 0; index < list.length; index += 1) {
+		if (wanted.has(list[index] ?? '')) {
+			indexes.push(index);
+		}
+	}
+
+	return indexes;
+};
+
+/**
+ * `value$` replays the last body result on every subscribe. That value
+ * belongs to the previous walk. Drop emissions that happen inside
+ * `subscribe` and keep later ones.
+ */
+const skipSyncReplay = <T>(source: Observable<T>): Observable<T> =>
+	new Observable((subscriber) => {
+		let open = false;
+		const subscription = source.subscribe({
+			next: (value) => {
+				if (open) {
+					subscriber.next(value);
+				}
+			},
+			error: (error: unknown) => {
+				subscriber.error(error);
+			},
+			complete: () => {
+				subscriber.complete();
+			},
+		});
+		open = true;
+
+		return () => {
+			subscription.unsubscribe();
+		};
+	});
+
+const paceItems = (
+	bodyResult: StatefulConnection<unknown, unknown, PortMeta>,
+	list: readonly string[],
+): Observable<string> => {
+	if (list.length === 0) {
+		return EMPTY;
+	}
+
+	return skipSyncReplay(bodyResult.value$).pipe(
+		startWith(undefined),
+		take(list.length),
+		observeOn(asapScheduler),
+		map((_, index) => list[index] ?? ''),
+	);
+};
+
+const collectBodyResults = (
+	bodyResult: StatefulConnection<unknown, unknown, PortMeta>,
+	count: number,
+): Observable<readonly string[]> =>
+	skipSyncReplay(bodyResult.value$).pipe(
+		take(count),
+		map((value) => stringifyLoopValue(value)),
+		toArray(),
+	);
 
 /**
  * External map-collect (C2/C8): pace `item` emissions by `bodyResult`, then
@@ -80,42 +158,90 @@ type MapCollectPorts = {
  * no in-LLM spawn.
  */
 export const createMapCollectStreams = (ports: MapCollectPorts) => {
-	const item$ = ports.items.pipeValue(
-		switchMap((raw) => {
-			const list = ports.normalize(raw);
+	let lastList: readonly string[] = [];
+	let lastResults: readonly string[] = [];
+	let completed = false;
 
-			if (list.length === 0) {
+	const walks$ = merge(
+		ports.items.pipeValue(map((raw) => ({ kind: 'full' as const, raw }))),
+		ports.rerunItems.pipeValue(
+			map((raw) => ({ kind: 'rerun' as const, raw })),
+		),
+	).pipe(
+		map((event): LoopWalk => {
+			if (event.kind === 'full') {
+				const list = ports.normalize(event.raw);
+				lastList = list;
+				lastResults = [];
+				completed = false;
+				return { kind: 'full', list };
+			}
+
+			const indexes = completed
+				? matchRerunIndexes(lastList, ports.normalize(event.raw))
+				: [];
+			return { kind: 'rerun', indexes };
+		}),
+		shareReplay({ bufferSize: 1, refCount: true }),
+	);
+
+	const item$ = statefulObservable({
+		input: walks$,
+		loader: (walk) => {
+			const list =
+				walk.kind === 'full'
+					? walk.list
+					: walk.indexes.map((index) => lastList[index] ?? '');
+
+			// Defer the next item so all bodyResult subscribers (including
+			// results$) finish the current emission before the body
+			// switchMaps a new prompt (sync reentrancy with delay 0).
+			return paceItems(ports.bodyResult, list);
+		},
+	});
+
+	const results$ = statefulObservable({
+		input: walks$,
+		loader: (walk) => {
+			if (walk.kind === 'full') {
+				if (walk.list.length === 0) {
+					lastResults = [];
+					completed = true;
+					return of('[]');
+				}
+
+				return collectBodyResults(
+					ports.bodyResult,
+					walk.list.length,
+				).pipe(
+					map((collected) => {
+						lastResults = collected;
+						completed = true;
+						return JSON.stringify(collected);
+					}),
+				);
+			}
+
+			if (walk.indexes.length === 0) {
 				return EMPTY;
 			}
 
-			// Defer the next item so all bodyResult subscribers (including
-			// results$) finish the current emission before the body LLM
-			// switchMaps a new userPrompt (sync reentrancy with delay 0).
-			return ports.bodyResult.value$.pipe(
-				startWith(undefined),
-				take(list.length),
-				observeOn(asapScheduler),
-				map((_, index) => list[index] ?? ''),
+			return collectBodyResults(
+				ports.bodyResult,
+				walk.indexes.length,
+			).pipe(
+				map((fresh) => {
+					const next = lastResults.slice();
+					walk.indexes.forEach((index, slot) => {
+						next[index] = fresh[slot] ?? '';
+					});
+					lastResults = next;
+					completed = true;
+					return JSON.stringify(next);
+				}),
 			);
-		}),
-	);
-
-	const results$ = ports.items.pipeValue(
-		switchMap((raw) => {
-			const list = ports.normalize(raw);
-
-			if (list.length === 0) {
-				return of('[]');
-			}
-
-			return ports.bodyResult.value$.pipe(
-				take(list.length),
-				map((value) => stringifyLoopValue(value)),
-				toArray(),
-				map((collected) => JSON.stringify(collected)),
-			);
-		}),
-	);
+		},
+	});
 
 	return { item$, results$ };
 };

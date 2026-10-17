@@ -5,7 +5,7 @@ subagent prompts.
 
 ## Feature (UI spec) template
 
-Path: `docs/features/<kebab>.md`
+Path: `docs/product/features/<kebab>.md`
 
 ```markdown
 # <Feature name>
@@ -43,12 +43,12 @@ Tables OK for states, roles, layouts.
 
 ## Use-case template
 
-Path: `docs/use-cases/<kebab>.md`
+Path: `docs/product/use-cases/<kebab>.md`
 
 ```markdown
 # <Use case name>
 
-**Status:** Draft | Partial | Blocked | Implementable — one line
+**Status:** Draft | Partial | Blocked | Available | Ready — one line
 
 ## Value
 
@@ -71,9 +71,9 @@ Path: `docs/use-cases/<kebab>.md`
 
 ## UI specs
 
-| Spec                                       | Scenarios covered |
-| ------------------------------------------ | ----------------- |
-| [feed-panel.md](../features/feed-panel.md) | S1, S2            |
+| Spec                                                          | Scenarios covered |
+| ------------------------------------------------------------- | ----------------- |
+| [feed-panel.md](../../../docs/product/features/feed-panel.md) | S1, S2            |
 
 Every `Sn` MUST appear in ≥1 row. Do not re-spec UI here.
 
@@ -109,13 +109,13 @@ _(Optional — only if the graph *is* the value.)_
 
 ### Use-case ownership
 
-| Layer        | Owns                            | Must not                             |
-| ------------ | ------------------------------- | ------------------------------------ |
-| Value        | Product promise                 | Ports, paths                         |
-| UX scenarios | Observable bar                  | Implementation choices               |
-| UI specs     | Links to `docs/features/*` × Sn | Inline UI redesign essays            |
-| Runtime      | Smallest backend for Expect     | Parallel APIs, speculative platforms |
-| Workflow     | Graph evidence                  | Fake mermaid that ≠ demo             |
+| Layer        | Owns                                    | Must not                             |
+| ------------ | --------------------------------------- | ------------------------------------ |
+| Value        | Product promise                         | Ports, paths                         |
+| UX scenarios | Observable bar                          | Implementation choices               |
+| UI specs     | Links to `docs/product/features/*` × Sn | Inline UI redesign essays            |
+| Runtime      | Smallest backend for Expect             | Parallel APIs, speculative platforms |
+| Workflow     | Graph evidence                          | Fake mermaid that ≠ demo             |
 
 Retired: persona / multi-role-approval identity UC — multi-gate lives on
 `hitl-chat.md`.
@@ -148,7 +148,7 @@ Retired: persona / multi-role-approval identity UC — multi-gate lives on
 9. Status Draft/Partial/Blocked honest vs Missing?
 10. Invented Settings / persona / tiers / nodes?
 11. Runtime monster (new platform “just in case”)?
-12. Implementable bar requires forever-Missing items?
+12. Available or Ready claimed while a named capability is still Missing?
 
 ## Honesty defaults
 

@@ -13,8 +13,8 @@ raw/cached bridge streams
 Visit grouping stays on `nodeFeed$`. The work log renders a sliding window
 over `feedRows$` (header + one row per visible port item) selected from the
 same projection — not a second fold of raw history. Measured window, pin,
-and recenter around the visible range: [ADR-037](../../../../../../docs/architecture/ADR.md#adr-037--work-log-sliding-measured-window),
-[VIRTUAL_SCROLL.md](../../../../../../docs/VIRTUAL_SCROLL.md).
+and recenter around the visible range: [ADR-037](../../../../../../docs/adr/037-work-log-sliding-measured-window.md),
+[VIRTUAL_SCROLL.md](../../../../../../docs/architecture/ui/VIRTUAL_SCROLL.md).
 
 ## Hard rule — never re-fold history on a new event
 
@@ -328,6 +328,6 @@ synthetic `permission:<askId>` ports (`authority: 'server'`).
 Product UI: [`features/feed/components/lf-work-log-panel.component.ts`](../feed/components/lf-work-log-panel.component.ts)
 
 - [`lf-feed-row.component.ts`](../feed/components/lf-feed-row.component.ts);
-  behavior: [`docs/features/feed-panel.md`](../../../../../../docs/features/feed-panel.md).
+  behavior: [`docs/product/features/feed-panel.md`](../../../../../../docs/product/features/feed-panel.md).
   Execution wiring: [`docs/architecture/EXECUTION_ARCHITECTURE.md`](../../../../../../docs/architecture/EXECUTION_ARCHITECTURE.md)
   § UI execution projections.

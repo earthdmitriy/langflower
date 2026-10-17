@@ -1,3 +1,11 @@
+---
+kind: architecture
+owner: ui
+covers:
+    - 'packages/ui/src/**'
+status: current
+---
+
 # Typography (UI)
 
 Typography is Tailwind-first.

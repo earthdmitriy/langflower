@@ -3,8 +3,8 @@ name: langflower-code-regression
 description: >-
     Splits the Langflower codebase into small chunks, runs a principles /
     FOUND_BUGS / glue-code regression review per chunk via subagents, writes
-    docs/code-regression/<chunk>.md reports, then summarizes into
-    docs/code-regression/SUMMARY.md. Re-runs reconcile against the previous
+    docs/_archive/code-regression/<chunk>.md reports, then summarizes into
+    docs/_archive/code-regression/SUMMARY.md. Re-runs reconcile against the previous
     reports and LEDGER.md instead of re-auditing from scratch. Use when the user
     asks for code-regression, code regression audit, principles sweep, glue/adapter
     audit, or a chunked codebase health review.
@@ -24,7 +24,7 @@ An empty run is a pass, not a failed audit.
 
 1. **Order is fixed** — split → per-chunk subagent reports → SUMMARY. Do not
    skip SUMMARY. Do not invent findings without file/path evidence.
-2. **Docs only under `docs/code-regression/`** — chunk reports, `CHUNKS.md`,
+2. **Docs only under `docs/_archive/code-regression/`** — chunk reports, `CHUNKS.md`,
    `LEDGER.md`, `SUMMARY.md`. Do not modify `packages/` / `tests/` / `launcher/`
    during this skill unless the user asks for fixes in a follow-up.
 3. **Delta is the default mode** — a re-run reconciles the previous reports and
@@ -35,7 +35,7 @@ An empty run is a pass, not a failed audit.
    "could be simpler" are **not** findings; Prettier and ESLint own style.
    Principles context: [PRINCIPLES.md](../../../docs/architecture/PRINCIPLES.md),
    [REACTIVITY.md](../../../docs/architecture/REACTIVITY.md),
-   [FOUND_BUGS.md](../../../docs/FOUND_BUGS.md).
+   [FOUND_BUGS.md](../../../docs/bugs/README.md).
 5. **Severity is inherited** — raising severity for the same finding needs
    `promoted-from` plus a new mechanism
    ([reference.md](reference.md) § Severity anchoring).
@@ -64,10 +64,10 @@ Copy and track:
 
 ```text
 Code-regression progress:
-- [ ] 1. SPLIT — choose chunks + mode; write/refresh docs/code-regression/CHUNKS.md
-- [ ] 2. REVIEW — for each chunk: Task subagent → docs/code-regression/<chunk>.md
+- [ ] 1. SPLIT — choose chunks + mode; write/refresh docs/_archive/code-regression/CHUNKS.md
+- [ ] 2. REVIEW — for each chunk: Task subagent → docs/_archive/code-regression/<chunk>.md
 - [ ] 3. RECONCILE — LEDGER.md: fixed / wontfix rows; counts match chunk files
-- [ ] 4. SUMMARY — aggregate → docs/code-regression/SUMMARY.md
+- [ ] 4. SUMMARY — aggregate → docs/_archive/code-regression/SUMMARY.md
 - [ ] 5. Report to user — delta (fixed / still open / new), top items, next fixes
 ```
 
@@ -80,8 +80,8 @@ Code-regression progress:
 4. Ensure each chunk is reviewable in one subagent (~one package or one
    feature slice; split oversized packages — e.g. `common-nodes` by domain,
    `ui` by feature area).
-5. Create `docs/code-regression/` and `LEDGER.md` if missing.
-6. Write `docs/code-regression/CHUNKS.md` listing:
+5. Create `docs/_archive/code-regression/` and `LEDGER.md` if missing.
+6. Write `docs/_archive/code-regression/CHUNKS.md` listing:
     - chunk id (kebab-case filename stem)
     - absolute/repo-relative paths included
     - status: pending | done
@@ -89,7 +89,7 @@ Code-regression progress:
    inflating counts). Note the deletion in `CHUNKS.md`.
 
 Chunk id = report filename without `.md`
-(e.g. `runtime` → `docs/code-regression/runtime.md`).
+(e.g. `runtime` → `docs/_archive/code-regression/runtime.md`).
 
 ### 2. REVIEW — one subagent per chunk
 
@@ -110,15 +110,15 @@ Subagent **must**:
    (`still-open` / `fixed` / `wontfix`), keeping the original `id` and
    `first-seen`. If the previous row is **not a listed class**, **drop it** —
    do not write `false-positive` rows. They confuse later runs.
-3. Read [LEDGER.md](../../../docs/code-regression/LEDGER.md) and not reopen a
+3. Read LEDGER.md (`docs/_archive/code-regression/LEDGER.md`) and not reopen a
    closed or wontfix item without a new mechanism.
 4. Read [PRINCIPLES.md](../../../docs/architecture/PRINCIPLES.md) and the relevant package
    `AGENTS.md` for context — but report only listed classes.
-5. Use [FOUND_BUGS.md](../../../docs/FOUND_BUGS.md) for **same-mechanism**
+5. Use [FOUND_BUGS.md](../../../docs/bugs/README.md) for **same-mechanism**
    recurrence only; cite the BUG id.
 6. Check [REACTIVITY.md](../../../docs/architecture/REACTIVITY.md) when the chunk has RxJS
    / UI / runtime streams (`withLatestFrom`, stray `.subscribe`, etc.).
-7. Write **only** `docs/code-regression/<chunk>.md` using the chunk report
+7. Write **only** `docs/_archive/code-regression/<chunk>.md` using the chunk report
    template in [reference.md](reference.md).
 8. Respect the caps as ceilings (≤8 findings, ≤3 Important) and leave sections
    as `none` when there is nothing to say.
@@ -143,7 +143,7 @@ Before writing SUMMARY:
 ### 4. SUMMARY
 
 After all chunk reports exist, write
-`docs/code-regression/SUMMARY.md` (orchestrator or one final Task).
+`docs/_archive/code-regression/SUMMARY.md` (orchestrator or one final Task).
 
 Must include:
 
@@ -163,18 +163,18 @@ Template: [reference.md](reference.md) § SUMMARY template.
 
 ## User overrides
 
-| Override                     | Behavior                                           |
-| ---------------------------- | -------------------------------------------------- |
-| Named packages / paths       | Review only those chunks                           |
-| "Re-run chunk X"             | Overwrite `docs/code-regression/X.md` only (delta) |
-| "Fresh audit" / "from zero"  | Ignore previous findings; still honor `LEDGER.md`  |
-| "Summary only"               | Rebuild SUMMARY from existing chunk reports        |
-| "Fix top N after regression" | Separate follow-up — not part of this skill        |
+| Override                     | Behavior                                                          |
+| ---------------------------- | ----------------------------------------------------------------- |
+| Named packages / paths       | Review only those chunks                                          |
+| "Re-run chunk X"             | Overwrite `docs/_archive/code-regression/<chunk>.md` only (delta) |
+| "Fresh audit" / "from zero"  | Ignore previous findings; still honor `LEDGER.md`                 |
+| "Summary only"               | Rebuild SUMMARY from existing chunk reports                       |
+| "Fix top N after regression" | Separate follow-up — not part of this skill                       |
 
 ## Done criteria
 
 - [ ] `CHUNKS.md` lists every reviewed chunk as `done`, with the mode recorded
-- [ ] Every chunk has `docs/code-regression/<chunk>.md`; superseded reports are
+- [ ] Every chunk has `docs/_archive/code-regression/<chunk>.md`; superseded reports are
       deleted
 - [ ] In delta mode every kept previous finding is `still-open` / `fixed` /
       `wontfix`; dropped not-a-class rows are deleted, not stored as
@@ -190,8 +190,8 @@ findings to make a run look productive.
 ## Additional resources
 
 - Templates + classes + severity anchoring + prompts: [reference.md](reference.md)
-- Ledger: [docs/code-regression/LEDGER.md](../../../docs/code-regression/LEDGER.md)
+- Ledger: docs/_archive/code-regression/LEDGER.md (`docs/_archive/code-regression/LEDGER.md`)
 - Principles: [docs/architecture/PRINCIPLES.md](../../../docs/architecture/PRINCIPLES.md)
-- Found bugs: [docs/FOUND_BUGS.md](../../../docs/FOUND_BUGS.md)
+- Found bugs: [docs/bugs/README.md](../../../docs/bugs/README.md)
 - Reactivity: [docs/architecture/REACTIVITY.md](../../../docs/architecture/REACTIVITY.md)
 - Navigation: [docs/architecture/NAVIGATION.md](../../../docs/architecture/NAVIGATION.md)

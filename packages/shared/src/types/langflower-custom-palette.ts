@@ -10,7 +10,7 @@ export type CustomPaletteCompilationStatus =
 /**
  * One pack / entry failure — same diagnostics written to that pack's
  * `COMPILATION_ERRORS.md`. WS copy of compiler `CompilePackError`
- * ([ADR-039](../../../docs/architecture/ADR.md#adr-039--dag-forced-twins-stay-copies-until-the-dag-flips)).
+ * ([ADR-039](../../../docs/adr/039-dag-forced-twins-stay-copies-until-the-dag-flips.md)).
  */
 export type CustomPalettePackError = {
 	readonly packageName: string;

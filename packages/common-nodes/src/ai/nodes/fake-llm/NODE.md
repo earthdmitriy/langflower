@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/ai/nodes/fake-llm/**'
+status: current
+---
+
 # Fake LLM
 
 |              |                   |
@@ -33,7 +41,7 @@ feedback revises draft/response text; tool-loop feedback appends to history.
 Plan / Coder / Explorer are **instance presets** on this one node type — not
 separate palette entries.
 
-Not a cloud mock provider — see `docs/features/node-library.md` §14 for the
+Not a cloud mock provider — see `docs/product/features/node-library.md` §14 for the
 planned in-process `mock-llm` provider path.
 
 ## Inputs
@@ -58,7 +66,7 @@ planned in-process `mock-llm` provider path.
 
 No fake emissions; Deny after continue HITL (e.g. `maxFeedbackTurns`) errors
 the cycle — see
-[LLM_NODES.md](../../../../../../docs/LLM_NODES.md) § Port events.
+[LLM_NODES.md](../../../../../../docs/reference/LLM_NODES.md) § Port events.
 
 Wire a Sub-Agent `subagent-registration` output into this `tools` input — the specialist is a
 normal `ToolHandle` (epic 41). Do **not** look for `spawn_subagent` ports.

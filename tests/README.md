@@ -2,7 +2,7 @@
 
 Test code and fixtures for the Langflower monorepo.
 
-**Strategy:** [docs/TESTING.md](../docs/TESTING.md)
+**Strategy:** [docs/guides/TESTING.md](../docs/guides/TESTING.md)
 
 ## Layout
 
@@ -43,4 +43,4 @@ node build/tools/agent-run.mjs verify
 | Before finishing a task                           | `npm run verify`                                   |
 
 Integration tests start an in-process server — no `langflower start` / port 4010
-required. See [docs/TESTING.md](../docs/TESTING.md) for failure output format.
+required. See [docs/guides/TESTING.md](../docs/guides/TESTING.md) for failure output format.

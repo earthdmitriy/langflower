@@ -15,7 +15,7 @@ knowing Rust first. Start here, then open the chapter you need.
 
 Operator-facing summary (what to download, how to dogfood):
 [launcher/README.md](../README.md). Product decision:
-[ADR-038](../../docs/architecture/ADR.md#adr-038--launcher-is-a-cli-supervisor).
+[ADR-038](../../docs/adr/038-launcher-is-a-cli-supervisor.md).
 
 ## What this program is
 
@@ -79,7 +79,7 @@ editor’s WS bus starts only after the child CLI is listening.
   Tauri as the launcher toolkit (already tried: WebView, large exe;
   then FLTK: moderate size, ugly UI; Slint is accepted). An embedded
   canvas would be a different product
-  ([TBD-002](../../docs/TBD.md#tbd-002--embedded-canvas-desktop-shell)).
+  ([TBD-002](../../docs/_work/TBD.md#tbd-002--embedded-canvas-desktop-shell)).
 - Do not vendor Node or the CLI inside the zip.
 - Do not auto-update Langflower. Offer **Update** / **Skip**.
 - Do not open a URL unless it starts with `http://127.0.0.1:` or is

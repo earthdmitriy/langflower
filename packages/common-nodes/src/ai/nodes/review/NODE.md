@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/ai/nodes/review/**'
+status: current
+---
+
 # Review
 
 |              |                 |

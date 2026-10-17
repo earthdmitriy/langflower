@@ -45,13 +45,13 @@ Re-run a single suite: `node build/test.mjs --unit` or `node build/test.mjs --in
 
 ## Dev workflow (tests)
 
-| Goal                       | Command                                                           |
-| -------------------------- | ----------------------------------------------------------------- |
-| Fast logic check           | `bash build/run.sh test --unit`                                   |
-| WS / execution / bootstrap | `bash build/run.sh test --integration` (after `build-all`)        |
-| Agent default before done  | `bash build/run.sh verify`                                        |
-| Faster verify              | `bash build/run.sh verify --quick`                                |
-| Full gate                  | `npm run format && npm run lint && npm run test && npm run build` |
+| Goal                       | Command                                                                 |
+| -------------------------- | ----------------------------------------------------------------------- |
+| Fast logic check           | `bash build/run.sh test --unit`                                         |
+| WS / execution / bootstrap | `bash build/run.sh test --integration` (after `build-all`)              |
+| Agent default before done  | `bash build/run.sh verify`                                              |
+| Faster verify              | `bash build/run.sh verify --quick`                                      |
+| Full gate                  | `npm run format --all && npm run lint && npm run test && npm run build` |
 
 Integration tests import compiled `@langflower/server` — always run `build-all`
 (or `verify`) before `--integration` if packages changed.
@@ -81,3 +81,32 @@ node build/tools/agent-run.mjs test --integration
 bash build/run.sh verify
 node build/tools/agent-run.mjs verify --quick
 ```
+
+## Docs generators
+
+`docs-gen` regenerates `docs/adr/README.md`, `docs/bugs/README.md`,
+`docs/architecture/DOC_MAP.md`, and the package-local registry in
+`docs/README.md` from frontmatter. `docs-sync` compares
+`packages/server/skeleton/skills/**` with `demo-project/.langflower/skills/**`
+and `.langflower/skills/**`.
+
+```bash
+node build/tools/agent-run.mjs docs-gen --check
+node build/tools/agent-run.mjs docs-gen
+node build/tools/agent-run.mjs docs-sync --check
+```
+
+Run `docs-sync` without `--check` only after the user confirms the dirty
+`.langflower` and `demo-project` skill copies may be overwritten.
+
+## Agent-run command keys
+
+- `build-shared` — Build @langflower/shared
+- `build-server` — Build @langflower/server
+- `build-cli` — Build langflower CLI
+- `cleanup` — Remove node_modules and package-lock.json
+- `install` — npm install
+- `check-exports` — Detect orphan exports (pass --fix to auto-remove, --json for machine output)
+- `dead-code` — List dead code: unused files, orphan exports, unused types (--json, --scope, --kind)
+- `fix-exports` — Move single-use exports to consumer packages
+- `clean-orphans` — Remove exports with zero consumers

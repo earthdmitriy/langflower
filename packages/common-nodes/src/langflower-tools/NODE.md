@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/langflower-tools/**'
+status: current
+---
+
 # Langflower Tools
 
 Pack node: emits bus-backed tools for agent inventory. **Unsafe** graph /

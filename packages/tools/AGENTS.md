@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: tools
+covers:
+    - 'packages/tools/**'
+status: current
+---
+
 # @langflower/tools
 
 Project runtime capabilities for agent workflows: builtin harness tools, path
@@ -56,7 +64,7 @@ import { runBfsCrawl } from '@langflower/tools/run-bfs-crawl';
 `mcp-tool-id` is the **owner** of MCP inventory id encode/parse. Server
 config validation imports `@langflower/tools/mcp-tool-id`. There is no
 shared twin. Inspector catalogs and secret-id charset remain DAG twins
-([ADR-039](../../docs/architecture/ADR.md#adr-039--dag-forced-twins-stay-copies-until-the-dag-flips)).
+([ADR-039](../../docs/adr/039-dag-forced-twins-stay-copies-until-the-dag-flips.md)).
 
 MCP stdio **frame parse** is a DAG twin of `@langflower/mcp`
 `mcp-stdio-framing.ts` (CRLF + LF Content-Length and newline JSON). Do not

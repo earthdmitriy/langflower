@@ -216,7 +216,7 @@ const resolveSessionFactory = (
  * Deterministic LLM stand-in for demos / feed UX. Supports an optional
  * scripted tool-loop (`scriptedToolTurns` or injected `createChatCompletionStream`)
  * that invokes `ToolHandle.invoke` like openai-llm (not `ctx.harness`).
- * @see docs/architecture/ADR.md ADR-016
+ * @see docs/adr/README.md ADR-016
  */
 export const fakeLlmNode = defineLlmNode({
 	type: 'common-fake-llm',

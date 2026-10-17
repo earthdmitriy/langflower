@@ -1,3 +1,11 @@
+---
+kind: architecture
+owner: docs
+covers:
+    - 'packages/server/src/**'
+status: current
+---
+
 # Architecture
 
 ## System context
@@ -64,21 +72,21 @@ flowchart TB
 
 Solid arrows are production `dependency → consumer` edges; the dashed
 `Runtime -.-> NodeDef` edge is a devDependency for parity tests only
-([ADR-027](ADR.md#adr-027--author-sdk-owns-port-types-no-production-runtime-dep)).
+([ADR-027](../adr/027-author-sdk-owns-port-types-no-production-runtime-dep.md)).
 The enforced matrix is
 [`tests/unit/package-boundaries/allowed-edges.ts`](../../tests/unit/package-boundaries/allowed-edges.ts).
 
 `packages/compiler` discovers and bundles custom node packs from
 `.langflower/nodes/` for the server palette — the main extension seam
 ([EXTENSION_POINT.md](EXTENSION_POINT.md),
-[ADR-030](ADR.md#adr-030--custom-node-pack-layout--npm-model)).
+[ADR-030](../adr/030-custom-node-pack-layout-and-npm-model.md)).
 
-Package roles: [NAVIGATION.md](NAVIGATION.md). Product purpose: [PRODUCT.md](../PRODUCT.md).
+Package roles: [NAVIGATION.md](NAVIGATION.md). Product purpose: [PRODUCT.md](../product/PRODUCT.md).
 
 ## Startup sequence
 
 Current CLI/server flow; product behavior:
-[bootstrap-new-project](../use-cases/bootstrap-new-project.md).
+[bootstrap-new-project](../product/use-cases/bootstrap-new-project.md).
 
 ```mermaid
 sequenceDiagram
@@ -168,14 +176,14 @@ Reactive node and runner execution — see
 
 Harness / agent / KB / crawl capabilities ship via `@langflower/tools` and
 `@langflower/common-nodes`, injected by the thin server. Product framing:
-[PRODUCT.md](../PRODUCT.md).
+[PRODUCT.md](../product/PRODUCT.md).
 
 **Boundary (ADR-014):** harness nodes may read/write under **project root** with
 path sandbox, plus optional `harness.allowedRoots` for vaults outside the
 project. Generic server services (workflow CRUD, config) remain
 `.langflower/`-only. Server **injects** tools/common-nodes factories — it does
 **not** own KB/crawl/MCP/LLM implementations. See
-[ADR.md §ADR-014](ADR.md#adr-014--project-root-harness-io) and
+[ADR.md §ADR-014](../adr/014-project-root-harness-i-o.md) and
 [PRINCIPLES.md § Thin server](PRINCIPLES.md#thin-server--do-not-grow-domain-here).
 
 ## WebSocket Protocol (Default)

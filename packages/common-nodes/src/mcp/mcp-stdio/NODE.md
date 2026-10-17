@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/mcp/mcp-stdio/**'
+status: current
+---
+
 # MCP stdio
 
 Owns **stdio MCP** connect/close. Emits live **`ToolHandle[]`** on `tools` for

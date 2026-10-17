@@ -155,7 +155,7 @@ function bypassHandles(component: LfNodeComponent): string[] {
 
 /**
  * Drain the async `FlowCore` command-handler middleware pipeline (see
- * docs/NG_DIAGRAM.md). A single macrotask tick is not always enough — the
+ * docs/architecture/ui/NG_DIAGRAM.md). A single macrotask tick is not always enough — the
  * middleware chain can take a few ticks to resolve before `model.onChange`
  * fires and the `edges()`/`nodes()` signals update — so this yields several
  * times rather than once.
@@ -337,7 +337,7 @@ describe('dynamic port update (reactive derivation in LfNodeComponent)', () => {
 	 * that trailing empty slot. Before this fix, `editor.updateNodes`
 	 * recomputed `data.ports` from a stale edge snapshot (`graphInput().edges`)
 	 * and reverted the growth applied by the previous `editor.addEdges`
-	 * handler — see docs/FOUND_BUGS.md. Ports are now derived live from the
+	 * handler — see docs/bugs/README.md. Ports are now derived live from the
 	 * diagram's own edges signal, so there is nothing on `data` left to go
 	 * stale.
 	 */

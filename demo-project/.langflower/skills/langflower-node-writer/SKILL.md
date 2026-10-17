@@ -148,8 +148,13 @@ the node — copying the custom-node pack does not break it. Host `git` via
       `configureOutput('ok', ok$, { inferTypeFrom: trigger })`. Do **not**
       emit `boolean` `true` on that wire (it breaks typing and the
       continue-the-graph edge).
-- `fail` is a **string** (prefer stripped tool-handler text, not raw
-  stderr dumps).
+- `fail` is a **string** wired to Preview or an agent `feedback` port.
+  Filter test and formatter output to **failures** before that string
+  is emitted: failing test names, assertion diffs, and formatter error
+  lines. Drop passing suites, progress, and full file dumps. A length
+  cap on the raw log is not a filter — the kept text still bloats the
+  next agent turn. A green formatter or a passing test emits nothing
+  on `fail`.
 - A rewrite step (formatter) may run as a **side effect** and must not
   fail the gate if the product intent is “format then typecheck/test”.
   Typecheck / tests may fail the gate and skip later steps.
@@ -170,8 +175,8 @@ Vitest config **includes** that glob; do not assume it.
    (`defineToolRegistrations` owns a `tools` output — no custom inputs).
 3. Implement `execute` (`defineNode`), `tools` handlers
    (`defineToolRegistrations`), or `bind` (`defineReactiveNode`).
-4. Show the full file the user can paste into `my-nodes/` **or write it**
-   under `.langflower/nodes/<pack>/`.
+4. Write the full file under `.langflower/nodes/<pack>/` with `write` or
+   `edit`. A chat paste is not a saved node.
 5. Call **`compile_custom_nodes`**. If the snapshot lists errors, `read`
    that pack’s `COMPILATION_ERRORS.md`, fix, and compile again. Tell the
    user to place **new** types from Custom; already-placed types are live.
@@ -184,3 +189,16 @@ Vitest config **includes** that glob; do not assume it.
   (`defineToolRegistrations`), `review-gate.ts` (`defineReactiveNode`)
 - Multi-file + `.ts` imports: `.langflower/nodes/hello-embed/` (`tsconfig.json`
   already has `allowImportingTsExtensions`)
+
+## Before you send a final answer
+
+A message with no tool call is the final result Helper will treat as done.
+Plain text does not write or compile files.
+
+- Create and edit files with `write`, `edit`, or `create` under
+  `.langflower/nodes/`. A chat paste is not a saved node.
+- After writing or editing those files, call `compile_custom_nodes` with no
+  arguments. Quote status and `COMPILATION_ERRORS.md` from the tool result.
+- The closing summary lists only paths and compile status that appear in tool
+  results from this task, plus open risks. If the file is not written yet, call
+  the tool instead of summarizing.

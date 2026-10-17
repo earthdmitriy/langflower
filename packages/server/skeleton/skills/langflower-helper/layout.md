@@ -75,3 +75,11 @@ Facts for UI chrome and on-disk paths. Prefer this file over guessing.
   bootstrap does not rewrite them.
 - Closing the browser tab is not “where is Stop” — see companion
   `architecture.md` (server-first runs) and Knowledge base §7.
+
+## Langflower repository docs
+
+When the open folder is the Langflower repo, live docs are
+`docs/product/features/README.md`, `docs/product/use-cases/README.md`,
+`docs/reference/SESSIONS.md`, `docs/adr/README.md`, and
+`docs/bugs/README.md`. Planning notes are `docs/_work/TODO/README.md`.
+Frozen history is `docs/_archive/DONE/README.md`.

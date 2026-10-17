@@ -1,7 +1,15 @@
+---
+kind: guide
+owner: cli
+covers:
+    - 'packages/cli/**'
+status: current
+---
+
 # @langflower/cli
 
 Workspace CLI package. The **published** npm package is the **repo root**
-`langflower` (see [docs/RELEASE.md](../../docs/RELEASE.md)).
+`langflower` (see [docs/guides/RELEASE.md](../../docs/guides/RELEASE.md)).
 
 Dogfood: `npm run install-local`. Local start: `npm run start -w @langflower/cli`.
 
@@ -12,7 +20,7 @@ Dogfood: `npm run install-local`. Local start: `npm run start -w @langflower/cli
   so ESM hoist cannot hide the heartbeat. Workspace `dist/` is `tsc` emit.
   Published / `install-local` product `dist/` is esbuild-bundled (start chunk +
   split eval / compile; `typescript` + esbuild + host peers external — see
-  [RELEASE.md](../../docs/RELEASE.md)). Product `vendor/` is host peers
+  [RELEASE.md](../../docs/guides/RELEASE.md)). Product `vendor/` is host peers
   (`node-sdk`, `runtime`) plus `server/skeleton` only.
 - `src/index.ts` — **process entry** (side-effect call into `cli.ts`, not a
   re-export barrel). PRINCIPLES forbid `index.ts` barrels; this file is the npm
@@ -50,7 +58,7 @@ server domain logic.
 
 ## Status
 
-`start` + `eval` shipped — see [docs/STATUS.md](../../docs/STATUS.md) CLI table
+`start` + `eval` shipped — see [docs/product/STATUS.md](../../docs/product/STATUS.md) CLI table
 (not a stub).
 
 ## Build

@@ -5,7 +5,7 @@ description: >-
     Analyzes docs for contradictions, asks the user instead of guessing, locks
     decisions, then updates PRODUCT/use-cases/ADR/MECHANICS/STATUS. Use when
     clarifying purpose, goals, roadmap frame, Sub-Agent/swarm mechanics, bootstrap
-    intent, Stage labels, Implementable bars, or when the user asks to clarify
+    intent, Stage labels, Available / Ready bars, or when the user asks to clarify
     docs, run question rounds, or lock product decisions before implementation.
 ---
 
@@ -30,7 +30,7 @@ description: >-
 - Roadmap frame (Stage 1/2/3 vs use-case Status)
 - Sub-Agent, swarm, nested spawn, Loop / Monte Carlo
 - Bootstrap / Settings / folder picker intent
-- Implementable bar for use cases
+- Available / Ready bar for use cases
 - User says: clarify docs, product lock, question rounds, “don’t guess”
 
 ## Workflow
@@ -51,14 +51,14 @@ Clarify progress:
 
 Always start from:
 
-| Doc                                                                                                 | Role                                  |
-| --------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| [docs/PRODUCT.md](../../../docs/PRODUCT.md)                                                         | Purpose, goal, differentiators        |
-| [docs/use-cases/README.md](../../../docs/use-cases/README.md)                                       | Status bar / north star               |
-| [docs/STATUS.md](../../../docs/STATUS.md)                                                           | Package/capability status             |
-| [docs/architecture/ADR.md](../../../docs/architecture/ADR.md)                                       | Locked decisions                      |
-| [docs/DONE/EPICS/MECHANICS-tool-execution.md](../../../docs/DONE/EPICS/MECHANICS-tool-execution.md) | Internal vs external tools; Sub-Agent |
-| [AGENTS.md](../../../AGENTS.md)                                                                     | Agent entry + links                   |
+| Doc                                                                                                           | Role                                  |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| [docs/product/PRODUCT.md](../../../docs/product/PRODUCT.md)                                                   | Purpose, goal, differentiators        |
+| [docs/product/use-cases/README.md](../../../docs/product/use-cases/README.md)                                 | Status bar / north star               |
+| [docs/product/STATUS.md](../../../docs/product/STATUS.md)                                                     | Package/capability status             |
+| [docs/adr/README.md](../../../docs/adr/README.md)                                                             | Locked decisions                      |
+| docs/_archive/DONE/EPICS/MECHANICS-tool-execution.md (`docs/_archive/DONE/EPICS/MECHANICS-tool-execution.md`) | Internal vs external tools; Sub-Agent |
+| [AGENTS.md](../../../AGENTS.md)                                                                               | Agent entry + links                   |
 
 Add topic-specific reads (e.g. `use-cases/coding-agent.md`, Sub-Agent `NODE.md`,
 epic 07). Prefer facts from code/docs over assumptions.
@@ -79,16 +79,16 @@ Do not invent resolutions. Call out stale Stage 1/2/3 vs use-case Status.
 
 ### 4. Write docs (only when asked)
 
-| Kind of lock                       | Where to write                                              |
-| ---------------------------------- | ----------------------------------------------------------- |
-| Purpose / goal / user / north star | `docs/PRODUCT.md` + `AGENTS.md` / `STATUS.md` pointers      |
-| End-user scenario Status / naming  | `docs/use-cases/*.md` + README                              |
-| Non-obvious architecture tradeoff  | New or updated **ADR** (`docs/architecture/ADR.md`)         |
-| Tool/spawn internal vs external    | `MECHANICS-tool-execution.md` + ADR                         |
-| Product locks index                | `docs/DONE/EPICS/README.md` § Product locks                 |
-| Node author surface                | package `NODE.md` + `docs/features/node-library.md`         |
-| Obsolete Stage rollout             | **Delete** or archive; do not leave conflicting Stage plans |
-| Undecided but important            | ADR **Pending decision** block (open questions listed)      |
+| Kind of lock                       | Where to write                                                 |
+| ---------------------------------- | -------------------------------------------------------------- |
+| Purpose / goal / user / north star | `docs/product/PRODUCT.md` + `AGENTS.md` / `STATUS.md` pointers |
+| End-user scenario Status / naming  | `docs/product/use-cases/*.md` + README                         |
+| Non-obvious architecture tradeoff  | New or updated **ADR** (`docs/adr/README.md`)                  |
+| Tool/spawn internal vs external    | `MECHANICS-tool-execution.md` + ADR                            |
+| Product locks index                | `docs/_archive/DONE/EPICS/README.md` § Product locks           |
+| Node author surface                | package `NODE.md` + `docs/product/features/node-library.md`    |
+| Obsolete Stage rollout             | **Delete** or archive; do not leave conflicting Stage plans    |
+| Undecided but important            | ADR **Pending decision** block (open questions listed)         |
 
 **Patterns from prior clarifications:**
 
@@ -107,8 +107,8 @@ Do not invent resolutions. Call out stale Stage 1/2/3 vs use-case Status.
 
 ## Anti-patterns
 
-- Guessing spawn/result ports, concurrency, or Implementable bars
-- Writing “Implementable” for basic Plan→Coder when product bar is full pipeline
+- Guessing spawn/result ports, concurrency, or Available / Ready bars
+- Writing “Available” for basic Plan→Coder when the product bar is the full pipeline, or “Ready” when the user still assembles the graph
 - Leaving Stage 1/2/3 as active roadmap after PRODUCT says otherwise
 - Claiming target Sub-Agent contract is shipped
 - Mixing HITL/`feedback` with `subagentResult` in docs

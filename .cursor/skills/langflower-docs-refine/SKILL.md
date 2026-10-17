@@ -2,8 +2,8 @@
 name: langflower-docs-refine
 description: >-
     Draft, roast, and fix Langflower product docs via a three-phase subagent
-    pipeline. Refines docs/features UI specs (Goal→Principles→Details→Impl) and
-    docs/use-cases (Value→UX→UI specs→Runtime→Status). Use when the user asks to
+    pipeline. Refines docs/product/features UI specs (Goal→Principles→Details→Impl) and
+    docs/product/use-cases (Value→UX→UI specs→Runtime→Status). Use when the user asks to
     draft/roast/fix docs, refine UI specs or use-cases, run the docs refine
     loop, or create/update feed-panel, hitl-chat, inspector, or other feature/
     use-case markdown with honesty against demos and code.
@@ -28,17 +28,17 @@ contracts; match existing doc language.
 
 ## When to use
 
-- Refine or create a `docs/features/*.md` UI spec
-- Refine or create a `docs/use-cases/*.md`
+- Refine or create a `docs/product/features/*.md` UI spec
+- Refine or create a `docs/product/use-cases/*.md`
 - User says: draft/roast/fix, docs refine loop, UI specs refining
 - Honesty pass after demos/code drifted from docs
 
 ## Choose target kind
 
-| Kind                  | Path                       | Canonical shape                                                   |
-| --------------------- | -------------------------- | ----------------------------------------------------------------- |
-| **Feature (UI spec)** | `docs/features/<name>.md`  | Goal → Core Principles → Feature Details → Implementation Details |
-| **Use case**          | `docs/use-cases/<name>.md` | Value → UX scenarios → UI specs → Runtime → Workflow? → Status    |
+| Kind                  | Path                               | Canonical shape                                                   |
+| --------------------- | ---------------------------------- | ----------------------------------------------------------------- |
+| **Feature (UI spec)** | `docs/product/features/<name>.md`  | Goal → Core Principles → Feature Details → Implementation Details |
+| **Use case**          | `docs/product/use-cases/<name>.md` | Value → UX scenarios → UI specs → Runtime → Workflow? → Status    |
 
 Hierarchy for use cases: Value → UX projection → UI specs (feature links) →
 minimal Runtime. See [reference.md](reference.md).
@@ -62,8 +62,8 @@ Refine progress:
 Read before spawning:
 
 - Target file (if exists)
-- [docs/features/README.md](../../../docs/features/README.md) and/or
-  [docs/use-cases/README.md](../../../docs/use-cases/README.md)
+- [docs/product/features/README.md](../../../docs/product/features/README.md) and/or
+  [docs/product/use-cases/README.md](../../../docs/product/use-cases/README.md)
 - Related demos under `demo-project/.langflower/workflows/` when claiming
   alignment
 - Sibling docs the UC/feature links to

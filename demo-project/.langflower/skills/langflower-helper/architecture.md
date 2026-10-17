@@ -44,9 +44,11 @@ Project product data for Langflower lives under **`.langflower/`**.
 - **Closing or reopening a browser tab does not stop a running workflow** while
   `langflower start` / the server process stays up. Reconnect → fresh snapshots
     - continued facts.
-- Soft **Pause**, Hard **Stop**, and checkpoint discard are **explicit** runner
-  controls — do **not** equate “tab closed” with Stop. Process kill / reboot is
-  different again (see Knowledge base §7).
+- Soft **Pause**, Hard **Stop**, and discarding a session point are
+  **explicit** controls — do **not** equate “tab closed” with Stop. A
+  workflow session (topbar tab) can continue after process kill. That is
+  not the same as closing the browser while the process stays up (see
+  Knowledge base §7).
 
 ## Execution model
 
@@ -56,8 +58,38 @@ Project product data for Langflower lives under **`.langflower/`**.
 - Canvas node instances stay alive across **Stop / done / Start** while the
   same workflow is loaded. Authors may **intentionally** keep in-memory
   internal state across runs until the user **loads another workflow** or
-  **shuts down Langflower**. That is not durable Checkpoint resume after
-  process restart.
+  **shuts down Langflower**. In-memory closures still survive `done` until
+  the node is rematerialized. They do not survive a process restart.
+- A **workflow session** is a durable tab of one workflow, not the process
+  `LangflowerSession`. The workflow is the parent: tabs are stored and
+  listed under that workflow. While the tab is open the canvas shows the
+  session graph snapshot; the workflow file stays the home. On disk the tab is
+  `.langflower/sessions/<workflowId>/<label>.json` (`schemaVersion: 1`)
+  plus `<label>.feed.jsonl`. The filename is the tab (`YYYY-MM-DD #N`).
+  `sessionId` is the UUID inside the JSON. The JSON holds the graph,
+  head `nodeStates`, and points (`runOffset` / `feedOffset`, not a copied
+  feed). The feed log is one JSON value per line; the restored work log
+  is the slice after the last run marker. The JSON is rewritten when the
+  graph, node state, points, or identity change. Closed frames are
+  appended after a short debounce. An open streaming frame stays in
+  memory until it closes. Finish does not flush. Restart binds the newest
+  session before the first feed. A Run with no tab writes one from the
+  graph on screen. A Run continues the head. **Continue from…** rewinds
+  to a point (truncates the feed to that offset and drops later points).
+  **Reset** empties the feed and clears points; the tab and graph stay.
+  OpenAI, Fake, Review, and Critique persist `{ history }` through the
+  state hook (`persist$` + `restore` on the bind result, stored under the
+  node id in `nodeStates`). Repeat persists `{ nextIndex, done, count }`
+  after each slot that has already left the node. Sub-Agent has no hook:
+  its result is a tool call on the parent agent's transcript. A custom
+  node uses the same hook: emit the full JSON value, accept `null` or
+  that JSON in `restore`. No session bound means nothing is written.
+  **Reset session on input** is a node parameter (default off), not the
+  hook. Tabs cannot be renamed. Any listed tab can be deleted, including one
+  that is not open and a corrupt file.
+  Switching workflows or sessions is refused while the graph is executing,
+  and allowed during HITL or steering after the parked run stops. Old
+  `.langflower/runs/**/checkpoint.json` files are not migrated.
 - **HITL loops** (Review Gate, feedback ports, composer Start/Send) are normal
   **internal waiting state of nodes**, not a separate product “interrupt the
   engine” mechanism.
@@ -74,7 +106,7 @@ Project product data for Langflower lives under **`.langflower/`**.
   Authentication/configuration failures are terminal. Generic reload of any
   failed non-LLM node is not yet shipped.
 - Also on the bus: runner start / resume / interrupt intents, `permission.ask`,
-  and related facts.
+  `askUser.ask`, and related facts.
 
 ## Agents on the canvas
 
@@ -114,6 +146,10 @@ Project product data for Langflower lives under **`.langflower/`**.
   Stop is not required for already-placed custom types.
   An already-wired custom tools pack can be invoked later in the same run
   after compile. Do not auto-place or auto-wire a new type mid-run.
+  Tool handlers return short pass/fail text (not raw logs). Exclusive
+  `ok`/`fail` gates: seed pulse is boolean `true` on `ok`; continue-the-graph
+  gates passthrough `trigger` (`inferTypeFrom`). No shell Cap on public
+  `ExecutionContext` yet.
 - Plain JS / Go / Python are not the authoring path. Sandboxed arbitrary
   user-node execution is **not** shipped. Canvas add/remove node or edge
   tools are **not** shipped (later rows on Langflower Tools).
@@ -134,3 +170,8 @@ Project product data for Langflower lives under **`.langflower/`**.
   is Implementable with a real LLM.
 - If a detail is not here and not in the helper Knowledge base → **not in my
   facts**.
+- Langflower repository docs (not copied into a user project):
+  `docs/product/features/README.md`, `docs/product/use-cases/README.md`,
+  `docs/reference/SESSIONS.md`, `docs/adr/README.md`, `docs/bugs/README.md`.
+  Planning notes are `docs/_work/TODO/README.md`. Frozen history is
+  `docs/_archive/DONE/README.md`.

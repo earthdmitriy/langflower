@@ -12,7 +12,7 @@
 		"bin",
 		"ui-dist",
 		"vendor",
-		"docs/public"
+		"docs/assets/public"
 	],
 	"workspaces": [
 		"packages/*"
@@ -42,7 +42,7 @@
 		"install:deps": "bash build/install.sh",
 		"install-local": "node build/install-local.mjs",
 		"format": "node build/format.mjs",
-		"format:check": "node build/format.mjs --check",
+		"format:check": "node build/format.mjs --check --all",
 		"lint": "node build/lint.mjs",
 		"lint:fix": "node build/lint.mjs --fix",
 		"test": "node build/test.mjs",
@@ -58,6 +58,8 @@
 		"check:dead-code:json": "node build/dead-code.mjs --json",
 		"fix-exports": "node build/fix-single-use.mjs",
 		"clean-orphans": "node build/clean-orphans.mjs",
+		"docs-gen": "node build/docs-gen.mjs",
+		"docs-sync": "node build/docs-sync.mjs",
 		"pack-release": "node build/pack-release.mjs",
 		"pre-release": "node build/pre-release.mjs",
 		"start": "npm run start -w @langflower/cli",

@@ -88,16 +88,16 @@ another file under `tests/` next to the module you are changing.
 
 ## Sibling product files (not in this crate)
 
-| File                                     | Why the launcher cares                                                               |
-| ---------------------------------------- | ------------------------------------------------------------------------------------ |
-| `packages/cli/src/start-command.ts`      | `--no-open`, `formatReadyLine` / `LANGFLOWER_READY`, `Run settled:` (`onRunSettled`) |
-| Root `package.json` `bin.langflower`     | published CLI the global install provides                                            |
-| `.github/workflows/launcher-ci.yml`      | `cargo test --locked` on Windows + macOS                                             |
-| `.github/workflows/launcher-release.yml` | unsigned zips on `launcher-v*` / workflow_dispatch                                   |
-| `docs/architecture/ADR.md` ADR-038       | supervisor vs canvas-in-webview                                                      |
-| `docs/DONE/EPICS/46-launcher.md`         | landed epic: thin supervisor; toolkit history Tauri → FLTK → Slint                   |
-| `docs/public/launcher.md`                | operator user manual (Help **?** on GitHub)                                          |
-| `docs/RELEASE.md`                        | how to tag launcher vs npm `v*`                                                      |
+| File                                      | Why the launcher cares                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------------------------ |
+| `packages/cli/src/start-command.ts`       | `--no-open`, `formatReadyLine` / `LANGFLOWER_READY`, `Run settled:` (`onRunSettled`) |
+| Root `package.json` `bin.langflower`      | published CLI the global install provides                                            |
+| `.github/workflows/launcher-ci.yml`       | `cargo test --locked` on Windows + macOS                                             |
+| `.github/workflows/launcher-release.yml`  | unsigned zips on `launcher-v*` / workflow_dispatch                                   |
+| `docs/adr/README.md` ADR-038              | supervisor vs canvas-in-webview                                                      |
+| `docs/_archive/DONE/EPICS/46-launcher.md` | landed epic: thin supervisor; toolkit history Tauri → FLTK → Slint                   |
+| `docs/assets/public/launcher.md`          | operator user manual (Help **?** on GitHub)                                          |
+| `docs/guides/RELEASE.md`                  | how to tag launcher vs npm `v*`                                                      |
 
 ## Dependencies (what they are for)
 

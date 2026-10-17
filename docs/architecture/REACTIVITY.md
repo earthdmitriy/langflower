@@ -1,7 +1,15 @@
+---
+kind: architecture
+owner: docs
+covers:
+    - 'packages/runtime/src/**'
+status: current
+---
+
 # Reactivity patterns (RxJS)
 
 Practical rules for event folds, reactive node bindings, and runtime demand.
-Policy: [ADR-004](ADR.md), [PRINCIPLES.md](PRINCIPLES.md).
+Policy: [ADR-004](../adr/README.md), [PRINCIPLES.md](PRINCIPLES.md).
 
 ## Choose the layer
 
@@ -63,7 +71,7 @@ must replay the same domain rules as live events.
 
 Bootstrap order is testable behavior: execution-feed state may arrive before
 workflow and palette state. Classification must wait for all three sources.
-Incident details belong in [FOUND_BUGS.md](../FOUND_BUGS.md), notably
+Incident details belong in [FOUND_BUGS.md](../bugs/README.md), notably
 BUG-2026-07-21b and BUG-2026-07-21d.
 
 ## Observables and signals
@@ -133,7 +141,7 @@ Prefer:
 
 A human-approved exception needs a short call-site comment explaining why
 asymmetric sampling is correct. Details stay in
-[FOUND_BUGS.md](../FOUND_BUGS.md).
+[FOUND_BUGS.md](../bugs/README.md).
 
 ## Reactive node binding
 
@@ -153,8 +161,8 @@ runtime seed unconnected optional inputs correctly.
 Feedback loop ports differ from init inputs. The documented turn-zero
 `startWith` plus `concatMap` pattern is valid for feedback; do not include
 feedback in init `combineInputs`. See
-[HOW_TO_WRITE_REACTIVE_NODES.md](../HOW_TO_WRITE_REACTIVE_NODES.md) and
-[REACTIVE_NODES.md](../REACTIVE_NODES.md).
+[HOW_TO_WRITE_REACTIVE_NODES.md](../guides/how-to-write-reactive-nodes.md) and
+[REACTIVE_NODES.md](../reference/REACTIVE_NODES.md).
 
 ### StatefulObservable error-lane
 
@@ -165,7 +173,7 @@ feedback in init `combineInputs`. See
 Runner value seeds remain `{ value }` → `of(value)`. To put `CtxError` on
 hidden ctx, the server seeds `throwError(() => CtxError)` and connects that
 Observable onto the context port before `start` (see
-[HOW_TO_WRITE_REACTIVE_NODES.md](../HOW_TO_WRITE_REACTIVE_NODES.md)
+[HOW_TO_WRITE_REACTIVE_NODES.md](../guides/how-to-write-reactive-nodes.md)
 § StatefulObservable error-lane).
 
 ### Custom RxJS operators vs stream wrappers
@@ -286,7 +294,7 @@ unconnected optional ports, and verify demand where an edge must remain hot.
 ## Related
 
 [PRINCIPLES.md](PRINCIPLES.md) ·
-[REACTIVE_NODES.md](../REACTIVE_NODES.md) ·
-[HOW_TO_WRITE_REACTIVE_NODES.md](../HOW_TO_WRITE_REACTIVE_NODES.md) ·
+[REACTIVE_NODES.md](../reference/REACTIVE_NODES.md) ·
+[HOW_TO_WRITE_REACTIVE_NODES.md](../guides/how-to-write-reactive-nodes.md) ·
 [EXECUTION_ARCHITECTURE.md](EXECUTION_ARCHITECTURE.md) ·
-[FOUND_BUGS.md](../FOUND_BUGS.md)
+[FOUND_BUGS.md](../bugs/README.md)

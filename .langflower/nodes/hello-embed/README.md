@@ -141,7 +141,7 @@ For comparison, **KB manual search** stops after showing retrieved hits.
 ### Not in this sample
 
 - **Reranking** with a second model to remove weak results before building
-  Context (TBD-009 in `docs/TBD.md`).
+  Context (TBD-009 in `docs/_work/TBD.md`).
 - **HyDE or query rewriting** to improve retrieval for vague questions.
 - **Overlapping or token-window chunks** for documents that do not divide
   cleanly at headings.

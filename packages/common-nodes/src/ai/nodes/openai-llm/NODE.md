@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/ai/nodes/openai-llm/**'
+status: current
+---
+
 # OpenAI-compatible LLM
 
 |              |                     |
@@ -31,7 +39,7 @@ The node reads the host-bound factory from declared caps (`ec.chat`, via
 and MCP tools (`EC.toolHandles` ∪ port `tools`) are passed to the chat API
 as `tools`. The node never expands MCP server config.
 When the model returns `tool_calls`, the loop invokes `ToolHandle.invoke`
-([ADR-019](../../../../../../docs/architecture/ADR.md#adr-019--toolhandle-invocation-not-harness-toolid-registry)),
+([ADR-019](../../../../../../docs/adr/019-toolhandle-invocation-not-harness-toolid-registry.md)),
 appends tool results, and re-completes until final text or `maxIterations`.
 Do **not** call `ctx.harness` — that field is not on public EC.
 `ask_user` pauses the loop for operator text (question in the work log;
@@ -64,7 +72,7 @@ separate palette entries.
 
 No fake emissions; Deny after continue HITL (e.g. `maxFeedbackTurns`) errors
 the cycle — see
-[LLM_NODES.md](../../../../../../docs/LLM_NODES.md) § Port events.
+[LLM_NODES.md](../../../../../../docs/reference/LLM_NODES.md) § Port events.
 
 Wire a Sub-Agent `subagent-registration` output into this `tools` input — the specialist is a
 normal `ToolHandle` (epic 41). Do **not** look for `spawn_subagent` ports.
@@ -87,7 +95,7 @@ normal `ToolHandle` (epic 41). Do **not** look for `spawn_subagent` ports.
 
 Selecting a role preset materializes `toolPermissions` (Inspector). Runtime
 permission posture overlays project `permission` per role. Merge rules:
-[docs/LLM_NODES.md](../../../../../../docs/LLM_NODES.md).
+[docs/reference/LLM_NODES.md](../../../../../../docs/reference/LLM_NODES.md).
 
 **Context compaction:** when the request estimate exceeds ~80% of `contextSize`,
 the node summarizes contiguous unprotected history via a no-tools completion,
@@ -98,6 +106,6 @@ params in-node (no separate body LLM).
 Run cancel (`runner.interrupt`) aborts in-flight HTTP streams best-effort via
 `AbortSignal`.
 
-See [docs/LLM_NODES.md](../../../../../../docs/LLM_NODES.md) and
-[docs/architecture/ADR.md](../../../../../../docs/architecture/ADR.md) ADR-016 /
-[epic 04](../../../../../../docs/DONE/EPICS/04-role-tool-profiles.md).
+See [docs/reference/LLM_NODES.md](../../../../../../docs/reference/LLM_NODES.md) and
+[docs/adr/README.md](../../../../../../docs/adr/README.md) ADR-016 /
+epic 04 (`docs/_archive/DONE/EPICS/04-role-tool-profiles.md`).

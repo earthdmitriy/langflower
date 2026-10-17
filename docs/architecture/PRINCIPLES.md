@@ -1,3 +1,11 @@
+---
+kind: architecture
+owner: docs
+covers:
+    - 'packages/**'
+status: current
+---
+
 # Coding Principles
 
 Non-negotiable rules for all Langflower code. Summarized in root `AGENTS.md`.
@@ -58,7 +66,7 @@ Use the model that owns the concern; do not wrap one model in another:
   `StatefulObservable` status (**inactive / loading / value / error**) is part
   of the dataflow — use stream errors for visible refusals; never fake port
   values to clear loading or silently `EMPTY`-drop a failure the canvas should
-  show ([LLM_NODES.md](../LLM_NODES.md) § Port events).
+  show ([LLM_NODES.md](../reference/LLM_NODES.md) § Port events).
 - **Runtime demand — `RuntimeFacade` + `runner.*`.** `RuntimeFacade.editor`
   owns the executable graph; `RuntimeFacade.runner` wires demand, start,
   resume, interrupt, and telemetry. Across the bridge, clients emit
@@ -178,7 +186,7 @@ server + shared + eval → cli
 `@langflower/node-sdk` (author SDK) does **not** depend on
 `@langflower/runtime` for production — port/instance types are owned by the
 SDK and locked to runtime via compile-time parity tests
-([ADR-027](ADR.md#adr-027--author-sdk-owns-port-types-no-production-runtime-dep)).
+([ADR-027](../adr/027-author-sdk-owns-port-types-no-production-runtime-dep.md)).
 Runtime remains a
 devDependency of the SDK for tests only.
 
@@ -212,7 +220,7 @@ may live in `server` even when the package DAG would technically allow it.
   Details: [REACTIVITY.md](REACTIVITY.md) § Custom RxJS operators vs stream
   wrappers.
 
-Node-specific folder rules: [NODES.md](../NODES.md). Common-node catalog layout:
+Node-specific folder rules: [NODES.md](../reference/NODES.md). Common-node catalog layout:
 [`packages/common-nodes/AGENTS.md`](../../packages/common-nodes/AGENTS.md).
 
 ## Thin server — do not grow domain here
@@ -237,7 +245,7 @@ and provider adapters must not accumulate under `packages/server/src/`.
    (`allowedHosts`, fence) come from `getRunHostServices(ec)` (private bag).
    Do **not** put `webFetch` / `crawl` / `harness` back on public
    `ExecutionContext`. Domain pack invoke is `ToolHandle.invoke`
-   ([ADR-019](ADR.md#adr-019--toolhandle-invocation-not-harness-toolid-registry)).
+   ([ADR-019](../adr/019-toolhandle-invocation-not-harness-toolid-registry.md)).
    Tools must not depend on server or shared; they may import
    `@langflower/node-sdk` for author types (`ToolHandle`).
 3. New project I/O or protocol clients → **tools** first. New LLM provider
@@ -246,7 +254,7 @@ and provider adapters must not accumulate under `packages/server/src/`.
 4. If server “needs” a helper that is not WS/config/secrets, **move it out** in
    the same change — do not leave a parallel copy in server.
 
-Canonical boundary: [ADR-014](ADR.md#adr-014--project-root-harness-io).
+Canonical boundary: [ADR-014](../adr/014-project-root-harness-i-o.md).
 
 ## No adapters, no glue code
 
@@ -259,13 +267,13 @@ mean two boundaries were not aligned at the source.
 - **Glue code is forbidden** — shims that only reshuffle fields, re-export with
   renaming, or translate identical concepts between packages.
 - **If an adapter is truly unavoidable** — treat it as an architecture decision, not
-  a local workaround. Add a dedicated [ADR](ADR.md) entry with:
+  a local workaround. Add a dedicated [ADR](../adr/README.md) entry with:
     - **Why** the mismatch exists and cannot be fixed now
     - **Alternatives rejected** (including fixing upstream)
     - **Exit criteria** — when the adapter can be removed
 - **DAG-forced copies** of the same contract (inspector catalogs, secret-id,
   compile-error WS types) stay as copies, not mappers —
-  [ADR-039](ADR.md#adr-039--dag-forced-twins-stay-copies-until-the-dag-flips).
+  [ADR-039](../adr/039-dag-forced-twins-stay-copies-until-the-dag-flips.md).
   Do not merge them by adding a forbidden package edge.
 - **Review signal:** every existing adapter should be treated as a possible design
   flaw until its ADR explains why it stays.
@@ -312,7 +320,7 @@ When something is replaced, delete it in the same change.
   `check-exports` → `verify` (see § Delete obsolete code immediately).
 
 See also [NAVIGATION.md](NAVIGATION.md) § Public API boundaries and
-[NODES.md](../NODES.md) § node folder exports (no per-node barrels).
+[NODES.md](../reference/NODES.md) § node folder exports (no per-node barrels).
 
 ## Functional error handling
 
@@ -389,8 +397,8 @@ const addNode = (graph: WorkflowGraph, node: WorkflowNode): WorkflowGraph => {
 ## Testing
 
 - Unit tests for pure logic; API tests mirror UI `HttpClient` contracts.
-- Integration tests use `tests/tmp/` temp project dirs — see [TESTING.md](../TESTING.md).
-- **Found bugs:** after fixing a reproduced bug, append [FOUND_BUGS.md](../FOUND_BUGS.md)
+- Integration tests use `tests/tmp/` temp project dirs — see [TESTING.md](../guides/TESTING.md).
+- **Found bugs:** after fixing a reproduced bug, append [FOUND_BUGS.md](../bugs/README.md)
   (design flaw signal + regression test) — feeds retrospective.
 - **WebSocket:** unit-test `ws-message-guards` in `@langflower/shared`; integration
   tests reject malformed frames.

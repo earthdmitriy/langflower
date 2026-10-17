@@ -6,7 +6,7 @@ Parent: [SKILL.md](SKILL.md).
 
 Prefer this map for a full run. Split further if a chunk is too large for one
 reviewer. Skip packages absent from the tree. Keep this table in sync with
-[CHUNKS.md](../../../docs/code-regression/CHUNKS.md) — when the tree moves,
+CHUNKS.md (`docs/_archive/code-regression/CHUNKS.md`) — when the tree moves,
 the live `CHUNKS.md` wins and this map is updated in the same run.
 
 | Chunk id              | Paths                                                                                                                                                          |
@@ -61,18 +61,18 @@ Mode: <delta | fresh>
 A finding **must** carry a `class` from this list. No class → it is not a
 finding; put it in `## Non-issues / looked OK` instead.
 
-| Class                   | Qualifies when                                                                                          |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- |
-| `dead-export`           | Zero consumers (ts-scan / `dead-code` evidence), named path + symbol                                    |
-| `two-writers`           | Two independent folds / subscribes / assignments own one concern; both writers named                    |
-| `uncorrelated-wait`     | A wait takes the _next_ event with no id or predicate tying it to this request                          |
-| `false-ready`           | A successful ready/value is synthesized from a missing fact (`startWith([])`, fallback port, `{}`)      |
-| `stale-hydrate`         | After reset/settle the same snapshot is applied again and revives cleared state                         |
-| `twin-without-adr`      | Mirrored type/helper not listed in [ADR-039](../../../docs/architecture/ADR.md) and with no parity test |
-| `docs-ghost`            | Doc / JSDoc / catalog teaches a **deleted** API or a renamed symbol                                     |
-| `found-bugs-recurrence` | The **same mechanism** as a `BUG-*` entry, not a similar smell                                          |
-| `forbidden-op`          | `withLatestFrom` without human OK, `index.ts` barrel, thin-server domain tree                           |
-| `fail-open-io`          | parse / skip / abort swallowed with no Result, no `failures` row, no visible error                      |
+| Class                   | Qualifies when                                                                                     |
+| ----------------------- | -------------------------------------------------------------------------------------------------- |
+| `dead-export`           | Zero consumers (ts-scan / `dead-code` evidence), named path + symbol                               |
+| `two-writers`           | Two independent folds / subscribes / assignments own one concern; both writers named               |
+| `uncorrelated-wait`     | A wait takes the _next_ event with no id or predicate tying it to this request                     |
+| `false-ready`           | A successful ready/value is synthesized from a missing fact (`startWith([])`, fallback port, `{}`) |
+| `stale-hydrate`         | After reset/settle the same snapshot is applied again and revives cleared state                    |
+| `twin-without-adr`      | Mirrored type/helper not listed in [ADR-039](../../../docs/adr/README.md) and with no parity test  |
+| `docs-ghost`            | Doc / JSDoc / catalog teaches a **deleted** API or a renamed symbol                                |
+| `found-bugs-recurrence` | The **same mechanism** as a `BUG-*` entry, not a similar smell                                     |
+| `forbidden-op`          | `withLatestFrom` without human OK, `index.ts` barrel, thin-server domain tree                      |
+| `fail-open-io`          | parse / skip / abort swallowed with no Result, no `failures` row, no visible error                 |
 
 **Not classes** (do not report as findings, in any severity):
 
@@ -123,18 +123,18 @@ improvements. An empty Findings list is a correct, welcome result.
 
 Chunk id: <CHUNK_ID>
 Paths (repo-relative): <PATHS>
-Report path (absolute): <REPO>/docs/code-regression/<CHUNK_ID>.md
+Report path (absolute): <REPO>/docs/_archive/code-regression/<CHUNK_ID>.md
 Mode: <delta | fresh>
-Previous report (delta mode): <REPO>/docs/code-regression/<CHUNK_ID>.md
-Ledger: <REPO>/docs/code-regression/LEDGER.md
+Previous report (delta mode): <REPO>/docs/_archive/code-regression/<CHUNK_ID>.md
+Ledger: <REPO>/docs/_archive/code-regression/LEDGER.md
 
 Read before judging:
 - This skill's reference.md § Finding classes + § Severity anchoring
-- docs/code-regression/LEDGER.md — closed and wontfix items you MUST NOT reopen
+- docs/_archive/code-regression/LEDGER.md — closed and wontfix items you MUST NOT reopen
 - docs/architecture/PRINCIPLES.md (thin server, no adapters/glue, types, barrels,
   composer entry points, delete obsolete code)
 - docs/architecture/REACTIVITY.md if this chunk uses RxJS / streams
-- docs/FOUND_BUGS.md — only for same-mechanism recurrence
+- docs/bugs/README.md — only for same-mechanism recurrence
 - package AGENTS.md under the chunk's package(s)
 - docs/architecture/NAVIGATION.md if ownership is unclear
 
@@ -230,7 +230,7 @@ report path + counts: Critical=N Important=N Suggestion=N
 Date: <ISO date>
 Scope: <full | override>
 Mode: <delta | fresh>
-Chunks reviewed: N (see [CHUNKS.md](CHUNKS.md))
+Chunks reviewed: N (see `CHUNKS.md`)
 
 **Totals (open, counted from chunk files):** Critical=N · Important=N
 
@@ -247,11 +247,11 @@ Suggestions stay in the chunk reports and are not counted here.
 
 ## Priority table (open Critical + Important only)
 
-| Sev      | Chunk                 | id  | Path                   | Issue | Proposed fix |
-| -------- | --------------------- | --- | ---------------------- | ----- | ------------ |
-| Critical | [runtime](runtime.md) | …   | `packages/runtime/...` | …     | …            |
+| Sev      | Chunk   | id  | Path                   | Issue | Proposed fix |
+| -------- | ------- | --- | ---------------------- | ----- | ------------ |
+| Critical | runtime | …   | `packages/runtime/...` | …     | …            |
 
-Closed rows do not stay in this table — they move to [LEDGER.md](LEDGER.md)
+Closed rows do not stay in this table — they move to `LEDGER.md`
 and the chunk report flips to `status: fixed`.
 
 ## Deduplicated recommendations
@@ -266,7 +266,7 @@ and the chunk report flips to `status: fixed`.
 
 ## Chunk index
 
-- [runtime](runtime.md) — Critical=… Important=…
+- runtime — Critical=… Important=…
 ```
 
 ### Counting rule
@@ -278,13 +278,13 @@ SUMMARY counts are **derived**, never hand-edited:
 2. The chunk index, the totals line, and the priority table must agree with
    those files. A mismatch is a stop condition — fix the chunk report first.
 3. Closing a finding edits the **chunk report** (`status: fixed` + evidence)
-   and appends [LEDGER.md](../../../docs/code-regression/LEDGER.md). Marking a
+   and appends LEDGER.md (`docs/_archive/code-regression/LEDGER.md`). Marking a
    row "closed" only in SUMMARY is forbidden — that drift produced a SUMMARY
    claiming `Important=46` while the chunk files held 55.
 
 ## LEDGER template
 
-`docs/code-regression/LEDGER.md` is append-mostly memory across runs.
+`docs/_archive/code-regression/LEDGER.md` is append-mostly memory across runs.
 
 ```markdown
 ## Closed

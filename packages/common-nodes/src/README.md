@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/**'
+status: current
+---
+
 # Common nodes
 
 Built-in workflow nodes for Langflower. **Runtime registry:**
@@ -19,10 +27,9 @@ Built-in workflow nodes for Langflower. **Runtime registry:**
 | [`langflower-tools/`](./langflower-tools/) | Langflower Tools bus node                                        |
 | [`run-host/`](./run-host/)                 | Run-scoped host bag (not a catalog node)                         |
 | [`crawl/`](./crawl/)                       | Fetch URL, Extract Links, Save Page, Crawl, Crawl tools          |
-| [`test-nodes/`](./test-nodes/)             | Demo and harness fixtures (not production catalog)               |
 
 Product catalog / target specs:
-[`docs/features/node-library.md`](../../../docs/features/node-library.md).
-Implementation status: [`docs/STATUS.md`](../../../docs/STATUS.md).
-Use-case readiness: [`docs/use-cases/`](../../../docs/use-cases/README.md) +
-[`docs/DONE/EPICS/`](../../../docs/DONE/EPICS/README.md).
+[`docs/product/features/node-library.md`](../../../docs/product/features/node-library.md).
+Implementation status: [`docs/product/STATUS.md`](../../../docs/product/STATUS.md).
+Use-case readiness: [`docs/product/use-cases/`](../../../docs/product/use-cases/README.md) +
+`docs/_archive/DONE/EPICS/README.md`.

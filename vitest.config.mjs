@@ -1,5 +1,5 @@
 /**
- * Vitest config — unit + integration projects (see docs/TESTING.md).
+ * Vitest config — unit + integration projects (see docs/guides/TESTING.md).
  */
 
 import angular from '@analogjs/vite-plugin-angular';

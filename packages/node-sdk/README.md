@@ -10,8 +10,8 @@ Subpaths: `@langflower/node-sdk/llm`, `@langflower/node-sdk/testing`,
 `@langflower/node-sdk/create-typed-ui-schema`.
 
 Authoring guide (monorepo):
-[docs/HOW_TO_WRITE_REACTIVE_NODES.md](../../docs/HOW_TO_WRITE_REACTIVE_NODES.md).
+[docs/guides/how-to-write-reactive-nodes.md](../../docs/guides/how-to-write-reactive-nodes.md).
 
 Registry version is independent of the `langflower` CLI. The product still
 vendors this package for host identity; see
-[docs/RELEASE.md](../../docs/RELEASE.md).
+[docs/guides/RELEASE.md](../../docs/guides/RELEASE.md).

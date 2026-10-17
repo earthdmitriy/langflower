@@ -5,7 +5,7 @@ import type { StatefulObservable } from '@rx-evo/stateful-observable';
  *
  * Intentionally owned here (not imported from `@langflower/runtime`) so custom
  * node packs peer only on `@langflower/node-sdk` (+ rxjs /
- * stateful-observable). See [ADR-027](../../../../docs/architecture/ADR.md#adr-027--author-sdk-owns-port-types-no-production-runtime-dep).
+ * stateful-observable). See [ADR-027](../../../../docs/adr/027-author-sdk-owns-port-types-no-production-runtime-dep.md).
  * Structural parity with runtime is locked by `runtime-parity.types.test.ts`.
  */
 

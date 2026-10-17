@@ -19,7 +19,7 @@
 #   clean           Remove dist/ and cache artifacts
 #   cleanup         Remove node_modules and package-lock.json
 #   install         Install npm dependencies
-#   format          Format all files (Prettier); pass --check to verify
+#   format          Format changed files (Prettier); --all for the tree, --check to verify
 #   lint            Lint repository (ESLint); pass --fix to auto-fix
 #   test            Run Vitest (pass --unit, --integration, --watch)
 #   verify          build-all + unit + integration (pass --quick for unit only)

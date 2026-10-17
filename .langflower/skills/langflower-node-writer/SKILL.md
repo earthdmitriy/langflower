@@ -14,7 +14,10 @@ You help the user write **custom nodes** for Langflower.
 
 - Custom nodes are **TypeScript** via `@langflower/node-sdk` only — first-class
   language; `tsc` / IDE types are the compile-time validators. **Not** plain JS
-  as the authoring path, Go, Python, Rust, or other runtimes.
+  as the authoring path, Go, Python, Rust, or other runtimes. Do **not** wrap
+  leftover `.mjs` by spawning `node` — port the logic into pack `.ts`. Wrapping
+  named `npm run <script>` entries from the project root or a monorepo
+  workspace `package.json` is the exception (tools instead of bash).
 - Do **not** claim sandboxed execution of arbitrary user-node code is shipped.
 - After file changes **call `compile_custom_nodes` yourself** (no args) — on
   starter, Writer has it because **Langflower Tools** is wired. Custom →
@@ -39,10 +42,16 @@ You help the user write **custom nodes** for Langflower.
   branches, streams, or advanced bind wiring are required.
 - Import from **`@langflower/node-sdk`** — never from a generated
   `nodes/types.ts` or a required `index.ts` barrel.
-- Each `*.ts` / `*.tsx` may `export default` a definition or an array.
-  Skip `*.test.ts`, `*.d.ts`, `dist/`, `node_modules/`.
+- Each `*.ts` may `export default` a definition or an array. Skip `*.test.ts`,
+  `*.d.ts`, `dist/`, `node_modules/`. Custom nodes are not React — do not
+  author `.tsx`.
 - Peer deps on the host SDK / RxJS are supplied by Langflower; author libs go
   in pack `dependencies`. The user runs `npm install` in the pack.
+- The `@langflower/node-sdk` version in a pack `package.json` is an editor hint
+  only: compile and runtime always use the SDK inside the installed Langflower.
+  After a Langflower upgrade every pack is recompiled; if the new SDK dropped
+  API the pack used, fix the pack source (errors in `COMPILATION_ERRORS.md`) —
+  do not edit the version range to "downgrade".
 - After file changes: call **`compile_custom_nodes`** (wired on starter
   Helper / Writer via **Langflower Tools** — not ambient on every agent) or
   Custom section → **Update**. Stop is not required for already-placed
@@ -93,6 +102,41 @@ fails `tsc` (`TS2835`). Either keep one-file nodes with no local imports
   user paths under `ctx.projectDir` and reject `..` escapes.
 - Do not register hanging processes (`start`, `dev`, `test:watch`) as tools.
 
+### Convert CLI / OpenCode `.mjs` tools
+
+**Wrong:** keep `tool.mjs` on disk and have `handler` spawn `node` on that
+file (`npx`, `execFile('node', [script])`, `__dirname`, `import.meta.url`,
+or a hardcoded path). `.mjs` is **not** a pack entry — only `*.ts` is
+compiled. That shape breaks when the pack is copied, published, or moved.
+
+**Right — port into the pack:**
+
+1. Map `process.argv` / stdin to `inputSchema`; stdout becomes the handler
+   return `string` (expected failures as text, not `throw`, except contract
+   like empty `ctx.projectDir`).
+2. Rewrite as TypeScript (`defineToolRegistrations`). Shared logic in
+   `lib/*.ts` with `from './lib/x.ts'` plus `allowImportingTsExtensions`
+   (copy hello-embed `tsconfig`).
+3. Resolve user paths under `ctx.projectDir`; reject `..` escapes. Do not
+   use the pack folder as cwd for project files.
+4. Do not leave the original `.mjs` as a runtime dependency of the node. If
+   the user still needs it for OpenCode, it may stay in the OpenCode tree
+   unused by Langflower.
+5. Call `compile_custom_nodes`. The bundled pack must run after a copy of
+   **only** the pack folder.
+
+**Exception — wrap project npm scripts as tools (prefer this over bash):**
+`handler` **may** spawn `npm run <script>` when the script exists on the
+**project root** `package.json` or a **monorepo workspace** `package.json`.
+Use an allowlisted **literal** script name (`shell: true` only for that
+literal; never splice user paths). `cwd` is that package directory under
+`ctx.projectDir`. Goal: expose finite, safe commands as `ToolHandle`s so the
+agent does not need bash. Do not register hanging scripts (`start`, `dev`,
+`test:watch`). Seed `review-gate.ts` wraps `npm run test` this way. `npm run`
+looks up the **project** (or workspace) `package.json`, not a sidecar next to
+the node — copying the custom-node pack does not break it. Host `git` via
+`child_process` is also OK (seed `git-diff-tool.ts`).
+
 ### QA / review gates (`defineReactiveNode`)
 
 - Exclusive ports: pass → emit on `ok`, silent `fail`; fail → emit on
@@ -104,8 +148,13 @@ fails `tsc` (`TS2835`). Either keep one-file nodes with no local imports
       `configureOutput('ok', ok$, { inferTypeFrom: trigger })`. Do **not**
       emit `boolean` `true` on that wire (it breaks typing and the
       continue-the-graph edge).
-- `fail` is a **string** (prefer stripped tool-handler text, not raw
-  stderr dumps).
+- `fail` is a **string** wired to Preview or an agent `feedback` port.
+  Filter test and formatter output to **failures** before that string
+  is emitted: failing test names, assertion diffs, and formatter error
+  lines. Drop passing suites, progress, and full file dumps. A length
+  cap on the raw log is not a filter — the kept text still bloats the
+  next agent turn. A green formatter or a passing test emits nothing
+  on `fail`.
 - A rewrite step (formatter) may run as a **side effect** and must not
   fail the gate if the product intent is “format then typecheck/test”.
   Typecheck / tests may fail the gate and skip later steps.
@@ -126,8 +175,8 @@ Vitest config **includes** that glob; do not assume it.
    (`defineToolRegistrations` owns a `tools` output — no custom inputs).
 3. Implement `execute` (`defineNode`), `tools` handlers
    (`defineToolRegistrations`), or `bind` (`defineReactiveNode`).
-4. Show the full file the user can paste into `my-nodes/` **or write it**
-   under `.langflower/nodes/<pack>/`.
+4. Write the full file under `.langflower/nodes/<pack>/` with `write` or
+   `edit`. A chat paste is not a saved node.
 5. Call **`compile_custom_nodes`**. If the snapshot lists errors, `read`
    that pack’s `COMPILATION_ERRORS.md`, fix, and compile again. Tell the
    user to place **new** types from Custom; already-placed types are live.
@@ -140,3 +189,16 @@ Vitest config **includes** that glob; do not assume it.
   (`defineToolRegistrations`), `review-gate.ts` (`defineReactiveNode`)
 - Multi-file + `.ts` imports: `.langflower/nodes/hello-embed/` (`tsconfig.json`
   already has `allowImportingTsExtensions`)
+
+## Before you send a final answer
+
+A message with no tool call is the final result Helper will treat as done.
+Plain text does not write or compile files.
+
+- Create and edit files with `write`, `edit`, or `create` under
+  `.langflower/nodes/`. A chat paste is not a saved node.
+- After writing or editing those files, call `compile_custom_nodes` with no
+  arguments. Quote status and `COMPILATION_ERRORS.md` from the tool result.
+- The closing summary lists only paths and compile status that appear in tool
+  results from this task, plus open risks. If the file is not written yet, call
+  the tool instead of summarizing.

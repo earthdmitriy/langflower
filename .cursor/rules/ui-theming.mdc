@@ -32,5 +32,5 @@ Read `packages/ui/docs/TYPOGRAPHY.md` before changing fonts or text styles.
 - `src/theme/tokens.css` — typography + spacing tokens
 - `src/theme/typography.css` — semantic text utilities
 - `src/theme/components.css` — buttons and inputs
-- `docs/THEMES.md` — full guide + checklist
-- `docs/TYPOGRAPHY.md` — font scale and headings
+- `packages/ui/docs/THEMES.md` — full guide + checklist
+- `packages/ui/docs/TYPOGRAPHY.md` — font scale and headings

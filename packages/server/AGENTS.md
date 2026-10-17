@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: server
+covers:
+    - 'packages/server/**'
+status: current
+---
+
 # @langflower/server
 
 Express static shell + **event-driven WebSocket bridge** on
@@ -28,7 +36,7 @@ logic?” If the latter → put it in `@langflower/tools` or
 Builtin `ToolHandle[]` wrapping lives in `@langflower/tools`
 (`wrapBuiltinToolHandles`); do not restore `bridge/wrap-builtin-tool-handles.ts`.
 
-Normative ownership: [ADR-014](../../docs/architecture/ADR.md#adr-014--project-root-harness-io),
+Normative ownership: [ADR-014](../../docs/adr/014-project-root-harness-i-o.md),
 [PRINCIPLES.md § Thin server](../../docs/architecture/PRINCIPLES.md#thin-server--do-not-grow-domain-here).
 
 All application network I/O goes through `@langflower/websocket-bridge`.

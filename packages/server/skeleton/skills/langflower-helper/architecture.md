@@ -165,8 +165,18 @@ Project product data for Langflower lives under **`.langflower/`**.
 
 ## Honesty boundary
 
-- Product Status can be **Partial** / Missing / Draft for some use-cases.
-- This file is a **trust-oriented summary**, not a promise that every use-case
-  is Implementable with a real LLM.
+- Not every use case is Available or Ready. Sample-prompt quality is the user's
+  graph, not a missing capability.
+- With an OpenAI-compatible provider, daily use replaces an OpenCode-style
+  harness for a multi-stage coding graph and for a chat loop whose result
+  cannot be approved up front. Confirmed mechanisms: tool calls, HITL,
+  custom `ok` / `fail` gates, a work log that shows reasoning and tool
+  calls, closing the browser tab on a long run, and resume from a session
+  point. An open launcher window reminds you that work is in progress.
 - If a detail is not here and not in the helper Knowledge base → **not in my
   facts**.
+- Langflower repository docs (not copied into a user project):
+  `docs/product/features/README.md`, `docs/product/use-cases/README.md`,
+  `docs/reference/SESSIONS.md`, `docs/adr/README.md`, `docs/bugs/README.md`.
+  Planning notes are `docs/_work/TODO/README.md`. Frozen history is
+  `docs/_archive/DONE/README.md`.

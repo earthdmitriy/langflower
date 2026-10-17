@@ -1,10 +1,18 @@
+---
+kind: architecture
+owner: docs
+covers:
+    - 'packages/runtime/src/**'
+status: current
+---
+
 # Execution architecture
 
 How the production path turns a reactive node definition into a running graph
 and projects runtime facts into the UI.
 
-See also: [REACTIVE_NODES.md](../REACTIVE_NODES.md),
-[HOW_TO_WRITE_REACTIVE_NODES.md](../HOW_TO_WRITE_REACTIVE_NODES.md), and
+See also: [REACTIVE_NODES.md](../reference/REACTIVE_NODES.md),
+[HOW_TO_WRITE_REACTIVE_NODES.md](../guides/how-to-write-reactive-nodes.md), and
 [packages/node-sdk/AGENTS.md](../../packages/node-sdk/AGENTS.md).
 
 ## Production path
@@ -83,7 +91,7 @@ while locked. Natural completion or interruption tears down run wiring and
 unlocks the same editor graph. Node instances themselves remain in the editor:
 authors may intentionally keep in-memory internal state across runs until the
 workflow is rematerialized or the Langflower process exits (see
-[REACTIVE_NODES](../REACTIVE_NODES.md) § Instance lifetime). That is not durable
+[REACTIVE_NODES](../reference/REACTIVE_NODES.md) § Instance lifetime). That is not durable
 checkpoint resume.
 
 Workflow activation follows this order:
@@ -338,7 +346,7 @@ history: a qualifying non-HITL input opens the interaction,
 and a value received on a HITL input closes it. This state can be rebuilt from
 `executionFeed.snapshot`.
 
-**Soft Pause (`steerControl`)** — [ADR-032](ADR.md#adr-032--soft-pause-via-hidden-steercontrol-hitl-port):
+**Soft Pause (`steerControl`)** — [ADR-032](../adr/032-soft-pause-via-hidden-steercontrol-hitl-port.md):
 LLM inventory input `steerControl` is `hidden` but has `config.hitl`
 (textarea + Send) and **must stay `single`** (not `multi: 'merge'`). Operator
 Pause is **per-node**: one
@@ -348,7 +356,7 @@ this port are **payload-aware**: `{ kind: 'pause' }` **opens** awaiting for
 that `nodeId`; `{ kind: 'steer' }` / `{ kind: 'resume' }` **closes**. Do not
 treat pause as a HITL reply that closes. Multi-tab sync uses the same
 `runner.port` (`'in'`) broadcast + feed hydrate as other HITL awaits. Hard Stop
-remains `interrupt('cancel')` only ([ADR-031](ADR.md#adr-031--stop-hard-cancel-vs-pause-soft-interrupt-vs-steer)).
+remains `interrupt('cancel')` only ([ADR-031](../adr/031-stop-hard-cancel-vs-pause-soft-interrupt-vs-steer.md)).
 
 Tool permission asks are owned by `PendingPermissionAsks`, not runtime graph
 ports. The server emits `runner.permission.ask`; the UI replies through

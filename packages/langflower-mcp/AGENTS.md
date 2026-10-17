@@ -1,10 +1,18 @@
+---
+kind: guide
+owner: mcp
+covers:
+    - 'packages/langflower-mcp/**'
+status: current
+---
+
 # @langflower/mcp
 
 Dev-only **stdio MCP server** so Cursor (and similar hosts) can observe and
 drive a **running** local Langflower instance over the internal WS bus
-([ADR-024](../../docs/architecture/ADR.md#adr-024--dev-mcp-control-plane-over-internal-ws-bus)).
+([ADR-024](../../docs/adr/024-dev-mcp-control-plane-over-internal-ws-bus.md)).
 
-**Agent how-to:** [docs/LANGFLOWER_MCP.md](../../docs/LANGFLOWER_MCP.md)
+**Agent how-to:** [docs/reference/LANGFLOWER_MCP.md](../../docs/reference/LANGFLOWER_MCP.md)
 (connect, observe, run, HITL, troubleshooting).
 
 ## Boundary
@@ -54,4 +62,4 @@ or shrink surface in `src/mcp-exposure-policy.ts` only.
 
 ## Headless UI
 
-Playwright / screenshots: [TBD-006](../../docs/TBD.md#tbd-006--headless-ui-access-for-agents).
+Playwright / screenshots: [TBD-006](../../docs/_work/TBD.md#tbd-006--headless-ui-access-for-agents).

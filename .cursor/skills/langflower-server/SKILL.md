@@ -15,7 +15,7 @@ disable-model-invocation: true
 1. `packages/server/AGENTS.md` — **thin server boundary (read first)**
 2. `docs/architecture/PRINCIPLES.md` § Thin server
 3. `docs/architecture/ARCHITECTURE.md` — API table + startup sequence
-4. `docs/STATUS.md`
+4. `docs/product/STATUS.md`
 
 ## Thin server (do not grow domain)
 

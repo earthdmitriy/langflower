@@ -1,3 +1,11 @@
+---
+kind: guide
+owner: common-nodes
+covers:
+    - 'packages/common-nodes/src/text/append-file/**'
+status: current
+---
+
 # Append File
 
 | **Type** | `common-append-file` |

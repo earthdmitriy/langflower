@@ -424,7 +424,7 @@ const parseInvokeTurn = (
 /**
  * Sub-Agent: ordinary OpenAI-compatible agent that announces one ToolHandle
  * on `subagent-registration`. Parent invoke runs this node's in-node loop.
- * @see docs/architecture/ADR.md ADR-021
+ * @see docs/adr/README.md ADR-021
  */
 export const subAgentNode = defineLlmNode({
 	type: 'common-sub-agent',
