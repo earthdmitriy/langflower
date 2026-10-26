@@ -111,6 +111,8 @@ const displayLabel = (data: WorkflowNodePersisted): string => {
 							[runtimePortId]="row.basePortId"
 							[label]="row.label"
 							[wireType]="row.wireType"
+							[description]="row.description"
+							[details]="row.details"
 							[inline]="row.inline"
 							[value]="row.value"
 							[disabled]="row.connected || isRunning()"
@@ -153,6 +155,8 @@ const displayLabel = (data: WorkflowNodePersisted): string => {
 							[runtimePortId]="fromOutputPortId(row.portId)"
 							[label]="row.label"
 							[wireType]="row.wireType"
+							[description]="row.description"
+							[details]="row.details"
 							[nodeSelected]="node().selected ?? false"
 							[endpointHighlighted]="
 								isEndpointHighlighted(row.portId)

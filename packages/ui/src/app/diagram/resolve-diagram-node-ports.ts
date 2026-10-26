@@ -16,6 +16,10 @@ export type DiagramInputPortRow = {
 	readonly portId: string;
 	readonly label: string;
 	readonly wireType: string;
+	/** Author-declared port description (tooltip body). */
+	readonly description?: string | undefined;
+	/** Port meta lines for the tooltip footer (multi mode, required). */
+	readonly details?: readonly string[] | undefined;
 	readonly basePortId: string;
 	readonly slotIndex: number;
 	/** On-node editor kind — `null` when the port has no inline control. */
@@ -32,6 +36,10 @@ export type DiagramOutputPortRow = {
 	readonly portId: string;
 	readonly label: string;
 	readonly wireType: string;
+	/** Author-declared port description (tooltip body). */
+	readonly description?: string | undefined;
+	/** Port meta lines for the tooltip footer. */
+	readonly details?: readonly string[] | undefined;
 };
 
 export type DiagramBypassPortRow = {
@@ -105,6 +113,79 @@ function isShownInputPort(entry: PortInputConfig): boolean {
 	}
 
 	return isEditableInline(entry.inline);
+}
+
+const MULTI_MODE_DETAILS = {
+	merge: 'Multi-input · merge: every wired value is forwarded individually as it arrives',
+	combine:
+		'Multi-input · combine: emits an array of the latest value of every wire',
+	zip: 'Multi-input · zip: emits an array once every wire delivered a new value',
+} as const;
+
+function inputPortDetails(
+	entry: PortInputConfig,
+): readonly string[] | undefined {
+	const lines: string[] = [];
+
+	if (entry.multi !== undefined) {
+		lines.push(MULTI_MODE_DETAILS[entry.multi]);
+	}
+
+	if (entry.required === true) {
+		lines.push('Required');
+	}
+
+	if (entry.dynamic === true) {
+		lines.push('Dynamic type: accepts any wire type');
+	}
+
+	if (entry.hitl !== undefined) {
+		lines.push(`Human input (${entry.hitl.kind}): ${entry.hitl.title}`);
+	}
+
+	lines.push(...feedDetails(entry.feed));
+
+	return lines.length > 0 ? lines : undefined;
+}
+
+function feedDetails(
+	feed: { readonly role?: string; readonly streaming?: boolean } | undefined,
+): readonly string[] {
+	if (feed?.role === undefined || feed.role === 'none') {
+		return [];
+	}
+
+	return [
+		`Work log: ${feed.role}${feed.streaming === true ? ' (streaming)' : ''}`,
+	];
+}
+
+function outputPortDetails(
+	entry: PortOutputConfig,
+): readonly string[] | undefined {
+	const lines: string[] = [];
+
+	if (entry.fromInput !== undefined) {
+		lines.push(`Passes through input "${String(entry.fromInput)}"`);
+	}
+
+	lines.push(...feedDetails(entry.feed));
+
+	if (entry.createCheckpoint === true) {
+		lines.push(
+			entry.checkpointLabel !== undefined
+				? `Saves a checkpoint on every emit: ${entry.checkpointLabel}`
+				: 'Saves a checkpoint on every emit',
+		);
+	}
+
+	if (entry.rewireFrom !== undefined) {
+		lines.push(
+			`Continues input "${entry.rewireFrom}" when the node is deleted`,
+		);
+	}
+
+	return lines.length > 0 ? lines : undefined;
 }
 
 function inputWireType(config: PortInputConfig): string {
@@ -192,6 +273,8 @@ function resolveInputPortRows(
 					portId: toInputPortId(handle),
 					label,
 					wireType,
+					description: entry.description,
+					details: inputPortDetails(entry),
 					basePortId,
 					slotIndex: slot,
 					inline: slot === 0 ? (entry.inline ?? null) : null,
@@ -209,6 +292,8 @@ function resolveInputPortRows(
 			portId: toInputPortId(basePortId),
 			label,
 			wireType,
+			description: entry.description,
+			details: inputPortDetails(entry),
 			basePortId,
 			slotIndex: 0,
 			inline: entry.inline ?? null,
@@ -248,6 +333,8 @@ function resolveOutputPortRows(
 			portId: toOutputPortId(portId),
 			label: (name as string | undefined) ?? portId,
 			wireType,
+			description: entry.description,
+			details: outputPortDetails(entry),
 		});
 	}
 

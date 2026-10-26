@@ -69,6 +69,7 @@ import {
 	normalizeReasoningEffort,
 	type ReasoningEffortValue,
 } from '../openai/normalize-reasoning-effort.js';
+import { LLM_PORT_DESCRIPTIONS } from './llm-port-descriptions.js';
 import {
 	isBlankTurn,
 	runTurnFromState,
@@ -933,6 +934,8 @@ export const bindLlmAgentSession = <
 		'userPrompt',
 		{
 			name: 'userPrompt',
+			description:
+				'The opening request that starts the session. A plain string, or a user turn with attached files.',
 			wireType: ['string', 'user-turn'],
 			inline: 'text-multiline',
 			required: true,
@@ -940,12 +943,15 @@ export const bindLlmAgentSession = <
 	);
 	const systemPrompt = makeInput<string>('systemPrompt', {
 		name: 'systemPrompt',
+		description: LLM_PORT_DESCRIPTIONS.systemPrompt,
 		wireType: 'string',
 		inline: 'text-multiline',
 		defaultValue: '',
 	});
 	const feedback = makeInput<string | ChatCompletionUserTurn>('feedback', {
 		name: 'feedback',
+		description:
+			'Follow-up turns for the same session, such as reviewer notes or chat messages. Values from all wires are accepted as they arrive; each one triggers another model turn that keeps the conversation history.',
 		wireType: ['string', 'user-turn'],
 		multi: 'merge',
 		defaultValue: '',
@@ -1018,14 +1024,17 @@ export const bindLlmAgentSession = <
 		inputs: [userPrompt, systemPrompt, feedback],
 		outputs: [
 			configureOutput('reasoning', reasoning$, {
+				description: LLM_PORT_DESCRIPTIONS.reasoning,
 				wireType: 'string',
 				feed: { role: 'reasoning', streaming: true },
 			}),
 			configureOutput('draftResponse', draftResponse$, {
+				description: LLM_PORT_DESCRIPTIONS.draftResponse,
 				wireType: 'string',
 				feed: { role: 'draft', streaming: true },
 			}),
 			configureOutput('response', response$, {
+				description: LLM_PORT_DESCRIPTIONS.response,
 				wireType: 'string',
 				feed: { role: 'result' },
 			}),

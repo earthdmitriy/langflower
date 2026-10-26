@@ -79,8 +79,17 @@ Typical uses:
 	] as const,
 	bind(ctx, helpers, inventory) {
 		return bindPathChoiceSession(ctx, helpers, inventory, {
-			primary: { id: 'task', name: 'task' },
-			turn: { id: 'result', name: 'result' },
+			primary: {
+				id: 'task',
+				name: 'task',
+				description: 'The task the result was produced for.',
+			},
+			turn: {
+				id: 'result',
+				name: 'result',
+				description:
+					'The result to review. Each new result triggers a new verdict.',
+			},
 			forcedSystem: FORCED_TOOL_SYSTEM,
 			requireProviderError: 'Provider is required for Review chat',
 			requireModelError: 'Model is required for Review chat',

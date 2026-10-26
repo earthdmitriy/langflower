@@ -29,6 +29,7 @@ import {
 	PATH_CHOICE_MAX_ITERATIONS_CAP,
 	normalizeMaxIterations,
 } from '../prompt/normalize-max-iterations.js';
+import { LLM_PORT_DESCRIPTIONS } from '../llm-session/llm-port-descriptions.js';
 import { toolLogPortValue } from '../llm-loop/run-llm-loop.js';
 import {
 	runPathChoiceToolLoop,
@@ -57,10 +58,12 @@ type BindPathChoiceSessionOptions = {
 	readonly primary: {
 		readonly id: string;
 		readonly name: string;
+		readonly description: string;
 	};
 	readonly turn: {
 		readonly id: string;
 		readonly name: string;
+		readonly description: string;
 	};
 	readonly forcedSystem: string;
 	readonly requireProviderError: string;
@@ -164,18 +167,21 @@ export const bindPathChoiceSession = (
 
 	const primary = makeInput<string>(options.primary.id, {
 		name: options.primary.name,
+		description: options.primary.description,
 		wireType: 'string',
 		inline: 'text-multiline',
 		required: true,
 	});
 	const turn = makeInput<string>(options.turn.id, {
 		name: options.turn.name,
+		description: options.turn.description,
 		wireType: 'string',
 		inline: 'text-multiline',
 		required: true,
 	});
 	const systemPrompt = makeInput<string>('systemPrompt', {
 		name: 'systemPrompt',
+		description: LLM_PORT_DESCRIPTIONS.systemPrompt,
 		wireType: 'string',
 		inline: 'text-multiline',
 		defaultValue: '',
@@ -283,18 +289,24 @@ export const bindPathChoiceSession = (
 		inputs: [primary, turn, systemPrompt],
 		outputs: [
 			configureOutput('reasoning', reasoning$, {
+				description: LLM_PORT_DESCRIPTIONS.reasoning,
 				wireType: 'string',
 				feed: { role: 'reasoning', streaming: true },
 			}),
 			configureOutput('draftResponse', draftResponse$, {
+				description: LLM_PORT_DESCRIPTIONS.draftResponse,
 				wireType: 'string',
 				feed: { role: 'draft', streaming: true },
 			}),
 			configureOutput('response', response$, {
+				description:
+					'Emitted when the verdict is accept: the accepted work, passed on unchanged.',
 				wireType: 'string',
 				feed: { role: 'result' },
 			}),
 			configureOutput('feedback', feedback$, {
+				description:
+					'Emitted when the verdict is not accept: findings and required changes. Wire it back to the producer.',
 				wireType: 'string',
 				feed: { role: 'result' },
 			}),

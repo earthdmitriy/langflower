@@ -66,6 +66,8 @@ export const defaultLlmInventoryInputs = (
 ): LlmInventoryInputs => {
 	const tools = make<readonly ToolHandle[]>('tools', {
 		name: 'tools',
+		description:
+			'Tools this agent may call. Wire any number of tool nodes, MCP servers, skills or Sub-Agents here; all connected tools are offered to the model together.',
 		wireType: TOOL_HANDLE_WIRE_TYPE,
 		multi: 'combine',
 		defaultValue: [],
@@ -101,6 +103,8 @@ export const defaultLlmInventoryOutputs = (
 	streams: LlmInventoryOutputStreams,
 ): readonly OutputConfig[] => [
 	configure('toolLog', streams.toolLog$, {
+		description:
+			'Log of tool calls and their results, streamed while the agent works.',
 		wireType: 'string',
 		feed: { role: 'tool', streaming: true },
 	}),

@@ -1,3 +1,4 @@
+import { LLM_PORT_DESCRIPTIONS } from '../../features/llm-session/llm-port-descriptions.js';
 import type {
 	ChatCompletionMessage,
 	CreateChatCompletionStream,
@@ -465,6 +466,7 @@ The specialist streams in its own work-log card. Set name, role, and skills on t
 		const { tools, steerControl } = inventory;
 		const systemPrompt = makeInput<string>('systemPrompt', {
 			name: 'systemPrompt',
+			description: LLM_PORT_DESCRIPTIONS.systemPrompt,
 			wireType: 'string',
 			inline: 'text-multiline',
 			defaultValue: '',
@@ -669,17 +671,23 @@ The specialist streams in its own work-log card. Set name, role, and skills on t
 			outputs: [
 				configureOutput('subagent-registration', specialistTools$, {
 					name: 'subagent-registration',
+					description:
+						'Registers this Sub-Agent as a tool. Wire it into the `tools` input of the agent that may delegate tasks to it.',
 					wireType: TOOL_HANDLE_WIRE_TYPE,
 				}),
 				configureOutput('reasoning', reasoning$, {
+					description: LLM_PORT_DESCRIPTIONS.reasoning,
 					wireType: 'string',
 					feed: { role: 'reasoning', streaming: true },
 				}),
 				configureOutput('draftResponse', draftResponse$, {
+					description: LLM_PORT_DESCRIPTIONS.draftResponse,
 					wireType: 'string',
 					feed: { role: 'draft', streaming: true },
 				}),
 				configureOutput('response', response$, {
+					description:
+						'The Sub-Agent result for its latest delegated task.',
 					wireType: 'string',
 					feed: { role: 'result' },
 				}),

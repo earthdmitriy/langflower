@@ -16,6 +16,7 @@ import { combineLatest, switchMap } from 'rxjs';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
 import { valuePulseActive$ } from '../utils/value-pulse-active.js';
 import { LfInlineFieldComponent } from '../../../components/lf-inline-field.component';
+import { LfPortTipDirective } from './lf-port-tip.directive';
 
 const PREVIEW_PANE_FLOOR_PX = 16;
 
@@ -31,7 +32,6 @@ const isPreviewInline = (config: InlineConfig | null): boolean => {
 		kind === 'preview-code'
 	);
 };
-
 @Component({
 	selector: 'lf-node-port-row',
 	standalone: true,
@@ -42,7 +42,11 @@ const isPreviewInline = (config: InlineConfig | null): boolean => {
 		'[style.--lf-inline-flex]': 'growFlex()',
 		'[style.--lf-multiline-min.px]': 'multilineMinHeightPx()',
 	},
-	imports: [NgDiagramPortComponent, LfInlineFieldComponent],
+	imports: [
+		NgDiagramPortComponent,
+		LfInlineFieldComponent,
+		LfPortTipDirective,
+	],
 	template: `
 		<div
 			class="lf-port-row-wrapper"
@@ -50,6 +54,10 @@ const isPreviewInline = (config: InlineConfig | null): boolean => {
 		>
 			<div
 				class="lf-port-row"
+				[lfPortTip]="side()"
+				[tipTitle]="label() + ' · ' + wireType()"
+				[tipDescription]="description()"
+				[tipDetails]="details()"
 				[class.lf-port-row--in]="side() === 'in'"
 				[class.lf-port-row--out]="side() === 'out'"
 			>
@@ -121,6 +129,10 @@ export class LfNodePortRowComponent {
 	readonly runtimePortId = input.required<string>();
 	readonly label = input.required<string>();
 	readonly wireType = input.required<string>();
+	/** Author-declared port description shown in the hover tooltip. */
+	readonly description = input<string | undefined>(undefined);
+	/** Port meta lines (multi mode, required, default) for the tooltip footer. */
+	readonly details = input<readonly string[] | undefined>(undefined);
 	readonly inline = input<InlineConfig | null>(null);
 	readonly value = input<unknown>(undefined);
 	readonly previewValue = input<unknown>(undefined);

@@ -38,6 +38,7 @@ order). **Interrupt execution** instead of trying random fixes.
 | Shared port row (single in/out)                      | `src/app/features/canvas/components/lf-node-port-row.component.ts`                                                                           |
 | Shared port pair row (router)                        | `src/app/features/canvas/components/lf-node-bypass-port-row.component.ts`                                                                    |
 | Port layout CSS contract                             | `src/app/components/node-port-layout.css`                                                                                                    |
+| Port hover tooltip (name · type, description, arrow) | `src/app/features/canvas/components/lf-port-tip.directive.ts` (card on `document.body`; styles global in `src/styles.scss`)                  |
 | Multi-input / bypass / output port row resolution    | `src/app/diagram/resolve-diagram-node-ports.ts` (`resolveNodePorts`)                                                                         |
 | Inline editors (port-attached)                       | `src/app/components/lf-inline-field.component.ts`, `src/app/features/canvas/services/node-preview-values.service.ts`                         |
 | Static port row (palette drag ghost + palette card)  | `src/app/components/lf-node-port-row-static.component.ts` (drag: stacked; card: pairing wrapper over `resolveNodePorts`)                     |

@@ -74,8 +74,18 @@ Wire the assignment on the first input and the packet to critique on the second.
 	] as const,
 	bind(ctx, helpers, inventory) {
 		return bindPathChoiceSession(ctx, helpers, inventory, {
-			primary: { id: 'assignment', name: 'assignment' },
-			turn: { id: 'packet', name: 'packet' },
+			primary: {
+				id: 'assignment',
+				name: 'assignment',
+				description:
+					'The original assignment the work is judged against.',
+			},
+			turn: {
+				id: 'packet',
+				name: 'packet',
+				description:
+					'The work to critique. Each new packet triggers a new verdict.',
+			},
 			forcedSystem: FORCED_TOOL_SYSTEM,
 			requireProviderError: 'Provider is required for Critique chat',
 			requireModelError: 'Model is required for Critique chat',

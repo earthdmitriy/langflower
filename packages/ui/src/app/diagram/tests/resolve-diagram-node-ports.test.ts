@@ -55,6 +55,93 @@ describe('resolveNodePorts (canvas port resolution)', () => {
 		] satisfies DiagramOutputPortRow[]);
 	});
 
+	it('carries port descriptions to input and output rows', () => {
+		const config = portsConfig({
+			inputsConfigs: [
+				{
+					dir: 'in',
+					portId: 'prompt',
+					name: 'prompt',
+					wireType: 'string',
+					description: 'Prompt body',
+				},
+			],
+			outputsConfigs: [
+				{
+					dir: 'out',
+					portId: 'value',
+					name: 'value',
+					wireType: 'string',
+					description: 'Result',
+				},
+			],
+		});
+
+		const { inputPorts, outputPorts } = resolveNodePorts(config, 'n1', []);
+
+		expect(inputPorts[0]?.description).toBe('Prompt body');
+		expect(outputPorts[0]?.description).toBe('Result');
+	});
+
+	it('adds multi mode and required meta lines to input rows', () => {
+		const config = portsConfig({
+			inputsConfigs: [
+				{
+					dir: 'in',
+					portId: 'feedback',
+					name: 'feedback',
+					wireType: 'string',
+					multi: 'merge',
+					required: true,
+					defaultValue: 'hi',
+					description: 'x',
+				},
+			],
+			outputsConfigs: [],
+		});
+
+		const { inputPorts } = resolveNodePorts(config, 'n1', []);
+
+		expect(inputPorts.map((row) => row.description)).toEqual(['x']);
+		expect(inputPorts[0]?.details).toEqual([
+			expect.stringContaining('merge'),
+			'Required',
+		]);
+	});
+
+	it('adds feed, checkpoint, rewire and passthrough meta lines to outputs', () => {
+		const config = portsConfig({
+			inputsConfigs: [],
+			outputsConfigs: [
+				{
+					dir: 'out',
+					portId: 'response',
+					name: 'response',
+					wireType: 'string',
+					feed: { role: 'draft', streaming: true },
+					createCheckpoint: true,
+					rewireFrom: 'result',
+				},
+				{
+					dir: 'out',
+					portId: 'quiet',
+					name: 'quiet',
+					wireType: 'string',
+					feed: { role: 'none' },
+				},
+			],
+		});
+
+		const { outputPorts } = resolveNodePorts(config, 'n1', []);
+
+		expect(outputPorts[0]?.details).toEqual([
+			'Work log: draft (streaming)',
+			'Saves a checkpoint on every emit',
+			'Continues input "result" when the node is deleted',
+		]);
+		expect(outputPorts[1]?.details).toBeUndefined();
+	});
+
 	it('resolves input ports with in:<name> ids', () => {
 		const config = portsConfig({
 			inputsConfigs: [
@@ -257,6 +344,7 @@ describe('resolveNodePorts (canvas port resolution)', () => {
 				portId: 'in:message',
 				label: 'Message',
 				wireType: 'string',
+				details: ['Human input (textarea): Message'],
 				basePortId: 'message',
 				slotIndex: 0,
 				inline: 'text-multiline',

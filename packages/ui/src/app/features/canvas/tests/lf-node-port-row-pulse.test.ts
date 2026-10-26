@@ -79,6 +79,45 @@ describe('LfNodePortRowComponent pulse', () => {
 		fixture.detectChanges();
 	});
 
+	it('shows the port tooltip on hover of the name and anchor', () => {
+		fixture.componentRef.setInput('description', 'Streamed answer');
+		fixture.componentRef.setInput('details', ['Multi-input · merge']);
+		fixture.detectChanges();
+		const label = fixture.nativeElement.querySelector(
+			'.lf-port-row__content',
+		) as HTMLElement;
+
+		label.dispatchEvent(new Event('pointerover', { bubbles: true }));
+		const tip = document.body.querySelector('.lf-port-tip');
+		expect(tip?.querySelector('.lf-port-tip__title')?.textContent).toBe(
+			'response · string',
+		);
+		expect(tip?.querySelector('.lf-port-tip__body')?.textContent).toBe(
+			'Streamed answer',
+		);
+		expect(tip?.querySelector('.lf-port-tip__details')?.textContent).toBe(
+			'Multi-input · merge',
+		);
+		expect(
+			tip
+				?.querySelector('.lf-port-tip__details')
+				?.compareDocumentPosition(
+					tip.querySelector('.lf-port-tip__body') as Node,
+				),
+		).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+
+		const anchor = fixture.nativeElement.querySelector(
+			'.lf-port-anchor',
+		) as HTMLElement;
+		anchor.dispatchEvent(new Event('pointerover', { bubbles: true }));
+		expect(document.body.querySelectorAll('.lf-port-tip')).toHaveLength(1);
+
+		fixture.nativeElement
+			.querySelector('.lf-port-row')
+			.dispatchEvent(new Event('pointerleave'));
+		expect(document.body.querySelector('.lf-port-tip')).toBeNull();
+	});
+
 	it('pulses the out anchor on output-emitted value, then clears', () => {
 		vi.useFakeTimers();
 		try {
