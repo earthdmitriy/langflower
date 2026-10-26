@@ -28,7 +28,7 @@ The index file defaults to `.langflower/.cache/hello-embed/kb.sqlite` (outside
 this pack, so bootstrap force-seed does not wipe vectors). All three nodes
 share that path via `DEFAULT_SQLITE_PATH` in `lib/paths.ts`.
 
-Walk skips `node_modules`, `.git`, and `.langflower/.cache`. Embeddings come
+Walk respects `.gitignore` when the project is a git work tree (tracked + untracked-not-ignored `.md`; plain directory walk otherwise) and always skips `node_modules`, `.git`, and `.langflower/.cache`. Embeddings come
 from a wired `common-embed-provider` (`EmbedHandle`). The pack never sees API
 keys.
 

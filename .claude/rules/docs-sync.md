@@ -2,6 +2,9 @@
 
 Start at the router [docs/README.md](../../docs/README.md) and
 [DOC_MAP](../../docs/architecture/DOC_MAP.md). Do not grep `docs/` blind.
+For "where is X specified / how does X behave", call the `langflower-kb`
+MCP `kb_search` first (see [AGENTS.md](../../AGENTS.md)); re-run `kb_ingest`
+after you change docs.
 
 Do not search these by default:
 

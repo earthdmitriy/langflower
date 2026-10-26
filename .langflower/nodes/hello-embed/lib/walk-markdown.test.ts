@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -58,5 +59,24 @@ describe('walkMarkdown', () => {
 			'README.md',
 			'docs/guide.md',
 		]);
+	});
+
+	it('skips gitignored markdown inside a git work tree', async () => {
+		execFileSync('git', ['init', '-q'], { cwd: root });
+		await fs.mkdir(path.join(root, 'vendored'), { recursive: true });
+		await fs.writeFile(
+			path.join(root, '.gitignore'),
+			'vendored/\n',
+			'utf8',
+		);
+		await fs.writeFile(path.join(root, 'README.md'), '# Root\n', 'utf8');
+		await fs.writeFile(
+			path.join(root, 'vendored', 'rust.md'),
+			'nope',
+			'utf8',
+		);
+
+		const files = await walkMarkdown(root);
+		expect(files.map((file) => file.relPath)).toEqual(['README.md']);
 	});
 });

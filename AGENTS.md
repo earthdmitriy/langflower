@@ -20,6 +20,26 @@ the generated [DOC_MAP](docs/architecture/DOC_MAP.md). Read these first:
 | [SESSIONS](docs/reference/SESSIONS.md)                                | Workflow sessions: head, points, node-state hook     |
 | [Writing docs](docs/guides/writing-docs.md)                           | Placement, frontmatter, and freshness                |
 
+### Search the docs with `langflower-kb` first
+
+The `langflower-kb` MCP (`kb_search`, `kb_ingest`) is a hybrid
+vector + keyword index over the project's markdown. It is the same index the
+in-product `kb-*` workflows use. **Reach for `kb_search` before Grep or
+opening doc files** whenever you are looking for a decision, a contract, how
+something behaves, or where a concept is specified — especially when you do not
+know the doc's exact wording (for example "detach" vs "checkpoint" vs "pause").
+
+- Use natural-language queries; hits return `path — heading` plus the full
+  section. Open the canonical doc before acting on a hit, and prefer it over
+  anything under `docs/_archive/` or `docs/_work/`.
+- Use Grep only for exact strings: symbols (use ts-scan), error messages,
+  config keys.
+- The index is a snapshot. After you add or change docs, or if hits look stale,
+  run `kb_ingest` (wipes and rebuilds; takes minutes).
+- Needs LM Studio running with `text-embedding-bge-m3`; if the tool errors,
+  say so and fall back to [docs/README.md](docs/README.md) routing. Setup:
+  [LANGFLOWER_MCP § Knowledge-base MCP](docs/reference/LANGFLOWER_MCP.md#knowledge-base-mcp-langflower-kb).
+
 Feature docs describe **what** ships; technical docs and ADRs describe **how**.
 Do not plan against historical Stage labels.
 

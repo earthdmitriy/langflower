@@ -52,7 +52,7 @@ export default defineReactiveNode({
 	description: `
 Index project markdown into a local SQLite vector store.
 
-Walks \`**/*.md\` (skips node_modules, .git, .langflower/.cache), splits on headings, and embeds one chunk at a time. Progress is a technical stream (\`feed.role: 'progress'\`, \`streaming: true\` — same growing layout as reasoning, caption PROGRESS, not result bubbles). Wire **embed** from common-embed-provider. **finish** fires when the index is written.
+Walks \`**/*.md\` (respects .gitignore in a git work tree; always skips node_modules, .git, .langflower/.cache), splits on headings, and embeds one chunk at a time. Progress is a technical stream (\`feed.role: 'progress'\`, \`streaming: true\` — same growing layout as reasoning, caption PROGRESS, not result bubbles). Wire **embed** from common-embed-provider. **finish** fires when the index is written.
 `.trim(),
 	uiSchema: [
 		{

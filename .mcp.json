@@ -10,6 +10,16 @@
 			"args": ["/c", "ts-scan", "--mcp"],
 			"type": "stdio"
 		},
+		"langflower-kb": {
+			"command": "node",
+			"args": ["build/tools/kb-mcp.mjs"],
+			"env": {
+				"KB_EMBED_BASE_URL": "http://localhost:1234/v1",
+				"KB_EMBED_MODEL": "text-embedding-bge-m3",
+				"KB_EMBED_API_KEY": "${KB_EMBED_API_KEY:-}"
+			},
+			"type": "stdio"
+		},
 		"langflower": {
 			"command": "cmd",
 			"args": [

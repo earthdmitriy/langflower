@@ -189,6 +189,26 @@ after rebuild + MCP restart.
 
 ---
 
+## Knowledge-base MCP (`langflower-kb`)
+
+Separate stdio server, `build/tools/kb-mcp.mjs`, registered in `.mcp.json`. It
+needs no running Langflower. It reuses the `hello-embed` pack
+(`lib/search.ts`, `lib/ingest.ts`) and the same sqlite index
+(`.langflower/.cache/hello-embed/kb.sqlite`) as the `kb-*` workflows, so
+in-product agents and coding agents share one index.
+
+| Tool        | Use                                                           |
+| ----------- | ------------------------------------------------------------- |
+| `kb_search` | Hybrid vector + FTS5 search; returns path, heading, full text |
+| `kb_ingest` | Wipe and rebuild the index (minutes); run after docs change   |
+
+Embeddings call an OpenAI-compatible server (LM Studio). Set env vars before
+launching the agent: `KB_EMBED_MODEL` (required), `KB_EMBED_API_KEY` (LM Studio
+token), optional `KB_EMBED_BASE_URL` (default `http://localhost:1234/v1`) and
+`KB_SQLITE_PATH`. Text prefixes `query: ` / `passage: ` mirror
+`common-embed-provider`; the index must be built with the same model and
+prefixes it is searched with.
+
 ## Security / trust
 
 - Localhost only; same power as any WS client on the machine (no auth).
