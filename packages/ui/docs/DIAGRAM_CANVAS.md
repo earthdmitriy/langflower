@@ -247,6 +247,13 @@ new `graph` object (Save) still binds `[graphInput]`. `modelAdapter` returns
 the first `initializeModel` result so live auto-routing stays. Viewport
 hydrate uses the first seed graph only.
 
+**Fit to nodes.** The bottom-right button in `FlowCanvasComponent` calls
+`viewportService.zoomToFit({ padding: 24, edgeIds: [] })` (no-op on an empty
+graph). It does not publish anything itself: the viewport change goes through
+the normal debounced `editor.viewport.requested` stream, so other tabs follow.
+A tab with a different window size may show the synced viewport misaligned;
+that is accepted. The minimap sits bottom-left and the ngDiagram watermark top-right, keeping the bottom-right corner free.
+
 Manual check: drop Collect → wire two Constants → third empty slot visible
 below. Wire an edge to a router's bypass port → drag the router → the empty
 slot must still be there afterwards (regression for the bug above).

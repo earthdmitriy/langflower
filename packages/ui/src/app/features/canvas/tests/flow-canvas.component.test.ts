@@ -661,6 +661,36 @@ describe('FlowCanvasComponent', () => {
 		expect(canvas.modelAdapter()).toBeTruthy();
 	});
 
+	// --- Fit to nodes ---
+
+	it('fits the viewport to nodes with a small margin on click', () => {
+		host.graphInput.set(graphWith([makeNode('n1')]));
+		fixture.detectChanges();
+		modelService.liveNodes = [{ id: 'n1' }];
+		const zoomToFit = vi
+			.spyOn((canvas as any).viewportService, 'zoomToFit')
+			.mockImplementation(() => {});
+
+		fixture.nativeElement
+			.querySelector('button[aria-label="Fit to nodes"]')
+			.click();
+
+		expect(zoomToFit).toHaveBeenCalledWith({ padding: 24, edgeIds: [] });
+	});
+
+	it('leaves the viewport alone when fitting an empty graph', () => {
+		host.graphInput.set(graphWith([makeNode('n1')]));
+		fixture.detectChanges();
+		modelService.liveNodes = [];
+		const zoomToFit = vi
+			.spyOn((canvas as any).viewportService, 'zoomToFit')
+			.mockImplementation(() => {});
+
+		canvas.hostHandlers.handleFitToNodes();
+
+		expect(zoomToFit).not.toHaveBeenCalled();
+	});
+
 	// --- Palette integration ---
 
 	it('passes palette to persistedNodeToDiagram', () => {

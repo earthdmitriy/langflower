@@ -44,6 +44,7 @@ import {
 	filter,
 	skip,
 } from 'rxjs/operators';
+import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component';
 import {
 	gateCanvasViewportPublish,
 	sameCanvasViewport,
@@ -164,6 +165,9 @@ const buildPasteRequestedFromClipboard = (
 	return { nodes, edges };
 };
 
+/** Margin kept around the nodes by the "Fit to nodes" control. */
+const FIT_TO_NODES_PADDING_PX = 24;
+
 @Component({
 	selector: 'lf-flow-canvas',
 	standalone: true,
@@ -171,6 +175,7 @@ const buildPasteRequestedFromClipboard = (
 		NgDiagramComponent,
 		NgDiagramBackgroundComponent,
 		NgDiagramMinimapComponent,
+		LfHoverTipComponent,
 	],
 	providers: [provideNgDiagram()],
 	template: `
@@ -195,8 +200,39 @@ const buildPasteRequestedFromClipboard = (
 					(selectionRemoved)="handlers.handleSelectionRemoved($event)"
 					(selectionChanged)="handlers.handleSelectionChanged($event)"
 				>
-					<ng-diagram-background type="dots" /> <ng-diagram-minimap
-				/></ng-diagram>
+					<ng-diagram-background type="dots" />
+					<ng-diagram-minimap position="bottom-left" />
+				</ng-diagram>
+				<div class="pointer-events-auto absolute bottom-2 right-2 z-10">
+					<lf-hover-tip tip="Fit to nodes" side="left" align="center">
+						<button
+							type="button"
+							class="rounded p-1 text-zinc-500 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+							#fitButton
+							aria-label="Fit to nodes"
+							(click)="
+								hostHandlers.handleFitToNodes();
+								fitButton.blur()
+							"
+						>
+							<svg
+								viewBox="0 0 20 20"
+								class="h-4 w-4"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.5"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path
+									d="M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4"
+								/>
+								<rect x="7" y="7" width="6" height="6" rx="1" />
+							</svg>
+						</button>
+					</lf-hover-tip>
+				</div>
 			} @else {
 				<div
 					class="flex h-full items-center justify-center text-sm text-zinc-500 dark:text-zinc-400"
@@ -252,6 +288,7 @@ export class FlowCanvasComponent {
 	private seedModel: ReturnType<typeof initializeModel> | undefined;
 
 	config = {
+		watermarkPosition: 'top-right' as const,
 		zoom: {
 			max: 2,
 			zoomToFit: {
@@ -463,6 +500,22 @@ export class FlowCanvasComponent {
 	}
 
 	readonly hostHandlers = {
+		/**
+		 * Fit all nodes in view with a small margin. The resulting viewport
+		 * change is published (and synced to other tabs) by the debounced
+		 * viewport stream, so no extra emit is needed.
+		 */
+		handleFitToNodes: () => {
+			if (this.diagramModel.nodes().length === 0) {
+				return;
+			}
+
+			this.viewportService.zoomToFit({
+				padding: FIT_TO_NODES_PADDING_PX,
+				edgeIds: [],
+			});
+		},
+
 		handleDragOver: (event: DragEvent) => {
 			if (!this.isPaletteDrag(event)) {
 				return;

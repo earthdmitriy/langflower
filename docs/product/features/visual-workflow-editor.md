@@ -46,7 +46,9 @@ The editor screen has four areas:
   **Advanced** group
   ([ADR-023](../../adr/023-palette-palettesecondary-collapsed-advanced.md)).
 - **Center canvas** — the interactive graph: place node instances, draw
-  connections between ports, move/delete nodes and edges, pan and zoom.
+  connections between ports, move/delete nodes and edges, pan and zoom, and a bottom-right "Fit to nodes"
+  button that zooms and pans the viewport to show every node with a small
+  margin (synced to other tabs like any viewport change).
 - **Right panel** — either the work log (execution order and outputs) when
   nothing is selected, or the selected node's full parameter/port view
   (including hidden ports and panel-level settings) when a node is clicked.
