@@ -111,6 +111,11 @@ Also: `domain/domain-tool-configs.ts`, `memory/` (`create-memory-store`),
 Builtins: `read`, `glob`, `grep`, `edit`, `write`, `create`, `delete`, `move`,
 `bash`, `ask_user`.
 
+`read` of `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.wav`, `.mp3`, and
+`.pdf` stages the bytes as a session upload and returns one text line
+(path, MIME, size). `ToolHandler` stays a string. Other extensions,
+including video, stay UTF-8. `ask_user` has no file payload.
+
 `bash` is default-deny (`bashEnabled: false`). `ask_user` waits on a live HITL
 host (`CreateHarnessOptions.askUser`). Read-class tools accept optional
 `postProcess` source `(res: string) => string`.

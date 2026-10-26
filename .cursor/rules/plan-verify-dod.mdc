@@ -17,7 +17,7 @@ section must require **all** of:
 - `npm run typecheck` **or** `node build/tools/agent-run.mjs typecheck`
   (all packages; not a single-package `build-package … typecheck`)
 - `npm run test` **or** `node build/tools/agent-run.mjs verify`
-  (build + unit **and** integration)
+  (build + unit, docs-boundaries, **and** integration)
 
 `verify` / `npm run test` do **not** run `tsc`. Compile-time tests such as
 `*.types.test.ts` are excluded from package emit configs and only fail under

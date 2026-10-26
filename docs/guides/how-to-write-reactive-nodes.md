@@ -281,7 +281,10 @@ the node (and a `TODO`) instead of `unknown`.
 ### Named wire types (not generic `json` for peer contracts)
 
 `RuntimeEditor` accepts an edge only when source and target `wireType` strings
-match (plus `any` / `dynamic`). A structured contract between nodes therefore
+match (plus `any` / `dynamic`). A port may instead declare a **list**
+(`wireType: ['string', 'user-turn']`): the edge connects when the two sides
+share a member, and the node must handle every member it lists. `dynamic`
+never goes inside a list, and an empty list throws at definition time. A structured contract between nodes therefore
 needs its **own** wire type string — export a const next to the payload type
 and use that const on every producer/consumer port.
 
@@ -307,6 +310,42 @@ opaque blobs with no typed peer (e.g. crawl page / link dumps). Named wire
 example: `tool-handle` (`TOOL_HANDLE_WIRE_TYPE`). Optional hub
 `common-tool-collection` combines many `tools` wires into one array;
 agents still accept **multi combine** without it (ADR-035).
+
+A HITL textarea takes files when its input accepts a `user-turn` (list `user-turn`
+in its `wireType`): the composer then shows attach, paste, and drop and sends
+`{ text, files }`.
+
+Chat Input `message` and Chat Loop `feedback` are `['string', 'user-turn']`: the
+plain string, or `{ text: string; files: readonly HitlUploadedFile[] }` when files
+are attached. OpenAI and Fake
+declare `userPrompt` and `feedback` (`multi: 'merge'`) as
+`['string', 'user-turn']`, so one port takes a plain string or a user turn.
+A string means `{ text, files: [] }`. `ToolHandler`
+stays `Promise<string>`. A staged file from `read` rides beside that string
+on the loop fact. It is not a new return type.
+
+### Compatibility with packs written earlier
+
+A pack built against an earlier `@langflower/node-sdk` must keep working
+against a newer server, and its saved graphs must keep loading. The rules:
+
+- **The SDK only grows.** New fields are optional and new types are additive;
+  an existing field never changes meaning. `wireType` accepting a list keeps
+  every scalar valid.
+- **A new payload degrades to the old type.** Chat Input `message`, Chat Loop
+  `feedback`, and Review Gate `feedback` are `['string', 'user-turn']` and
+  emit the plain string unless files are attached, so a string input wired
+  behind them gets what it always got.
+- **The UI derives behaviour from the existing contract.** A textarea takes
+  files because its input accepts `user-turn`, not because of a new flag; a
+  string textarea still sends a string. A steer payload without `files` is
+  still valid.
+- **Saved state stays readable.** An agent still restores `{ history }`;
+  new keys (`runId`) are optional.
+
+`packages/common-nodes/src/hitl/legacy-author-compat.test.ts` wires a
+`defineNode` pack written against the old surface behind each reply node.
+Extend it when a change touches a shared wire.
 
 ### Optional ports → `defaultValue` (not `startWith`)
 

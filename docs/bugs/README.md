@@ -165,6 +165,7 @@ Copy for each new bug. The field list also lives in
 | 2026-10-15 | [closing the server drops the session...](BUG-2026-10-15-closing-the-server-drops-the-session-head.md)                     | server       | Process stop waited on the gr... | yes      |
 | 2026-10-15 | [overlapping session creates share one...](BUG-2026-10-15b-overlapping-session-creates-share-one-tab-file.md)              | server       | The lock matched the id, the...  | yes      |
 | 2026-10-16 | [a corrupt session cannot be deleted w...](BUG-2026-10-16-a-corrupt-session-cannot-be-deleted-while-another-is-open.md)    | server       | A mutation required the recor... | yes      |
+| 2026-10-26 | [chat input missing from the composer...](BUG-2026-10-26-chat-input-missing-from-composer-in-unsaved-workflow.md)          | ui           | state-ownership                  | yes      |
 
 ## By flaw
 
@@ -644,6 +645,10 @@ Copy for each new bug. The field list also lives in
 ### `stopped` and `idle` treated...
 
 - 2026-06-20 `start()` from `stopped` does not com...
+
+### state-ownership
+
+- 2026-10-26 chat input missing from the composer...
 
 ### “Run empty canvas” had no def...
 

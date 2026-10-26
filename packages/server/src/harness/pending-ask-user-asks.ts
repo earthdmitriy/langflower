@@ -2,11 +2,14 @@ import type {
 	RunnerAskUserAskPayload,
 	RunnerAskUserReplyPayload,
 } from '@langflower/shared/types/langflower-config.js';
-import type { AskUserRequest } from '@langflower/tools/create-project-harness';
+import type {
+	AskUserAnswer,
+	AskUserRequest,
+} from '@langflower/tools/create-project-harness';
 
 type PendingAsk = {
 	readonly payload: RunnerAskUserAskPayload;
-	readonly resolve: (text: string) => void;
+	readonly resolve: (answer: AskUserAnswer) => void;
 	readonly reject: (error: Error) => void;
 };
 
@@ -28,7 +31,7 @@ export class PendingAskUserAsks {
 		nodeId: string,
 		request: AskUserRequest,
 		emitAsk: (payload: RunnerAskUserAskPayload) => void,
-	): Promise<string> => {
+	): Promise<AskUserAnswer> => {
 		const askId = crypto.randomUUID();
 		const payload: RunnerAskUserAskPayload = {
 			runId,
@@ -40,7 +43,7 @@ export class PendingAskUserAsks {
 				: {}),
 		};
 
-		return new Promise<string>((resolve, reject) => {
+		return new Promise<AskUserAnswer>((resolve, reject) => {
 			this.pending.set(askId, { payload, resolve, reject });
 			emitAsk(payload);
 		});
@@ -64,7 +67,11 @@ export class PendingAskUserAsks {
 		}
 
 		this.pending.delete(payload.askId);
-		entry.resolve(text);
+		entry.resolve(
+			payload.files !== undefined && payload.files.length > 0
+				? { text, files: payload.files }
+				: text,
+		);
 		return true;
 	};
 

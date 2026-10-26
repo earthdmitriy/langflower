@@ -5,9 +5,13 @@ covers: []
 status: current
 ---
 
-# Multimodal
+# 51 — Multimodal
 
-**Status:** unscheduled. No epic number until it is placed on the queue.
+**Status:** landed (epic 51). Code, docs, and the automated proof landed
+(`tests/integration/ws/execute-multimodal.ws.test.ts`). Archived at the
+maintainer's request; the by-hand checklist under
+[Maintainer, by hand](#maintainer-by-hand) stays as the manual regression
+script.
 
 ## Problem statement
 
@@ -112,7 +116,8 @@ parts.
 - An asset gallery.
 - `HitlFileControl` (`kind: 'file'`).
 - A vision flag on the model catalog.
-- Attachments on `ask_user`.
+- (Landed later) Attachments on `ask_user` and Review Gate Request
+  changes: see [turn attachments](../../../product/use-cases/turn-attachments.md).
 - Video, and any other extension, returned by `read` as bytes. Those
   files stay on the UTF-8 `read`.
 - A migrator for graphs already saved in a project.

@@ -3,7 +3,7 @@ import type { PortStreamItem, SequencedFrame } from '../types';
 import {
 	isUnmatchedToolCall,
 	parseToolRequestLine,
-	parseToolResponseLine,
+	readToolResponseFrame,
 } from './tool-log-line';
 
 type PortStreamFrame = Pick<
@@ -122,7 +122,7 @@ export const foldPortStream = (
 			];
 		}
 
-		const response = parseToolResponseLine(frame.value);
+		const response = readToolResponseFrame(frame.value);
 		if (response !== undefined) {
 			const last = items[items.length - 1];
 			if (last !== undefined && isUnmatchedToolCall(last.value)) {
@@ -135,6 +135,9 @@ export const foldPortStream = (
 							name: last.value.name,
 							args: last.value.args,
 							result: response.result,
+							...(response.files !== undefined
+								? { files: response.files }
+								: {}),
 						},
 					},
 				];

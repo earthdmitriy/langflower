@@ -139,16 +139,22 @@ node build/tools/agent-run.mjs check-exports
 - `npm run format` (changed files; `npm run format --all` formats the whole tree)
 - `npm run typecheck` or `node build/tools/agent-run.mjs typecheck` (all
   packages)
-- `npm run test` or full `verify` (unit **and** integration)
+- `npm run test` or full `verify`: **all three** Vitest projects, run one
+  after another — `unit`, then `docs-boundaries`, then `integration`. Run test
+  commands one at a time: never concurrently, never in the background beside
+  a build or another test run.
 
-`npm run test` and full `verify` run `tests/unit/docs-boundaries`. A
-`DOC REMINDER` must be resolved: update the named doc or follow the
+`npm run test` and full `verify` run `tests/unit/docs-boundaries` as its own
+sequential project (`node build/test.mjs --docs-boundaries`; it has a longer
+timeout because it scans the repo and spawns git). It is part of the gate:
+`--unit` alone does not run it. A `DOC REMINDER` must be resolved: update the named doc or follow the
 reminder. Do not silence it by weakening a rule, narrowing `covers`,
 skipping the test, or deleting a doc.
 
 `verify` / `npm run test` do **not** run `tsc`. Agents must not:
 
-- Treat `verify --quick` / unit-only as enough to close a feature
+- Treat `verify --quick` / unit-only as enough to close a feature, or skip
+  the `docs-boundaries` project (`npm run test` runs it; so does full `verify`)
 - Treat green `verify` / `npm run test` as a typecheck
 - Put `verify --quick`, focused vitest, or tests without typecheck as the sole
   **Verify / DoD** step in a plan — intermediate only; close-out must be full

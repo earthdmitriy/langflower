@@ -1,0 +1,23 @@
+{
+	"mcpServers": {
+		"ng-diagram-docs": {
+			"command": "cmd",
+			"args": ["/c", "npx", "-y", "@ng-diagram/mcp"],
+			"type": "stdio"
+		},
+		"ts-scan": {
+			"command": "cmd",
+			"args": ["/c", "ts-scan", "--mcp"],
+			"type": "stdio"
+		},
+		"langflower": {
+			"command": "cmd",
+			"args": [
+				"/c",
+				"node",
+				"packages/langflower-mcp/bin/langflower-mcp.js"
+			],
+			"type": "stdio"
+		}
+	}
+}

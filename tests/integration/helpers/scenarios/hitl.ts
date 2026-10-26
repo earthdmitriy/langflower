@@ -55,7 +55,7 @@ export const hitlChatLoopWorkflow = (): WorkflowSavePayload => {
 		],
 		[
 			edge('e1', 'result-1', 'value', 'loop-1', 'result'),
-			edge('e2', 'loop-1', 'feedback', 'preview-1', 'input'),
+			edge('e2', 'loop-1', 'text', 'preview-1', 'input'),
 		],
 	);
 };

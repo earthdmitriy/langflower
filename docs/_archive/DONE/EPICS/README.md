@@ -1,6 +1,6 @@
 # Epics — use-case readiness roadmap (completed)
 
-**Archived** under [`docs/_archive/DONE/`](../README.md). Epics **00–49** are
+**Archived** under [`docs/_archive/DONE/`](../README.md). Epics **00–51** are
 landed. Active queue: see [`docs/_work/TODO/EPICS/`](../../../_work/TODO/EPICS/README.md).
 Further work also follows use-case Missing parts
 and [`docs/_archive/code-regression/`](../../code-regression/SUMMARY.md) Critical
@@ -113,6 +113,7 @@ Status only after `verify`.
 | 48  | [48-declared-node-capabilities.md](48-declared-node-capabilities.md)                   | SDK    | **landed** — declared `requires`; ctx built on demand (pack `chat`/`embed` = TBD-012)         |
 | 49  | [49-sessions.md](49-sessions.md)                                                       | Sess   | **landed** — workflow sessions, node state hook, points, folded last-run feed (ADR-040)       |
 | 50  | [50-knowledge-base-restructure.md](50-knowledge-base-restructure.md)                   | Docs   | **landed** — knowledge-base layers, ADR/bug split, docs-boundaries tests                      |
+| 51  | [51-multimodal.md](51-multimodal.md)                                                   | Media  | **landed** — image / audio / PDF turn attachments                                             |
 
 ## Contracts
 

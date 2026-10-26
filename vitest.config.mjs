@@ -201,6 +201,8 @@ export default defineConfig({
 		root: ROOT,
 		passWithNoTests: true,
 		// Hard lock: do not raise to "fix" flaky suites — remove slow work instead.
+		// The one exception is the `docs-boundaries` project below: it scans the
+		// repo and spawns git, so it runs alone and gets its own limit.
 		testTimeout: 5000,
 		typecheck: {
 			enabled: true,
@@ -219,9 +221,26 @@ export default defineConfig({
 						'demo-project/.langflower/nodes/civitai/**/*.test.ts',
 						'tests/unit/**/*.test.ts',
 					],
-					exclude: ['packages/runtime/src/v2/**'],
+					exclude: [
+						'packages/runtime/src/v2/**',
+						'tests/unit/docs-boundaries/**',
+					],
 					// Keep file parallelism: Vitest sequential mode (fileParallelism:
 					// false / maxWorkers:1) reuses a worker and leaks vi.mock factories.
+				},
+			},
+			{
+				extends: true,
+				test: {
+					name: 'docs-boundaries',
+					environment: 'node',
+					include: ['tests/unit/docs-boundaries/**/*.test.ts'],
+					// Sequential and alone: these tests walk the whole repo and spawn
+					// git, so they time out at 5s when they share workers with the
+					// unit suite. Sequential mode is safe here (no `vi.mock`).
+					fileParallelism: false,
+					maxWorkers: 1,
+					testTimeout: 30000,
 				},
 			},
 			{

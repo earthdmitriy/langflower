@@ -61,6 +61,7 @@ export const reduceLlmLoop = (
 						toolCalls: action.toolCalls,
 					},
 					pendingToolCalls: action.toolCalls,
+					stagedToolFiles: [],
 				};
 			}
 
@@ -74,6 +75,7 @@ export const reduceLlmLoop = (
 							? action.text
 							: state.partial.draft,
 				},
+				stagedToolFiles: [],
 			};
 		case 'stream.paused':
 			return {
@@ -118,7 +120,11 @@ export const reduceLlmLoop = (
 			};
 		case 'tool.completed': {
 			const pendingToolCalls = state.pendingToolCalls.slice(1);
-			const messages = [
+			const staged =
+				action.files === undefined
+					? state.stagedToolFiles
+					: [...state.stagedToolFiles, ...action.files];
+			const toolMessages = [
 				...state.committedMessages,
 				{
 					role: 'tool' as const,
@@ -126,26 +132,30 @@ export const reduceLlmLoop = (
 					tool_call_id: action.call.id,
 				},
 			];
+			const roundDone = pendingToolCalls.length === 0;
+			const messages =
+				roundDone && staged.length > 0
+					? [
+							...toolMessages,
+							{
+								role: 'user' as const,
+								content: { text: '', files: staged },
+							},
+						]
+					: toolMessages;
 
 			return {
 				...state,
-				phase: pendingToolCalls.length === 0 ? 'prepare' : 'tools',
+				phase: roundDone ? 'prepare' : 'tools',
 				committedMessages: messages,
-				roundCheckpoint:
-					pendingToolCalls.length === 0
-						? messages
-						: state.roundCheckpoint,
-				iteration:
-					pendingToolCalls.length === 0
-						? state.iteration + 1
-						: state.iteration,
-				transientAttempts:
-					pendingToolCalls.length === 0 ? 0 : state.transientAttempts,
-				partial:
-					pendingToolCalls.length === 0
-						? { reasoning: '', draft: '' }
-						: state.partial,
+				roundCheckpoint: roundDone ? messages : state.roundCheckpoint,
+				iteration: roundDone ? state.iteration + 1 : state.iteration,
+				transientAttempts: roundDone ? 0 : state.transientAttempts,
+				partial: roundDone
+					? { reasoning: '', draft: '' }
+					: state.partial,
 				pendingToolCalls,
+				stagedToolFiles: roundDone ? [] : staged,
 			};
 		}
 		case 'retry.scheduled':
@@ -184,12 +194,14 @@ export const reduceLlmLoop = (
 			};
 		case 'steer.received': {
 			const text = action.text?.trim() ?? '';
+			const files = action.files ?? [];
+			const content = files.length === 0 ? text : { text, files };
 			const messages =
 				text.length === 0
 					? [...state.roundCheckpoint]
 					: [
 							...state.roundCheckpoint,
-							{ role: 'user' as const, content: text },
+							{ role: 'user' as const, content },
 						];
 
 			return {

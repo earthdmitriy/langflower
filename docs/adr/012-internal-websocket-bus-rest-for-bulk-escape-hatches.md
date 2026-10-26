@@ -11,7 +11,7 @@ package: docs
 
 ## ADR-012 — Internal WebSocket bus; REST for bulk escape hatches
 
-**Status:** accepted · **Date:** 2026-06-16 · **Updated:** 2026-06-24
+**Status:** accepted · **Date:** 2026-06-16 · **Updated:** 2026-10-19
 
 **Context:** The backend emits many live facts (editor graph changes, palette
 changes, execution telemetry, progress, errors). Polling or REST-for-everything does
@@ -47,6 +47,11 @@ adapters.
   lifecycle facts. The UI projects the authoritative event stream.
 - **REST only** as a bulk escape hatch when payload size or tooling clearly justifies
   leaving the WebSocket bus.
+- Session file bytes are two bulk hatches, not WebSocket frames.
+  `POST /api/session-uploads` accepts one raw body (`Content-Type`,
+  `X-Langflower-File-Name`, under 50 MB) and returns `HitlUploadedFile`.
+  `GET /api/session-uploads/:fileId` serves those bytes. History stores
+  `fileId`, not base64.
 
 **Tradeoffs accepted:**
 
@@ -65,6 +70,9 @@ adapters.
 - Do not add DTO adapter layers for the bus unless the protocol becomes public or
   independently versioned; file a superseding ADR if that changes.
 - Do not add REST routes for event-bus work without updating this ADR.
+- `POST /api/session-uploads` and `GET /api/session-uploads/:fileId` are
+  the bulk hatches for one staged chat file. Do not send those bytes on
+  the WebSocket bus.
 - `docs/architecture/ARCHITECTURE.md`, `spec.md` §3.1.1, and
   `packages/shared/src/langflower-bus-config.ts` describe the current bus model.
 - Each partial route config owns a unique prefix (`editor.*`, `runner.*`,

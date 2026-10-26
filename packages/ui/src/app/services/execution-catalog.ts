@@ -1,3 +1,4 @@
+import { isSessionUploadMime } from '@langflower/node-sdk';
 import {
 	isSteerControlContinue,
 	isSteerControlPause,
@@ -7,7 +8,10 @@ import type {
 	PaletteConfigPayload,
 	PaletteNodeDefinition,
 } from '@langflower/shared/types/langflower-palette';
-import type { WorkflowCurrentSnapshotPayload } from '@langflower/shared/types/langflower-workflow';
+import type {
+	WorkflowCurrentSnapshotPayload,
+	WorkflowPersistedGraph,
+} from '@langflower/shared/types/langflower-workflow';
 import { combineLatest, type Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -45,15 +49,15 @@ export const mergedPaletteFromSnapshots$ = (
 		map(([system, custom]) => mergePaletteCatalogs(system, custom)),
 	);
 
+export const nodeTypeByIdFromGraph = (
+	graph: WorkflowPersistedGraph | null,
+): ReadonlyMap<string, string> =>
+	new Map((graph?.nodes ?? []).map((node) => [node.id, node.type]));
+
 export const nodeTypeByIdFromWorkflow = (
 	snap: WorkflowCurrentSnapshotPayload,
-): ReadonlyMap<string, string> => {
-	const next = new Map<string, string>();
-	for (const node of snap.activeWorkflow?.graph.nodes ?? []) {
-		next.set(node.id, node.type);
-	}
-	return next;
-};
+): ReadonlyMap<string, string> =>
+	nodeTypeByIdFromGraph(snap.activeWorkflow?.graph ?? null);
 
 export const nodeLabelsFromWorkflow = (
 	snap: WorkflowCurrentSnapshotPayload,
@@ -125,33 +129,116 @@ export const definitionForNode = (
 	return type === undefined ? undefined : paletteByType.get(type);
 };
 
-/** User-bubble copy for a HITL submit / input-received payload. */
-export const formatHitlUserText = (
+/** File citation on a user bubble. Bytes and base64 stay off the feed. */
+export type HitlUserFileRef = {
+	readonly fileId: string;
+	readonly name: string;
+	readonly mimeType: string;
+};
+
+export type HitlUserProjection = {
+	readonly text: string;
+	readonly files: readonly HitlUserFileRef[];
+};
+
+const isHitlUserFileRef = (value: unknown): value is HitlUserFileRef => {
+	if (typeof value !== 'object' || value === null) {
+		return false;
+	}
+	if (!('fileId' in value) || !('name' in value) || !('mimeType' in value)) {
+		return false;
+	}
+	const { fileId, name, mimeType } = value;
+	return (
+		typeof fileId === 'string' &&
+		fileId.length > 0 &&
+		typeof name === 'string' &&
+		name.length > 0 &&
+		typeof mimeType === 'string' &&
+		isSessionUploadMime(mimeType)
+	);
+};
+
+const readUserTurn = (
+	payload: unknown,
+):
+	| { readonly text: string; readonly files: readonly HitlUserFileRef[] }
+	| undefined => {
+	if (typeof payload !== 'object' || payload === null) {
+		return undefined;
+	}
+	if (!('text' in payload) || !('files' in payload)) {
+		return undefined;
+	}
+	const { text, files } = payload;
+	if (typeof text !== 'string' || !Array.isArray(files)) {
+		return undefined;
+	}
+	return {
+		text: text.trim(),
+		files: files.flatMap((file) => {
+			if (!isHitlUserFileRef(file)) {
+				return [];
+			}
+			return [
+				{
+					fileId: file.fileId,
+					name: file.name,
+					mimeType: file.mimeType,
+				},
+			];
+		}),
+	};
+};
+
+/** User-bubble text and file refs for a HITL submit / input-received payload. */
+export const projectHitlUser = (
 	definition: PaletteNodeDefinition,
 	portId: string,
 	payload: unknown,
-): string => {
+): HitlUserProjection => {
 	if (isSteerControlPause(payload)) {
-		return '';
+		return { text: '', files: [] };
 	}
 	if (isSteerControlContinue(payload)) {
-		return payload.kind === 'steer' ? payload.text.trim() : '';
+		if (payload.kind !== 'steer') {
+			return { text: '', files: [] };
+		}
+		const turn = readUserTurn(payload);
+		return {
+			text: payload.text.trim(),
+			files: turn?.files ?? [],
+		};
 	}
 	const input = definition.inputsConfigs.find(
 		(entry) => entry.portId === portId,
 	);
 	const hitl = input?.hitl;
 	if (hitl === undefined) {
-		return typeof payload === 'string' ? payload.trim() : '';
+		return {
+			text: typeof payload === 'string' ? payload.trim() : '',
+			files: [],
+		};
 	}
 	if (hitl.kind === 'button') {
-		return hitl.label.trim();
+		return { text: hitl.label.trim(), files: [] };
 	}
 	if (typeof payload === 'string') {
-		return payload.trim();
+		return { text: payload.trim(), files: [] };
+	}
+	const turn = readUserTurn(payload);
+	if (turn !== undefined) {
+		return turn;
 	}
 	if (payload === null || payload === undefined) {
-		return '';
+		return { text: '', files: [] };
 	}
-	return String(payload);
+	return { text: String(payload), files: [] };
 };
+
+/** User-bubble copy for a HITL submit / input-received payload. */
+export const formatHitlUserText = (
+	definition: PaletteNodeDefinition,
+	portId: string,
+	payload: unknown,
+): string => projectHitlUser(definition, portId, payload).text;

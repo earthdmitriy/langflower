@@ -54,7 +54,9 @@ slate and keeps your workflow.
 
 ## What it lacks
 
-- **Image and video.** No asset management for multimodal models. Not yet.
+- **Image and video.** No asset gallery and no video. A chat turn can
+  attach png, jpeg, gif, webp, wav, mp3, or pdf. Other types are not
+  uploaded.
 - **No built-in IDE or git UI.** We are not reinventing those wheels. Use
   the editor and git tools you already have.
 

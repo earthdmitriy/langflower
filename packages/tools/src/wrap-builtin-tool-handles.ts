@@ -1,9 +1,12 @@
-import type { ToolHandle } from '@langflower/node-sdk';
+import type { HitlUploadedFile, ToolHandle } from '@langflower/node-sdk';
 import type { Harness } from './harness-types.js';
 import { isToolAlwaysDenied, type PermissionConfig } from './permission.js';
 
 type HostInvokeCtx = {
 	readonly signal?: AbortSignal;
+	readonly stagedSessionUpload?: {
+		readonly files: HitlUploadedFile[];
+	};
 };
 
 /**
@@ -36,6 +39,13 @@ export const wrapBuiltinToolHandles = (
 
 			if (!result.ok) {
 				throw new Error(result.text);
+			}
+
+			if (
+				result.stagedFiles !== undefined &&
+				hostCtx?.stagedSessionUpload !== undefined
+			) {
+				hostCtx.stagedSessionUpload.files.push(...result.stagedFiles);
 			}
 
 			return result.text;

@@ -1,6 +1,6 @@
 {
 	"name": "langflower",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"description": "Visual LLM-chain builder",
 	"type": "module",
 	"bin": {
@@ -48,6 +48,7 @@
 		"test": "node build/test.mjs",
 		"test:details": "node build/test.mjs --details",
 		"test:unit": "node build/test.mjs --unit",
+		"test:docs-boundaries": "node build/test.mjs --docs-boundaries",
 		"test:integration": "node build/test.mjs --integration",
 		"test:watch": "node build/test.mjs --watch",
 		"verify": "node build/verify.mjs",

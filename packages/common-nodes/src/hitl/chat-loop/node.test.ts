@@ -8,7 +8,16 @@ describe('common-chat-loop', () => {
 		expect(chatLoopNode.chatEntry).toBe(false);
 		expect(
 			chatLoopNode.outputsConfigs.map((entry) => entry.portId),
-		).toEqual(['feedback']);
+		).toEqual(['feedback', 'text']);
+		expect(
+			chatLoopNode.outputsConfigs.find(
+				(entry) => entry.portId === 'feedback',
+			)?.wireType,
+		).toEqual(['string', 'user-turn']);
+		expect(
+			chatLoopNode.outputsConfigs.find((entry) => entry.portId === 'text')
+				?.wireType,
+		).toBe('string');
 
 		const messageMeta = chatLoopNode.inputsConfigs.find(
 			(entry) => entry.portId === 'message',
@@ -31,13 +40,13 @@ describe('common-chat-loop', () => {
 	it('feedback stays pending after result until Send', async () => {
 		const loop = chatLoopNode.getInstance();
 		const pendingSeen: boolean[] = [];
-		const values: string[] = [];
+		const values: unknown[] = [];
 		const sub = loop.outputs.feedback.subscribe({
 			pending: (pending) => {
 				pendingSeen.push(pending);
 			},
 			next: (value) => {
-				values.push(String(value));
+				values.push(value);
 			},
 		});
 
@@ -52,5 +61,27 @@ describe('common-chat-loop', () => {
 		).resolves.toBe('hello back');
 		sub.unsubscribe();
 		expect(values).toEqual(['hello back']);
+	});
+
+	it('passes an already-formed user turn through feedback', async () => {
+		const loop = chatLoopNode.getInstance();
+		const turn = {
+			text: 'look',
+			files: [
+				{
+					fileId: 'file-2',
+					name: 'note.pdf',
+					mimeType: 'application/pdf',
+					size: 9,
+				},
+			],
+		};
+
+		loop.inputs.result.connect(of('agent turn'));
+		loop.inputs.message.connect(of(turn));
+
+		await expect(
+			firstValueFrom(loop.outputs.feedback.value$),
+		).resolves.toEqual(turn);
 	});
 });

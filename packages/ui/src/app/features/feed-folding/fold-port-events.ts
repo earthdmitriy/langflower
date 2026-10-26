@@ -28,7 +28,7 @@ import {
 	catalogSwitchedDocument,
 	definitionForNode,
 	feedCatalogFromSnaps,
-	formatHitlUserText,
+	projectHitlUser,
 	mergePaletteCatalogs,
 	workflowNodeIdsKey,
 	type FeedCatalog,
@@ -215,6 +215,9 @@ const askUserReplyEvent = (
 			presentation: 'ask-user-reply',
 			askId: accepted.askId,
 			authority: 'server',
+			...(accepted.files !== undefined && accepted.files.length > 0
+				? { files: accepted.files }
+				: {}),
 		},
 	};
 };
@@ -312,15 +315,27 @@ const normalizePortFrame = (
 			};
 		}
 		if (value.kind === 'steer') {
+			const definition = definitionForNode(
+				catalog.paletteByType,
+				catalog.nodeTypeById,
+				nodeId,
+			);
+			const projected =
+				definition === undefined
+					? { text: value.text.trim(), files: [] }
+					: projectHitlUser(definition, portId, value);
 			return {
 				...base,
-				value: value.text.trim(),
+				value: projected.text,
 				meta: withClosesPreviousVisit(
 					withDerivedVisitClose(
 						{
 							presentation: 'hitl-user',
 							origin: 'steer',
 							payload: value,
+							...(projected.files.length > 0
+								? { files: projected.files }
+								: {}),
 						},
 						false,
 					),
@@ -350,13 +365,19 @@ const normalizePortFrame = (
 		definition !== undefined &&
 		hitlReplyReceived(definition, portId)
 	) {
-		const text = formatHitlUserText(definition, portId, value);
+		const projected = projectHitlUser(definition, portId, value);
 		return {
 			...base,
-			value: text,
+			value: projected.text,
 			meta: withClosesPreviousVisit(
 				withDerivedVisitClose(
-					{ presentation: 'hitl-user', origin: 'hitl-reply' },
+					projected.files.length > 0
+						? {
+								presentation: 'hitl-user',
+								origin: 'hitl-reply',
+								files: projected.files,
+							}
+						: { presentation: 'hitl-user', origin: 'hitl-reply' },
 					frameIsStreaming(event),
 				),
 				event,

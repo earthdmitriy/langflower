@@ -33,6 +33,7 @@ import { llmPanelUiSchema } from '../../features/ui-schema/llm-panel-ui-schema.j
 import { insertReasoningEffortAfterModel } from '../../features/ui-schema/llm-reasoning-effort-ui-schema.js';
 import { llmCompactionUiSchema } from '../../features/ui-schema/llm-compaction-ui-schema.js';
 import { llmRecoveryUiSchema } from '../../features/ui-schema/llm-recovery-ui-schema.js';
+import { toolLogPortValue } from '../../features/llm-loop/run-llm-loop.js';
 import {
 	assembleLlmAgentInventoryContext,
 	appendToolInventory,
@@ -639,10 +640,10 @@ The specialist streams in its own work-log card. Set name, role, and skills on t
 			),
 		);
 		const toolLog$ = cycle$.pipeValue(
-			demuxByKind(
-				'toolLog',
-				(chunk) =>
-					(chunk as Extract<SubAgentChunk, { kind: 'toolLog' }>).text,
+			demuxByKind('toolLog', (chunk) =>
+				toolLogPortValue(
+					chunk as Extract<SubAgentChunk, { kind: 'toolLog' }>,
+				),
 			),
 		);
 		const recovery$ = cycle$.pipeValue(

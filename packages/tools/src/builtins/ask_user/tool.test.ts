@@ -97,4 +97,27 @@ describe('ask_user builtin', () => {
 		controller.abort();
 		await expect(pending).rejects.toThrow(/aborted/i);
 	});
+
+	it('records the files attached to the reply and returns the text', async () => {
+		const png = {
+			fileId: 'file-1',
+			name: '1.png',
+			mimeType: 'image/png',
+			size: 3,
+		};
+		const recorded: (typeof png)[][] = [];
+		const text = await askUserTool.invoke(
+			{
+				...baseCtx,
+				askUser: async () => ({ text: 'this one', files: [png] }),
+				recordStagedFiles: (files) => {
+					recorded.push([...files]);
+				},
+			},
+			{ question: 'Which picture?' },
+		);
+
+		expect(text).toBe('this one');
+		expect(recorded).toEqual([[png]]);
+	});
 });

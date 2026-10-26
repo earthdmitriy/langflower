@@ -28,6 +28,7 @@ describe('resolveUiSchemaOptions', () => {
 						id: 'plan',
 						name: 'Plan',
 						description: 'Break work into steps',
+						path: '.langflower/skills/plan/SKILL.md',
 					},
 				],
 			},

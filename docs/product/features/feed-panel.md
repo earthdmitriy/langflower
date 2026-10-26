@@ -14,7 +14,8 @@ Graph telemetry is **mirrored as chat** so the default experience feels like a
 common agent chat; raw port detail stays optional. User scenarios that
 validate this feature: [grok-feed](../use-cases/grok-feed.md). Run-control
 interruption (Stop / Pause / Steer):
-[run-interruption](../use-cases/run-interruption.md).
+[run-interruption](../use-cases/run-interruption.md). Files on a chat turn:
+[turn attachments](../use-cases/turn-attachments.md).
 
 **Ready.** Settled turns project as user + result bubbles plus muted
 peeks for **opted-in** technical roles; unmarked / `'none'` ports are omitted.
@@ -89,7 +90,11 @@ See [`packages/ui/src/app/features/feed-folding/README.md`](../../../packages/ui
   `← name: result` pair on `feed.role: 'tool'` (invoke is serial; last
   unmatched `→` is the in-flight call). Collapsed summary is **name +
   shortened args**, not the label `Tool`. Expand shows **full args and
-  full tool output** (not the 80-char summary). Unmatched `→` shows muted
+  full tool output** (not the 80-char summary). When `read` staged an
+  in-scope image, that row also shows the image from
+  `GET /api/session-uploads/:fileId`. Audio and PDF on that row show
+  name and MIME, not a player. The hoist that follows those tool texts
+  does not add a human bubble. Unmatched `→` shows muted
   `running…` while the visit is open. Notes without those prefixes (Pause,
   compaction, `⚠ …`) stay a generic muted collapsible. `interactionId`
   pairing remains for explicit `tool-request` / `tool-response` frames
@@ -175,6 +180,11 @@ Rules:
 ### HITL / user turns
 
 - Chat Input start → **standalone** user-side bubble (conversation primary).
+  The bubble shows the question text and, for an image MIME, an `<img>`
+  whose `src` is `GET /api/session-uploads/:fileId`. Audio and PDF show
+  name and MIME, without a player. Do not render the person's attachment
+  through the agent markdown bubble. Remote markdown images on `result`
+  stay as they are. A `read` hoist is not a human bubble.
 - Review Gate replies → **nested inside** that node's
   technical block (not a separate timeline card).
 - HITL node chrome (`hitlLayout`): title, details, and reply bubble align to the
@@ -279,7 +289,7 @@ Icon / run-control rules:
 - **After Pause or recovery suspend** — HITL composer unlocks (textarea +
   **Continue** + **Send**); tabs when 2+ paused agents / gates (sequential
   Pause, not one-click fan-out). Continue (and Enter on an empty draft) →
-  `{ kind: 'resume' }` with no typed text. Send → `{ kind: 'steer', text }`.
+  `{ kind: 'resume' }` with no typed text. Send → `{ kind: 'steer', text, files }`.
   Stop still hard-cancels. **Continue** here is not checkpoint **Continue from…**.
 - **Reply vocabulary** — Review Gate keeps text labels (`Send`,
   `Send feedback`, Approve, …). Do not reuse Start for mid-run replies.

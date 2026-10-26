@@ -1,3 +1,4 @@
+import type { HitlUploadedFile } from '@langflower/node-sdk';
 import type { DividerPositions } from './langflower-bootstrap.js';
 
 /**
@@ -20,13 +21,16 @@ export type LangflowerToolConfig = {
 } & Readonly<Record<string, unknown>>;
 
 /**
- * One skill folder under `.langflower/skills/<id>/SKILL.md`.
+ * One skill folder under `.langflower/skills/<id>/SKILL.md` or
+ * `.agents/skills/<id>/SKILL.md` (`.langflower` wins on an id clash).
  * Populated in-memory from the filesystem — never written to `langflower.jsonc`.
  */
 export type LangflowerSkillConfig = {
 	readonly id: string;
 	readonly name: string;
 	readonly description: string;
+	/** Project-relative forward-slash path of the `SKILL.md` file. */
+	readonly path: string;
 };
 
 /** Runtime harness permission decision (OpenCode-style). */
@@ -122,7 +126,8 @@ export type LangflowerConfig = {
 	readonly tools?: readonly LangflowerToolConfig[];
 	/**
 	 * Skills catalog for `optionsSource: 'langflower.skills'` uiSchema fields.
-	 * Server-only projection from `.langflower/skills/` — not persisted to jsonc.
+	 * Server-only projection from `.langflower/skills/` and `.agents/skills/` —
+	 * not persisted to jsonc.
 	 */
 	readonly skills?: readonly LangflowerSkillConfig[];
 	/** Editor divider positions (sidebar + composer sizes). */
@@ -272,6 +277,11 @@ export type RunnerAskUserReplyPayload = {
 	readonly runId: string;
 	readonly askId: string;
 	readonly text: string;
+	/**
+	 * Files attached to the reply, already uploaded to the session. The agent
+	 * receives them on a following `role: user` message, as for `read`.
+	 */
+	readonly files?: readonly HitlUploadedFile[];
 };
 
 /** One model id from a live provider catalog fetch (phase 6). */

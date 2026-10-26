@@ -55,8 +55,8 @@ Commands:
   install         npm install
   format          Prettier on changed files (--all for the tree, --check to verify)
   lint            ESLint (pass --fix to auto-fix)
-  test            Vitest (pass --unit, --integration, --watch)
-  verify          build-all + exports check + unit + integration (pass --quick for unit only)
+  test            Vitest: unit, docs-boundaries, integration, in that order (pass --unit, --docs-boundaries, --integration, --watch)
+  verify          build-all + exports check + unit + docs-boundaries + integration (pass --quick for unit only)
   check-exports   Detect orphan exports (pass --fix to auto-remove, --json for machine output)
   dead-code       List dead code: unused files, orphan exports, unused types (--json, --scope, --kind)
   fix-exports     Move single-use exports to consumer packages
@@ -67,6 +67,7 @@ Commands:
 Examples:
   node build/tools/agent-run.mjs build-all
   node build/tools/agent-run.mjs test --unit
+  node build/tools/agent-run.mjs test --docs-boundaries
   node build/tools/agent-run.mjs test --integration
   node build/tools/agent-run.mjs verify
   node build/tools/agent-run.mjs verify --quick

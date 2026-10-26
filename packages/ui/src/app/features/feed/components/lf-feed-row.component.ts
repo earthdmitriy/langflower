@@ -17,6 +17,7 @@ import {
 	presentationLabel,
 	recoveryBanner,
 } from '../feed-item-presentation.js';
+import { projectToolRowFiles, projectUserBubble } from '../user-bubble.js';
 import {
 	formatToolCallBody,
 	formatToolCallSummary,
@@ -71,21 +72,53 @@ import {
 				}
 			}
 		}
+		<ng-template #userBubbleTpl let-current>
+			<div class="flex min-w-0 justify-end">
+				<div
+					class="max-w-[92%] min-w-0 rounded-2xl rounded-tr-md border border-zinc-300 bg-zinc-200 px-3 py-1.5 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+				>
+					@if (userBubble(itemOf(current)); as bubble) {
+						@for (file of bubble.files; track file.fileId) {
+							@if (file.kind === 'image') {
+								<img
+									class="mb-1 max-h-48 max-w-full rounded-md"
+									[src]="file.src"
+									[alt]="file.name"
+								/>
+							} @else {
+								<p
+									class="mb-1 text-[11px] leading-4 text-zinc-600 dark:text-zinc-300"
+								>
+									{{ file.name }}
+									<span
+										class="text-zinc-500 dark:text-zinc-400"
+										>{{ file.mimeType }}</span
+									>
+								</p>
+							}
+						}
+						@if (bubble.text.length > 0) {
+							<pre
+								class="whitespace-pre-wrap break-words font-sans text-[12px] leading-5 wrap-anywhere"
+								>{{ bubble.text }}</pre>
+						}
+					}
+				</div>
+			</div>
+		</ng-template>
 		<ng-template #itemTpl let-current>
 			@switch (itemOf(current).meta.presentation) {
 				@case ('hitl-user') {
-					<div class="flex min-w-0 justify-end">
-						<pre
-							class="max-w-[92%] min-w-0 whitespace-pre-wrap break-words rounded-2xl rounded-tr-md border border-zinc-300 bg-zinc-200 px-3 py-1.5 font-sans text-[12px] leading-5 text-zinc-900 wrap-anywhere dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-							>{{ itemText(itemOf(current)) }}</pre>
-					</div>
+					<ng-container
+						[ngTemplateOutlet]="userBubbleTpl"
+						[ngTemplateOutletContext]="{ $implicit: current }"
+					/>
 				}
 				@case ('ask-user-reply') {
-					<div class="flex min-w-0 justify-end">
-						<pre
-							class="max-w-[92%] min-w-0 whitespace-pre-wrap break-words rounded-2xl rounded-tr-md border border-zinc-300 bg-zinc-200 px-3 py-1.5 font-sans text-[12px] leading-5 text-zinc-900 wrap-anywhere dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-							>{{ itemText(itemOf(current)) }}</pre>
-					</div>
+					<ng-container
+						[ngTemplateOutlet]="userBubbleTpl"
+						[ngTemplateOutletContext]="{ $implicit: current }"
+					/>
 				}
 				@case ('result') {
 					<div class="flex min-w-0 justify-start">
@@ -163,6 +196,28 @@ import {
 								<pre
 									class="mt-0.5 max-w-full min-w-0 whitespace-pre-wrap break-words font-sans [overflow-wrap:anywhere]"
 									>{{ formatToolCallBody(call) }}</pre>
+								@for (
+									staged of toolRowFiles(call.files);
+									track staged.fileId
+								) {
+									@if (staged.kind === 'image') {
+										<img
+											class="mt-1 max-h-48 max-w-full rounded-md"
+											[src]="staged.src"
+											[alt]="staged.name"
+										/>
+									} @else {
+										<p
+											class="mt-1 text-[11px] leading-4 text-zinc-500 dark:text-zinc-400"
+										>
+											{{ staged.name }}
+											<span
+												class="text-zinc-400 dark:text-zinc-500"
+												>{{ staged.mimeType }}</span
+											>
+										</p>
+									}
+								}
 							}
 						</details>
 					} @else {
@@ -335,6 +390,8 @@ export class LfFeedRowComponent {
 	readonly execution = inject(WorkflowExecutionService);
 	private readonly hover = inject(NodeHoverService);
 	readonly itemText = itemText;
+	readonly userBubble = projectUserBubble;
+	readonly toolRowFiles = projectToolRowFiles;
 	readonly collapsedSummary = collapsedSummary;
 	readonly presentationLabel = presentationLabel;
 	readonly recoveryBanner = recoveryBanner;

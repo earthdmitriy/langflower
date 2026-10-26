@@ -21,6 +21,9 @@ bridge.
 - Project domain state from snapshots and delta facts — do not treat server
   pushes as RPC replies tied to a single tab's last command.
 - Do not introduce REST clients, RPC envelopes, DTO adapters, or glue services.
+  The exception is the ADR-012 file hatches: the composer POSTs one file to
+  `/api/session-uploads`, and the work log loads bytes with
+  `GET /api/session-uploads/:fileId`. Those bytes do not ride the WebSocket.
 - Do not mirror bridge facts into local `BehaviorSubject` caches.
 
 Allowed local state is UI-only: theme mode, panel sizes, focus, hover, drag, and

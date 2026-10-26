@@ -9,6 +9,12 @@ import type { StatefulObservable } from '@rx-evo/stateful-observable';
  * Structural parity with runtime is locked by `runtime-parity.types.test.ts`.
  */
 
+/**
+ * Scalar names one type; a list is a union an edge may match by any member.
+ * Same shape as runtime `WireTypeSpec`; `'dynamic'` is scalar-only.
+ */
+export type WireTypeSpec = string | readonly string[];
+
 /** Same brand as runtime `RuntimeWireType` so bypass maps stay assignable. */
 export type WireType = string & { __brand: 'RuntimeWireType' };
 
@@ -61,7 +67,7 @@ export type FeedPortMeta = {
 export type PortMeta = {
 	readonly dir: 'in' | 'out';
 	readonly portId: string | symbol;
-	readonly wireType: string | symbol;
+	readonly wireType: WireTypeSpec | symbol;
 	readonly mode?: InputPortMode;
 	readonly fromInput?: string;
 	/**

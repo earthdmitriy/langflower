@@ -4,6 +4,13 @@ import type { RuntimeOptions } from './types.js';
 
 export { bypassOutputPortId, parseBypassOutputPortId } from './bypass-ports.js';
 export { RuntimeEditor } from './runtime-editor.js';
+export {
+	formatWireType,
+	wireTypeIs,
+	wireTypeList,
+	wireTypesCompatible,
+} from './wire-type.js';
+export type { WireTypeSpec } from './wire-type.js';
 export type { GraphCluster } from './runtime-helpers.js';
 export { foldFeedLogEvent } from './feed-log-fold.js';
 export type { FeedLogFoldStep } from './feed-log-fold.js';

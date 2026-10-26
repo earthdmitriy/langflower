@@ -81,4 +81,33 @@ describe('PendingAskUserAsks', () => {
 		asks.failAll('run-1');
 		await expect(pending).rejects.toThrow(/aborted/i);
 	});
+
+	it('resolves with text and files when the reply attaches files', async () => {
+		const asks = new PendingAskUserAsks();
+		const png = {
+			fileId: 'file-1',
+			name: '1.png',
+			mimeType: 'image/png',
+			size: 3,
+		};
+		const pending = asks.requestAskUser(
+			'run-1',
+			'node-1',
+			{ question: 'Which?' },
+			() => undefined,
+		);
+
+		expect(
+			asks.reply({
+				runId: 'run-1',
+				askId: asks.list()[0]!.askId,
+				text: ' this one ',
+				files: [png],
+			}),
+		).toBe(true);
+		await expect(pending).resolves.toEqual({
+			text: 'this one',
+			files: [png],
+		});
+	});
 });

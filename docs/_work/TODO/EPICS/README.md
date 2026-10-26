@@ -7,13 +7,14 @@ status: current
 
 # Epics — use-case readiness queue (active)
 
-**Active** under [`docs/_work/TODO/`](../README.md). Epics **00–50** are
+**Active** under [`docs/_work/TODO/`](../README.md). Epics **00–51** are
 archived in [`docs/_archive/DONE/EPICS/`](../../../_archive/DONE/EPICS/README.md).
 The numbered queue is empty. A file in this folder with no `NN-` prefix
 is **unscheduled**. It stays in this folder until a number is assigned
 and it is added to Order.
 Unscheduled: [External harness CLI](external-harness-cli.md),
-[Multimodal](multimodal.md).
+[Eval kit](eval-kit.md). Epic 51 (multimodal) landed — see
+[DONE](../../../_archive/DONE/EPICS/51-multimodal.md).
 A file belongs here only when it meets
 [Epic or task](../README.md#epic-or-task): a new mechanism, package
 boundary, or protocol. One behavior on a shipped mechanism is a

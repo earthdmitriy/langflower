@@ -7,9 +7,12 @@ import { createServer as createWsBridge } from '@langflower/websocket-bridge/cre
 import express from 'express';
 import http from 'node:http';
 import path from 'node:path';
+import { mountSessionUploadRoutes } from './api/session-upload-routes.js';
 import { attachLangflowerBridge } from './bridge/attach-langflower-bridge.js';
 import { listenHttpServer } from './listen-http-server.js';
 import { createServerContext } from './server-context.js';
+import { LangflowerSession } from './session/langflower-session.js';
+import { WorkflowSessionStore } from './workflow-sessions/workflow-session-store.js';
 
 export type CreateServerOptions = {
 	readonly projectDir: string;
@@ -56,7 +59,11 @@ export async function createServer(
 	const context = await createServerContext(options.projectDir);
 	await warmCustomPalette(context);
 
+	const session = new LangflowerSession();
+	const workflowSessions = new WorkflowSessionStore(options.projectDir);
 	const app = express();
+	// Before the UI catch-all so `GET /api/session-uploads/:fileId` is served.
+	mountSessionUploadRoutes(app, { session, store: workflowSessions });
 
 	if (options.uiDistPath !== undefined) {
 		const uiRoot = path.resolve(options.uiDistPath);
@@ -75,6 +82,8 @@ export async function createServer(
 	const httpServer = http.createServer(app);
 	const bridge = createWsBridge(langflowerWsConfig, { httpServer });
 	const detachBridge = attachLangflowerBridge(bridge, context, {
+		session,
+		workflowSessions,
 		serverLogsEnabled: resolveServerLogsEnabled(langflowerConfig),
 		...(options.onRunSettled !== undefined
 			? { onRunSettled: options.onRunSettled }

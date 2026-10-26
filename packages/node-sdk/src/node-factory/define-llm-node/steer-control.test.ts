@@ -16,8 +16,39 @@ describe('steer-control', () => {
 		expect(
 			isSteerControlContinue({ kind: 'steer', text: 'fix this' }),
 		).toBe(true);
+		expect(
+			isSteerControlContinue({
+				kind: 'steer',
+				text: 'fix this',
+				files: [
+					{
+						fileId: 'img-1',
+						name: 'photo.png',
+						mimeType: 'image/png',
+						size: 4,
+					},
+				],
+			}),
+		).toBe(true);
 		expect(isSteerControlContinue({ kind: 'resume' })).toBe(true);
 		expect(isSteerControlPayload({ kind: 'steer' })).toBe(false);
 		expect(isSteerControlPayload('plain')).toBe(false);
+		expect(isSteerControlPayload({ kind: 'steer', text: 'fix this' })).toBe(
+			true,
+		);
+		expect(
+			isSteerControlPayload({
+				kind: 'steer',
+				text: 'fix this',
+				files: [
+					{
+						fileId: 'img-1',
+						name: 'photo.png',
+						mimeType: 'image/png',
+						size: 4,
+					},
+				],
+			}),
+		).toBe(true);
 	});
 });

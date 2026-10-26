@@ -650,7 +650,8 @@ export const writeSnapshotToWorkflow = async (
 
 /**
  * Clear one session's conversation. The tab and its graph snapshot stay.
- * Agent head, last-run feed, and points are dropped.
+ * Agent head, last-run feed, points, and that session's uploads directory
+ * are dropped.
  */
 export const resetWorkflowSessionConversation = async (
 	deps: WorkflowSessionActionDeps,
@@ -687,6 +688,12 @@ export const resetWorkflowSessionConversation = async (
 
 	if (!truncated.ok && truncated.code !== 'NOT_FOUND') {
 		return failed(mapStoreCode(truncated.code), truncated.message);
+	}
+
+	const uploads = await store.deleteUploads(workflowId, sessionId);
+
+	if (!uploads.ok) {
+		return failed(mapStoreCode(uploads.code), uploads.message);
 	}
 
 	session.headNodeStates = {};

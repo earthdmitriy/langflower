@@ -1,4 +1,25 @@
+import type { HitlUploadedFile } from '@langflower/node-sdk';
 import type { ReasoningEffortValue } from './openai/normalize-reasoning-effort.js';
+
+/**
+ * User turn stored in node state. `text` is the question. `files` cites
+ * staged uploads by `fileId`. Bytes are not stored here.
+ */
+export type ChatCompletionUserTurn = {
+	readonly text: string;
+	readonly files: readonly HitlUploadedFile[];
+};
+
+/** True when `value` is a user turn (`text` plus a `files` array). */
+export const isChatCompletionUserTurn = (
+	value: unknown,
+): value is ChatCompletionUserTurn =>
+	value !== null &&
+	typeof value === 'object' &&
+	'text' in value &&
+	typeof value.text === 'string' &&
+	'files' in value &&
+	Array.isArray(value.files);
 
 export type ChatCompletionAbortSignal = {
 	readonly aborted: boolean;
@@ -13,8 +34,12 @@ export type ChatCompletionToolCall = {
 
 export type ChatCompletionMessage =
 	| {
-			readonly role: 'system' | 'user';
+			readonly role: 'system';
 			readonly content: string;
+	  }
+	| {
+			readonly role: 'user';
+			readonly content: string | ChatCompletionUserTurn;
 	  }
 	| {
 			readonly role: 'assistant';

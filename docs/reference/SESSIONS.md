@@ -52,11 +52,14 @@ storage parent.
 
 ## Files
 
-One session is two files under the project:
+One session is two files under the project. Staged turn files, when any
+exist, live in a directory beside them. The name on disk is `fileId`,
+not the person's file name. History stores that id, not the bytes.
 
 ```text
 .langflower/sessions/<workflowId>/<label>.json
 .langflower/sessions/<workflowId>/<label>.feed.jsonl
+.langflower/sessions/<workflowId>/<label>/uploads/<fileId>
 ```
 
 `<label>` is the tab name, `YYYY-MM-DD #N`, from the server-local calendar
@@ -122,11 +125,22 @@ A non-JSON output before the boundary sets `unsupported`
 (`<nodeId>.<portId>`). Continue stays disabled for that point.
 
 **Reset session** (`resetWorkflowSessionConversation`) clears `nodeStates`,
-truncates the feed to 0, and drops every point. The tab and its graph
-snapshot stay.
+truncates the feed to 0, drops every point, and deletes that session's
+`uploads` directory. The tab and its graph snapshot stay. Deleting the
+session removes the same directory.
 
-A normal Run on a bound session continues the head. **Continue from…**
-rewinds to the chosen point.
+A normal Run on a bound session continues the head. A gate that the
+restored work log shows as waiting (Review Gate, Chat Loop) is recovered by
+replying to it ([ADR-044](../adr/044-a-reply-to-a-parked-gate-recovers-the-run.md)):
+the run resumes under its **same run id**, so the work log stays and grows.
+The nodes restore themselves from the head: a gate saves `{ result }` while it
+waits and re-opens that wait on `restore`; an agent saves `{ history, runId }`
+and, when that `runId` is the run it is now in, keeps its transcript and waits
+for the next turn instead of replaying its opening turn. The server only
+resumes the run and seeds each chat entry silently from the log. Send feedback gives the agent one turn and the
+gate waits again; Approve passes the result on. **Continue from…**
+rewinds to the chosen point and leaves `uploads` in place. A point
+stores ids only, so the next turn reads the bytes from disk again.
 
 ---
 

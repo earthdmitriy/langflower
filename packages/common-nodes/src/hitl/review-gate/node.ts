@@ -1,5 +1,9 @@
 import { defineReactiveNode, withLoading } from '@langflower/node-sdk';
-import { filter, map, switchMap, take } from 'rxjs';
+import { statefulObservable } from '@rx-evo/stateful-observable';
+import { filter, map, merge, switchMap, take, tap } from 'rxjs';
+import type { ChatCompletionUserTurn } from '../../ai/features/chat-completion-stream.js';
+import { replyValue } from '../coerce-user-turn.js';
+import { createGateWait } from '../gate-wait.js';
 
 /** Review gate: separate HITL inputs for approve vs request-changes. */
 export const hitlReviewGateNode = defineReactiveNode({
@@ -31,39 +35,59 @@ Typical uses:
 				payload: true,
 			},
 		});
-		const requestChanges = makeInput<string>('requestChanges', {
-			name: 'request changes',
-			wireType: 'string',
-			hidden: true,
-			hitl: {
-				title: 'Request changes',
-				kind: 'textarea',
-				placeholder: 'What should be improved?',
-				submitLabel: 'Send feedback',
+		const requestChanges = makeInput<string | ChatCompletionUserTurn>(
+			'requestChanges',
+			{
+				name: 'request changes',
+				wireType: ['string', 'user-turn'],
+				hidden: true,
+				hitl: {
+					title: 'Request changes',
+					kind: 'textarea',
+					placeholder: 'What should be improved?',
+					submitLabel: 'Send feedback',
+				},
 			},
-		});
+		);
 
-		// `result.pipe` on both outs keeps the upstream edge live (BUG-2026-07-21d).
-		const response$ = result.pipe(withLoading()).pipeValue(
+		// While the gate waits it keeps `result` as node state and re-opens the
+		// wait itself after a restart ({@link createGateWait}).
+		const wait = createGateWait();
+
+		// Subscribing `result.value$` on both outs keeps the upstream edge live
+		// (BUG-2026-07-21d). A restored wait joins it here, not on the input:
+		// a stream derived from an input stays inactive until the input itself
+		// has a value.
+		const waiting = () =>
+			statefulObservable({
+				loader: () => merge(result.value$, wait.restored$),
+			}).pipe(withLoading());
+
+		const response$ = waiting().pipeValue(
+			tap((reviewed: string) => wait.markWaiting(reviewed ?? '')),
 			switchMap((reviewed: string) =>
 				approve.value$.pipe(
 					filter((approved) => approved === true),
 					take(1),
+					tap(() => wait.markAnswered()),
 					map(() => reviewed ?? ''),
 				),
 			),
 		);
 
-		const feedback$ = result.pipe(withLoading()).pipeValue(
+		const feedback$ = waiting().pipeValue(
+			tap((reviewed: string) => wait.markWaiting(reviewed ?? '')),
 			switchMap(() =>
 				requestChanges.value$.pipe(
 					take(1),
-					map((text) => text ?? ''),
+					tap(() => wait.markAnswered()),
+					map(replyValue),
 				),
 			),
 		);
 
 		return {
+			state: wait.state,
 			inputs: [result, approve, requestChanges],
 			outputs: [
 				// User answer is tracked by the HITL-configured inputs (approve /
@@ -76,7 +100,8 @@ Typical uses:
 					rewireFrom: 'result',
 				}),
 				configureOutput('feedback', feedback$, {
-					wireType: 'string',
+					// A string when no files are attached, a `user-turn` when there are.
+					wireType: ['string', 'user-turn'],
 					feed: { role: 'none' },
 				}),
 			],

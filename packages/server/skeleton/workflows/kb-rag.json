@@ -135,7 +135,7 @@
 			{
 				"edgeId": "e-chat-search",
 				"fromNodeId": "chat",
-				"fromPort": ["message", 0],
+				"fromPort": ["text", 0],
 				"toNodeId": "search",
 				"toPort": ["query", 0]
 			},

@@ -1,4 +1,5 @@
 import {
+	type HitlUploadedFile,
 	type NodeStateHook,
 	type NodeStateJson,
 	type ToolHandle,
@@ -7,7 +8,11 @@ import {
 } from '@langflower/node-sdk';
 import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
 import type { PermissionAskRequest } from '@langflower/tools/permission';
-import type { ChatCompletionMessage } from '../chat-completion-stream.js';
+import {
+	isChatCompletionUserTurn,
+	type ChatCompletionMessage,
+	type ChatCompletionUserTurn,
+} from '../chat-completion-stream.js';
 import {
 	toLlmRecoveryPortValue,
 	type LlmInventoryInputs,
@@ -15,6 +20,7 @@ import {
 	type SteerControlPayload,
 } from '@langflower/node-sdk/llm';
 import type { PortMeta } from '@langflower/node-sdk';
+import { toolLogPortValue } from '../llm-loop/run-llm-loop.js';
 import {
 	statefulObservable,
 	type combineStatefulObservables,
@@ -24,6 +30,8 @@ import {
 	concatMap,
 	filter,
 	map,
+	merge,
+	of,
 	pipe,
 	startWith,
 	Subject,
@@ -46,7 +54,10 @@ import {
 	buildAgentToolCtx,
 	type AgentToolCtxCaps,
 } from '../../../run-host/run-host-services.js';
-import type { CapabilityChat } from '@langflower/node-sdk';
+import type {
+	CapabilityChat,
+	PromptSessionContext,
+} from '@langflower/node-sdk';
 import {
 	AGENT_MAX_ITERATIONS_CAP,
 	DEFAULT_AGENT_MAX_ITERATIONS,
@@ -67,6 +78,11 @@ import {
 /** Shared inventory + panel fields assembled for OpenAI / Fake agent binds. */
 export type LlmAgentInventoryContext = {
 	readonly prompt: string;
+	/**
+	 * Turn 0 when `userPrompt` carries a `user-turn`. History stores this object.
+	 * Absent on the string `userPrompt` path.
+	 */
+	readonly openingUserTurn?: ChatCompletionUserTurn;
 	readonly tools: readonly ToolHandle[];
 	readonly getTools?: () => readonly ToolHandle[];
 	readonly providerId: string;
@@ -76,6 +92,7 @@ export type LlmAgentInventoryContext = {
 	readonly effectiveSystemPrompt: string;
 	readonly skillMarkdown: string;
 	readonly agentsMarkdown: string;
+	readonly sessionContext?: PromptSessionContext;
 	readonly toolCtx: ToolHandlerContext;
 	readonly maxIterations: number;
 	/** Cap on feedback turns after turn 0; 0 = unlimited (Soft↔Hard guardrail). */
@@ -131,7 +148,11 @@ export type LlmSessionCycleOptions = {
 type StandardLlmAgentChunk =
 	| { readonly kind: 'reasoning'; readonly text: string }
 	| { readonly kind: 'draftResponse'; readonly text: string }
-	| { readonly kind: 'toolLog'; readonly text: string }
+	| {
+			readonly kind: 'toolLog';
+			readonly text: string;
+			readonly files?: readonly HitlUploadedFile[];
+	  }
 	| ({ readonly kind: 'recoveryNotice' } & LlmRecoveryNotice)
 	| { readonly kind: 'response'; readonly text: string }
 	| {
@@ -148,6 +169,7 @@ export type LlmAgentEcSlice = {
 	readonly toolHandles: readonly ToolHandle[];
 	readonly skillMarkdown: string;
 	readonly agentsMarkdown: string;
+	readonly sessionContext?: PromptSessionContext;
 	readonly defaultChat?: {
 		readonly providerId: string;
 		readonly model: string;
@@ -254,11 +276,17 @@ export const assembleLlmAgentInventoryContext = (
 		rolePreset,
 		skillMarkdown,
 		agentsMarkdown,
+		...(ec.sessionContext !== undefined
+			? { sessionContext: ec.sessionContext }
+			: {}),
 		effectiveSystemPrompt: buildEffectiveSystemPrompt({
 			rolePreset,
 			systemPromptInput: String(systemPromptValue ?? ''),
 			agentsMarkdown,
 			skillMarkdown,
+			...(ec.sessionContext !== undefined
+				? { sessionContext: ec.sessionContext }
+				: {}),
 		}),
 		toolCtx: buildAgentToolCtx(
 			{ projectDir: ec.projectDir, runId: ec.runId },
@@ -323,9 +351,8 @@ const demuxLlmAgentPorts = <Deps, Meta extends PortMeta | undefined>(
 		),
 	),
 	toolLog$: cycle$.pipeValue(
-		demuxByKind(
-			'toolLog',
-			(chunk) => asKind<StandardLlmAgentChunk, 'toolLog'>(chunk).text,
+		demuxByKind('toolLog', (chunk) =>
+			toolLogPortValue(asKind<StandardLlmAgentChunk, 'toolLog'>(chunk)),
 		),
 	),
 	recovery$: cycle$.pipeValue(
@@ -351,6 +378,76 @@ const isJsonObject = (value: NodeStateJson): value is JsonObject =>
 
 const readString = (value: NodeStateJson | undefined): string | undefined =>
 	typeof value === 'string' ? value : undefined;
+
+const readNonEmpty = (value: NodeStateJson | undefined): string | undefined => {
+	const text = readString(value);
+	return text !== undefined && text.length > 0 ? text : undefined;
+};
+
+const readUploadedFile = (
+	value: NodeStateJson,
+): HitlUploadedFile | undefined => {
+	if (!isJsonObject(value)) {
+		return undefined;
+	}
+
+	const fileId = readNonEmpty(value['fileId']);
+	const name = readNonEmpty(value['name']);
+	const mimeType = readNonEmpty(value['mimeType']);
+	const size = value['size'];
+
+	if (
+		fileId === undefined ||
+		name === undefined ||
+		mimeType === undefined ||
+		typeof size !== 'number' ||
+		!Number.isInteger(size) ||
+		size < 0
+	) {
+		return undefined;
+	}
+
+	return { fileId, name, mimeType, size };
+};
+
+/**
+ * Legacy `content: string`, or a user turn `{ text, files }` that cites
+ * `HitlUploadedFile` refs. Anything else is dropped.
+ */
+const readUserContent = (
+	value: NodeStateJson | undefined,
+): string | ChatCompletionUserTurn | undefined => {
+	const text = readString(value);
+
+	if (text !== undefined) {
+		return text;
+	}
+
+	if (value === undefined || !isJsonObject(value)) {
+		return undefined;
+	}
+
+	const turnText = readString(value['text']);
+	const filesValue = value['files'];
+
+	if (turnText === undefined || !Array.isArray(filesValue)) {
+		return undefined;
+	}
+
+	const files: HitlUploadedFile[] = [];
+
+	for (const item of filesValue) {
+		const file = readUploadedFile(item);
+
+		if (file === undefined) {
+			return undefined;
+		}
+
+		files.push(file);
+	}
+
+	return { text: turnText, files };
+};
 
 const readToolCall = (
 	value: NodeStateJson,
@@ -383,13 +480,31 @@ const readChatMessage = (
 	}
 
 	const role = readString(value['role']);
-	const content = readString(value['content']);
-	if (role === undefined || content === undefined) {
+	if (role === undefined) {
 		return undefined;
 	}
 
-	if (role === 'system' || role === 'user') {
+	if (role === 'system') {
+		const content = readString(value['content']);
+		if (content === undefined) {
+			return undefined;
+		}
+
 		return { role, content };
+	}
+
+	if (role === 'user') {
+		const content = readUserContent(value['content']);
+		if (content === undefined) {
+			return undefined;
+		}
+
+		return { role, content };
+	}
+
+	const content = readString(value['content']);
+	if (content === undefined) {
+		return undefined;
 	}
 
 	if (role === 'tool') {
@@ -431,16 +546,29 @@ const readChatMessage = (
 	return { role: 'assistant', content, tool_calls: toolCalls };
 };
 
-/** `{ history }` only. Any other shape is refused. */
+/**
+ * `{ history }` or `{ history, runId }`. Any other shape is refused. `runId` is
+ * the run that committed the history; a state saved before it existed has none.
+ */
 const readPersistedHistory = (
 	value: NodeStateJson,
-): readonly ChatCompletionMessage[] | undefined => {
+):
+	| {
+			readonly history: readonly ChatCompletionMessage[];
+			readonly runId?: string;
+	  }
+	| undefined => {
 	if (!isJsonObject(value)) {
 		return undefined;
 	}
 
 	const keys = Object.keys(value);
-	if (keys.length !== 1 || keys[0] !== 'history') {
+	const runId = value['runId'];
+	if (
+		!keys.every((key) => key === 'history' || key === 'runId') ||
+		!keys.includes('history') ||
+		(runId !== undefined && typeof runId !== 'string')
+	) {
 		return undefined;
 	}
 
@@ -459,7 +587,9 @@ const readPersistedHistory = (
 		messages.push(message);
 	}
 
-	return messages;
+	return typeof runId === 'string'
+		? { history: messages, runId }
+		: { history: messages };
 };
 
 const toolCallToJson = (call: {
@@ -494,13 +624,30 @@ const messageToJson = (message: ChatCompletionMessage): JsonObject => {
 		};
 	}
 
+	if (message.role === 'user' && typeof message.content !== 'string') {
+		return {
+			role: 'user',
+			content: {
+				text: message.content.text,
+				files: message.content.files.map((file) => ({
+					fileId: file.fileId,
+					name: file.name,
+					mimeType: file.mimeType,
+					size: file.size,
+				})),
+			},
+		};
+	}
+
 	return { role: message.role, content: message.content };
 };
 
 const historyToState = (
 	history: readonly ChatCompletionMessage[],
+	runId: string | undefined,
 ): NodeStateJson => ({
 	history: history.map(messageToJson),
+	...(runId !== undefined ? { runId } : {}),
 });
 
 /**
@@ -517,8 +664,11 @@ export const createLlmSessionCycle$ = <
 	Context extends {
 		readonly maxFeedbackTurns: number;
 		readonly prompt?: string;
+		readonly openingUserTurn?: ChatCompletionUserTurn;
 		/** Absent means false. Captured on the assembled context. */
 		readonly resetSessionOnInput?: boolean;
+		/** The run this context belongs to. A restored agent compares it with the run that saved its history. */
+		readonly toolCtx?: { readonly runId: string };
 		readonly requestPermission?: (
 			request: PermissionAskRequest,
 		) => Promise<'allow' | 'deny'>;
@@ -562,10 +712,15 @@ export const createLlmSessionCycle$ = <
 
 	let state: LlmSessionState<Session, Chunk> | undefined;
 	let pendingHistory: readonly ChatCompletionMessage[] | undefined;
+	/** The run that committed the restored history. */
+	let pendingRunId: string | undefined;
 	const persisted$ = new Subject<NodeStateJson>();
 
-	const commitHistory = (history: readonly ChatCompletionMessage[]): void => {
-		persisted$.next(historyToState(history));
+	const commitHistory = (
+		history: readonly ChatCompletionMessage[],
+		runId: string | undefined,
+	): void => {
+		persisted$.next(historyToState(history, runId));
 	};
 
 	const freshSession = (
@@ -582,8 +737,13 @@ export const createLlmSessionCycle$ = <
 		prep: LlmFeedbackSessionPrep<Session>,
 		context: Context,
 		stored: readonly ChatCompletionMessage[],
+		resumed: boolean,
 	): LlmSessionState<Session, Chunk> => {
-		if (!primeTurn0) {
+		// The run that saved this history is the run being continued: the agent
+		// already answered its opening turn before the process ended. Replaying
+		// it would append the prompt again and call the model, so it waits for
+		// the next turn input instead, like Review and Critique.
+		if (!primeTurn0 || resumed) {
 			return {
 				history: [...stored],
 				turn0Done: true,
@@ -595,7 +755,10 @@ export const createLlmSessionCycle$ = <
 		return {
 			history: [
 				...stored,
-				{ role: 'user', content: context.prompt ?? '' },
+				{
+					role: 'user',
+					content: context.openingUserTurn ?? context.prompt ?? '',
+				},
 			],
 			turn0Done: false,
 			feedbackTurns: 0,
@@ -618,13 +781,14 @@ export const createLlmSessionCycle$ = <
 	);
 
 	const restore: NodeStateHook['restore'] = (incoming) => {
+		pendingRunId = undefined;
 		if (incoming === null) {
 			pendingHistory = undefined;
 			return { ok: true };
 		}
 
-		const history = readPersistedHistory(incoming);
-		if (history === undefined) {
+		const persisted = readPersistedHistory(incoming);
+		if (persisted === undefined) {
 			return {
 				ok: false,
 				message:
@@ -632,7 +796,8 @@ export const createLlmSessionCycle$ = <
 			};
 		}
 
-		pendingHistory = history;
+		pendingHistory = persisted.history;
+		pendingRunId = persisted.runId;
 		// Drop the live cycle so the next creation is the
 		// `state === undefined` branch and consumes this transcript.
 		// A later prep change still builds a fresh session.
@@ -652,19 +817,27 @@ export const createLlmSessionCycle$ = <
 			let session = state;
 			if (session === undefined) {
 				const stored = pendingHistory;
+				const savedRunId = pendingRunId;
 				pendingHistory = undefined;
+				pendingRunId = undefined;
 				session =
 					stored === undefined
 						? freshSession(prep, false)
-						: sessionFromPending(prep, context, stored);
+						: sessionFromPending(
+								prep,
+								context,
+								stored,
+								savedRunId !== undefined &&
+									savedRunId === context.toolCtx?.runId,
+							);
 			} else if (session.preparation !== prep) {
 				session = freshSession(prep, false);
-				commitHistory(session.history);
+				commitHistory(session.history, context.toolCtx?.runId);
 			}
 
 			if (context.resetSessionOnInput === true && !isBlankTurn(raw)) {
 				session = freshSession(prep, primeTurn0);
-				commitHistory(session.history);
+				commitHistory(session.history, context.toolCtx?.runId);
 			}
 
 			state = session;
@@ -683,7 +856,10 @@ export const createLlmSessionCycle$ = <
 				tap({
 					complete: () => {
 						if (state !== undefined) {
-							commitHistory(state.history);
+							commitHistory(
+								state.history,
+								context.toolCtx?.runId,
+							);
 						}
 					},
 				}),
@@ -732,7 +908,8 @@ type BindLlmAgentSessionOptions<
  * Composer entry for OpenAI / Fake agent binds.
  *
  * Order:
- * 1. make role inputs (userPrompt / systemPrompt / feedback)
+ * 1. make role inputs (userPrompt / systemPrompt / feedback; user text may be
+ *    a string or a `user-turn`)
  * 2. assemble inventory context$ (+ provider extend)
  * 3. ADR-016 feedback cycle$
  * 4. demux chunk ports
@@ -752,31 +929,34 @@ export const bindLlmAgentSession = <
 	const { tools, steerControl } = inventory;
 
 	// 1. role inputs
-	const userPrompt = makeInput<string>('userPrompt', {
-		name: 'userPrompt',
-		wireType: 'string',
-		inline: 'text-multiline',
-		required: true,
-	});
+	const userPrompt = makeInput<string | ChatCompletionUserTurn>(
+		'userPrompt',
+		{
+			name: 'userPrompt',
+			wireType: ['string', 'user-turn'],
+			inline: 'text-multiline',
+			required: true,
+		},
+	);
 	const systemPrompt = makeInput<string>('systemPrompt', {
 		name: 'systemPrompt',
 		wireType: 'string',
 		inline: 'text-multiline',
 		defaultValue: '',
 	});
-	const feedback = makeInput<string>('feedback', {
+	const feedback = makeInput<string | ChatCompletionUserTurn>('feedback', {
 		name: 'feedback',
-		wireType: 'string',
+		wireType: ['string', 'user-turn'],
 		multi: 'merge',
 		defaultValue: '',
 	});
 
 	// 2. inventory context$
-	const context$ = combineInputs(
-		[userPrompt, tools, systemPrompt, ctx],
-		([prompt, toolList, systemPromptValue, ec]) => {
+	const inventory$ = combineInputs(
+		[tools, systemPrompt, ctx],
+		([toolList, systemPromptValue, ec]) => {
 			const base = assembleLlmAgentInventoryContext(
-				prompt,
+				'',
 				toolList,
 				systemPromptValue,
 				ec,
@@ -787,18 +967,42 @@ export const bindLlmAgentSession = <
 			};
 		},
 	);
+	// A string prompt carries no files and is never blank-filtered. A
+	// `user-turn` prompt is the opening history message and is dropped when blank.
+	const context$ = combineInputs(
+		[userPrompt, inventory$],
+		([prompt, inventory]) => ({
+			...inventory,
+			prompt: isChatCompletionUserTurn(prompt)
+				? prompt.text
+				: String(prompt ?? ''),
+			...(isChatCompletionUserTurn(prompt)
+				? { openingUserTurn: prompt }
+				: {}),
+		}),
+	).pipeValue(
+		filter(
+			(context) =>
+				context.openingUserTurn === undefined ||
+				!isBlankTurn(context.openingUserTurn),
+		),
+	);
 
 	// 3. feedback cycle$ (ADR-016 Soft↔Hard: primeTurn0)
+	// `userPrompt` opens the session via context; `feedback` carries later
+	// turns, string or `user-turn`. Do not use `withLatestFrom`.
 	const { cycle$, state } = createLlmSessionCycle$(
 		context$,
 		feedback.value$,
 		options.prepareSession,
-		(context, turnFeedback, history, session) =>
+		(context, turnPayload, history, session) =>
 			options.runTurn(
 				context,
-				turnFeedback === undefined
+				turnPayload === undefined
 					? undefined
-					: String(turnFeedback ?? ''),
+					: isChatCompletionUserTurn(turnPayload)
+						? turnPayload.text
+						: String(turnPayload ?? ''),
 				history,
 				session,
 			),

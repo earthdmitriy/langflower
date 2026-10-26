@@ -17,6 +17,7 @@ import type { NodeStateHook as SdkNodeStateHook } from '../../node-state.js';
 import type {
 	PortMeta as SdkPortMeta,
 	WireType as SdkWireType,
+	WireTypeSpec as SdkWireTypeSpec,
 } from './port-meta.js';
 import type { ReactiveNodeInstance } from './types.js';
 
@@ -59,3 +60,11 @@ assertTypeEqual<AddNodeFromSdk extends AddNodeRuntime ? true : never>();
 assertTypeEqual<AddNodeRuntime extends AddNodeFromSdk ? true : never>();
 
 assertTypeEqual<ExpectEqual<true, true>>();
+
+/** Union wire type shape must match runtime. */
+assertTypeEqual<
+	ExpectEqual<
+		SdkWireTypeSpec,
+		import('../../../../runtime/src/wire-type.js').WireTypeSpec
+	>
+>();

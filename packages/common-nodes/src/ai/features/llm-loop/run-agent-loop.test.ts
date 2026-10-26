@@ -13,14 +13,22 @@ describe('runAgentLoop recovery', () => {
 		const messagesSeen: string[][] = [];
 		const steerControl$ = new ReplaySubject<
 			| { readonly kind: 'pause' }
-			| { readonly kind: 'steer'; readonly text: string }
+			| {
+					readonly kind: 'steer';
+					readonly text: string;
+					readonly files: readonly [];
+			  }
 		>(1);
 		const chunksPromise = firstValueFrom(
 			runAgentLoop({
 				factory: async (args) => {
 					call += 1;
 					messagesSeen.push(
-						args.messages.map((message) => message.content),
+						args.messages.map((message) =>
+							typeof message.content === 'string'
+								? message.content
+								: message.content.text,
+						),
 					);
 					if (call === 1) {
 						throw {
@@ -53,6 +61,7 @@ describe('runAgentLoop recovery', () => {
 		steerControl$.next({
 			kind: 'steer',
 			text: 'continue safely',
+			files: [],
 		});
 
 		const chunks = await chunksPromise;
@@ -69,7 +78,11 @@ describe('runAgentLoop recovery', () => {
 		let toolInvokes = 0;
 		const steerControl$ = new ReplaySubject<
 			| { readonly kind: 'pause' }
-			| { readonly kind: 'steer'; readonly text: string }
+			| {
+					readonly kind: 'steer';
+					readonly text: string;
+					readonly files: readonly [];
+			  }
 		>(1);
 		const chunksPromise = firstValueFrom(
 			runAgentLoop({
@@ -126,6 +139,7 @@ describe('runAgentLoop recovery', () => {
 		steerControl$.next({
 			kind: 'steer',
 			text: 'raise tokens',
+			files: [],
 		});
 
 		const chunks = await chunksPromise;
@@ -148,7 +162,11 @@ describe('runAgentLoop recovery', () => {
 		let call = 0;
 		const steerControl$ = new ReplaySubject<
 			| { readonly kind: 'pause' }
-			| { readonly kind: 'steer'; readonly text: string }
+			| {
+					readonly kind: 'steer';
+					readonly text: string;
+					readonly files: readonly [];
+			  }
 		>(1);
 		const chunksPromise = firstValueFrom(
 			runAgentLoop({
@@ -181,6 +199,7 @@ describe('runAgentLoop recovery', () => {
 		steerControl$.next({
 			kind: 'steer',
 			text: 'try again',
+			files: [],
 		});
 
 		const chunks = await chunksPromise;
@@ -465,7 +484,11 @@ describe('runAgentLoop recovery', () => {
 		let call = 0;
 		const steerControl$ = new ReplaySubject<
 			| { readonly kind: 'pause' }
-			| { readonly kind: 'steer'; readonly text: string }
+			| {
+					readonly kind: 'steer';
+					readonly text: string;
+					readonly files: readonly [];
+			  }
 		>(1);
 		const longPad = 'x'.repeat(2_000);
 		const notice = await firstValueFrom(
@@ -529,7 +552,11 @@ describe('runAgentLoop recovery', () => {
 		let call = 0;
 		const steerControl$ = new ReplaySubject<
 			| { readonly kind: 'pause' }
-			| { readonly kind: 'steer'; readonly text: string }
+			| {
+					readonly kind: 'steer';
+					readonly text: string;
+					readonly files: readonly [];
+			  }
 		>(1);
 		const notice = await firstValueFrom(
 			runAgentLoop({
@@ -570,7 +597,11 @@ describe('runAgentLoop recovery', () => {
 		const factoryArgs: CreateChatCompletionStreamArgs[] = [];
 		const steerControl$ = new ReplaySubject<
 			| { readonly kind: 'pause' }
-			| { readonly kind: 'steer'; readonly text: string }
+			| {
+					readonly kind: 'steer';
+					readonly text: string;
+					readonly files: readonly [];
+			  }
 		>(1);
 		const chunks = await firstValueFrom(
 			runAgentLoop({
@@ -719,7 +750,11 @@ describe('runAgentLoop recovery', () => {
 		let call = 0;
 		const steerControl$ = new Subject<
 			| { readonly kind: 'pause' }
-			| { readonly kind: 'steer'; readonly text: string }
+			| {
+					readonly kind: 'steer';
+					readonly text: string;
+					readonly files: readonly [];
+			  }
 		>();
 		const chunks: Array<{
 			readonly kind: string;
@@ -786,7 +821,11 @@ describe('runAgentLoop recovery', () => {
 		let call = 0;
 		const steerControl$ = new ReplaySubject<
 			| { readonly kind: 'pause' }
-			| { readonly kind: 'steer'; readonly text: string }
+			| {
+					readonly kind: 'steer';
+					readonly text: string;
+					readonly files: readonly [];
+			  }
 		>(1);
 		const chunks = await firstValueFrom(
 			runAgentLoop({
@@ -843,7 +882,11 @@ describe('runAgentLoop recovery', () => {
 		let call = 0;
 		const steerControl$ = new ReplaySubject<
 			| { readonly kind: 'pause' }
-			| { readonly kind: 'steer'; readonly text: string }
+			| {
+					readonly kind: 'steer';
+					readonly text: string;
+					readonly files: readonly [];
+			  }
 		>(1);
 		const chunks = await firstValueFrom(
 			runAgentLoop({
@@ -1023,7 +1066,11 @@ describe('runAgentLoop recovery', () => {
 		let call = 0;
 		const steerControl$ = new ReplaySubject<
 			| { readonly kind: 'pause' }
-			| { readonly kind: 'steer'; readonly text: string }
+			| {
+					readonly kind: 'steer';
+					readonly text: string;
+					readonly files: readonly [];
+			  }
 		>(1);
 		const chunksPromise = firstValueFrom(
 			runAgentLoop({
@@ -1054,6 +1101,7 @@ describe('runAgentLoop recovery', () => {
 		steerControl$.next({
 			kind: 'steer',
 			text: 'try later',
+			files: [],
 		});
 
 		const chunks = await chunksPromise;
@@ -1077,7 +1125,11 @@ describe('runAgentLoop recovery', () => {
 		let call = 0;
 		const steerControl$ = new Subject<
 			| { readonly kind: 'pause' }
-			| { readonly kind: 'steer'; readonly text: string }
+			| {
+					readonly kind: 'steer';
+					readonly text: string;
+					readonly files: readonly [];
+			  }
 		>();
 		const chunks: Array<{
 			readonly kind: string;

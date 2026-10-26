@@ -83,9 +83,10 @@ npm run test:details      # live Vitest stream
 npm run test:unit
 npm run test:integration
 npm run test:watch
-npm run verify            # build-all + unit + integration
+npm run verify            # build-all + unit + docs-boundaries + integration
 npm run verify:quick      # build-all + unit only
 node build/test.mjs --unit
+node build/test.mjs --docs-boundaries
 node build/test.mjs --integration
 node build/tools/agent-run.mjs verify
 ```
@@ -96,9 +97,16 @@ Default `npm run test` is quiet (`ok` or a failed-test list via
 `npm run test --verbose` — npm steals `--verbose` as its own loglevel flag.
 
 **Hard rules:** `testTimeout` is **5000ms** — do not raise it to green-wash
-slow suites. **Integration** files run **sequentially** (`fileParallelism:
-false`, `maxWorkers: 1`) so WS servers do not contend. Unit stays parallel —
-Vitest sequential mode leaks `vi.mock` across files. See
+slow suites. Three Vitest projects run one after another: **unit**, then
+**docs-boundaries**, then **integration**. A task is done only after all three
+(`npm run test` and full `verify` run them; `--unit` alone is not enough).
+**Integration** files run **sequentially** (`fileParallelism: false`,
+`maxWorkers: 1`) so WS servers do not contend. **docs-boundaries**
+(`tests/unit/docs-boundaries`) also runs sequentially, alone, with a 30s
+timeout: it scans the whole repo and spawns git, and it timed out at 5s
+whenever it shared workers with the unit suite. Unit stays parallel — Vitest
+sequential mode leaks `vi.mock` across files (`mcp-http` / `mcp-stdio` tests
+fail). Run test commands one at a time. See
 `.cursor/skills/langflower-build/SKILL.md`.
 
 ---
@@ -470,8 +478,8 @@ resetting dependencies.
 
 - [x] `npm run test:unit` — Vitest unit project via `build/test.mjs`
 - [x] `npm run test:integration` — WS + temp-project harness (`tests/integration/`)
-- [x] `npm run verify` — build-all + unit + integration (local/CI one-shot)
-- [ ] `npm run test` (unit + integration) on every PR in CI
+- [x] `npm run verify` — build-all + unit + docs-boundaries + integration (local/CI one-shot)
+- [ ] `npm run test` (unit + docs-boundaries + integration) on every PR in CI
 - [ ] Fail build if `tests/tmp/` is left dirty (teardown enforced)
 - [ ] No `.env` or secrets in tests; use temp config only
 

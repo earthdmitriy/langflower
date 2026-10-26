@@ -1,6 +1,7 @@
 import type {
 	ChatCompletionMessage,
 	ChatCompletionToolDefinition,
+	ChatCompletionUserTurn,
 	CreateChatCompletionStream,
 } from '../chat-completion-stream.js';
 import { isContextLengthExceededError } from './context-length-error.js';
@@ -186,6 +187,21 @@ const flattenBlocks = (
 ): readonly ChatCompletionMessage[] =>
 	blocks.flatMap((block) => block.messages);
 
+const userTextForSummary = (
+	content: string | ChatCompletionUserTurn,
+): string => {
+	if (typeof content === 'string') {
+		return content;
+	}
+
+	const lines = [
+		content.text,
+		...content.files.map((file) => `${file.name} (${file.mimeType})`),
+	];
+
+	return lines.filter((line) => line.length > 0).join('\n');
+};
+
 const serializeMessagesForSummary = (
 	messages: readonly ChatCompletionMessage[],
 ): string =>
@@ -208,6 +224,10 @@ const serializeMessagesForSummary = (
 					.join('; ');
 
 				return `[assistant tool_calls]\n${message.content}\n${calls}`;
+			}
+
+			if (message.role === 'user') {
+				return `[user]\n${userTextForSummary(message.content)}`;
 			}
 
 			return `[${message.role}]\n${message.content}`;

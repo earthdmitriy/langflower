@@ -47,6 +47,7 @@ npm run lint:fix
 npm run test
 npm run test:details
 npm run test:unit
+npm run test:docs-boundaries
 npm run test:integration
 npm run test:watch
 npm run verify
@@ -65,6 +66,7 @@ bash build/tools/install.sh
 bash build/tools/build-package.sh shared
 bash build/tools/build-package.sh ui typecheck
 bash build/tools/test.sh --unit
+bash build/tools/test.sh --docs-boundaries
 bash build/tools/verify.sh
 bash build/tools/verify.sh --quick
 ```
@@ -76,6 +78,7 @@ node build/tools/agent-run.mjs build-all
 node build/tools/agent-run.mjs typecheck
 node build/tools/agent-run.mjs build-package shared
 node build/tools/agent-run.mjs test --unit
+node build/tools/agent-run.mjs test --docs-boundaries
 node build/tools/agent-run.mjs test --integration
 node build/tools/agent-run.mjs verify
 node build/tools/agent-run.mjs verify --quick
@@ -88,6 +91,7 @@ node build/build-all.mjs
 node build/typecheck-all.mjs
 node build/test.mjs
 node build/test.mjs --unit
+node build/test.mjs --docs-boundaries
 node build/test.mjs --integration
 node build/verify.mjs
 node build/verify.mjs --quick
@@ -95,30 +99,31 @@ node build/verify.mjs --quick
 
 ## Command map
 
-| Task                 | Command                                                                         |
-| -------------------- | ------------------------------------------------------------------------------- |
-| Full build (ordered) | `bash build/run.sh build-all`                                                   |
-| Build shared only    | `bash build/run.sh build-shared`                                                |
-| Build server only    | `bash build/run.sh build-server`                                                |
-| Build UI only        | `bash build/run.sh build-ui`                                                    |
-| Build CLI only       | `bash build/run.sh build-cli`                                                   |
-| Build one package    | `bash build/run.sh build-package <shared\|server\|ui\|cli> [script]`            |
-| Typecheck all        | `bash build/run.sh typecheck`                                                   |
-| Clean artifacts      | `bash build/run.sh clean`                                                       |
-| Wipe deps + lockfile | `bash build/run.sh cleanup` or `npm run cleanup:install`                        |
-| Install deps         | `bash build/run.sh install`                                                     |
-| Format (Prettier)    | `bash build/run.sh format` (changed files; `--all` for the tree)                |
-| Format check         | `bash build/run.sh format --check` (add `--all` to check the tree)              |
-| Lint (ESLint)        | `bash build/run.sh lint`                                                        |
-| Lint fix             | `bash build/run.sh lint --fix`                                                  |
-| Test (all)           | `bash build/run.sh test`                                                        |
-| Unit tests only      | `bash build/run.sh test --unit`                                                 |
-| Integration tests    | `bash build/run.sh test --integration`                                          |
-| Test watch           | `bash build/run.sh test --watch`                                                |
-| Verify (recommended) | `bash build/run.sh verify` — build + unit + integration; does **not** typecheck |
-| Verify (quick)       | `bash build/run.sh verify --quick` — build + unit only                          |
-| Dead code list       | `node build/dead-code.mjs` or `npm run check:dead-code`                         |
-| Orphan exports only  | `node build/check-exports.mjs` (included in `verify`)                           |
+| Task                 | Command                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------- |
+| Full build (ordered) | `bash build/run.sh build-all`                                                                     |
+| Build shared only    | `bash build/run.sh build-shared`                                                                  |
+| Build server only    | `bash build/run.sh build-server`                                                                  |
+| Build UI only        | `bash build/run.sh build-ui`                                                                      |
+| Build CLI only       | `bash build/run.sh build-cli`                                                                     |
+| Build one package    | `bash build/run.sh build-package <shared\|server\|ui\|cli> [script]`                              |
+| Typecheck all        | `bash build/run.sh typecheck`                                                                     |
+| Clean artifacts      | `bash build/run.sh clean`                                                                         |
+| Wipe deps + lockfile | `bash build/run.sh cleanup` or `npm run cleanup:install`                                          |
+| Install deps         | `bash build/run.sh install`                                                                       |
+| Format (Prettier)    | `bash build/run.sh format` (changed files; `--all` for the tree)                                  |
+| Format check         | `bash build/run.sh format --check` (add `--all` to check the tree)                                |
+| Lint (ESLint)        | `bash build/run.sh lint`                                                                          |
+| Lint fix             | `bash build/run.sh lint --fix`                                                                    |
+| Test (all)           | `bash build/run.sh test`                                                                          |
+| Unit tests only      | `bash build/run.sh test --unit`                                                                   |
+| Docs boundaries      | `bash build/run.sh test --docs-boundaries`                                                        |
+| Integration tests    | `bash build/run.sh test --integration`                                                            |
+| Test watch           | `bash build/run.sh test --watch`                                                                  |
+| Verify (recommended) | `bash build/run.sh verify` — build + unit + docs-boundaries + integration; does **not** typecheck |
+| Verify (quick)       | `bash build/run.sh verify --quick` — build + unit only                                            |
+| Dead code list       | `node build/dead-code.mjs` or `npm run check:dead-code`                                           |
+| Orphan exports only  | `node build/check-exports.mjs` (included in `verify`)                                             |
 
 Build order: **shared → server → ui → cli**.
 
@@ -131,7 +136,9 @@ Build order: **shared → server → ui → cli**.
    the whole tree.
 5. **Lint** → `node build/lint.mjs` (or `npm run lint`; `npm run lint:fix` to auto-fix).
 6. **Test** → `node build/test.mjs` (quiet `ok` / failures; `--details` for live
-   stream; `--unit` / `--integration`). Do not use `npm run test --verbose`
+   stream; `--unit` / `--docs-boundaries` / `--integration`; the default runs all
+   three in that order). Run test commands one at a time. Do not use
+   `npm run test --verbose`
    (npm steals that flag).
 7. **Dead code** → `node build/dead-code.mjs` (or `npm run check:dead-code`); **delete**
    every reported file/symbol/type, then re-run until clean.
@@ -139,8 +146,8 @@ Build order: **shared → server → ui → cli**.
    (`verify` runs this automatically).
 9. **Before finishing a task** → `npm run format`, then `npm run typecheck` (or
    `node build/tools/agent-run.mjs typecheck`) **and**
-   `node build/tools/agent-run.mjs verify` or `npm run test` (unit **and**
-   integration). Typecheck is not optional: `verify` / `npm run test` do not
+   `node build/tools/agent-run.mjs verify` or `npm run test` (**unit,
+   docs-boundaries, and integration** — all three). Typecheck is not optional: `verify` / `npm run test` do not
    run `tsc`. `verify --quick` and package-only typecheck are for **tight
    loops only** — never the plan Verify / Definition of Done (see
    `.cursor/rules/plan-verify-dod.mdc` and AGENTS.md Hard gate). `npm run format`
@@ -150,15 +157,16 @@ Build order: **shared → server → ui → cli**.
 
 ## Dev workflow (tests)
 
-| Tier                | When                                                    | Command                                                                                      |
-| ------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Unit only**       | Pure logic, validators, mappers, executor helpers       | `node build/test.mjs --unit`                                                                 |
-| **Integration**     | WS execution, bootstrap, HITL, agents, mock LLM scripts | `node build/test.mjs --integration` (run `build-all` first)                                  |
-| **Typecheck**       | Required on finish; `verify` does not run `tsc`         | `node build/tools/agent-run.mjs typecheck`                                                   |
-| **Verify**          | Tests before marking work done (not a typecheck)        | `node build/tools/agent-run.mjs verify`                                                      |
-| **Dead code sweep** | Before finish — delete all findings                     | `node build/dead-code.mjs` → delete → `check-exports` → `verify`                             |
-| **Verify quick**    | Intermediate only (tight loop); **not** feature DoD     | `node build/tools/agent-run.mjs verify --quick`                                              |
-| **Full gate**       | Pre-PR / release                                        | `npm run typecheck && npm run format --all && npm run lint && npm run test && npm run build` |
+| Tier                | When                                                                      | Command                                                                                      |
+| ------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Unit only**       | Pure logic, validators, mappers, executor helpers                         | `node build/test.mjs --unit`                                                                 |
+| **Docs boundaries** | Docs freshness, links, layout, generated indexes (own sequential project) | `node build/test.mjs --docs-boundaries`                                                      |
+| **Integration**     | WS execution, bootstrap, HITL, agents, mock LLM scripts                   | `node build/test.mjs --integration` (run `build-all` first)                                  |
+| **Typecheck**       | Required on finish; `verify` does not run `tsc`                           | `node build/tools/agent-run.mjs typecheck`                                                   |
+| **Verify**          | Tests before marking work done (not a typecheck)                          | `node build/tools/agent-run.mjs verify`                                                      |
+| **Dead code sweep** | Before finish — delete all findings                                       | `node build/dead-code.mjs` → delete → `check-exports` → `verify`                             |
+| **Verify quick**    | Intermediate only (tight loop); **not** feature DoD                       | `node build/tools/agent-run.mjs verify --quick`                                              |
+| **Full gate**       | Pre-PR / release                                                          | `npm run typecheck && npm run format --all && npm run lint && npm run test && npm run build` |
 
 Integration suite: `tests/integration/**/*.test.ts` (Vitest project `integration`).
 Uses temp dirs under `tests/tmp/` — always torn down in tests.

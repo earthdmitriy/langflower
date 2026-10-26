@@ -1,6 +1,5 @@
 import type {
 	ChatCompletionFinishReason,
-	ChatCompletionMessage,
 	ChatCompletionStreamChunk,
 	ChatCompletionToolCall,
 	CreateChatCompletionStream,
@@ -11,6 +10,10 @@ import {
 	ContextLengthExceededError,
 } from './context-length-error.js';
 import type { OpenAiProviderCredentials } from './openai-credentials.js';
+import {
+	toOpenAiMessages,
+	type ReadSessionUpload,
+} from './expand-chat-messages.js';
 
 export type {
 	ChatCompletionAbortSignal,
@@ -24,6 +27,11 @@ export type {
 } from '../chat-completion-stream.js';
 
 export type { OpenAiProviderCredentials } from './openai-credentials.js';
+export type {
+	ExpandChatMessagesOptions,
+	ReadSessionUpload,
+	ReadSessionUploadResult,
+} from './expand-chat-messages.js';
 export { ContextLengthExceededError, classifyContextLengthError };
 export { isContextLengthExceededError } from './context-length-error.js';
 
@@ -50,39 +58,6 @@ export const mapFinishReason = (
 			return 'unknown';
 	}
 };
-
-const toOpenAiMessages = (
-	messages: readonly ChatCompletionMessage[],
-): OpenAI.Chat.Completions.ChatCompletionMessageParam[] =>
-	messages.map((message) => {
-		if (message.role === 'tool') {
-			return {
-				role: 'tool',
-				content: message.content,
-				tool_call_id: message.tool_call_id,
-			};
-		}
-
-		if (message.role === 'assistant' && message.tool_calls !== undefined) {
-			return {
-				role: 'assistant',
-				content: message.content.length > 0 ? message.content : null,
-				tool_calls: message.tool_calls.map((call) => ({
-					id: call.id,
-					type: 'function' as const,
-					function: {
-						name: call.name,
-						arguments: call.arguments,
-					},
-				})),
-			};
-		}
-
-		return {
-			role: message.role,
-			content: message.content,
-		};
-	});
 
 type ToolCallAccumulator = {
 	id: string;
@@ -165,11 +140,22 @@ export const createChatCompletionStream = (deps: {
 	readonly resolveProvider: (
 		providerId: string,
 	) => Promise<OpenAiProviderCredentials>;
+	readonly readSessionUpload?: ReadSessionUpload;
+	/** Defaults to the 50 MB upload ceiling. Tests may pass a smaller ceiling. */
+	readonly maxUploadBytes?: number;
 }): CreateChatCompletionStream => {
 	const factory: CreateChatCompletionStream = async (args) => {
 		const providerId = requireNonEmpty(args.providerId, 'Provider');
 		const model = requireNonEmpty(args.model, 'Model');
 		const credentials = await deps.resolveProvider(providerId);
+		const messages = await toOpenAiMessages(args.messages, {
+			...(deps.readSessionUpload !== undefined
+				? { readSessionUpload: deps.readSessionUpload }
+				: {}),
+			...(deps.maxUploadBytes !== undefined
+				? { maxUploadBytes: deps.maxUploadBytes }
+				: {}),
+		});
 
 		const client = new OpenAI({
 			apiKey: credentials.apiKey ?? 'local-no-key',
@@ -203,7 +189,7 @@ export const createChatCompletionStream = (deps: {
 			stream = (await client.chat.completions.create(
 				{
 					model,
-					messages: toOpenAiMessages(args.messages),
+					messages,
 					stream: true,
 					...(tools !== undefined ? { tools } : {}),
 					...(args.frequency_penalty !== undefined

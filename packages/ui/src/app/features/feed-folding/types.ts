@@ -1,4 +1,5 @@
 import type { SteerControlPayload } from '@langflower/node-sdk/llm';
+import type { HitlUserFileRef } from '../../services/execution-catalog';
 import type {
 	PortTelemetry,
 	RunId,
@@ -71,6 +72,8 @@ type HitlUserMeta = {
 	readonly presentation: 'hitl-user';
 	readonly origin: 'hitl-reply' | 'steer';
 	readonly payload?: SteerControlPayload;
+	/** Staged uploads for a composer user turn or a steer. */
+	readonly files?: readonly HitlUserFileRef[];
 	readonly visitBoundary?: FeedVisitBoundary;
 	readonly closesPreviousVisit?: true;
 };
@@ -125,6 +128,8 @@ type AskUserTurnMeta = {
 	readonly presentation: 'ask-user-ask' | 'ask-user-reply';
 	readonly askId: string;
 	readonly authority: 'server';
+	/** Files attached to an `ask_user` reply. */
+	readonly files?: readonly HitlUserFileRef[];
 };
 
 export type AskUserFeedEvent = {

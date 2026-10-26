@@ -89,7 +89,10 @@ import { ComposerService } from '../composer.service';
 							<button
 								type="button"
 								class="lf-composer-pill border border-zinc-200 text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-								[disabled]="draftOf(entry).trim().length === 0"
+								[disabled]="
+									draftOf(entry).trim().length === 0 ||
+									composer.uploading()
+								"
 								(click)="submitEntry(entry)"
 							>
 								{{ entry.config.submitLabel ?? 'Send' }}
@@ -123,7 +126,9 @@ export class LfHitlActionsComponent {
 	}
 
 	canSubmitStart(entry: HitlControlProjection): boolean {
-		return this.draftOf(entry).trim().length > 0;
+		return (
+			this.draftOf(entry).trim().length > 0 && !this.composer.uploading()
+		);
 	}
 
 	isSteerTextarea(entry: HitlControlProjection): boolean {
@@ -135,6 +140,10 @@ export class LfHitlActionsComponent {
 	}
 
 	submitEntry(entry: HitlControlProjection): void {
+		if (entry.config.kind === 'textarea') {
+			this.composer.submitTextarea(entry, 'action');
+			return;
+		}
 		const resolved = resolveComposerActionPayload(
 			entry,
 			this.draftOf(entry),

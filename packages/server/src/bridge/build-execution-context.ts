@@ -1,9 +1,11 @@
+import os from 'node:os';
 import {
 	parseLlmRolePreset,
 	resolveEffectiveSkillId,
 	resolveEffectiveToolPermissions,
 } from '@langflower/common-nodes/ai/llm-role-preset';
 import type { LlmRunHostServices } from '@langflower/common-nodes/ai/llm-run-host';
+import type { ReadSessionUpload } from '@langflower/common-nodes/ai/openai/create-chat-completion-stream';
 import { attachRunHostServices } from '@langflower/common-nodes/run-host-services';
 import type { LangflowerBusRequest } from '@langflower/common-nodes/run-host-services';
 import {
@@ -13,6 +15,8 @@ import {
 	type CtxError,
 	type ExecutionContext,
 	type NodeCapabilityId,
+	type PromptSessionContext,
+	type PromptSkillCatalogEntry,
 	type ReactiveNodeDefinition,
 	type ToolHandle,
 	type UISchemaConstItem,
@@ -37,8 +41,10 @@ import {
 import {
 	createProjectHarness,
 	wrapBuiltinToolHandles,
+	type AskUserAnswer,
 	type AskUserRequest,
 	type Harness,
+	type StageSessionUpload,
 } from '@langflower/tools/create-project-harness';
 import { createWebFetch } from '@langflower/tools/create-web-fetch';
 import {
@@ -50,6 +56,8 @@ import { throwError } from 'rxjs';
 import { bindCreateChatCompletionStream } from './bind-llm-context.js';
 import { bindCreateEmbedding } from './bind-embed-context.js';
 import { readAgentsMarkdown } from '../skills/read-agents-markdown.js';
+import { listSkills } from '../skills/list-skills.js';
+import { readReadmeMarkdown } from '../skills/read-readme-markdown.js';
 import { readSkillMarkdown } from '../skills/read-skill-markdown.js';
 import type { ServerContext } from '../server-context.js';
 import type { LangflowerSession } from '../session/langflower-session.js';
@@ -86,6 +94,10 @@ type ExecutionContextRunMemo = {
 	readonly nodeTools: Map<string, NodeToolHandles>;
 	agentsMarkdown: string;
 	agentsMarkdownLoaded: boolean;
+	readmeMarkdown?: string;
+	skillCatalog?: readonly PromptSkillCatalogEntry[];
+	/** Fixed at first use so the date is stable for the whole run. */
+	environment?: NonNullable<PromptSessionContext['environment']>;
 };
 
 const createExecutionContextRunMemo = (): ExecutionContextRunMemo => ({
@@ -104,6 +116,8 @@ type RunScope = {
 	readonly runMcpHandles: readonly SystemMcpServerTools[];
 	readonly langflowerConfigService: ExecutionContextDeps['langflowerConfigService'];
 	readonly memo: ExecutionContextRunMemo;
+	readonly readSessionUpload?: ReadSessionUpload;
+	readonly stageSessionUpload?: StageSessionUpload;
 };
 
 const CAPABILITY_REMEDIES: Readonly<Record<NodeCapabilityId, string>> = {
@@ -148,7 +162,8 @@ const createToolHarness = (options: {
 		request: PermissionAskRequest,
 		signal?: AbortSignal,
 	) => Promise<PermissionDecision>;
-	readonly askUser?: (request: AskUserRequest) => Promise<string>;
+	readonly askUser?: (request: AskUserRequest) => Promise<AskUserAnswer>;
+	readonly stageSessionUpload?: StageSessionUpload;
 }) => {
 	const hasPermissionRules = Object.keys(options.permission).length > 0;
 
@@ -166,6 +181,9 @@ const createToolHarness = (options: {
 			? { requestPermission: options.requestPermission }
 			: {}),
 		...(options.askUser !== undefined ? { askUser: options.askUser } : {}),
+		...(options.stageSessionUpload !== undefined
+			? { stageSessionUpload: options.stageSessionUpload }
+			: {}),
 	});
 };
 
@@ -191,16 +209,23 @@ const buildNodeHarness = (
 	const permission = nodePermission(run, node);
 	const hooks = run.hooks;
 
+	const stage =
+		run.stageSessionUpload !== undefined
+			? { stageSessionUpload: run.stageSessionUpload }
+			: {};
+
 	return hooks === undefined
 		? createToolHarness({
 				projectRoot: run.projectDir,
 				config: run.config,
 				permission,
+				...stage,
 			})
 		: createToolHarness({
 				projectRoot: run.projectDir,
 				config: run.config,
 				permission,
+				...stage,
 				requestPermission: (request, signal) =>
 					hooks.requestPermission(
 						hooks.runId,
@@ -303,6 +328,52 @@ const loadAgentsMarkdown = async (
 	return text;
 };
 
+const loadReadmeMarkdown = async (run: RunScope): Promise<string> => {
+	run.memo.readmeMarkdown ??= await readReadmeMarkdown(run.projectDir);
+
+	return run.memo.readmeMarkdown;
+};
+
+const loadSkillCatalog = async (
+	run: RunScope,
+): Promise<readonly PromptSkillCatalogEntry[]> => {
+	run.memo.skillCatalog ??= await listSkills(run.projectDir);
+
+	return run.memo.skillCatalog;
+};
+
+const runEnvironment = (
+	run: RunScope,
+): NonNullable<PromptSessionContext['environment']> => {
+	run.memo.environment ??= {
+		os: `${os.platform()} ${os.release()}`,
+		workDir: run.projectDir,
+		date: new Date().toISOString().slice(0, 10),
+	};
+
+	return run.memo.environment;
+};
+
+/**
+ * Resolves the node's `include*` toggles. Environment and harness are on
+ * unless explicitly `false` (nodes saved before the toggles existed have no
+ * param); README and the skill list need an explicit `true`.
+ */
+const loadSessionContext = async (
+	run: RunScope,
+	node: Pick<WorkflowNodePersisted, 'params'>,
+): Promise<PromptSessionContext> => ({
+	readmeMarkdown:
+		node.params.includeReadme === true ? await loadReadmeMarkdown(run) : '',
+	environment:
+		node.params.includeEnvironment !== false ? runEnvironment(run) : null,
+	harness: node.params.includeHarness !== false,
+	skillCatalog:
+		node.params.includeSkillList === true
+			? await loadSkillCatalog(run)
+			: [],
+});
+
 const CAPABILITY_PROVIDERS: {
 	readonly [Id in NodeCapabilityId]: (
 		run: RunScope,
@@ -310,9 +381,13 @@ const CAPABILITY_PROVIDERS: {
 	) => CapsResult | Promise<CapsResult>;
 } = {
 	chat: (run) => {
-		run.memo.chat ??= bindCreateChatCompletionStream(
-			run.langflowerConfigService,
-		);
+		run.memo.chat ??=
+			run.readSessionUpload !== undefined
+				? bindCreateChatCompletionStream(
+						run.langflowerConfigService,
+						run.readSessionUpload,
+					)
+				: bindCreateChatCompletionStream(run.langflowerConfigService);
 		return { ok: true, fields: { chat: run.memo.chat } };
 	},
 	embed: (run) => {
@@ -348,12 +423,14 @@ const CAPABILITY_PROVIDERS: {
 	promptContext: async (run, node) => {
 		const skillMarkdown = await loadSkillMarkdown(run, node);
 		const agentsMarkdown = await loadAgentsMarkdown(run, node);
+		const sessionContext = await loadSessionContext(run, node);
 		const defaultChat = parseDefaultChatModel(run.config.model);
 		return {
 			ok: true,
 			fields: {
 				skillMarkdown,
 				agentsMarkdown,
+				sessionContext,
 				...(defaultChat !== null ? { defaultChat } : {}),
 			},
 		};
@@ -603,6 +680,8 @@ export const buildContextSeeds = async (
 	emitPermissionAccepted: (payload: RunnerPermissionReplyPayload) => void,
 	requestLangflowerBus?: LangflowerBusRequest,
 	getLiveWiredTools?: (agentNodeId: string) => readonly ToolHandle[],
+	readSessionUpload?: ReadSessionUpload,
+	stageSessionUpload?: StageSessionUpload,
 ): Promise<Record<string, ReadonlyArray<RuntimeSeedPortValue>>> => {
 	const workflow = session.activeWorkflow;
 
@@ -662,6 +741,8 @@ export const buildContextSeeds = async (
 			runMcpHandles: runMcp?.handles ?? [],
 			langflowerConfigService: context.langflowerConfigService,
 			memo,
+			...(readSessionUpload !== undefined ? { readSessionUpload } : {}),
+			...(stageSessionUpload !== undefined ? { stageSessionUpload } : {}),
 			hooks: {
 				runId,
 				nodeId: node.id,

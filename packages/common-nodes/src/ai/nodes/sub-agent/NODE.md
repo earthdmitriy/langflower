@@ -45,13 +45,13 @@ factory as Fake LLM.
 
 ## Ports
 
-| Port                                       | Dir       | Type          | Notes                                                        |
-| ------------------------------------------ | --------- | ------------- | ------------------------------------------------------------ |
-| `subagent-registration`                    | out       | `tool-handle` | One specialist `ToolHandle[]` → parent `tools` (combine)     |
-| `systemPrompt`                             | in        | string        | Optional override / role seed                                |
-| `reasoning` / `draftResponse` / `response` | out       | string        | Feed streams (same as OpenAI LLM)                            |
-| `tools` / `steerControl`                   | inventory | —             | Nested specialists / packs / MCP into this node (`tools` in) |
-| `toolLog` / `recovery`                     | out       | string / any  | Real tool facts / recovery notices (`recovery` is hidden)    |
+| Port                                       | Dir       | Type                                    | Notes                                                        |
+| ------------------------------------------ | --------- | --------------------------------------- | ------------------------------------------------------------ |
+| `subagent-registration`                    | out       | `tool-handle`                           | One specialist `ToolHandle[]` → parent `tools` (combine)     |
+| `systemPrompt`                             | in        | string                                  | Optional override / role seed                                |
+| `reasoning` / `draftResponse` / `response` | out       | string                                  | Feed streams (same as OpenAI LLM)                            |
+| `tools` / `steerControl`                   | inventory | —                                       | Nested specialists / packs / MCP into this node (`tools` in) |
+| `toolLog` / `recovery`                     | out       | string or text plus a staged file / any | Real tool facts / recovery notices (`recovery` is hidden)    |
 
 In is inventory for _this_ loop; out `subagent-registration` is the handle
 the parent calls.

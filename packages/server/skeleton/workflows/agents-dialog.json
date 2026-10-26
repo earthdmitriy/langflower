@@ -113,7 +113,7 @@
 			{
 				"edgeId": "e-chat-critique-assignment",
 				"fromNodeId": "chat",
-				"fromPort": ["message", 0],
+				"fromPort": ["text", 0],
 				"toNodeId": "critique",
 				"toPort": ["assignment", 0]
 			},

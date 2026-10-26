@@ -24,10 +24,13 @@ connected cluster (`pushIntoInput`). The typed text is stored on the node
 clusters that contain this node (see
 [workflow-execution.md](../../../../../docs/product/features/workflow-execution.md)).
 
-Typically wire `message` → an agent's `userPrompt`. Multi-turn continues via
-Chat Loop / Review Gate / Review **feedback** edges (ADR-016), not by
-reopening Chat Input mid-run. After Stop, the idle composer returns with the
-last entry message.
+Typically wire `message` → an agent's `userPrompt`. `text` is the same
+question as a string, for string consumers. Multi-turn continues via
+Chat Loop `feedback` → `feedback`, or Review Gate / Review string
+**feedback** edges (ADR-016), not by reopening Chat Input mid-run.
+After Stop, the idle composer returns with the last entry message.
+The composer can attach png, jpeg, gif, webp, wav, mp3, or pdf. See
+[turn attachments](../../../../../docs/product/use-cases/turn-attachments.md).
 
 ## Inputs
 
@@ -37,9 +40,10 @@ last entry message.
 
 ## Outputs
 
-| Port      | Type   | Notes               |
-| --------- | ------ | ------------------- |
-| `message` | string | submitted user text |
+| Port      | Type    | Notes                                     |
+| --------- | ------- | ----------------------------------------- |
+| `message` | `string | user-turn`                                | the string; `{ text, files }` only when files are attached |
+| `text`    | string  | the question string, for string consumers |
 
 ## Params
 

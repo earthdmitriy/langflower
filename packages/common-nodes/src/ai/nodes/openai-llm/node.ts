@@ -114,7 +114,10 @@ Wire tools and skills so the model can search, edit files, or call specialists. 
 								context.tools,
 							),
 						},
-						{ role: 'user', content: context.prompt },
+						{
+							role: 'user',
+							content: context.openingUserTurn ?? context.prompt,
+						},
 					],
 					trackAssistantHistory: true,
 					appendUserFeedbackToHistory: true,

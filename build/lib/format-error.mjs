@@ -374,7 +374,7 @@ function buildHint(issues, stepName) {
 	}
 
 	if (kinds.has('vitest')) {
-		return 'Re-run failed suite: node build/test.mjs --unit (or --integration)';
+		return 'Re-run failed suite: node build/test.mjs --unit (or --docs-boundaries, --integration)';
 	}
 
 	return undefined;

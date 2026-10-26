@@ -1,11 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { isSafeSkillId } from './is-safe-skill-id.js';
+import { skillRoots } from './skill-roots.js';
 
-const skillFilePath = (projectDir: string, skillId: string): string =>
-	path.join(projectDir, '.langflower', 'skills', skillId, 'SKILL.md');
-
-/** Full UTF-8 body of `SKILL.md`, or `''` when missing / invalid id. */
+/**
+ * Full UTF-8 body of `SKILL.md` from the first skill root that has it
+ * (`.langflower` before `.agents`), or `''` when missing / invalid id.
+ */
 export const readSkillMarkdown = async (
 	projectDir: string,
 	skillId: string,
@@ -14,11 +15,16 @@ export const readSkillMarkdown = async (
 		return '';
 	}
 
-	const filePath = skillFilePath(projectDir, skillId);
-
-	try {
-		return await fs.readFile(filePath, 'utf8');
-	} catch {
-		return '';
+	for (const root of skillRoots(projectDir)) {
+		try {
+			return await fs.readFile(
+				path.join(root.absolute, skillId, 'SKILL.md'),
+				'utf8',
+			);
+		} catch {
+			// try the next root
+		}
 	}
+
+	return '';
 };

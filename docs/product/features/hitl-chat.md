@@ -12,7 +12,9 @@ status: current
 Let a workflow hand control back to the user mid-run — asking a question,
 handing over a draft for review, or waiting for an approval — so the user
 decides what happens next while the workflow is still running, instead of
-only seeing a final result after everything finishes.
+only seeing a final result after everything finishes. A chat turn can
+also carry an allowlisted file:
+[turn attachments](../use-cases/turn-attachments.md).
 
 ## Core Principles
 
@@ -41,9 +43,11 @@ agent-initiated tool that uses the same composer:
 - **Review Gate** — mid-run pause for approve or request-changes; user text
   on `requestChanges` feeds back into the workflow (e.g. into an agent's
   next turn); approve passes the reviewed content on `response`.
-- **Chat Loop** — mid-run reply only (`message` → `feedback`); no Approve.
-  Wire agent `response` → `result` and `feedback` → agent `feedback`. The
-  run ends on **Stop**.
+- **Chat Loop** — mid-run reply only; no Approve. Wire agent `response`
+  → `result` and `feedback` → agent `feedback`. `feedback` is a
+  user turn (question text plus any attached files), not a plain string.
+  The agent `feedback` port takes either that user turn or a plain
+  string from Review Gate and other string prompts. The run ends on **Stop**.
 - **Review** — a gate placed after an agent step: the agent answers, then a
   reviewer (a person, or a dedicated review agent node) checks that answer.
   If it's good, that same answer passes through unchanged. If not, the
@@ -134,6 +138,34 @@ layout table: [feed-panel.md](feed-panel.md) § Composer layout):
   Composer shell layout **shipped**
   (DONE epic 35 (`docs/_archive/DONE/EPICS/35-composer-shell-layout-contract.md`)).
 
+**Restored gates.** After a restart the Review Gate or Chat Loop the last run
+was waiting on is shown again, and replying to it continues that run: the
+work log stays and grows, the agent keeps its transcript, and the gate waits
+again ([ADR-044](../../adr/044-a-reply-to-a-parked-gate-recovers-the-run.md)).
+
+**Turn attachments.** Every composer text control takes files next to
+the text: Chat Input, Chat Loop, Review Gate **Request changes**, Steer
+(after Pause), and the `ask_user` reply. A HITL textarea takes files when its input
+wire type accepts a `user-turn`; Steer and the `ask_user` reply always do. Review Gate `feedback` stays a plain string when no file is
+attached and becomes a user turn when one is. An `ask_user` reply rides
+its files on a following `role: user` message, as `read` does. The browser checks
+`file.type` before the draft and before upload. Allowed: `image/png`,
+`image/jpeg`, `image/gif`, `image/webp`, `audio/wav`, `audio/mpeg`,
+`audio/mp3`, `application/pdf`. An empty MIME is rejected. Video and
+every other type are not uploaded. A file joins the draft from the
+picker, a paste (a screenshot on the clipboard, no file on disk), or a
+drop on the textarea; all three use the same MIME check. A pasted image
+wins over pasted text in the same clipboard. Each staged file shows a
+tiny thumbnail (a label for audio and PDF); clicking an image opens a
+full-size preview dialog (Escape or Close dismisses). Empty text is
+still rejected, so a file without a question does not start a turn. The bytes go to
+`POST /api/session-uploads` (raw body, `Content-Type`,
+`X-Langflower-File-Name`, under 50 MB). The response is `HitlUploadedFile`.
+History stores `fileId`, not base64. Steer Send is
+`{ kind: 'steer', text, files }`. See
+[turn attachments](../use-cases/turn-attachments.md) and
+[feed-panel.md](feed-panel.md).
+
 **Multi-gate HITL (by design).** Several HITL nodes may await in the same run —
 parallel or serial — without any identity / persona layer. Role separation in
 clearance workflows is **multiple graph gates** (labels, prompts, edges), not
@@ -178,7 +210,14 @@ reviewer hats. With 2+ open gates the tab strip lists every gate; each
   WS `runner.askUser.ask` / `runner.askUser.reply` / `runner.askUser.accepted`
   (sibling of `permission.ask`). Question is a feed bubble; composer footer
   mode `askUser` is textarea + Send, with option chips when `questions` is
-  set. Permission Allow/Deny still wins if both are pending.
+  set. No file control. Permission Allow/Deny still wins if both are pending.
+- Turn file bytes: `POST /api/session-uploads` and
+  `GET /api/session-uploads/:fileId`
+  ([ADR-012](../../adr/012-internal-websocket-bus-rest-for-bulk-escape-hatches.md)).
+  Chat Input `message` and Chat Loop `feedback` are `string | user-turn` (a
+  string unless files are attached).
+  Chat Input `text` is the question string. LLM `userPrompt` and
+  `feedback` accept `string | user-turn`, so one port takes either wire.
 - Interactive-loop termination design decision:
   [docs/adr/README.md](../../adr/015-output-driven-run-completion-never-idle-settle.md)
   (ADR-015).

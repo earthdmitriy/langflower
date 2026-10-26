@@ -1,7 +1,10 @@
+import type { HitlUploadedFile } from '@langflower/node-sdk';
 import { describe, expect, it } from 'vitest';
+import type { ChatCompletionToolCall } from '../chat-completion-stream.js';
+import { toOpenAiMessages } from '../openai/expand-chat-messages.js';
 import { classifyLlmFailure } from './classify-llm-failure.js';
 import { reduceLlmLoop } from './llm-loop-reducer.js';
-import { initialLlmLoopState } from './llm-loop-types.js';
+import { initialLlmLoopState, type LlmLoopState } from './llm-loop-types.js';
 
 describe('reduceLlmLoop', () => {
 	it('rolls a failed partial round back to its committed checkpoint', () => {
@@ -79,6 +82,47 @@ describe('reduceLlmLoop', () => {
 		]);
 	});
 
+	it('stores a steer image as a user turn and empty files as text', () => {
+		const image = {
+			fileId: 'img-1',
+			name: 'photo.png',
+			mimeType: 'image/png',
+			size: 4,
+		};
+		const initial = initialLlmLoopState([
+			{ role: 'user', content: 'build it' },
+		]);
+		const suspended = reduceLlmLoop(initial, {
+			type: 'stream.idle',
+			idleMs: 90_000,
+		});
+		const withImage = reduceLlmLoop(suspended, {
+			type: 'steer.received',
+			text: 'what is this',
+			files: [image],
+		});
+		const withEmptyFiles = reduceLlmLoop(suspended, {
+			type: 'steer.received',
+			text: 'continue',
+			files: [],
+		});
+
+		expect(withImage.committedMessages).toEqual([
+			...initial.committedMessages,
+			{
+				role: 'user',
+				content: { text: 'what is this', files: [image] },
+			},
+		]);
+		expect(JSON.stringify(withImage.committedMessages)).not.toContain(
+			'base64',
+		);
+		expect(withEmptyFiles.committedMessages).toEqual([
+			...initial.committedMessages,
+			{ role: 'user', content: 'continue' },
+		]);
+	});
+
 	it('schedules autokick from the checkpoint plus a kick user turn', () => {
 		const initial = initialLlmLoopState([
 			{ role: 'user', content: 'build it' },
@@ -138,6 +182,174 @@ describe('reduceLlmLoop', () => {
 		expect(scheduled.lastAutokickAt).toBe(1_700_000_000_000);
 		expect(scheduled.committedMessages).toEqual(initial.committedMessages);
 		expect(scheduled.partial.draft).toBe('');
+	});
+});
+
+const toolCall = (id: string, filePath: string): ChatCompletionToolCall => ({
+	id,
+	name: 'read',
+	arguments: JSON.stringify({ path: filePath }),
+});
+
+const uploaded = (
+	fileId: string,
+	name: string,
+	mimeType: string,
+	size: number,
+): HitlUploadedFile => ({ fileId, name, mimeType, size });
+
+const finishTools = (
+	state: LlmLoopState,
+	completed: readonly {
+		readonly call: ChatCompletionToolCall;
+		readonly result: string;
+		readonly files?: readonly HitlUploadedFile[];
+	}[],
+): LlmLoopState => {
+	const withCalls = reduceLlmLoop(state, {
+		type: 'stream.done',
+		text: '',
+		toolCalls: completed.map((entry) => entry.call),
+	});
+
+	return completed.reduce(
+		(current, entry) =>
+			reduceLlmLoop(current, {
+				type: 'tool.completed',
+				call: entry.call,
+				result: entry.result,
+				...(entry.files !== undefined ? { files: entry.files } : {}),
+			}),
+		withCalls,
+	);
+};
+
+describe('tool media hoist', () => {
+	const png = uploaded('png-1', '1.png', 'image/png', 3);
+	const mp3 = uploaded('mp3-1', 'a.mp3', 'audio/mpeg', 2);
+	const pdf = uploaded('pdf-1', 'a.pdf', 'application/pdf', 1);
+	const pngText = '1.png (image/png, 3 bytes)';
+	const mp3Text = 'a.mp3 (audio/mpeg, 2 bytes)';
+	const pdfText = 'a.pdf (application/pdf, 1 bytes)';
+
+	const prepared = (): LlmLoopState => {
+		const initial = initialLlmLoopState([
+			{ role: 'user', content: 'what is in these files' },
+		]);
+		return reduceLlmLoop(initial, {
+			type: 'round.prepared',
+			messages: initial.committedMessages,
+		});
+	};
+
+	it('places png, mp3, and pdf on one user turn after contiguous tool texts', async () => {
+		const calls = [
+			toolCall('c1', '1.png'),
+			toolCall('c2', 'a.mp3'),
+			toolCall('c3', 'a.pdf'),
+			toolCall('c4', 'readme.txt'),
+		];
+		const done = finishTools(prepared(), [
+			{ call: calls[0]!, result: pngText, files: [png] },
+			{ call: calls[1]!, result: mp3Text, files: [mp3] },
+			{ call: calls[2]!, result: pdfText, files: [pdf] },
+			{ call: calls[3]!, result: 'hello from readme' },
+		]);
+
+		expect(done.committedMessages).toEqual([
+			{ role: 'user', content: 'what is in these files' },
+			{ role: 'assistant', content: '', tool_calls: calls },
+			{ role: 'tool', content: pngText, tool_call_id: 'c1' },
+			{ role: 'tool', content: mp3Text, tool_call_id: 'c2' },
+			{ role: 'tool', content: pdfText, tool_call_id: 'c3' },
+			{ role: 'tool', content: 'hello from readme', tool_call_id: 'c4' },
+			{
+				role: 'user',
+				content: { text: '', files: [png, mp3, pdf] },
+			},
+		]);
+
+		const serialized = JSON.stringify(done.committedMessages);
+		expect(serialized).toContain('png-1');
+		expect(serialized).not.toContain('base64');
+		expect(serialized).not.toMatch(/data:/);
+
+		for (const message of done.committedMessages) {
+			if (message.role === 'tool') {
+				expect(message.content).not.toMatch(/data:/);
+				expect(message.content).not.toContain('base64');
+			}
+		}
+
+		const pngBytes = Uint8Array.from([1, 2, 3]);
+		const mp3Bytes = Uint8Array.from([4, 5]);
+		const pdfBytes = Uint8Array.from([6]);
+		const expanded = await toOpenAiMessages(done.committedMessages, {
+			readSessionUpload: async (fileId) => {
+				const bytes =
+					fileId === 'png-1'
+						? pngBytes
+						: fileId === 'mp3-1'
+							? mp3Bytes
+							: fileId === 'pdf-1'
+								? pdfBytes
+								: undefined;
+				return bytes === undefined
+					? { ok: false, message: 'missing' }
+					: { ok: true, bytes };
+			},
+		});
+
+		const tools = expanded.filter((message) => message.role === 'tool');
+		expect(tools.map((message) => message.content)).toEqual([
+			pngText,
+			mp3Text,
+			pdfText,
+			'hello from readme',
+		]);
+		expect(JSON.stringify(tools)).not.toMatch(/data:/);
+
+		const hoist = expanded[expanded.length - 1];
+		expect(hoist).toMatchObject({
+			role: 'user',
+			content: [
+				{
+					type: 'image_url',
+					image_url: {
+						url: expect.stringMatching(/^data:image\/png;base64,/),
+					},
+				},
+				{
+					type: 'input_audio',
+					input_audio: { format: 'mp3' },
+				},
+				{
+					type: 'file',
+					file: {
+						filename: 'a.pdf',
+						file_data: expect.stringMatching(
+							/^data:application\/pdf;base64,/,
+						),
+					},
+				},
+			],
+		});
+		expect(Array.isArray(hoist?.content) ? hoist.content : []).toHaveLength(
+			3,
+		);
+	});
+
+	it('does not add a user message for a video read', () => {
+		const call = toolCall('c1', 'clip.mp4');
+		const done = finishTools(prepared(), [
+			{ call, result: 'not-an-image' },
+		]);
+
+		expect(done.committedMessages).toEqual([
+			{ role: 'user', content: 'what is in these files' },
+			{ role: 'assistant', content: '', tool_calls: [call] },
+			{ role: 'tool', content: 'not-an-image', tool_call_id: 'c1' },
+		]);
 	});
 });
 

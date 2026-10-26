@@ -5,6 +5,7 @@ import {
 	materializeBypassSlot,
 } from './bypass-ports.js';
 import { edgeKey, SlotKey, slotKey } from './port-meta.js';
+import { wireTypesCompatible, type WireTypeSpec } from './wire-type.js';
 import {
 	GraphCluster,
 	detectGraphClusters,
@@ -498,8 +499,15 @@ export class RuntimeEditor implements RuntimeEditorApi {
 			return true;
 		}
 
-		if (inputMeta.wireType !== 'dynamic') {
+		if (
+			typeof sourceWireType === 'symbol' ||
+			typeof inputMeta.wireType === 'symbol'
+		) {
 			return sourceWireType === inputMeta.wireType;
+		}
+
+		if (inputMeta.wireType !== 'dynamic') {
+			return wireTypesCompatible(sourceWireType, inputMeta.wireType);
 		}
 
 		const pinnedWireType = this.resolveInputPinnedWireType(
@@ -510,7 +518,9 @@ export class RuntimeEditor implements RuntimeEditorApi {
 		);
 
 		return (
-			pinnedWireType === undefined || pinnedWireType === sourceWireType
+			pinnedWireType === undefined ||
+			typeof pinnedWireType === 'symbol' ||
+			wireTypesCompatible(sourceWireType, pinnedWireType)
 		);
 	}
 
@@ -519,7 +529,7 @@ export class RuntimeEditor implements RuntimeEditorApi {
 		portId: string | symbol,
 		slotIndex: number,
 		visitedOutputKeys: Set<SlotKey>,
-	): string | symbol | undefined {
+	): WireTypeSpec | symbol | undefined {
 		const outKey = slotKey(nodeId, portId, slotIndex);
 
 		if (visitedOutputKeys.has(outKey)) {
@@ -616,7 +626,7 @@ export class RuntimeEditor implements RuntimeEditorApi {
 		portId: string | symbol,
 		visitedOutputKeys: Set<SlotKey>,
 		slotIndex?: number,
-	): string | symbol | undefined {
+	): WireTypeSpec | symbol | undefined {
 		const input = this.nodes.get(nodeId)?.inputs[portId];
 
 		if (input === undefined) {

@@ -93,4 +93,71 @@ describe('buildEffectiveSystemPrompt', () => {
 			}),
 		).toBe(CODER_AGENT_SYSTEM_PROMPT);
 	});
+
+	describe('sessionContext', () => {
+		const base = {
+			rolePreset: 'custom',
+			systemPromptInput: 'Base',
+			agentsMarkdown: '# Agents',
+			skillMarkdown: '# Skill body',
+		} as const;
+		const none = {
+			readmeMarkdown: '',
+			environment: null,
+			harness: false,
+			skillCatalog: [],
+		} as const;
+
+		it('adds nothing for an empty session context', () => {
+			expect(
+				buildEffectiveSystemPrompt({ ...base, sessionContext: none }),
+			).toBe('Base\n\n---\n\n# Agents\n\n---\n\n# Skill body');
+		});
+
+		it('orders agents, readme, environment, harness, skill list, skill', () => {
+			const prompt = buildEffectiveSystemPrompt({
+				...base,
+				sessionContext: {
+					readmeMarkdown: '# Readme',
+					environment: {
+						os: 'win32 10',
+						workDir: '/work',
+						date: '2026-10-26',
+					},
+					harness: true,
+					skillCatalog: [
+						{
+							id: 'plan',
+							name: 'Plan',
+							description: 'Break work down',
+							path: '.agents/skills/plan/SKILL.md',
+						},
+					],
+				},
+			});
+			const positions = [
+				'Base',
+				'# Agents',
+				'# Readme',
+				'- OS: win32 10',
+				'- Working directory: /work',
+				'- Date: 2026-10-26',
+				'## Langflower harness',
+				'- Plan (plan): Break work down — .agents/skills/plan/SKILL.md',
+				'# Skill body',
+			].map((needle) => prompt.indexOf(needle));
+
+			expect(positions.every((index) => index >= 0)).toBe(true);
+			expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+		});
+
+		it('skips the skill list block when the catalog is empty', () => {
+			expect(
+				buildEffectiveSystemPrompt({
+					...base,
+					sessionContext: { ...none, harness: true },
+				}),
+			).not.toContain('Available skills');
+		});
+	});
 });

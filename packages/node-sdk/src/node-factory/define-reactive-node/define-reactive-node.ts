@@ -35,6 +35,8 @@ export {
 	type CapsFor,
 	type LlmRequiredCapabilityId,
 	type NodeCapabilityId,
+	type PromptSessionContext,
+	type PromptSkillCatalogEntry,
 } from './capabilities.js';
 export type {
 	HitlButtonControl,
@@ -46,6 +48,11 @@ export type {
 	HitlTextareaControl,
 	HitlTextValue,
 	HitlUploadedFile,
+} from './hitl-config.js';
+export {
+	SESSION_UPLOAD_MAX_BYTES,
+	SESSION_UPLOAD_MIME_TYPES,
+	isSessionUploadMime,
 } from './hitl-config.js';
 export {
 	withLoading,

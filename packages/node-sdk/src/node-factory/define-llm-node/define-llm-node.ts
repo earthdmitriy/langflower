@@ -136,6 +136,7 @@ export {
 	LLM_INVENTORY_OUTPUT_PORT_IDS,
 	type LlmInventoryInputs,
 	type LlmInventoryOutputStreams,
+	type ToolLogFeedValue,
 } from './default-llm-ports.js';
 
 export {

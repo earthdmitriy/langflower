@@ -290,8 +290,14 @@ REST is an escape hatch for payloads that are too large or browser-tooling-sensi
 for the WebSocket bus. Workflow save/load currently belongs to `workflow.*` events;
 do not add REST CRUD routes without updating ADR-012.
 
-Mount: `packages/server/src/api/routes.ts` (static + any explicitly approved bulk
-routes).
+Approved bulk hatches, mounted from `create-server` before the UI catch-all
+([ADR-012](../adr/012-internal-websocket-bus-rest-for-bulk-escape-hatches.md)):
+
+- `POST /api/session-uploads` — one raw body, `Content-Type`,
+  `X-Langflower-File-Name`, under 50 MB. Returns `HitlUploadedFile`.
+- `GET /api/session-uploads/:fileId` — the staged bytes.
+
+Implementation: `packages/server/src/api/session-upload-routes.ts`.
 
 ## Build pipeline
 

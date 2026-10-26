@@ -176,12 +176,45 @@ describe('assembleLlmAgentInventoryContext', () => {
 			}).resetSessionOnInput,
 		).toBe(false);
 	});
+	it('puts the requested session context into the effective system prompt', () => {
+		const assembled = assembleLlmAgentInventoryContext('hello', [], '', {
+			projectDir: '/p',
+			runId: 'r1',
+			nodeId: 'n1',
+			params: {},
+			chat: async () =>
+				(async function* () {
+					yield { kind: 'done' as const, text: '' };
+				})(),
+			toolHandles: [],
+			skillMarkdown: '',
+			agentsMarkdown: '',
+			sessionContext: {
+				readmeMarkdown: '',
+				environment: {
+					os: 'linux 6',
+					workDir: '/p',
+					date: '2026-10-26',
+				},
+				harness: true,
+				skillCatalog: [],
+			},
+			requestPermission: async () => 'allow' as const,
+			getLiveWiredTools: () => [],
+		});
+
+		expect(assembled.effectiveSystemPrompt).toContain('- OS: linux 6');
+		expect(assembled.effectiveSystemPrompt).toContain(
+			'## Langflower harness',
+		);
+	});
 });
 
 type AgentContext = {
 	readonly maxFeedbackTurns: number;
 	readonly prompt: string;
 	readonly resetSessionOnInput?: boolean;
+	readonly toolCtx?: { readonly runId: string };
 };
 
 type TurnChunk =
@@ -323,6 +356,64 @@ const historyOf = (
 };
 
 describe('createLlmSessionCycle$ node state', () => {
+	it('persists a user file ref as fileId and not bytes', () => {
+		const fixture = 'PNG-BYTES-fixture';
+		const encoded = btoa(fixture);
+		const fileId = '11111111-1111-4111-8111-111111111111';
+		const cycle = openCycle({
+			primeTurn0: true,
+			context: { maxFeedbackTurns: 0, prompt: 'next' },
+			prelude: () => [{ role: 'system', content: 'sys' }],
+			beforeStart: (hook) => {
+				expect(
+					hook.restore({
+						history: [
+							{
+								role: 'user',
+								content: {
+									text: 'what is this?',
+									files: [
+										{
+											fileId,
+											name: 'pixel.png',
+											mimeType: 'image/png',
+											size: fixture.length,
+										},
+									],
+								},
+							},
+						],
+					}),
+				).toEqual({ ok: true });
+			},
+		});
+
+		expect(historyOf(cycle.persisted[0])).toEqual([
+			{
+				role: 'user',
+				content: {
+					text: 'what is this?',
+					files: [
+						{
+							fileId,
+							name: 'pixel.png',
+							mimeType: 'image/png',
+							size: fixture.length,
+						},
+					],
+				},
+			},
+			{ role: 'user', content: 'next' },
+			{ role: 'assistant', content: 't0' },
+		]);
+		const saved = JSON.stringify(cycle.persisted);
+		expect(saved).toContain(fileId);
+		expect(saved).not.toContain('data:');
+		expect(saved).not.toContain(encoded);
+		expect(saved).not.toContain(fixture);
+		cycle.stop();
+	});
+
 	it('assigns ChatCompletionMessage to NodeStateJson', () => {
 		const message: ChatCompletionMessage = {
 			role: 'assistant',
@@ -420,6 +511,81 @@ describe('createLlmSessionCycle$ node state', () => {
 			{ role: 'user', content: 'new prompt' },
 			{ role: 'assistant', content: 't0' },
 		]);
+		cycle.stop();
+	});
+
+	it('restoring the history a run saved, in that same run, waits for the next turn and does not replay the opening prompt', () => {
+		const stored: readonly ChatCompletionMessage[] = [
+			{ role: 'system', content: 'FROZEN' },
+			{ role: 'user', content: 'opening prompt' },
+			{ role: 'assistant', content: 'first answer' },
+		];
+		const cycle = openCycle({
+			primeTurn0: true,
+			context: {
+				maxFeedbackTurns: 0,
+				prompt: 'opening prompt',
+				toolCtx: { runId: 'run-1' },
+			},
+			prelude: (context) => agentPrelude(context.prompt),
+			beforeStart: (hook) => {
+				expect(
+					hook.restore({ history: [...stored], runId: 'run-1' }),
+				).toEqual({ ok: true });
+			},
+		});
+
+		// Nothing ran: the priming turn and the opening prompt are not replayed.
+		expect(cycle.seen).toEqual([]);
+
+		cycle.turns$.next('feedback');
+		expect(cycle.seen).toEqual([
+			{
+				payload: 'feedback',
+				history: [...stored, { role: 'user', content: 'feedback' }],
+			},
+		]);
+		cycle.stop();
+	});
+
+	it('restoring history that another run saved still appends the new prompt', () => {
+		const stored: readonly ChatCompletionMessage[] = [
+			{ role: 'system', content: 'FROZEN' },
+			{ role: 'user', content: 'opening prompt' },
+			{ role: 'assistant', content: 'first answer' },
+		];
+		const cycle = openCycle({
+			primeTurn0: true,
+			context: {
+				maxFeedbackTurns: 0,
+				prompt: 'new prompt',
+				toolCtx: { runId: 'run-2' },
+			},
+			prelude: (context) => agentPrelude(context.prompt),
+			beforeStart: (hook) => {
+				hook.restore({ history: [...stored], runId: 'run-1' });
+			},
+		});
+
+		expect(cycle.seen[0]).toEqual({
+			payload: undefined,
+			history: [...stored, { role: 'user', content: 'new prompt' }],
+		});
+		cycle.stop();
+	});
+
+	it('saves the run id with the history', () => {
+		const cycle = openCycle({
+			primeTurn0: true,
+			context: {
+				maxFeedbackTurns: 0,
+				prompt: 'hello',
+				toolCtx: { runId: 'run-9' },
+			},
+			prelude: (context) => agentPrelude(context.prompt),
+		});
+
+		expect(cycle.persisted.at(-1)).toMatchObject({ runId: 'run-9' });
 		cycle.stop();
 	});
 

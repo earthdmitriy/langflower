@@ -38,12 +38,17 @@ import {
 } from '../workflow-sessions/workflow-session-run.js';
 import { readWorkflowSessionSnapshots } from '../workflow-sessions/workflow-session-snapshots.js';
 import type { WorkflowSessionStore } from '../workflow-sessions/workflow-session-store.js';
+import {
+	readBoundSessionUpload,
+	stageBoundSessionUpload,
+} from './bind-llm-context.js';
 import { buildContextSeeds } from './build-execution-context.js';
 import { getLiveWiredTools } from './get-live-wired-tools.js';
 import { createLangflowerToolsRpc } from './langflower-tools-rpc.js';
 import { bridgeEmit, clientEmit } from './bridge-outbound.js';
 import { findClientById } from './client-index.js';
 import { isInboundEvent } from './inbound-guards.js';
+import { planParkedRecovery } from '../workflow-sessions/parked-recovery.js';
 import type { LangflowerBridge } from './langflower-bridge.types.js';
 
 const publishWorkflowSessionCurrent = async (
@@ -195,6 +200,8 @@ export const wireRunnerHandlers = (
 			emitPermissionAccepted,
 			requestLangflowerBus,
 			liveWiredTools,
+			readBoundSessionUpload(session, workflowSessions),
+			stageBoundSessionUpload(session, workflowSessions),
 		);
 
 	// Exclusive start token: held across `await seedLiveContext` so a second
@@ -597,19 +604,47 @@ export const wireRunnerHandlers = (
 
 				// Cold-start (chat entry): seed context, start cluster, announce
 				// `runner.started`, then deliver the composer message.
+				//
+				// A reply to a gate that a restored session still shows as waiting
+				// recovers the run instead: same run id, work log kept, nodes restored
+				// from the session head. See planParkedRecovery.
 				if (wasIdle) {
-					const resolvedRunId = crypto.randomUUID() as RunId;
+					const recovery = planParkedRecovery(
+						session,
+						context.resolveDefinition,
+						String(pushPayload.nodeId),
+					);
+					if (recovery !== undefined) {
+						session.runtime.runner.seedEventLog(recovery.events);
+						session.feedMarkerRunId = recovery.runId;
+						session.feedPersistedEvents = recovery.events.length;
+					}
+					const resolvedRunId =
+						recovery?.runId ?? (crypto.randomUUID() as RunId);
 					const runId = await beginSeededRun({
 						resolvedRunId,
+						...(recovery !== undefined
+							? { clientSeeds: recovery.seeds }
+							: {}),
 						start: (seeds, id, nodeStates) =>
-							session.runtime.runner.startNode(
-								pushPayload.nodeId,
-								seeds,
-								id,
-								nodeStates === undefined
-									? undefined
-									: { nodeStates },
-							),
+							recovery !== undefined
+								? session.runtime.runner.resume({
+										runId: id,
+										completedNodeIds: [],
+										outputSnapshots: {},
+										initialPayload: seeds,
+										...(nodeStates !== undefined
+											? { nodeStates }
+											: {}),
+									})
+								: session.runtime.runner.startNode(
+										pushPayload.nodeId,
+										seeds,
+										id,
+										nodeStates === undefined
+											? undefined
+											: { nodeStates },
+									),
 						announce: (id) =>
 							bridgeEmit(bridge, 'runner.started', id),
 					});

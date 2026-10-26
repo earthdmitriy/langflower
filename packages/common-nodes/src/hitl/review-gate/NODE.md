@@ -24,18 +24,18 @@ the gate continues the reviewed value. Feed role on both outputs is
 
 ## Inputs
 
-| Port             | Type    | Notes                         |
-| ---------------- | ------- | ----------------------------- |
-| `result`         | string  | required text under review    |
-| `approve`        | boolean | hidden HITL Approve button    |
-| `requestChanges` | string  | hidden HITL feedback textarea |
+| Port             | Type                  | Notes                                           |
+| ---------------- | --------------------- | ----------------------------------------------- |
+| `result`         | string                | required text under review                      |
+| `approve`        | boolean               | hidden HITL Approve button                      |
+| `requestChanges` | `string \| user-turn` | hidden HITL feedback textarea; may attach files |
 
 ## Outputs
 
-| Port       | Type   | Notes                     |
-| ---------- | ------ | ------------------------- |
-| `response` | string | `result` after Approve    |
-| `feedback` | string | text from Request changes |
+| Port       | Type                  | Notes                                                               |
+| ---------- | --------------------- | ------------------------------------------------------------------- |
+| `response` | string                | `result` after Approve                                              |
+| `feedback` | `string \| user-turn` | text from Request changes; a user turn only when files are attached |
 
 ---
 

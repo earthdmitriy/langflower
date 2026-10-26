@@ -6,7 +6,11 @@
  *   node build/test.mjs              # quiet: prints "ok" or failed list
  *   node build/test.mjs --details    # live Vitest stream
  *   node build/test.mjs --unit
+ *   node build/test.mjs --docs-boundaries
  *   node build/test.mjs --integration
+ *
+ * The default runs all three projects, one after another: unit, then
+ * docs-boundaries, then integration. A task is done only after all three.
  *   node build/test.mjs --watch
  *   npm run test:details
  *
@@ -14,6 +18,8 @@
  * own loglevel flag and never forwards it to this script.
  */
 
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runMain } from './lib/run-step.mjs';
@@ -23,10 +29,48 @@ import { formatCommandError, formatSpawnError } from './lib/format-error.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONFIG = path.join(ROOT, 'vitest.config.mjs');
+// Tests write temp projects, custom-node bundles and git fixtures to the OS
+// temp dir. When that drive is nearly full those writes fail at random and the
+// suite flaps. Below MIN_FREE_BYTES the run uses a folder beside the repo
+// instead (outside it, so no repo scan or `node_modules` lookup sees it).
+// `LANGFLOWER_TEST_TMP` forces a folder.
+const MIN_FREE_BYTES = 2 * 1024 ** 3;
+
+const freeBytes = (dir) => {
+	try {
+		const stats = fs.statfsSync(dir);
+		return Number(stats.bavail) * Number(stats.bsize);
+	} catch {
+		return Number.POSITIVE_INFINITY;
+	}
+};
+
+function resolveTempEnv() {
+	const forced = process.env.LANGFLOWER_TEST_TMP;
+	const systemTmp = os.tmpdir();
+	const free = freeBytes(systemTmp);
+	const dir =
+		forced ??
+		(free < MIN_FREE_BYTES
+			? path.resolve(ROOT, '..', '.langflower-test-tmp')
+			: undefined);
+
+	if (dir === undefined) {
+		return {};
+	}
+
+	fs.mkdirSync(dir, { recursive: true });
+	process.stderr.write(
+		`test temp: ${dir} (system temp ${systemTmp} has ${Math.round(free / 1024 ** 2)} MB free)
+`,
+	);
+	return { TEMP: dir, TMP: dir, TMPDIR: dir };
+}
 
 const argv = process.argv.slice(2);
 const watch = argv.includes('--watch');
 const unitOnly = argv.includes('--unit');
+const docsOnly = argv.includes('--docs-boundaries');
 const integrationOnly = argv.includes('--integration');
 // `--verbose` is reserved by npm (`npm run test --verbose` → loglevel only).
 const details = argv.includes('--details') || process.env.BUILD_VERBOSE === '1';
@@ -38,6 +82,7 @@ const passthrough =
 const filteredArgv = scriptArgv.filter(
 	(arg) =>
 		arg !== '--unit' &&
+		arg !== '--docs-boundaries' &&
 		arg !== '--integration' &&
 		arg !== '--watch' &&
 		arg !== '--details',
@@ -50,12 +95,18 @@ function resolveProjects() {
 		return ['unit'];
 	}
 
+	if (docsOnly) {
+		return ['docs-boundaries'];
+	}
+
 	if (integrationOnly) {
 		return ['integration'];
 	}
 
-	return ['unit', 'integration'];
+	return ['unit', 'docs-boundaries', 'integration'];
 }
+
+const testTempEnv = resolveTempEnv();
 
 async function runProject(projectName) {
 	const subcommand = watch ? 'watch' : 'run';
@@ -76,7 +127,10 @@ async function runProject(projectName) {
 	const startedAt = Date.now();
 
 	try {
-		await runBin('vitest', args, { quiet });
+		await runBin('vitest', args, {
+			quiet,
+			env: testTempEnv,
+		});
 	} catch (result) {
 		if (result.error) {
 			throw formatSpawnError(result.error, `vitest:${projectName}`);
@@ -111,9 +165,11 @@ await runMain(async () => {
 				? 'Langflower — test (watch)'
 				: unitOnly
 					? 'Langflower — test (unit)'
-					: integrationOnly
-						? 'Langflower — test (integration)'
-						: 'Langflower — test (all)',
+					: docsOnly
+						? 'Langflower — test (docs-boundaries)'
+						: integrationOnly
+							? 'Langflower — test (integration)'
+							: 'Langflower — test (all)',
 		);
 	}
 

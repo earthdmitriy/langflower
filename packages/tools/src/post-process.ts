@@ -1,6 +1,8 @@
 import vm from 'node:vm';
 
-const DEFAULT_TIMEOUT_MS = 50;
+// Creating the VM context alone can take tens of ms on a loaded machine, so a
+// tight limit rejects honest scripts. This only has to stop an endless loop.
+const DEFAULT_TIMEOUT_MS = 500;
 const DEFAULT_MAX_OUTPUT_CHARS = 200_000;
 
 export type PostProcessOptions = {

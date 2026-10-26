@@ -220,6 +220,72 @@ describe('buildExecutionContext', () => {
 		expect(getRunHostServices(unset)?.agentsMarkdown).toBeUndefined();
 	});
 
+	it('resolves session-context toggles: environment and harness default on', async () => {
+		await fs.writeFile(
+			path.join(projectDir, 'README.md'),
+			'# Readme',
+			'utf8',
+		);
+		await fs.mkdir(path.join(projectDir, '.agents', 'skills', 'plan'), {
+			recursive: true,
+		});
+		await fs.writeFile(
+			path.join(projectDir, '.agents', 'skills', 'plan', 'SKILL.md'),
+			'---\nname: Plan\ndescription: Steps\n---\nBody',
+			'utf8',
+		);
+		const sessionContext = async (params: Record<string, unknown>) =>
+			(
+				(await buildExecutionContext(
+					{
+						projectDir,
+						resolveDefinition: resolveRequires(['promptContext']),
+						langflowerConfigService: new LangflowerConfigService(
+							projectDir,
+						),
+					},
+					'run-1',
+					{ id: 'node-1', type: 'common-openai-llm', params },
+				)) as {
+					readonly sessionContext?: {
+						readonly readmeMarkdown: string;
+						readonly environment: {
+							readonly workDir: string;
+							readonly date: string;
+						} | null;
+						readonly harness: boolean;
+						readonly skillCatalog: readonly {
+							readonly id: string;
+							readonly path: string;
+						}[];
+					};
+				}
+			).sessionContext;
+
+		const defaults = await sessionContext({});
+		expect(defaults?.harness).toBe(true);
+		expect(defaults?.environment?.workDir).toBe(projectDir);
+		expect(defaults?.environment?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+		expect(defaults?.readmeMarkdown).toBe('');
+		expect(defaults?.skillCatalog).toEqual([]);
+
+		const off = await sessionContext({
+			includeEnvironment: false,
+			includeHarness: false,
+		});
+		expect(off?.harness).toBe(false);
+		expect(off?.environment).toBeNull();
+
+		const on = await sessionContext({
+			includeReadme: true,
+			includeSkillList: true,
+		});
+		expect(on?.readmeMarkdown).toBe('# Readme');
+		expect(on?.skillCatalog.map((entry) => [entry.id, entry.path])).toEqual(
+			[['plan', '.agents/skills/plan/SKILL.md']],
+		);
+	});
+
 	it('attaches empty agentsMarkdown omission when file missing and toggle on', async () => {
 		const ctx = await buildExecutionContext(
 			{

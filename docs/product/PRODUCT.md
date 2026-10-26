@@ -160,7 +160,10 @@ UX is not inlined here. Global config and the Settings dual path landed
 - Continuing an in-flight run after the Langflower process dies. Reopening
   the app restores the workflow-session tab, so the conversation is still
   there. HITL and Memory are not stored inside a session-point payload.
-- Image / video asset management for multimodal models
+- An asset gallery, and video. A chat turn can attach png, jpeg, gif,
+  webp, wav, mp3, or pdf (Chat Input, Chat Loop, Steer, or `read` of
+  those extensions). Other types are not uploaded. See
+  [turn attachments](use-cases/turn-attachments.md)
 - Built-in IDE or git UI (use tools you already have)
 - Sandboxed user-node execution (deferred)
 - Replacing OpenCode config/tools 1:1 for compatibility’s sake

@@ -624,7 +624,10 @@ provider boundary itself is under test; that is separate from
 
 Wire types are declared by node/runtime port metadata. Add a new semantic wire
 type only when a concrete node needs it and update every connection-validation
-boundary in the same change.
+boundary in the same change. A port may also declare a **list** of wire
+types (a union): an edge connects when the two sides share a member, and the
+canvas shows `string | user-turn`
+([ADR-043](../../adr/043-union-wire-types-connect-on-a-shared-member.md)).
 
 | Type                | Use                                                   |
 | ------------------- | ----------------------------------------------------- |

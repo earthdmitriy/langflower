@@ -28,10 +28,11 @@ import {
 	ComposerService,
 } from '../composer.service';
 import { WorkflowExecutionService } from '../../../services/workflow-execution.service';
-import { resolveComposerEnterPayload } from '../hitl-action-payload';
+import { resolveComposerActionPayload } from '../hitl-action-payload';
 import { showSessionConversationReset } from '../composer-awaiting-node-ids';
 import { resolveComposerFooterMode } from '../composer-footer-mode';
 import { LfHitlActionsComponent } from './lf-hitl-actions.component';
+import { LfAttachButtonComponent } from './lf-attach-button.component';
 import { LfHitlTextareaComponent } from './lf-hitl-textarea.component';
 import { ContinueButtonComponent } from './continue-button.component';
 import { PauseButtonComponent } from './pause-button.component';
@@ -52,6 +53,7 @@ import { RunButtonComponent } from './run-button.component';
 		RunButtonComponent,
 		PauseButtonComponent,
 		ContinueButtonComponent,
+		LfAttachButtonComponent,
 		LfHitlTextareaComponent,
 		LfHitlActionsComponent,
 		LfHoverTipComponent,
@@ -101,6 +103,7 @@ import { RunButtonComponent } from './run-button.component';
 						[nodeId]="ask.nodeId"
 						[portId]="askUserPortId"
 						[config]="askUserTextareaConfig"
+						[acceptsFiles]="true"
 						(enterActivate)="onEnterActivate()"
 					/>
 				</div>
@@ -160,6 +163,7 @@ import { RunButtonComponent } from './run-button.component';
 						[nodeId]="ta.nodeId"
 						[portId]="ta.portId"
 						[config]="ta.config"
+						[acceptsFiles]="showAttach()"
 						[padTopForTabs]="showTabs()"
 						(enterActivate)="onEnterActivate()"
 					/>
@@ -219,6 +223,12 @@ import { RunButtonComponent } from './run-button.component';
 								@if (execution.isRunning()) {
 									<lf-run-button [compact]="true" />
 								}
+								@if (showAttach()) {
+									<lf-attach-button
+										class="ml-auto"
+										(picked)="onAttachPicked($event)"
+									/>
+								}
 								<lf-hover-tip
 									[tip]="
 										canSubmitAskUser(ask)
@@ -228,7 +238,7 @@ import { RunButtonComponent } from './run-button.component';
 								>
 									<button
 										type="button"
-										class="lf-composer-pill ml-auto border border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+										class="lf-composer-pill border border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
 										[disabled]="!canSubmitAskUser(ask)"
 										(click)="onAskUserSubmit(ask)"
 									>
@@ -292,6 +302,11 @@ import { RunButtonComponent } from './run-button.component';
 							<div
 								class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2"
 							>
+								@if (showAttach()) {
+									<lf-attach-button
+										(picked)="onAttachPicked($event)"
+									/>
+								}
 								<lf-continue-button [compact]="true" />
 								@if (
 									hitlReplyActionsForActiveTab().length > 0
@@ -327,6 +342,14 @@ import { RunButtonComponent } from './run-button.component';
 					}
 				}
 			</div>
+			@if (composer.uploadError(); as uploadMessage) {
+				<p
+					class="absolute bottom-14 left-3 right-3 z-[4] text-[11px] leading-4 text-rose-700 dark:text-rose-300"
+					role="alert"
+				>
+					{{ uploadMessage }}
+				</p>
+			}
 			@if (pendingReset()) {
 				<div
 					class="absolute bottom-16 left-3 z-20 w-72 rounded-lg border border-zinc-200 bg-white p-4 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
@@ -475,6 +498,29 @@ export class LfComposerShellComponent {
 
 	readonly showTabs = computed(() => this.hitlTabs().length > 1);
 
+	/**
+	 * Where attached files go: the pending `ask_user` reply, else the
+	 * active HITL textarea. Only a textarea that takes files.
+	 */
+	readonly attachTarget = computed<HitlControlProjection | null>(() => {
+		const ask = this.activeAskUser();
+		if (ask !== null) {
+			return {
+				nodeId: ask.nodeId,
+				portId: ASK_USER_COMPOSER_PORT_ID,
+				config: ASK_USER_TEXTAREA_CONFIG,
+				acceptsFiles: true,
+			};
+		}
+		const textarea = this.activeHitlTextarea();
+		return textarea !== null &&
+			this.composer.showsComposerAttachments(textarea)
+			? textarea
+			: null;
+	});
+
+	readonly showAttach = computed(() => this.attachTarget() !== null);
+
 	readonly footerMode = computed(() =>
 		resolveComposerFooterMode({
 			hasPermissionAsk: this.activePermissionAsk() !== null,
@@ -533,11 +579,15 @@ export class LfComposerShellComponent {
 		if (rightmost === null) {
 			return;
 		}
+		if (rightmost.config.kind === 'textarea') {
+			this.composer.submitTextarea(rightmost, 'enter');
+			return;
+		}
 		const draft = this.composer.composerText(
 			rightmost.nodeId,
 			rightmost.portId,
 		);
-		const resolved = resolveComposerEnterPayload(rightmost, draft);
+		const resolved = resolveComposerActionPayload(rightmost, draft);
 		if (!resolved.ok) {
 			return;
 		}
@@ -546,6 +596,14 @@ export class LfComposerShellComponent {
 			rightmost.portId,
 			resolved.payload,
 		]);
+	}
+
+	onAttachPicked(picked: readonly File[]): void {
+		const target = this.attachTarget();
+		if (target === null) {
+			return;
+		}
+		this.composer.addAttachments(target.nodeId, target.portId, picked);
 	}
 
 	onPermissionReply(

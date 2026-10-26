@@ -41,7 +41,15 @@ header → sidebar returns to the feed work log.
 palette hover popover), input ports (wired and unwired), inline editors
 where declared, panel `uiSchema` fields (including config-backed
 provider/model dropdowns), read-only cached outputs from the last run when
-present. Multiline textareas can be dragged taller (`resize: vertical`;
+present. Panel fields can be sectioned: a `uiSchema` item with
+`group: { label, collapsed?, order? }` lands in an accordion section (native
+`<details>`), unmarked items form an always-open **General** section, and
+`collapsed: true` starts the section closed (LLM nodes ship Limits,
+Compaction and Recovery collapsed; Tools and Session context open). `order`
+arranges groups (lower first, ties keep declaration order; General is always
+first), and LLM nodes place every open group above every collapsed one. A node with no groups shows a plain list
+without headers. Open/closed state is ephemeral and resets when another node
+is selected. Multiline textareas can be dragged taller (`resize: vertical`;
 height is ephemeral, not persisted). Multiline and markdown fields, both
 panel parameters and unwired input ports, show an **Expand** control that
 opens a tall editor (max width 700px). Typing there emits the same
@@ -64,6 +72,8 @@ clients; this UI does not send them.
 - Right sidebar mode switching (work log vs node params) and file map:
   [packages/ui/docs/DIAGRAM_CANVAS.md](../../../packages/ui/docs/DIAGRAM_CANVAS.md)
   § Right sidebar.
+- Panel field grouping: `packages/ui/src/app/features/sidebar/group-panel-rows.ts`
+  (`UISchemaGroup` from `@langflower/node-sdk/create-typed-ui-schema`).
 - Inspector panel:
   `packages/ui/src/app/features/sidebar/components/lf-inspector-panel.component.ts`.
 - Feed (sibling surface when nothing is selected): [feed-panel.md](feed-panel.md).

@@ -1,3 +1,4 @@
+import type { HitlUploadedFile } from '../define-reactive-node/hitl-config.js';
 import type { PortMeta } from '../define-reactive-node/port-meta.js';
 import type { StatefulObservable } from '@rx-evo/stateful-observable';
 import type { ToolHandle } from '../define-tool-registrations/tool-handle.js';
@@ -23,6 +24,18 @@ export const LLM_INVENTORY_INPUT_PORT_IDS = [
 
 export const LLM_INVENTORY_OUTPUT_PORT_IDS = ['toolLog', 'recovery'] as const;
 
+/**
+ * `toolLog` port value. A string is the text line. When a tool call staged
+ * files (`read` of an image, or an `ask_user` reply with attachments), the
+ * same line rides on `text` and the refs ride on `files`.
+ */
+export type ToolLogFeedValue =
+	| string
+	| {
+			readonly text: string;
+			readonly files: readonly HitlUploadedFile[];
+	  };
+
 export type LlmInventoryInputs = {
 	readonly tools: InputConfig;
 	/** Soft Pause / Steer (ADR-032) — hidden + HITL textarea. */
@@ -33,7 +46,7 @@ export type LlmInventoryInputs = {
 
 export type LlmInventoryOutputStreams = {
 	readonly toolLog$: StatefulObservable<
-		string,
+		ToolLogFeedValue,
 		unknown,
 		PortMeta | undefined
 	>;

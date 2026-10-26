@@ -46,3 +46,5 @@
 | [ADR-040](040-workflow-sessions-own-points.md)                             | Workflow sessions own points                                               | current    | docs    |            |
 | [ADR-041](041-a-differing-session-is-a-mark-not-a-graph-copy.md)           | A differing session is a mark, not a graph copy                            | current    | docs    |            |
 | [ADR-042](042-runtime-editor-runner.md)                                    | ADR: Runtime editor/runner split                                           | current    | runtime |            |
+| [ADR-043](043-union-wire-types-connect-on-a-shared-member.md)              | ADR: Union wire types connect on a shared member                           | current    | runtime |            |
+| [ADR-044](044-a-reply-to-a-parked-gate-recovers-the-run.md)                | ADR: A reply to a parked gate recovers the run                             | current    | docs    |            |

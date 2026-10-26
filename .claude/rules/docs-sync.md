@@ -1,0 +1,25 @@
+# Docs sync
+
+Start at the router [docs/README.md](../../docs/README.md) and
+[DOC_MAP](../../docs/architecture/DOC_MAP.md). Do not grep `docs/` blind.
+
+Do not search these by default:
+
+- `docs/_archive/`
+- `docs/_work/`
+- `.langflower/memory/`
+
+A `DOC REMINDER` from `tests/unit/docs-boundaries` is a task. Update the
+named doc, or add a `Docs: none — <reason>` trailer when behaviour and
+contracts are unchanged, then rerun. Do not silence a rule, narrow
+`covers`, skip the test, or delete a doc to turn the suite green.
+
+New ADRs and bugs are new files from the templates in
+[writing-docs](../../docs/guides/writing-docs.md). Do not edit generated
+files (`docs/adr/README.md`, `docs/bugs/README.md`,
+`docs/architecture/DOC_MAP.md`, and the package-local registry in
+`docs/README.md`). Run `node build/tools/agent-run.mjs docs-gen` before
+finishing a docs change.
+
+Do not add a new markdown file directly in `docs/`. Only `docs/README.md`
+lives there.

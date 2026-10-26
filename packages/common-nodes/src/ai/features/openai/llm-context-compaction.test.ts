@@ -98,6 +98,7 @@ describe('compactMessagesWithSummary', () => {
 			result.messages.some(
 				(message) =>
 					message.role === 'user' &&
+					typeof message.content === 'string' &&
 					message.content.startsWith(
 						'## Compacted conversation context\n',
 					),
@@ -263,6 +264,71 @@ describe('compactMessagesWithSummary', () => {
 
 		expect(result.ok).toBe(true);
 		expect(calls).toBe(2);
+	});
+
+	it('names a non-text part in the summary and omits the bytes', async () => {
+		const fixture = Uint8Array.from([9, 8, 7, 6, 5]);
+		const encoded = btoa(String.fromCharCode(...Array.from(fixture)));
+		const factoryCalls: {
+			readonly messages: readonly {
+				readonly role: string;
+				readonly content: string | { readonly text: string };
+			}[];
+		}[] = [];
+		const factory: CreateChatCompletionStream = async (args) => {
+			factoryCalls.push({
+				messages: args.messages.map((message) => ({
+					role: message.role,
+					content:
+						typeof message.content === 'string'
+							? message.content
+							: message.content.text,
+				})),
+			});
+			return (async function* () {
+				yield { kind: 'done' as const, text: 'summary of the picture' };
+			})();
+		};
+
+		const result = await compactMessagesWithSummary({
+			factory,
+			providerId: 'p',
+			model: 'm',
+			messages: [
+				{ role: 'system', content: 'You are helpful.' },
+				{ role: 'assistant', content: longText(800) },
+				{
+					role: 'user',
+					content: {
+						text: 'what is in the picture?',
+						files: [
+							{
+								fileId: 'file-1',
+								name: 'pixel.png',
+								mimeType: 'image/png',
+								size: fixture.byteLength,
+							},
+						],
+					},
+				},
+				{ role: 'user', content: 'CURRENT_TASK' },
+			],
+			tools: [],
+			targetTokens: 400,
+		});
+
+		expect(result.ok).toBe(true);
+		expect(factoryCalls).toHaveLength(1);
+		const summary = factoryCalls[0]?.messages.find(
+			(message) => message.role === 'user',
+		);
+		expect(typeof summary?.content).toBe('string');
+		const text = String(summary?.content);
+		expect(text).toContain('what is in the picture?');
+		expect(text).toContain('pixel.png (image/png)');
+		expect(text).not.toContain('data:');
+		expect(text).not.toContain(encoded);
+		expect(text).not.toContain('file-1');
 	});
 
 	it('fails when required payload alone exceeds budget', async () => {

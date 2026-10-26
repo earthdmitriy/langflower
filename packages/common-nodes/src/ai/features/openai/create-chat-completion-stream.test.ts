@@ -95,4 +95,39 @@ describe('createChatCompletionStream', () => {
 
 		expect(seen).toEqual(['openai']);
 	});
+
+	it('rejects a missing upload before the provider call', async () => {
+		const factory = createChatCompletionStream({
+			resolveProvider: async () => ({ apiKey: 'test' }),
+			readSessionUpload: async () => ({
+				ok: false,
+				message: 'Upload was not found',
+			}),
+		});
+
+		await expect(
+			factory({
+				providerId: 'openai',
+				model: 'gpt-4o-mini',
+				messages: [
+					{
+						role: 'user',
+						content: {
+							text: 'what is this?',
+							files: [
+								{
+									fileId: 'missing',
+									name: 'pixel.png',
+									mimeType: 'image/png',
+									size: 1,
+								},
+							],
+						},
+					},
+				],
+			}),
+		).rejects.toThrow(
+			'Missing uploaded file "pixel.png" (missing): Upload was not found',
+		);
+	});
 });

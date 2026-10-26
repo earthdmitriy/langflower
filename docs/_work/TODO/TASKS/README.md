@@ -13,4 +13,6 @@ Each file is a filled specification: summary, guardrails, mechanics, and
 the verification gate. When a task lands, delete it here and clear the
 matching use-case or STATUS row. Do not move it to DONE/EPICS.
 
-No tasks queued.
+| Task                                                            | Scope                                                     |
+| --------------------------------------------------------------- | --------------------------------------------------------- |
+| [Harness shell and file tools](harness-shell-and-file-tools.md) | `bash` / `grep` / `glob` defects observed while authoring |

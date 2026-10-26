@@ -210,6 +210,10 @@ describe('common-openai-llm', () => {
 		);
 
 		expect(captured).toHaveLength(1);
+		expect(captured[0]?.messages[1]).toEqual({
+			role: 'user',
+			content: 'Write a haiku',
+		});
 		expect(captured[0]?.providerId).toBe('openai');
 		expect(captured[0]?.model).toBe('gpt-4o-mini');
 		expect(captured[0]?.reasoning_effort).toBeUndefined();
@@ -600,6 +604,10 @@ describe('common-openai-llm', () => {
 			'reasoningEffort',
 			'skillId',
 			'includeAgentsMd',
+			'includeReadme',
+			'includeEnvironment',
+			'includeHarness',
+			'includeSkillList',
 			'toolPermissions',
 			'enabledMcpIds',
 			'maxIterations',

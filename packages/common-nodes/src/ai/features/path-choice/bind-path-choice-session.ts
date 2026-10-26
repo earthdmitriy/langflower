@@ -29,6 +29,7 @@ import {
 	PATH_CHOICE_MAX_ITERATIONS_CAP,
 	normalizeMaxIterations,
 } from '../prompt/normalize-max-iterations.js';
+import { toolLogPortValue } from '../llm-loop/run-llm-loop.js';
 import {
 	runPathChoiceToolLoop,
 	type ReviewLoopChunk,
@@ -248,10 +249,10 @@ export const bindPathChoiceSession = (
 		),
 	);
 	const toolLog$ = cycle$.pipeValue(
-		demuxByKind(
-			'toolLog',
-			(chunk) =>
-				(chunk as Extract<PathChoiceChunk, { kind: 'toolLog' }>).text,
+		demuxByKind('toolLog', (chunk) =>
+			toolLogPortValue(
+				chunk as Extract<PathChoiceChunk, { kind: 'toolLog' }>,
+			),
 		),
 	);
 	const recovery$ = cycle$.pipeValue(

@@ -1,0 +1,15 @@
+---
+paths:
+    - 'packages/shared/**'
+---
+
+# Shared package
+
+- **Public API:** no `index.ts` barrel; export concrete modules via `package.json`
+  `exports`.
+- **No I/O** — no express, angular, fs imports.
+- **`canConnectPorts`** — single implementation in `validators/connection-validator.ts`.
+- All interfaces: `readonly` properties.
+- **WebSocket bus:** `langflower-bus-config.ts` may import runtime types by design;
+  this is an internal co-versioned protocol, not a public stable API.
+- See `packages/shared/AGENTS.md` and `docs/architecture/NAVIGATION.md`.

@@ -41,7 +41,7 @@ On failure scripts print:
 ### Test failures (Vitest)
 
 Parsed from `FAIL  path > suite > test` blocks and `AssertionError` lines.
-Re-run a single suite: `node build/test.mjs --unit` or `node build/test.mjs --integration`.
+Re-run a single suite: `node build/test.mjs --unit`, `--docs-boundaries`, or `--integration`. The default runs all three in that order.
 
 ## Dev workflow (tests)
 

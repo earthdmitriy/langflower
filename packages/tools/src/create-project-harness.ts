@@ -1,3 +1,4 @@
+import type { HitlUploadedFile } from '@langflower/node-sdk';
 import {
 	BUILTIN_REGISTRATIONS,
 	BUILTIN_TOOL_IDS,
@@ -24,7 +25,12 @@ import {
 export type { Harness, ToolInvokeCall, ToolInvokeResult };
 export type { BuiltinToolRegistration } from './harness-types.js';
 export type { PermissionAskRequest, PermissionConfig };
-export type { AskUserRequest } from './builtins/types.js';
+export type {
+	AskUserAnswer,
+	AskUserRequest,
+	StageSessionUpload,
+	StageSessionUploadInput,
+} from './builtins/types.js';
 
 export type CreateHarnessOptions = {
 	readonly projectRoot: string;
@@ -53,6 +59,10 @@ export type CreateHarnessOptions = {
 	 * Called by the `ask_user` builtin. Missing hook → invoke fails closed.
 	 */
 	readonly askUser?: HandlerContext['askUser'];
+	/**
+	 * Called by an in-scope media `read`. Missing hook → that read fails closed.
+	 */
+	readonly stageSessionUpload?: HandlerContext['stageSessionUpload'];
 };
 
 /**
@@ -69,6 +79,9 @@ export const createProjectHarness = (
 		allowedRoots: options.allowedRoots ?? [],
 		bashEnabled: options.bashEnabled === true,
 		...(options.askUser !== undefined ? { askUser: options.askUser } : {}),
+		...(options.stageSessionUpload !== undefined
+			? { stageSessionUpload: options.stageSessionUpload }
+			: {}),
 	};
 	const permission: PermissionConfig = {
 		...DEFAULT_PERMISSION_CONFIG,
@@ -129,16 +142,36 @@ export const createProjectHarness = (
 			}
 
 			try {
-				const invokeCtx: HandlerContext =
-					call.signal === undefined
-						? ctx
-						: { ...ctx, signal: call.signal };
+				const stagedFiles: HitlUploadedFile[] = [];
+				const stage = ctx.stageSessionUpload;
+				const invokeCtx: HandlerContext = {
+					...ctx,
+					...(call.signal !== undefined
+						? { signal: call.signal }
+						: {}),
+					...(stage !== undefined
+						? {
+								stageSessionUpload: async (input) => {
+									const file = await stage(input);
+									stagedFiles.push(file);
+									return file;
+								},
+							}
+						: {}),
+					recordStagedFiles: (files) => {
+						stagedFiles.push(...files);
+					},
+				};
 				const text = await invokeBuiltin(
 					toolId as BuiltinToolId,
 					invokeCtx,
 					call.args,
 				);
-				return { ok: true, text };
+				return {
+					ok: true,
+					text,
+					...(stagedFiles.length > 0 ? { stagedFiles } : {}),
+				};
 			} catch (error) {
 				const text =
 					error instanceof Error ? error.message : String(error);

@@ -1,5 +1,6 @@
 import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import type { HitlInputConfig } from '@langflower/node-sdk';
+import { wireTypeList } from '@langflower/runtime';
 import {
 	STEER_CONTROL_PORT_ID,
 	isSteerControlContinue,
@@ -11,6 +12,11 @@ export type HitlControlProjection = {
 	readonly nodeId: string;
 	readonly portId: string;
 	readonly config: HitlInputConfig;
+	/**
+	 * The textarea takes files next to the text: its input accepts a
+	 * `user-turn`, or it is Steer.
+	 */
+	readonly acceptsFiles?: boolean;
 };
 
 type PortInputConfig = PaletteNodeDefinition['inputsConfigs'][number];
@@ -37,6 +43,12 @@ export const hitlControlsForNode = (
 			nodeId,
 			portId: entry.portId,
 			config: entry.hitl,
+			acceptsFiles:
+				entry.portId === STEER_CONTROL_PORT_ID ||
+				(typeof entry.wireType !== 'symbol' &&
+					wireTypeList(entry.wireType ?? 'any').includes(
+						'user-turn',
+					)),
 		}));
 };
 

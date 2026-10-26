@@ -15,7 +15,7 @@ them running when you finish a task.
 - **Do not** start the dev server in the **background** unless the user explicitly
   asks to keep it running for manual testing.
 - Prefer **one-shot verification** that exits on its own:
-  - `node build/tools/agent-run.mjs verify` — build + unit + integration (~1 min);
+  - `node build/tools/agent-run.mjs verify` — build + unit + docs-boundaries + integration (~1 min);
     this is the close-out gate
   - `node build/tools/agent-run.mjs verify --quick` — build + unit only
     (intermediate; not enough to mark a feature done)

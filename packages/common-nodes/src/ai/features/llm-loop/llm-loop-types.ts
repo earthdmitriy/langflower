@@ -1,3 +1,4 @@
+import type { HitlUploadedFile } from '@langflower/node-sdk';
 import type {
 	ChatCompletionMessage,
 	ChatCompletionToolCall,
@@ -57,6 +58,11 @@ export type LlmLoopState = {
 		readonly toolCalls?: readonly ChatCompletionToolCall[];
 	};
 	readonly pendingToolCalls: readonly ChatCompletionToolCall[];
+	/**
+	 * Uploads staged by tool calls in the open round. Flushed into one
+	 * following user message when the round's tool results are all in.
+	 */
+	readonly stagedToolFiles: readonly HitlUploadedFile[];
 	readonly autokickAttempts: number;
 	/** Kick-mode autokicks only; HTTP join does not bump penalties. */
 	readonly autokickKickAttempts: number;
@@ -89,6 +95,8 @@ export type LlmLoopAction =
 			readonly type: 'tool.completed';
 			readonly call: ChatCompletionToolCall;
 			readonly result: string;
+			/** Staged by this call. Omitted when the tool returned text only. */
+			readonly files?: readonly HitlUploadedFile[];
 	  }
 	| { readonly type: 'retry.scheduled' }
 	| {
@@ -97,7 +105,12 @@ export type LlmLoopAction =
 			readonly kickUserMessage?: string;
 			readonly atMs: number;
 	  }
-	| { readonly type: 'steer.received'; readonly text?: string }
+	| {
+			readonly type: 'steer.received';
+			readonly text?: string;
+			/** Omitted or empty keeps a text user turn. */
+			readonly files?: readonly HitlUploadedFile[];
+	  }
 	| { readonly type: 'round.completed' }
 	| { readonly type: 'failure.fatal'; readonly failure: LlmFailure }
 	| { readonly type: 'cancel.requested' };
@@ -179,6 +192,7 @@ export const initialLlmLoopState = (
 		draft: '',
 	},
 	pendingToolCalls: [],
+	stagedToolFiles: [],
 	autokickAttempts: 0,
 	autokickKickAttempts: 0,
 });

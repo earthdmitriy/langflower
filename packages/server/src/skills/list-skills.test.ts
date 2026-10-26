@@ -43,6 +43,7 @@ Body
 				id: 'plan',
 				name: 'Plan',
 				description: 'Planning skill',
+				path: '.langflower/skills/plan/SKILL.md',
 			},
 		]);
 	});
@@ -55,6 +56,39 @@ Body
 				id: 'explorer',
 				name: 'explorer',
 				description: 'First catalog line from the body.',
+				path: '.langflower/skills/explorer/SKILL.md',
+			},
+		]);
+	});
+
+	it('also lists skills from .agents/skills and lets .langflower win on id clash', async () => {
+		await writeSkill('plan', '---\nname: Local plan\n---\nBody');
+		const agentsDir = path.join(projectDir, '.agents', 'skills');
+		await fs.mkdir(path.join(agentsDir, 'plan'), { recursive: true });
+		await fs.mkdir(path.join(agentsDir, 'shared'), { recursive: true });
+		await fs.writeFile(
+			path.join(agentsDir, 'plan', 'SKILL.md'),
+			'---\nname: Shared plan\n---\nBody',
+			'utf8',
+		);
+		await fs.writeFile(
+			path.join(agentsDir, 'shared', 'SKILL.md'),
+			'---\nname: Shared\ndescription: From agents\n---\nBody',
+			'utf8',
+		);
+
+		await expect(listSkills(projectDir)).resolves.toEqual([
+			{
+				id: 'plan',
+				name: 'Local plan',
+				description: 'Body',
+				path: '.langflower/skills/plan/SKILL.md',
+			},
+			{
+				id: 'shared',
+				name: 'Shared',
+				description: 'From agents',
+				path: '.agents/skills/shared/SKILL.md',
 			},
 		]);
 	});

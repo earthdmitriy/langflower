@@ -58,7 +58,9 @@ Config format and `{env:}` contract: [CONFIG.md](CONFIG.md).
 
 ## Skills catalog (phase 2)
 
-Skills live on disk under `<project>/.langflower/skills/<id>/SKILL.md`. They are
+Skills live on disk under `<project>/.langflower/skills/<id>/SKILL.md` or
+`<project>/.agents/skills/<id>/SKILL.md`; when an id exists in both, the
+`.langflower` copy wins. They are
 **not** written to `langflower.jsonc` — the server projects a read-only catalog
 into bridge snapshots at connect / reconnect.
 
@@ -110,11 +112,32 @@ skills and attaches `agentsMarkdown` on the private run-host bag. Missing or
 unreadable files yield an empty body (no crash). The file body is **never**
 sent on the bridge catalog.
 
+### Session-start context toggles
+
+The same nodes expose a **Session context** Inspector group. Each boolean adds
+one block to the effective system prompt when a new session starts:
+
+| Param                | Default | Block                                                               |
+| -------------------- | ------- | ------------------------------------------------------------------- |
+| `includeAgentsMd`    | `false` | project-root `AGENTS.md` body                                       |
+| `includeReadme`      | `false` | project-root `README.md` body                                       |
+| `includeEnvironment` | `true`  | OS, working directory, date (fixed once per run)                    |
+| `includeHarness`     | `true`  | static note: graph harness, multi-agent, HITL and review gates      |
+| `includeSkillList`   | `false` | every skill as id, name, description and project-relative file path |
+
+Nodes saved before these toggles existed have no param, so `includeEnvironment`
+and `includeHarness` apply unless set to `false`. Missing files yield empty
+blocks.
+
 Merge order for the effective system prompt:
 
 ```text
 base (wired systemPrompt OR role preset default)
   → AGENTS.md body (when includeAgentsMd and non-empty)
+  → README.md body (when includeReadme and non-empty)
+  → environment (when includeEnvironment)
+  → harness note (when includeHarness)
+  → skill list (when includeSkillList and any skills exist)
   → skill markdown (when resolved skill non-empty)
 ```
 
@@ -141,7 +164,7 @@ Skills catalog (id, name, short description) rides on `langflower.config.snapsho
 and `session.state.snapshot.langflowerConfig` after provider redaction. There are
 **no** `skills.*` bus events and **no** full skill body on the bridge.
 
-## Agent session semantics (text-only)
+## Agent session semantics
 
 See [ADR-016](../adr/016-llm-session-init-vs-feedback-turns.md).
 
@@ -167,8 +190,13 @@ OpenAI, Fake, Review, and Critique return a `NodeStateHook` from
 completes (not on error or Stop mid-turn). A workflow session stores that
 JSON and passes it back as `restore` on the next Run, so the transcript
 survives a process restart. OpenAI and Fake append the new `userPrompt` to
-the stored history. Review and Critique keep the stored history and wait for
-the next turn input. `feedbackTurns` is a per-run budget and is not stored.
+the stored history. A `user-turn` on `userPrompt` stores that turn (text and file
+ids) instead of a bare string. The bytes stay on disk under the session
+uploads directory; history does not store base64. Chat Input `message`
+and Chat Loop `feedback` are wire type `user-turn`. `userPrompt` and
+`feedback` accept `string | user-turn`. Review and Critique keep the
+stored history and wait for the next turn input. They do not take
+a `user-turn`. `feedbackTurns` is a per-run budget and is not stored.
 **Reset session on input** (`resetSessionOnInput`, default off) is a panel
 param on those four nodes only: the next run replaces history with a fresh
 prelude when a non-blank turn input arrives. It does not clear the work log.

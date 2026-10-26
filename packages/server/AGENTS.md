@@ -40,7 +40,13 @@ Normative ownership: [ADR-014](../../docs/adr/014-project-root-harness-i-o.md),
 [PRINCIPLES.md § Thin server](../../docs/architecture/PRINCIPLES.md#thin-server--do-not-grow-domain-here).
 
 All application network I/O goes through `@langflower/websocket-bridge`.
-HTTP serves the UI shell only.
+HTTP serves the UI shell and two
+[ADR-012](../../docs/adr/012-internal-websocket-bus-rest-for-bulk-escape-hatches.md)
+bulk hatches: `POST /api/session-uploads` and
+`GET /api/session-uploads/:fileId`. Those bytes do not ride the WebSocket.
+Skeleton workflows that start from Chat Input wire `message` to `userPrompt`.
+Chat Loop `feedback` wires to `feedback`. Both LLM ports accept
+`string | user-turn`.
 
 ## Entry
 
@@ -71,6 +77,7 @@ src/
 │   harness/pending-ask-user-asks.ts    # WS ask_user HITL only
 ├── checkpoint/                      # boundary resolver + run progress; no file store
 ├── workflow-sessions/               # `.langflower/sessions/` files, actions, autosave
+├── api/                             # ADR-012 bulk hatches (`session-upload-routes.ts`)
 ├── bootstrap/
 ├── config/
 ├── session/

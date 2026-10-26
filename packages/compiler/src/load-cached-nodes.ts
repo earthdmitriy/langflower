@@ -63,6 +63,9 @@ export const loadBundledDefault = async (
 				projectDir,
 			),
 		};
+	} finally {
+		// The module is loaded; the temp copy has no further use.
+		await fs.rm(loadFile, { force: true });
 	}
 };
 

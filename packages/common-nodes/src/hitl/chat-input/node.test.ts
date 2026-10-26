@@ -13,6 +13,16 @@ describe('common-chat-input', () => {
 			(entry) => entry.portId === 'message',
 		);
 
+		expect(
+			chatInputNode.outputsConfigs.find(
+				(entry) => entry.portId === 'message',
+			)?.wireType,
+		).toEqual(['string', 'user-turn']);
+		expect(
+			chatInputNode.outputsConfigs.find(
+				(entry) => entry.portId === 'text',
+			)?.wireType,
+		).toBe('string');
 		expect(messageMeta?.hidden).toBe(true);
 		expect(messageMeta?.inline).toBe('text-multiline');
 		expect(messageMeta?.hitl?.kind).toBe('textarea');
@@ -122,5 +132,36 @@ describe('common-chat-input', () => {
 		});
 
 		expect(runtime.runner.start()).toBe(false);
+	});
+
+	it('keeps a message with no files a plain string and passes a user turn with files through', async () => {
+		const asString = chatInputNode.getInstance();
+		asString.inputs.message.connect(of('plain'));
+		await expect(
+			firstValueFrom(asString.outputs.message.value$),
+		).resolves.toBe('plain');
+		await expect(
+			firstValueFrom(asString.outputs.text.value$),
+		).resolves.toBe('plain');
+
+		const turn = {
+			text: 'what is this?',
+			files: [
+				{
+					fileId: 'file-1',
+					name: '1.png',
+					mimeType: 'image/png',
+					size: 4,
+				},
+			],
+		};
+		const asTurn = chatInputNode.getInstance();
+		asTurn.inputs.message.connect(of(turn));
+		await expect(
+			firstValueFrom(asTurn.outputs.message.value$),
+		).resolves.toEqual(turn);
+		await expect(firstValueFrom(asTurn.outputs.text.value$)).resolves.toBe(
+			'what is this?',
+		);
 	});
 });

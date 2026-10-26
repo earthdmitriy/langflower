@@ -1,4 +1,4 @@
-import type { ToolHandle } from '@langflower/node-sdk';
+import type { HitlUploadedFile, ToolHandle } from '@langflower/node-sdk';
 import { isBuiltinToolId } from '@langflower/tools/create-project-harness';
 import { formatPermissionDeniedText } from '@langflower/tools/permission';
 import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
@@ -56,6 +56,8 @@ const findToolHandle = (
 export type InventoryToolResult = {
 	readonly ok: boolean;
 	readonly text: string;
+	/** Session uploads staged by this invoke. Absent for a text result. */
+	readonly files?: readonly HitlUploadedFile[];
 };
 
 export type PreparedInventoryInvoke = {
@@ -141,9 +143,19 @@ export const prepareInventoryTool = async (
 export const invokePreparedInventoryTool = async (
 	prepared: PreparedInventoryInvoke,
 ): Promise<InventoryToolResult> => {
+	const staged: { files: HitlUploadedFile[] } = { files: [] };
+	const ctx = {
+		...prepared.ctx,
+		stagedSessionUpload: staged,
+	};
+
 	try {
-		const text = await prepared.handle.invoke(prepared.args, prepared.ctx);
-		return { ok: true, text };
+		const text = await prepared.handle.invoke(prepared.args, ctx);
+		return {
+			ok: true,
+			text,
+			...(staged.files.length > 0 ? { files: staged.files } : {}),
+		};
 	} catch (error) {
 		return {
 			ok: false,

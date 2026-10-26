@@ -140,8 +140,11 @@ port can never emit again. Feed behavior belongs in
 
 LLM-class nodes separate initialization from feedback:
 
-- `userPrompt` — initial run
-- `feedback` — re-run when Review or Review Gate emits feedback
+- `userPrompt` — initial run; wire type `['string', 'user-turn']`. A
+  string is a question with no files; a `user-turn` is `{ text, files }`
+- `feedback` — re-run when Review, Review Gate, or Chat Loop emits
+  feedback (`multi: 'merge'`); wire type `['string', 'user-turn']`.
+  Do not use `withLatestFrom`
 - `tools`, `mcp`, and other inventory ports — initialization inputs
 
 Build initialization with `combineInputs`; optional inventory inputs use

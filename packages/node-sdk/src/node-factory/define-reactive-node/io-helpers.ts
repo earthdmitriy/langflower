@@ -3,6 +3,7 @@ import type {
 	FeedRole,
 	MetaFromStatefulObservable,
 	PortMeta,
+	WireTypeSpec,
 } from './port-meta.js';
 export type { FeedPortMeta, FeedRole } from './port-meta.js';
 import {
@@ -117,8 +118,11 @@ export const resolveMultilineInlineLayout = (
  */
 export type InputParams<T> = {
 	readonly name?: string;
-	/** Wire type (e.g. `"string"`, `"dynamic"`, `"any"`). */
-	readonly wireType?: string | symbol;
+	/**
+	 * Wire type (e.g. `"string"`, `"dynamic"`, `"any"`). A list is a union:
+	 * an edge connects when it shares a member (`['string', 'user-turn']`).
+	 */
+	readonly wireType?: WireTypeSpec | symbol;
 	readonly required?: boolean;
 	readonly multi?: 'merge' | 'combine' | 'zip';
 	readonly description?: string;
@@ -206,7 +210,7 @@ export type OutputParams = {
 	readonly rewireFrom?: string;
 };
 
-type WithWireType = { readonly wireType: string };
+type WithWireType = { readonly wireType: WireTypeSpec };
 type PassthroughConfig = {
 	readonly inferTypeFrom:
 		InputParams<unknown> | StatefulObservable<unknown, unknown, PortMeta>;

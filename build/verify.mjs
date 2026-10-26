@@ -3,7 +3,7 @@
  * One-shot verification: build all packages, then unit (+ integration by default).
  *
  * Usage:
- *   node build/verify.mjs           # build-all + unit + integration
+ *   node build/verify.mjs           # build-all + unit + docs-boundaries + integration
  *   node build/verify.mjs --quick   # build-all + unit only (faster loop)
  */
 
@@ -58,7 +58,7 @@ await runMain(async () => {
 	log.title(
 		quick
 			? 'Langflower — verify (build + unit)'
-			: 'Langflower — verify (build + unit + integration)',
+			: 'Langflower — verify (build + unit + docs-boundaries + integration)',
 	);
 
 	await runNodeScript('build-all.mjs');
@@ -70,6 +70,7 @@ await runMain(async () => {
 	await runNodeScript('test.mjs', ['--unit']);
 
 	if (!quick) {
+		await runNodeScript('test.mjs', ['--docs-boundaries']);
 		await runNodeScript('test.mjs', ['--integration']);
 	}
 

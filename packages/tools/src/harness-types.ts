@@ -2,10 +2,16 @@
  * Shared harness / MCP invoke shapes — one owner inside `@langflower/tools`.
  */
 
+import type { HitlUploadedFile } from '@langflower/node-sdk';
 import type { WebFetchRequest, WebFetchResult } from './create-web-fetch.js';
 
 export type ToolInvokeResult =
-	| { readonly ok: true; readonly text: string }
+	| {
+			readonly ok: true;
+			readonly text: string;
+			/** Set when this invoke staged session uploads, in call order. */
+			readonly stagedFiles?: readonly HitlUploadedFile[];
+	  }
 	| { readonly ok: false; readonly text: string };
 
 export type ToolInvokeCall = {

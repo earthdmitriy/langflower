@@ -35,10 +35,23 @@ import {
 		@if (tip().trim().length > 0) {
 			<span
 				role="tooltip"
-				class="pointer-events-none fixed z-40 hidden whitespace-nowrap rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-700 shadow-sm group-hover:block group-focus-within:block dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+				class="pointer-events-none fixed z-40 hidden rounded-md border border-zinc-200 bg-white px-2 py-1 text-left text-xs font-medium text-zinc-700 shadow-sm group-hover:block group-focus-within:block dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+				[class.whitespace-nowrap]="tipTitle() === ''"
+				[class.max-w-xs]="tipTitle() !== ''"
 				[style]="tipStyle()"
 			>
-				{{ tip() }}
+				@if (tipTitle() !== '') {
+					<span
+						class="mb-1 block text-[11px] font-bold uppercase tracking-wide text-zinc-700 dark:text-zinc-100"
+						>{{ tipTitle() }}</span
+					>
+					<span
+						class="block whitespace-pre-wrap break-words font-normal"
+						>{{ tip() }}</span
+					>
+				} @else {
+					{{ tip() }}
+				}
 			</span>
 		}
 	`,
@@ -48,6 +61,11 @@ export class LfHoverTipComponent {
 
 	/** Tooltip copy; empty string hides the tip. */
 	readonly tip = input.required<string>();
+	/**
+	 * Optional heading above {@link tip}. Switches the tooltip to a wrapped
+	 * multi-line card (for descriptions longer than a label).
+	 */
+	readonly tipTitle = input('');
 	/**
 	 * Anchor on the non-side axis: horizontal for top/bottom, vertical for
 	 * left/right.

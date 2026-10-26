@@ -568,7 +568,8 @@ Langflower is intentionally still small, and some things are not implemented yet
 
 ### Image and video
 
-There is no asset-management layer for multimodal models yet.
+There is no asset gallery and no video. A chat turn can attach png,
+jpeg, gif, webp, wav, mp3, or pdf. Other types are not uploaded.
 
 ### Built-in IDE or Git UI
 

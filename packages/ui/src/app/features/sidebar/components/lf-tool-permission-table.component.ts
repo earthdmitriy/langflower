@@ -16,10 +16,13 @@ import {
 	type ProjectPermissionConfig,
 } from '@langflower/common-nodes/ai/llm-role-preset';
 import type { InlineSelectOption } from '@langflower/node-sdk';
+import { LfHoverTipComponent } from '../../../components/lf-hover-tip.component';
 
 export type ToolPermissionTableRow = {
 	readonly toolId: string;
 	readonly title: string;
+	/** What the agent is told this tool does; absent when none is known. */
+	readonly description?: string;
 	readonly decision: ToolPermissionDecision;
 	readonly options: readonly ToolPermissionDecision[];
 };
@@ -29,6 +32,12 @@ const ALL_DECISIONS: readonly ToolPermissionDecision[] = [
 	'ask',
 	'allow',
 ];
+
+const DECISION_ACCENT: Readonly<Record<ToolPermissionDecision, string>> = {
+	deny: 'accent-rose-600',
+	ask: 'accent-amber-500',
+	allow: 'accent-emerald-600',
+};
 
 export const buildToolPermissionTableRows = (
 	toolOptions: readonly InlineSelectOption[],
@@ -57,6 +66,10 @@ export const buildToolPermissionTableRows = (
 		rows.push({
 			toolId,
 			title: option.title ?? toolId,
+			...(option.description !== undefined &&
+			option.description.trim().length > 0
+				? { description: option.description }
+				: {}),
 			decision,
 			options,
 		});
@@ -69,6 +82,7 @@ export const buildToolPermissionTableRows = (
 	selector: 'lf-tool-permission-table',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
+	imports: [LfHoverTipComponent],
 	template: `
 		<table class="w-full border-collapse text-[10px]">
 			<thead>
@@ -87,6 +101,25 @@ export const buildToolPermissionTableRows = (
 							[title]="row.toolId"
 						>
 							{{ row.title }}
+							@if (row.description; as description) {
+								<lf-hover-tip
+									class="ml-1 align-middle"
+									side="left"
+									align="center"
+									tipTitle="Tool description for agent"
+									[tip]="description"
+								>
+									<button
+										type="button"
+										class="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-zinc-400 text-[9px] font-semibold leading-none text-zinc-500 hover:border-zinc-600 hover:text-zinc-700 dark:border-zinc-500 dark:text-zinc-400 dark:hover:border-zinc-300 dark:hover:text-zinc-200"
+										[attr.aria-label]="
+											row.title + ' tool description'
+										"
+									>
+										?
+									</button>
+								</lf-hover-tip>
+							}
 						</td>
 						@for (decision of allDecisions; track decision) {
 							<td class="px-1 py-1 text-center">
@@ -94,9 +127,15 @@ export const buildToolPermissionTableRows = (
 									<input
 										type="radio"
 										class="align-middle"
+										[class]="decisionAccent[decision]"
+										[class.pointer-events-none]="disabled()"
+										[attr.tabindex]="disabled() ? -1 : null"
 										[name]="'tool-perm-' + row.toolId"
 										[checked]="row.decision === decision"
-										[disabled]="disabled()"
+										[attr.aria-disabled]="disabled()"
+										[attr.aria-label]="
+											row.title + ': ' + decision
+										"
 										(change)="onPick(row.toolId, decision)"
 									/>
 								}
@@ -117,8 +156,18 @@ export class LfToolPermissionTableComponent {
 	}>();
 
 	readonly allDecisions = ALL_DECISIONS;
+	readonly decisionAccent = DECISION_ACCENT;
 
+	/**
+	 * Locked (e.g. during a run) the radios stay enabled but unreachable by
+	 * pointer and Tab: a native `disabled` radio paints its checked dot in
+	 * washed-out grey, hiding the state the operator needs to read.
+	 */
 	onPick(toolId: string, decision: ToolPermissionDecision): void {
+		if (this.disabled()) {
+			return;
+		}
+
 		this.decisionChange.emit({ toolId, decision });
 	}
 }

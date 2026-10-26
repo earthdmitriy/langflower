@@ -87,7 +87,13 @@ describe('runTurnFromState', () => {
 					session: undefined,
 				},
 				(_context, payload, history) => {
-					histories.push(history.map((message) => message.content));
+					histories.push(
+						history.map((message) =>
+							typeof message.content === 'string'
+								? message.content
+								: message.content.text,
+						),
+					);
 					return concat(
 						of({
 							kind: 'response' as const,
@@ -136,7 +142,13 @@ describe('runTurnFromState', () => {
 					session: undefined,
 				},
 				(_context, payload, history) => {
-					histories.push(history.map((message) => message.content));
+					histories.push(
+						history.map((message) =>
+							typeof message.content === 'string'
+								? message.content
+								: message.content.text,
+						),
+					);
 					return of({
 						kind: 'historySync' as const,
 						messages: [
@@ -271,5 +283,60 @@ describe('runTurnFromState', () => {
 					.subscribe({ next: resolve, error: reject });
 			}),
 		).rejects.toMatch(/maxFeedbackTurns/);
+	});
+
+	it('stores a user-turn object and skips blank text even with files', async () => {
+		const turns$ = new Subject<unknown>();
+		const histories: ChatCompletionMessage[][] = [];
+		const calls: unknown[] = [];
+		const file = {
+			fileId: 'file-1',
+			name: '1.png',
+			mimeType: 'image/png',
+			size: 8,
+		};
+		const question = { text: 'what is this?', files: [file] };
+		const resultPromise = new Promise<Chunk[]>((resolve, reject) => {
+			foldTurns(
+				{ maxFeedbackTurns: 0 },
+				turns$,
+				{
+					history: [{ role: 'user', content: 'initial' }],
+					trackAssistantHistory: true,
+					appendUserFeedbackToHistory: true,
+					session: undefined,
+				},
+				(_context, payload, history) => {
+					calls.push(payload);
+					histories.push([...history]);
+					return of({
+						kind: 'response' as const,
+						text: payload === undefined ? 'first' : 'next',
+					});
+				},
+				true,
+			)
+				.pipe(toArray())
+				.subscribe({ next: resolve, error: reject });
+		});
+
+		turns$.next({ text: '   ', files: [file] });
+		turns$.next(question);
+		turns$.complete();
+
+		const chunks = await resultPromise;
+		expect(calls).toEqual([undefined, question]);
+		expect(histories[1]).toEqual([
+			{ role: 'user', content: 'initial' },
+			{ role: 'assistant', content: 'first' },
+			{ role: 'user', content: question },
+		]);
+		expect(JSON.stringify(histories)).not.toContain('base64');
+		expect(JSON.stringify(histories)).toContain('file-1');
+		expect(
+			chunks
+				.filter((chunk) => chunk.kind === 'response')
+				.map((chunk) => (chunk.kind === 'response' ? chunk.text : '')),
+		).toEqual(['first', 'next']);
 	});
 });

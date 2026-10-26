@@ -1,4 +1,8 @@
-import type { ChatCompletionMessage } from '../chat-completion-stream.js';
+import {
+	isChatCompletionUserTurn,
+	type ChatCompletionMessage,
+	type ChatCompletionUserTurn,
+} from '../chat-completion-stream.js';
 import type { PermissionAskRequest } from '@langflower/tools/permission';
 import {
 	EMPTY,
@@ -33,10 +37,25 @@ export type LlmSessionState<Session, Chunk> = {
 	readonly emitted?: Chunk | undefined;
 };
 
-export const isBlankTurn = (raw: unknown): boolean =>
-	raw === null ||
-	raw === undefined ||
-	(typeof raw === 'string' && raw.trim().length === 0);
+export const isBlankTurn = (raw: unknown): boolean => {
+	if (raw === null || raw === undefined) {
+		return true;
+	}
+
+	if (typeof raw === 'string') {
+		return raw.trim().length === 0;
+	}
+
+	// A file without a question is still blank.
+	if (isChatCompletionUserTurn(raw)) {
+		return raw.text.trim().length === 0;
+	}
+
+	return false;
+};
+
+const feedbackContent = (raw: unknown): string | ChatCompletionUserTurn =>
+	isChatCompletionUserTurn(raw) ? raw : String(raw ?? '');
 
 const readHistorySync = (chunk: {
 	readonly kind: string;
@@ -111,7 +130,7 @@ const acceptFeedbackTurn = <
 	const history = state.preparation.appendUserFeedbackToHistory
 		? [
 				...state.history,
-				{ role: 'user' as const, content: String(raw ?? '') },
+				{ role: 'user' as const, content: feedbackContent(raw) },
 			]
 		: state.history;
 	const next: LlmSessionState<Session, Chunk> = {

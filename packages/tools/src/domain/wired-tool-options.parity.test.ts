@@ -8,7 +8,10 @@ import {
 	DOMAIN_PACK_TOOL_OPTIONS,
 	HARNESS_BUILTIN_TOOL_OPTIONS,
 } from '../../../shared/src/langflower-config/resolve-wired-tool-options.js';
-import { BUILTIN_TOOL_IDS } from '../builtins/catalog.js';
+import {
+	BUILTIN_REGISTRATIONS,
+	BUILTIN_TOOL_IDS,
+} from '../builtins/catalog.js';
 import {
 	CRAWL_TOOL_CONFIGS,
 	MEMORY_TOOL_CONFIGS,
@@ -27,6 +30,45 @@ describe('wired-tool-options parity (tools owner ↔ shared inspector catalogs)'
 		expect(optionValues(HARNESS_BUILTIN_TOOL_OPTIONS)).toEqual(
 			[...BUILTIN_TOOL_IDS].sort(),
 		);
+	});
+
+	it('inspector descriptions match the descriptions agents receive', () => {
+		const described = (
+			options: readonly {
+				readonly value: unknown;
+				readonly description?: string;
+			}[],
+		): Readonly<Record<string, string | undefined>> =>
+			Object.fromEntries(
+				options.map((option) => [
+					String(option.value),
+					option.description,
+				]),
+			);
+		const byToolId = (
+			configs: readonly {
+				readonly toolId: string;
+				readonly description: string;
+			}[],
+		) =>
+			Object.fromEntries(
+				configs.map((config) => [config.toolId, config.description]),
+			);
+
+		expect(described(HARNESS_BUILTIN_TOOL_OPTIONS)).toEqual(
+			Object.fromEntries(
+				BUILTIN_REGISTRATIONS.map((registration) => [
+					registration.toolId,
+					registration.description,
+				]),
+			),
+		);
+		expect(
+			described(DOMAIN_PACK_TOOL_OPTIONS['common-crawl-tools'] ?? []),
+		).toEqual(byToolId(CRAWL_TOOL_CONFIGS));
+		expect(
+			described(DOMAIN_PACK_TOOL_OPTIONS['common-memory-tools'] ?? []),
+		).toEqual(byToolId(MEMORY_TOOL_CONFIGS));
 	});
 
 	it('DOMAIN_PACK_TOOL_OPTIONS match domain tool configs', () => {

@@ -1,4 +1,5 @@
 import type { InlineConfig } from '@langflower/node-sdk';
+import { formatWireType } from '@langflower/runtime';
 import type { PaletteNodeDefinition } from '@langflower/shared/types/langflower-palette';
 import type { Edge } from 'ng-diagram';
 import {
@@ -111,7 +112,7 @@ function inputWireType(config: PortInputConfig): string {
 		return 'dynamic';
 	}
 
-	return String(config.wireType ?? 'any');
+	return formatWireType(config.wireType ?? 'any');
 }
 
 function maxInputSlot(
@@ -240,7 +241,7 @@ function resolveOutputPortRows(
 		if (entry.fromInput !== undefined) {
 			wireType = `from(${entry.fromInput})`;
 		} else {
-			wireType = String(entry.wireType);
+			wireType = formatWireType(entry.wireType);
 		}
 
 		rows.push({
@@ -265,7 +266,7 @@ function resolveBypassPortRows(
 	const bypassPorts: DiagramBypassPortRow[] = [];
 
 	for (const [basePortId, wireType] of Object.entries(config.bypassPorts)) {
-		const wireTypeString = String(wireType);
+		const wireTypeString = formatWireType(wireType);
 
 		const maxInputSlot = maxBypassSlot(edges, nodeId, basePortId, 'target');
 		const maxOutputSlot = maxBypassSlot(

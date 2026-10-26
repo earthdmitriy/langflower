@@ -172,6 +172,9 @@ Vitest config **includes** that glob; do not assume it.
 
 1. Pick a stable `type` string (pack-unique) and `displayName`.
 2. Declare `inputs` / `outputs` with `wireType`s; keep `uiSchema` honest
+   (long settings lists: add `group: { label, collapsed: true, order }` per item so
+   the Inspector folds them into an accordion section; unmarked = General,
+   always first)
    (`defineToolRegistrations` owns a `tools` output — no custom inputs).
 3. Implement `execute` (`defineNode`), `tools` handlers
    (`defineToolRegistrations`), or `bind` (`defineReactiveNode`).

@@ -1,5 +1,22 @@
 import type { InlineSelectOption } from './io-helpers.js';
 
+/**
+ * Inspector accordion section for a panel field. Share one const per group so
+ * every item names the same label; the first item of a group decides
+ * `collapsed`. Items without a group belong to the implicit "General" group,
+ * which is always open.
+ */
+export type UISchemaGroup = {
+	readonly label: string;
+	/** Initial state in the Inspector. Defaults to open. */
+	readonly collapsed?: boolean;
+	/**
+	 * Sort key among groups, lower first; ties and unset keep first-appearance
+	 * order. "General" is always first. The first item of a group decides it.
+	 */
+	readonly order?: number;
+};
+
 /** Minimal const-tuple uiSchema item for Params inference. */
 export type UISchemaConstItem = {
 	readonly field: string;
@@ -7,6 +24,8 @@ export type UISchemaConstItem = {
 	readonly label?: string;
 	readonly default?: unknown;
 	readonly placement?: 'panel';
+	/** Inspector accordion section; absent = "General". */
+	readonly group?: UISchemaGroup;
 	/** Number field constraints — same semantics as canvas inline `{ type: 'number' }`. */
 	readonly min?: number;
 	readonly max?: number;

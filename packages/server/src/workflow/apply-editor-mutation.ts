@@ -1,9 +1,10 @@
 import type { ReactiveNodeDefinition } from '@langflower/node-sdk';
-import type {
-	EdgeId,
-	NodeId,
-	RuntimeEdge,
-	RuntimeEditor,
+import {
+	wireTypeIs,
+	type EdgeId,
+	type NodeId,
+	type RuntimeEdge,
+	type RuntimeEditor,
 } from '@langflower/runtime';
 import type {
 	EditorAddEdgeRequestedPayload,
@@ -180,13 +181,13 @@ const normalizeNodeInputs = (
 			continue;
 		}
 
-		if (inputConfig.wireType === 'number') {
+		if (wireTypeIs(inputConfig.wireType, 'number')) {
 			const trimmed = raw.trim();
 			const parsed = trimmed === '' ? 0 : Number(trimmed);
 			normalized[inputConfig.portId] = Number.isFinite(parsed)
 				? parsed
 				: 0;
-		} else if (inputConfig.wireType === 'boolean') {
+		} else if (wireTypeIs(inputConfig.wireType, 'boolean')) {
 			normalized[inputConfig.portId] = raw === 'true';
 		}
 	}

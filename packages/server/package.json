@@ -24,7 +24,7 @@
 	"dependencies": {
 		"@langflower/common-nodes": "0.1.0",
 		"@langflower/compiler": "0.1.0",
-		"@langflower/node-sdk": "0.1.0",
+		"@langflower/node-sdk": "0.2.0",
 		"@langflower/runtime": "0.1.0",
 		"@langflower/shared": "0.1.0",
 		"@langflower/tools": "0.1.0",

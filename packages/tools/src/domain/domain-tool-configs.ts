@@ -1,3 +1,4 @@
+import type { HitlUploadedFile } from '@langflower/node-sdk';
 import { createCrawlContext } from '../create-crawl-context.js';
 import { createMemoryStore } from '../memory/create-memory-store.js';
 import {
@@ -29,6 +30,14 @@ export type ToolHandlerContext = {
 	readonly allowedHosts?: readonly string[];
 	/** Per-invoke abort (tool timeout / run cancel) for builtins. */
 	readonly signal?: AbortSignal;
+	/**
+	 * The inventory invoker supplies this box for one call. The builtin
+	 * wrapper writes session uploads staged during the call. The loop
+	 * copies `files` onto `tool.completed`. Not part of the author SDK.
+	 */
+	readonly stagedSessionUpload?: {
+		readonly files: HitlUploadedFile[];
+	};
 };
 
 export type ToolHandler = (

@@ -46,13 +46,13 @@ planned in-process `mock-llm` provider path.
 
 ## Inputs
 
-| Port           | Type        | Notes                                                         |
-| -------------- | ----------- | ------------------------------------------------------------- |
-| `userPrompt`   | string      | required                                                      |
-| `systemPrompt` | string      | optional multiline; overrides preset default                  |
-| `tools`        | tool-handle | multi combine; packs, MCP nodes, Sub-Agent handles, jsonc MCP |
-| `steerControl` | any         | hidden HITL Steer (ADR-032)                                   |
-| `feedback`     | string      | optional turn; revises draft / response text                  |
+| Port           | Type                  | Notes                                                          |
+| -------------- | --------------------- | -------------------------------------------------------------- |
+| `userPrompt`   | `string \| user-turn` | required; a string is a question with no files                 |
+| `systemPrompt` | string                | optional multiline; overrides preset default                   |
+| `tools`        | tool-handle           | multi combine; packs, MCP nodes, Sub-Agent handles, jsonc MCP  |
+| `steerControl` | any                   | hidden HITL Steer (ADR-032). Send may include `files`          |
+| `feedback`     | `string \| user-turn` | optional turn; revises draft / response text; `multi: 'merge'` |
 
 ## Outputs
 
@@ -73,18 +73,22 @@ normal `ToolHandle` (epic 41). Do **not** look for `spawn_subagent` ports.
 
 ## Params
 
-| Field               | Type                  | Default  | Notes                                                                                                                        |
-| ------------------- | --------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `rolePreset`        | select                | `custom` | `custom` \| `plan` \| `coder` \| `explorer` — fills tools + permission posture                                               |
-| `providerId`        | select                | —        | from `langflower.jsonc` providers                                                                                            |
-| `model`             | select                | —        | per selected provider                                                                                                        |
-| `skillId`           | select                | —        | from skills catalog; description caption                                                                                     |
-| `includeAgentsMd`   | boolean               | `false`  | when true, append project-root `AGENTS.md` into effective system prompt                                                      |
-| `toolPermissions`   | tool-permission-table | —        | deny/ask/allow per tool; unset → role preset; clamped to project floor                                                       |
-| `maxIterations`     | number                | `100`    | caps scripted tool-loop rounds **per feedback turn** (`0` = unlimited; no hard product ceiling)                              |
-| `maxFeedbackTurns`  | number                | `50`     | max feedback turns after turn 0; `0` = unlimited; further feedback → continue HITL ask (Deny → `toolLog` + `response` error) |
-| `tokenDelayMs`      | number                | 40       | delay between tokens (~30s demo at default)                                                                                  |
-| `scriptedToolTurns` | (test)                | —        | JSON array of scripted completion turns                                                                                      |
+| Field                | Type                  | Default  | Notes                                                                                                                        |
+| -------------------- | --------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `rolePreset`         | select                | `custom` | `custom` \| `plan` \| `coder` \| `explorer` — fills tools + permission posture                                               |
+| `providerId`         | select                | —        | from `langflower.jsonc` providers                                                                                            |
+| `model`              | select                | —        | per selected provider                                                                                                        |
+| `skillId`            | select                | —        | from skills catalog; description caption                                                                                     |
+| `includeAgentsMd`    | boolean               | `false`  | when true, append project-root `AGENTS.md` into effective system prompt                                                      |
+| `includeReadme`      | boolean               | `false`  | when true, append project-root `README.md`                                                                                   |
+| `includeEnvironment` | boolean               | `true`   | when true, add OS, working directory and date                                                                                |
+| `includeHarness`     | boolean               | `true`   | when true, tell the agent it runs inside a Langflower graph (multi-agent, HITL, review gates)                                |
+| `includeSkillList`   | boolean               | `false`  | when true, list every available skill (id, name, description, file path)                                                     |
+| `toolPermissions`    | tool-permission-table | —        | deny/ask/allow per tool; unset → role preset; clamped to project floor                                                       |
+| `maxIterations`      | number                | `100`    | caps scripted tool-loop rounds **per feedback turn** (`0` = unlimited; no hard product ceiling)                              |
+| `maxFeedbackTurns`   | number                | `50`     | max feedback turns after turn 0; `0` = unlimited; further feedback → continue HITL ask (Deny → `toolLog` + `response` error) |
+| `tokenDelayMs`       | number                | 40       | delay between tokens (~30s demo at default)                                                                                  |
+| `scriptedToolTurns`  | (test)                | —        | JSON array of scripted completion turns                                                                                      |
 
 Long multi-paragraph **reasoning** and **draftResponse** templates stream
 token-by-token. At the default delay, a typical prompt-only run takes about

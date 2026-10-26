@@ -1,12 +1,12 @@
-import type { BuiltinTool, HandlerContext } from '../types.js';
+import type { AskUserAnswer, BuiltinTool, HandlerContext } from '../types.js';
 import { parseAskUserArgs } from './parse-ask-user-args.js';
 
 const ASK_USER_ABORTED = 'ask_user aborted.';
 
 const invokeWithAbort = (
-	work: Promise<string>,
+	work: Promise<AskUserAnswer>,
 	signal: AbortSignal | undefined,
-): Promise<string> => {
+): Promise<AskUserAnswer> => {
 	if (signal === undefined) {
 		return work;
 	}
@@ -49,7 +49,14 @@ const invoke = async (
 		);
 	}
 
-	return invokeWithAbort(ctx.askUser(request), ctx.signal);
+	const answer = await invokeWithAbort(ctx.askUser(request), ctx.signal);
+
+	if (typeof answer === 'string') {
+		return answer;
+	}
+
+	ctx.recordStagedFiles?.(answer.files);
+	return answer.text;
 };
 
 export const askUserTool = {

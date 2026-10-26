@@ -52,23 +52,23 @@ separate palette entries.
 
 ## Inputs
 
-| Port           | Type        | Notes                                                         |
-| -------------- | ----------- | ------------------------------------------------------------- |
-| `userPrompt`   | string      | required; init — change recreates session                     |
-| `systemPrompt` | string      | optional multiline; init                                      |
-| `tools`        | tool-handle | multi combine; packs, MCP nodes, Sub-Agent handles, jsonc MCP |
-| `steerControl` | any         | hidden HITL Steer (ADR-032)                                   |
-| `feedback`     | string      | turn input (not init); advances history                       |
+| Port           | Type                  | Notes                                                                           |
+| -------------- | --------------------- | ------------------------------------------------------------------------------- |
+| `userPrompt`   | `string \| user-turn` | required; init — change recreates session. A string is a question with no files |
+| `systemPrompt` | string                | optional multiline; init                                                        |
+| `tools`        | tool-handle           | multi combine; packs, MCP nodes, Sub-Agent handles, jsonc MCP                   |
+| `steerControl` | any                   | hidden HITL Steer (ADR-032). Send may include `files`                           |
+| `feedback`     | `string \| user-turn` | turn input (not init); advances history; `multi: 'merge'`                       |
 
 ## Outputs
 
-| Port            | Type   | Notes                                                                                 |
-| --------------- | ------ | ------------------------------------------------------------------------------------- |
-| `reasoning`     | string | API reasoning tokens (`delta.reasoning` / `reasoning_content`); feed role `reasoning` |
-| `draftResponse` | string | streamed API content tokens; feed role `draft`                                        |
-| `toolLog`       | string | real tool call/result lines only; feed role `tool`                                    |
-| `recovery`      | any    | stuck / dead-loop / timeout notices; feed role `recovery`; **hidden** (feed only)     |
-| `response`      | string | final assembled text; feed role `result`                                              |
+| Port            | Type                       | Notes                                                                                 |
+| --------------- | -------------------------- | ------------------------------------------------------------------------------------- |
+| `reasoning`     | string                     | API reasoning tokens (`delta.reasoning` / `reasoning_content`); feed role `reasoning` |
+| `draftResponse` | string                     | streamed API content tokens; feed role `draft`                                        |
+| `toolLog`       | string or `{ text, file }` | real tool call/result lines; a staged file rides beside the text; feed role `tool`    |
+| `recovery`      | any                        | stuck / dead-loop / timeout notices; feed role `recovery`; **hidden** (feed only)     |
+| `response`      | string                     | final assembled text; feed role `result`                                              |
 
 No fake emissions; Deny after continue HITL (e.g. `maxFeedbackTurns`) errors
 the cycle — see
@@ -79,19 +79,23 @@ normal `ToolHandle` (epic 41). Do **not** look for `spawn_subagent` ports.
 
 ## Params
 
-| Field              | Type                  | Default  | Notes                                                                                                                                                                                                                                                                                              |
-| ------------------ | --------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rolePreset`       | select                | `custom` | `custom` \| `plan` \| `coder` \| `explorer` — fills tools + permission posture                                                                                                                                                                                                                     |
-| `providerId`       | select                | —        | from `langflower.jsonc` providers                                                                                                                                                                                                                                                                  |
-| `model`            | select                | —        | per selected provider                                                                                                                                                                                                                                                                              |
-| `reasoningEffort`  | select                | empty    | Chat Completions `reasoning_effort`. Empty omits the field (provider default). `none` \| `minimal` \| `low` \| `medium` \| `high` \| `xhigh` \| `max`. Some newer models accept only `none` when tools are enabled; an unsupported value is a provider error. Compaction summaries do not send it. |
-| `skillId`          | select                | —        | from skills catalog                                                                                                                                                                                                                                                                                |
-| `includeAgentsMd`  | boolean               | `false`  | when true, append project-root `AGENTS.md` into effective system prompt                                                                                                                                                                                                                            |
-| `toolPermissions`  | tool-permission-table | —        | deny/ask/allow per tool; unset → role preset; clamped to project floor                                                                                                                                                                                                                             |
-| `maxIterations`    | number                | `100`    | caps internal tool-loop rounds **per feedback turn** (`0` = unlimited; no hard product ceiling)                                                                                                                                                                                                    |
-| `maxFeedbackTurns` | number                | `50`     | max feedback turns after turn 0; `0` = unlimited; further feedback → continue HITL ask (Deny → `toolLog` + `response` error)                                                                                                                                                                       |
-| `contextSize`      | number                | `200000` | approx input token budget (`chars/4` of messages+tools); `0` disables proactive compaction                                                                                                                                                                                                         |
-| `compactOnError`   | boolean               | `true`   | on context-length create error: force-compact once and retry before failing                                                                                                                                                                                                                        |
+| Field                | Type                  | Default  | Notes                                                                                                                                                                                                                                                                                              |
+| -------------------- | --------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rolePreset`         | select                | `custom` | `custom` \| `plan` \| `coder` \| `explorer` — fills tools + permission posture                                                                                                                                                                                                                     |
+| `providerId`         | select                | —        | from `langflower.jsonc` providers                                                                                                                                                                                                                                                                  |
+| `model`              | select                | —        | per selected provider                                                                                                                                                                                                                                                                              |
+| `reasoningEffort`    | select                | empty    | Chat Completions `reasoning_effort`. Empty omits the field (provider default). `none` \| `minimal` \| `low` \| `medium` \| `high` \| `xhigh` \| `max`. Some newer models accept only `none` when tools are enabled; an unsupported value is a provider error. Compaction summaries do not send it. |
+| `skillId`            | select                | —        | from skills catalog                                                                                                                                                                                                                                                                                |
+| `includeAgentsMd`    | boolean               | `false`  | when true, append project-root `AGENTS.md` into effective system prompt                                                                                                                                                                                                                            |
+| `includeReadme`      | boolean               | `false`  | when true, append project-root `README.md`                                                                                                                                                                                                                                                         |
+| `includeEnvironment` | boolean               | `true`   | when true, add OS, working directory and date                                                                                                                                                                                                                                                      |
+| `includeHarness`     | boolean               | `true`   | when true, tell the agent it runs inside a Langflower graph (multi-agent, HITL, review gates)                                                                                                                                                                                                      |
+| `includeSkillList`   | boolean               | `false`  | when true, list every available skill (id, name, description, file path)                                                                                                                                                                                                                           |
+| `toolPermissions`    | tool-permission-table | —        | deny/ask/allow per tool; unset → role preset; clamped to project floor                                                                                                                                                                                                                             |
+| `maxIterations`      | number                | `100`    | caps internal tool-loop rounds **per feedback turn** (`0` = unlimited; no hard product ceiling)                                                                                                                                                                                                    |
+| `maxFeedbackTurns`   | number                | `50`     | max feedback turns after turn 0; `0` = unlimited; further feedback → continue HITL ask (Deny → `toolLog` + `response` error)                                                                                                                                                                       |
+| `contextSize`        | number                | `200000` | approx input token budget (`chars/4` of messages+tools); `0` disables proactive compaction                                                                                                                                                                                                         |
+| `compactOnError`     | boolean               | `true`   | on context-length create error: force-compact once and retry before failing                                                                                                                                                                                                                        |
 
 Selecting a role preset materializes `toolPermissions` (Inspector). Runtime
 permission posture overlays project `permission` per role. Merge rules:

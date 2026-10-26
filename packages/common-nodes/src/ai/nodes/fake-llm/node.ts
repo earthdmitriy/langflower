@@ -275,7 +275,15 @@ Typical uses:
 									role: 'system',
 									content: systemWithTools,
 								},
-								{ role: 'user', content: context.prompt },
+								{
+									role: 'user',
+									// Scripted replies interpolate this string.
+									// The turn object becomes "[object Object]".
+									content:
+										context.openingUserTurn !== undefined
+											? context.openingUserTurn.text
+											: context.prompt,
+								},
 							]
 						: [],
 					trackAssistantHistory: useToolLoop,

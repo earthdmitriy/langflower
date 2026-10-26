@@ -1,4 +1,7 @@
-import type { PortMeta } from '../define-reactive-node/port-meta.js';
+import type {
+	PortMeta,
+	WireTypeSpec,
+} from '../define-reactive-node/port-meta.js';
 import { type StatefulObservable } from '@rx-evo/stateful-observable';
 import { from, mergeMap, of, throwError } from 'rxjs';
 import {
@@ -17,7 +20,7 @@ import type {
 } from '../define-reactive-node/ui-schema-inference.js';
 
 export type DefineNodePortMeta = {
-	readonly wireType?: string;
+	readonly wireType?: WireTypeSpec;
 	readonly required?: boolean;
 	readonly multi?: 'merge' | 'combine' | 'zip';
 	readonly description?: string;

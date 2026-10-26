@@ -1,8 +1,11 @@
+import type { HitlUploadedFile } from '../define-reactive-node/hitl-config.js';
+
 /**
  * Soft Pause / Steer on LLM inventory port `steerControl` (ADR-032).
  *
- * Pause button → `{ kind: 'pause' }`. HITL Send → `{ kind: 'steer', text }`.
- * Continue → `{ kind: 'resume' }` with no new user text.
+ * Pause button → `{ kind: 'pause' }`. HITL Send →
+ * `{ kind: 'steer', text, files }`. Continue → `{ kind: 'resume' }` with
+ * no new user text. A steer object that omits `files` carries none.
  */
 
 export const STEER_CONTROL_PORT_ID = 'steerControl' as const;
@@ -14,6 +17,7 @@ export type SteerControlPause = {
 export type SteerControlSteer = {
 	readonly kind: 'steer';
 	readonly text: string;
+	readonly files?: readonly HitlUploadedFile[];
 };
 
 export type SteerControlResume = {

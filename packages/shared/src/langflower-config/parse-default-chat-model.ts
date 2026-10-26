@@ -41,8 +41,12 @@ export const formatDefaultChatModel = (
 	return `${provider}/${modelId}`;
 };
 
-/** Inspector empty-option title when a default is configured. */
-export const defaultChatModelEmptyTitle = (
+/**
+ * Inspector empty-option title for **any** `providerId/modelId` default
+ * (chat `model` or `embedding` — the parser is shape-only, so the template is
+ * the same). Callers pick the source; see `defaultChatModelEmptyTitle`.
+ */
+export const defaultModelEmptyTitle = (
 	model: string | undefined,
 ): string | null => {
 	const parts = parseDefaultChatModel(model);
@@ -51,3 +55,8 @@ export const defaultChatModelEmptyTitle = (
 	}
 	return `Default (${parts.providerId}/${parts.model})`;
 };
+
+/** Inspector empty-option title when a default chat model is configured. */
+export const defaultChatModelEmptyTitle = (
+	model: string | undefined,
+): string | null => defaultModelEmptyTitle(model);

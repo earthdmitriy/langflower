@@ -1,0 +1,56 @@
+# Plan Verify = typecheck + full test gate (DoD)
+
+When writing or revising a **plan** (`CreatePlan`, `.cursor/plans/*.plan.md`, or
+an in-chat implementation checklist), the **Verify / Definition of Done**
+section must require **all** of:
+
+- `npm run format` (changed files only; `npm run format --all` is the whole tree)
+- `npm run typecheck` **or** `node build/tools/agent-run.mjs typecheck`
+  (all packages; not a single-package `build-package … typecheck`)
+- `npm run test` **or** `node build/tools/agent-run.mjs verify`
+  (build + unit, docs-boundaries, **and** integration)
+
+`verify` / `npm run test` do **not** run `tsc`. Compile-time tests such as
+`*.types.test.ts` are excluded from package emit configs and only fail under
+the typecheck tsconfig. Green tests are not a typecheck.
+
+## Forbidden as sole DoD
+
+Do **not** end a plan’s Verify section with only:
+
+- `verify --quick`
+- focused `vitest run <paths>` alone
+- “unit only” / “build + unit”
+- `verify` / `npm run test` without typecheck
+- package-only typecheck (`build-package <key> typecheck`)
+- skipping typecheck
+
+Those are allowed as **intermediate** checks while iterating. If mentioned in a
+plan, label them explicitly as intermediate (not close-out).
+
+## Why
+
+Agents execute the plan’s Verify literally. A weak Verify in the plan overrides
+the [AGENTS.md](../../AGENTS.md) hard gate in practice and has already shipped:
+
+- green `verify --quick` with broken integration
+- green `verify` / `npm run test` with a failing monorepo typecheck
+
+## Required plan shape
+
+```markdown
+### Verify
+
+- Intermediate (optional): focused vitest / package typecheck / `verify --quick`.
+- **Close-out (required):** `npm run format`, then `npm run typecheck`
+  (or `agent-run.mjs typecheck`) **and** `npm run test` or full `verify`.
+  Do not mark done on `--quick` or on tests without typecheck.
+```
+
+Prefer dedicated todos such as `typecheck-gate` and `full-test-gate` that stay
+open until each gate is green.
+
+Same rule when **finishing** work without a formal plan: do not declare done on
+`verify --quick` alone, or on tests without typecheck. Run `npm run format`
+before the typecheck and test gates. See AGENTS.md **Hard gate** and
+`.cursor/skills/langflower-build/SKILL.md`.

@@ -6,6 +6,7 @@ import type {
 } from '@langflower/shared/types/langflower-workflow';
 import { Subject } from 'rxjs';
 import { describe, expect, it } from 'vitest';
+import { nodeTypeByIdFromGraph } from '../execution-catalog.js';
 import { createLiveGraph$ } from '../execution-live-graph-fold.js';
 
 const viewport = { x: 0, y: 0, scale: 1 };
@@ -173,6 +174,30 @@ describe('createLiveGraph$', () => {
 
 		deleteNodes$.next([extra]);
 		expect(graphs.at(-1)?.nodes.map((node) => node.id)).toEqual(['chat']);
+
+		subscription.unsubscribe();
+	});
+
+	it('keeps node types for nodes added after an empty snapshot', () => {
+		const workflowSnapshot$ = new Subject<WorkflowCurrentSnapshotPayload>();
+		const addNodes$ = new Subject<readonly WorkflowNodePersisted[]>();
+		const graphs: (WorkflowPersistedGraph | null)[] = [];
+		const subscription = createLiveGraph$({
+			workflowSnapshot$,
+			addNodes$,
+			updateNodes$: new Subject<readonly WorkflowNodePersisted[]>(),
+			deleteNodes$: new Subject<readonly WorkflowNodePersisted[]>(),
+			addEdges$: new Subject<readonly RuntimeEdge[]>(),
+			deleteEdges$: new Subject<readonly RuntimeEdge[]>(),
+		}).subscribe((graph) => graphs.push(graph));
+
+		// Unsaved workflow: the only snapshot is empty; nodes arrive as deltas.
+		workflowSnapshot$.next(snapshotOf(graphOf([])));
+		addNodes$.next([chatNode('')]);
+
+		expect(nodeTypeByIdFromGraph(graphs.at(-1) ?? null).get('chat')).toBe(
+			'common-chat-input',
+		);
 
 		subscription.unsubscribe();
 	});

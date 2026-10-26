@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { RunId, RuntimeRunnerEvent } from '@langflower/runtime';
-import type { NodeStateJson } from '@langflower/node-sdk';
+import type { HitlUploadedFile, NodeStateJson } from '@langflower/node-sdk';
 import { toCheckpointJsonValue } from '@langflower/shared/checkpoint/json-value.js';
 import { deriveExecutionProgressStatus } from '@langflower/shared/execution/derive-run-settle-outcome.js';
 import type { ExecutionFeedSnapshotPayload } from '@langflower/shared/types/langflower-bootstrap.js';
@@ -13,6 +13,13 @@ import type {
 	WorkflowSessionSummary,
 } from '@langflower/shared/types/workflow-session.js';
 import { parseWorkflowDocument } from '../workflow/workflow-document.js';
+import {
+	isSessionUploadFileId,
+	isSessionUploadMime,
+	sessionUploadByteLengthAllowed,
+	sessionUploadFileName,
+	uploadedFileFromMeta,
+} from './session-upload.js';
 
 /**
  * `WorkflowService.workflowPath` joins `${workflowId}.json` with no
@@ -44,7 +51,13 @@ export const isSafeWorkflowSessionId = (id: string): boolean =>
 	!id.includes('\0');
 
 type WorkflowSessionStoreFailureCode =
-	'NOT_FOUND' | 'CORRUPT' | 'INVALID_ID' | 'WRITE_FAILED';
+	| 'NOT_FOUND'
+	| 'CORRUPT'
+	| 'INVALID_ID'
+	| 'WRITE_FAILED'
+	| 'MIME'
+	| 'TOO_LARGE'
+	| 'INVALID_NAME';
 
 export type WorkflowSessionStoreResult<T> =
 	| { readonly ok: true; readonly value: T }
@@ -390,7 +403,8 @@ const chainKey = (workflowId: string, sessionId: string): string =>
 /**
  * One JSON record per workflow session under
  * `.langflower/sessions/<workflowId>/<label>.json`, plus
- * `<label>.feed.jsonl`. `write`, `update`, and `delete` share a
+ * `<label>.feed.jsonl` and `<label>/uploads/<fileId>`.
+ * `write`, `update`, and `delete` share a
  * per-session promise chain so Windows renames cannot overlap.
  * `exclusiveDirectory` serializes the first write of a new tab: the
  * per-session chain does not, because two new sessions have different ids
@@ -419,6 +433,58 @@ export class WorkflowSessionStore {
 
 	private feedPath(workflowId: string, label: string): string {
 		return path.join(this.workflowDir(workflowId), `${label}.feed.jsonl`);
+	}
+
+	private uploadsDir(workflowId: string, label: string): string {
+		return path.join(this.workflowDir(workflowId), label, 'uploads');
+	}
+
+	private isUnderSessions(target: string): boolean {
+		const relative = path.relative(
+			path.resolve(this.sessionsRoot()),
+			path.resolve(target),
+		);
+		const segments = relative.split(path.sep);
+		return (
+			segments.length > 0 &&
+			segments.every((segment) => segment !== '' && segment !== '..')
+		);
+	}
+
+	private uploadLocation(
+		workflowId: string,
+		label: string,
+		fileId: string,
+	): { readonly bytesPath: string; readonly metaPath: string } | undefined {
+		if (!isSessionUploadFileId(fileId) || !isSafeWorkflowSessionId(label)) {
+			return undefined;
+		}
+
+		const bytesPath = path.join(this.uploadsDir(workflowId, label), fileId);
+		const metaPath = `${bytesPath}.meta.json`;
+
+		if (
+			!this.isUnderSessions(bytesPath) ||
+			!this.isUnderSessions(metaPath)
+		) {
+			return undefined;
+		}
+
+		return { bytesPath, metaPath };
+	}
+
+	private async removeUploadsDir(
+		workflowId: string,
+		label: string,
+	): Promise<void> {
+		if (!isSafeWorkflowSessionId(label)) {
+			return;
+		}
+
+		await fs.rm(this.uploadsDir(workflowId, label), {
+			recursive: true,
+			force: true,
+		});
 	}
 
 	private remember(workflowId: string, session: WorkflowSessionFile): void {
@@ -854,12 +920,232 @@ export class WorkflowSessionStore {
 				await fs
 					.unlink(this.feedPath(workflowId, resolved.value.label))
 					.catch(() => undefined);
+
+				try {
+					await this.removeUploadsDir(
+						workflowId,
+						resolved.value.label,
+					);
+				} catch (removeError) {
+					return failure('WRITE_FAILED', errorMessage(removeError));
+				}
+
 				this.forget(workflowId, sessionId);
 				return { ok: true as const, value: true as const };
 			}
 
 			await fs.unlink(feed).catch(() => undefined);
+
+			try {
+				await this.removeUploadsDir(workflowId, label);
+			} catch (removeError) {
+				return failure('WRITE_FAILED', errorMessage(removeError));
+			}
+
 			this.forget(workflowId, sessionId);
+			return { ok: true as const, value: true as const };
+		});
+	}
+
+	/**
+	 * Stage one allowlisted file under the session's uploads directory.
+	 * The disk name is a new `fileId`. Nothing is written when the session
+	 * file is missing, the MIME is foreign, or the body is not under 50 MB.
+	 */
+	async writeUpload(
+		workflowId: string,
+		sessionId: string,
+		input: {
+			readonly name: string;
+			readonly mimeType: string;
+			readonly bytes: Buffer;
+		},
+	): Promise<WorkflowSessionStoreResult<HitlUploadedFile>> {
+		const invalid =
+			this.invalidId(workflowId, 'workflowId') ??
+			this.invalidId(sessionId, 'sessionId');
+
+		if (invalid !== undefined) {
+			return invalid;
+		}
+
+		if (!isSessionUploadMime(input.mimeType)) {
+			return failure('MIME', 'MIME type is not allowed');
+		}
+
+		const name = sessionUploadFileName(input.name);
+
+		if (name === undefined) {
+			return failure('INVALID_NAME', 'File name is required');
+		}
+
+		if (!sessionUploadByteLengthAllowed(input.bytes.length)) {
+			return failure('TOO_LARGE', 'File must be under 50 MB');
+		}
+
+		return this.exclusive(workflowId, sessionId, async () => {
+			const loaded = await this.read(workflowId, sessionId);
+
+			if (!loaded.ok) {
+				return loaded;
+			}
+
+			const fileId = crypto.randomUUID();
+			const location = this.uploadLocation(
+				workflowId,
+				loaded.value.label,
+				fileId,
+			);
+
+			if (location === undefined) {
+				return failure(
+					'INVALID_ID',
+					'Upload path escapes the session directory',
+				);
+			}
+
+			const uploaded: HitlUploadedFile = {
+				fileId,
+				name,
+				mimeType: input.mimeType,
+				size: input.bytes.length,
+			};
+			const tempPath = path.join(
+				path.dirname(location.bytesPath),
+				`.${fileId}.${crypto.randomUUID()}.tmp`,
+			);
+
+			try {
+				await fs.mkdir(path.dirname(location.bytesPath), {
+					recursive: true,
+				});
+				await fs.writeFile(tempPath, input.bytes);
+				await fs.copyFile(tempPath, location.bytesPath);
+				await atomicWriteJson(location.metaPath, uploaded);
+			} catch (error) {
+				await fs.unlink(location.bytesPath).catch(() => undefined);
+				await fs.unlink(location.metaPath).catch(() => undefined);
+				return failure('WRITE_FAILED', errorMessage(error));
+			} finally {
+				await fs.unlink(tempPath).catch(() => undefined);
+			}
+
+			return { ok: true as const, value: uploaded };
+		});
+	}
+
+	/** Bytes and metadata for one upload on an existing session. */
+	async readUpload(
+		workflowId: string,
+		sessionId: string,
+		fileId: string,
+	): Promise<
+		WorkflowSessionStoreResult<{
+			readonly file: HitlUploadedFile;
+			readonly bytes: Buffer;
+		}>
+	> {
+		const invalid =
+			this.invalidId(workflowId, 'workflowId') ??
+			this.invalidId(sessionId, 'sessionId');
+
+		if (invalid !== undefined) {
+			return invalid;
+		}
+
+		if (!isSessionUploadFileId(fileId)) {
+			return failure('INVALID_ID', 'fileId is not valid');
+		}
+
+		const loaded = await this.read(workflowId, sessionId);
+
+		if (!loaded.ok) {
+			return loaded;
+		}
+
+		const location = this.uploadLocation(
+			workflowId,
+			loaded.value.label,
+			fileId,
+		);
+
+		if (location === undefined) {
+			return failure(
+				'INVALID_ID',
+				'Upload path escapes the session directory',
+			);
+		}
+
+		let bytes: Buffer;
+
+		try {
+			bytes = await fs.readFile(location.bytesPath);
+		} catch (error) {
+			if (isErrnoCode(error, 'ENOENT')) {
+				return failure('NOT_FOUND', 'Upload was not found');
+			}
+
+			return failure('WRITE_FAILED', errorMessage(error));
+		}
+
+		let text: string;
+
+		try {
+			text = await fs.readFile(location.metaPath, 'utf8');
+		} catch (error) {
+			if (isErrnoCode(error, 'ENOENT')) {
+				return failure('NOT_FOUND', 'Upload was not found');
+			}
+
+			return failure('WRITE_FAILED', errorMessage(error));
+		}
+
+		let parsed: unknown;
+
+		try {
+			parsed = JSON.parse(text) as unknown;
+		} catch {
+			return failure('NOT_FOUND', 'Upload was not found');
+		}
+
+		const file = uploadedFileFromMeta(parsed, fileId, bytes.length);
+
+		if (file === undefined) {
+			return failure('NOT_FOUND', 'Upload was not found');
+		}
+
+		return { ok: true, value: { file, bytes } };
+	}
+
+	/**
+	 * Remove `<label>/uploads` for one session. The session JSON stays.
+	 * Reset calls this. Continue-from does not.
+	 */
+	async deleteUploads(
+		workflowId: string,
+		sessionId: string,
+	): Promise<WorkflowSessionStoreResult<true>> {
+		const invalid =
+			this.invalidId(workflowId, 'workflowId') ??
+			this.invalidId(sessionId, 'sessionId');
+
+		if (invalid !== undefined) {
+			return invalid;
+		}
+
+		return this.exclusive(workflowId, sessionId, async () => {
+			const loaded = await this.read(workflowId, sessionId);
+
+			if (!loaded.ok) {
+				return loaded;
+			}
+
+			try {
+				await this.removeUploadsDir(workflowId, loaded.value.label);
+			} catch (error) {
+				return failure('WRITE_FAILED', errorMessage(error));
+			}
+
 			return { ok: true as const, value: true as const };
 		});
 	}

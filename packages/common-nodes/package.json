@@ -48,7 +48,7 @@
 		"typecheck": "tsc -p tsconfig.json --noEmit"
 	},
 	"dependencies": {
-		"@langflower/node-sdk": "0.1.0",
+		"@langflower/node-sdk": "0.2.0",
 		"@langflower/runtime": "0.1.0",
 		"@langflower/tools": "0.1.0",
 		"@rx-evo/stateful-observable": "^0.6.0",

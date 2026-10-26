@@ -44,6 +44,7 @@ This long markdown must not appear on the bridge snapshot.
 				id: 'plan',
 				name: 'Plan',
 				description: 'Short catalog blurb',
+				path: '.langflower/skills/plan/SKILL.md',
 			},
 		]);
 		expect(JSON.stringify(snapshot)).not.toContain('Full skill body');

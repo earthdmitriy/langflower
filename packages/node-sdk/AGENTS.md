@@ -148,6 +148,12 @@ import { createTypedUISchema } from '@langflower/node-sdk/create-typed-ui-schema
 import { createNodeHarness } from '@langflower/node-sdk/testing';
 ```
 
+Inspector sections: mark a `uiSchema` item with
+`group: { label, collapsed?, order? }` (type `UISchemaGroup`; share one const per
+group). Unmarked items are "General": always open and always first. The first
+item of a group decides `collapsed` and `order` (lower sorts first; ties keep
+declaration order).
+
 Do **not** deep-import internal files.
 
 Domain tool packs (no `bind` boilerplate) — each tool needs a raw `handler`:

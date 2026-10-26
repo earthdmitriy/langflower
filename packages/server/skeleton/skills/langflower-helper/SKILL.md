@@ -107,24 +107,34 @@ Langflower repository docs (not copied into a user project):
   a session from the graph on screen. Restart opens the newest session
   for that workflow. A Run continues the session head. **Continue from…**
   rewinds to a point (truncates the feed to that offset and drops later
-  points). **+ New session** is still explicit and copies the saved
+  points) and keeps files already staged for that session. **+ New session** is still explicit and copies the saved
   workflow file. The workflow file is the tab to the left of the session
   tabs; double-click or the actions menu renames that file, not a session
   tab. × deletes any listed session after confirmation, including one that
   is not open and a corrupt file that cannot be selected. Save appears only
   while the workflow file is dirty and no session
   is open. While a session gate is open and the run is idle,
-  **Reset** empties the feed file, clears points, and keeps the tab and
-  graph. **Reset session on input** is a node parameter on OpenAI, Fake,
+  **Reset** empties the feed file, clears points, deletes that session's
+  uploads directory, and keeps the tab and graph. **Reset session on input** is a node parameter on OpenAI, Fake,
   Review, and Critique (default off). Switch workflows and sessions
   during HITL or steering: the parked run stops first, and the session
   head is already flushed.
+- **Can:** Attach `image/png`, `image/jpeg`, `image/gif`, `image/webp`,
+  `audio/wav`, `audio/mpeg`, `audio/mp3`, or `application/pdf` on Chat
+  Input, Chat Loop, Review Gate Request changes, Steer, and an
+  `ask_user` reply, from the picker, a paste (a screenshot
+  on the clipboard), or a drop. A staged image shows a thumbnail and a
+  full-size preview. The browser checks `file.type` and rejects
+  an empty MIME. `read` of `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`,
+  `.wav`, `.mp3`, and `.pdf` stages those bytes for Chat Completions.
+  History stores `fileId`, not base64. Video and every other type stay out.
 - **Cannot:** Require a cloud account. Let the model skip graph stages
   (QA/review/gates) by “deciding what’s next” outside the graph. Rename a
   session tab. Switch workflows or sessions while the graph is executing.
   Migrate old
-  `.langflower/runs/**/checkpoint.json` files. Claim **image/video** asset
-  management for multimodal models, or a built-in **IDE / git UI**.
+  `.langflower/runs/**/checkpoint.json` files. Claim an **asset gallery**,
+  **video**, or a file type outside the list above.
+  Claim a built-in **IDE / git UI**.
 
 ### 2. Project layout and bootstrap
 
@@ -352,6 +362,11 @@ These four are **not** the same thing.
   `allow`) sets per-agent `toolPermissions` (cannot loosen past floor). Presets
   materialize that table — no hidden role overlay. Schemas under
   `.langflower/schemas/`.
+- **Can:** Each LLM node's Inspector **Session context** group toggles what
+  a new session starts with: root `AGENTS.md`, root `README.md`, environment
+  (OS, work dir, date; on by default), Langflower harness note (on by
+  default) and a skill list (id, name, description, path). Skills load from
+  `.langflower/skills/` and `.agents/skills/` (`.langflower` wins on a clash).
 - **Cannot:** Prior-run Allows carry into a new run. Mid-run “permission tier
   unlock” as the product model (use graph stages / tool profiles). All
   `mcp.servers` always start. Agent sees raw MCP config instead of handles.

@@ -404,4 +404,30 @@ describe('resolveNodePorts (canvas port resolution)', () => {
 			],
 		);
 	});
+	it('shows a union wire type in full and a scalar bare', () => {
+		const config = portsConfig({
+			inputsConfigs: [
+				{
+					dir: 'in',
+					portId: 'userPrompt',
+					name: 'userPrompt',
+					wireType: ['string', 'user-turn'],
+				},
+				{
+					dir: 'in',
+					portId: 'systemPrompt',
+					name: 'systemPrompt',
+					wireType: 'string',
+				},
+			],
+			outputsConfigs: [],
+		});
+
+		const { inputPorts } = resolveNodePorts(config, 'n1', []);
+
+		expect(inputPorts.map((port) => port.wireType)).toEqual([
+			'string | user-turn',
+			'string',
+		]);
+	});
 });

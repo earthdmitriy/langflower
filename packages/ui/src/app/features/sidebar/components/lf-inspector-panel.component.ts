@@ -1,4 +1,4 @@
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
@@ -7,8 +7,11 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import type { InlineConfig } from '@langflower/node-sdk';
-import type { UISchemaConstItem } from '@langflower/node-sdk/create-typed-ui-schema';
-import type { NodeId } from '@langflower/runtime';
+import type {
+	UISchemaConstItem,
+	UISchemaGroup,
+} from '@langflower/node-sdk/create-typed-ui-schema';
+import { formatWireType, type NodeId } from '@langflower/runtime';
 import type {
 	LangflowerConfig,
 	LangflowerProviderModelsCatalog,
@@ -24,7 +27,7 @@ import {
 	toolFloorDecisionForUi,
 	type ToolPermissionDecision,
 } from '@langflower/common-nodes/ai/llm-role-preset';
-import { defaultChatModelEmptyTitle } from '@langflower/shared/langflower-config/parse-default-chat-model';
+import { defaultModelEmptyTitle } from '@langflower/shared/langflower-config/parse-default-chat-model';
 import { mergeProviderModelOptions } from '@langflower/shared/langflower-config/merge-provider-model-options';
 import { resolveEnabledToolOptions } from '@langflower/shared/langflower-config/resolve-wired-tool-options';
 import { resolveUiSchemaOptions } from '@langflower/shared/langflower-config/resolve-ui-schema-options';
@@ -41,6 +44,7 @@ import {
 	resolveModelsFieldPresentation,
 	type ModelsRefreshState,
 } from '../models-field-presentation';
+import { groupPanelRows } from '../group-panel-rows';
 import { withSelectEmptyOption } from '../select-empty-option';
 import { numberInlineConfigFromUiSchema } from '../number-inline-config-from-ui-schema';
 import {
@@ -57,6 +61,7 @@ type InspectorPanelRow = {
 	readonly disabled?: boolean;
 	readonly emptyHint?: string;
 	readonly fieldError?: string;
+	readonly group?: UISchemaGroup;
 	readonly kind?: 'inline' | 'tool-permission-table';
 	readonly permissionRows?: readonly ToolPermissionTableRow[];
 };
@@ -70,7 +75,8 @@ type SelectedInspectorNode = NonNullable<
 >;
 
 const WIRED_TOOLS_EMPTY_HINT = 'Wire tool-registration nodes to enable toggles';
-const SKILLS_EMPTY_HINT = 'Add skills under .langflower/skills/<id>/SKILL.md';
+const SKILLS_EMPTY_HINT =
+	'Add skills under .langflower/skills/<id>/SKILL.md or .agents/skills/<id>/SKILL.md';
 const PROVIDERS_EMPTY_HINT =
 	'Configure providers in .langflower/langflower.jsonc';
 const MCP_SERVERS_EMPTY_HINT =
@@ -178,7 +184,7 @@ const toInlineConfig = (
 	fetchedModelsByProvider: Readonly<
 		Record<string, readonly ProviderModelEntry[]>
 	>,
-	defaultChatEmptyTitle: string | null,
+	defaultEmptyTitle: string | null,
 ): InlineConfig => {
 	const options = resolveInspectorPanelOptions(
 		item,
@@ -206,7 +212,7 @@ const toInlineConfig = (
 				options: withSelectEmptyOption(
 					item,
 					options,
-					defaultChatEmptyTitle,
+					defaultEmptyTitle,
 				),
 			};
 		case 'tool-id-list':
@@ -234,7 +240,7 @@ const inputWireType = (config: InputPortConfig): string => {
 		return 'dynamic';
 	}
 
-	return String(config.wireType ?? 'any');
+	return formatWireType(config.wireType ?? 'any');
 };
 
 const outputWireType = (config: OutputPortConfig): string => {
@@ -242,12 +248,43 @@ const outputWireType = (config: OutputPortConfig): string => {
 		return `from(${config.fromInput})`;
 	}
 
-	return String(config.wireType);
+	return formatWireType(config.wireType);
 };
 
 const panelUiSchema = (
 	definition: PaletteNodeDefinition,
 ): readonly UISchemaConstItem[] => definition.uiSchema;
+
+/**
+ * Empty-option title for providers/models selects — the default this node
+ * actually falls back to at run time.
+ *
+ * The hint belongs to the **capability** that injects the default
+ * (`CAPABILITY_PROVIDERS` in `build-execution-context.ts`): `embed` →
+ * `defaultEmbedding` (`config.embedding`), otherwise `defaultChat`
+ * (`config.model`). uiSchema cannot discriminate — embed and LLM nodes carry
+ * identical `providerId` / `model` items — so this reads `requires`.
+ *
+ * `requires` may be absent on hand-built fixtures, and `defineLlmNode` merges
+ * author extras into `LLM_REQUIRED_CAPABILITIES`, so an LLM node can legally
+ * list `embed`: test `chat` **before** `embed`.
+ */
+const panelDefaultEmptyTitle = (
+	definition: PaletteNodeDefinition,
+	config: LangflowerConfig,
+): string | null => {
+	const requires = definition.requires ?? [];
+
+	if (requires.includes('chat')) {
+		return defaultModelEmptyTitle(config.model);
+	}
+
+	if (requires.includes('embed')) {
+		return defaultModelEmptyTitle(config.embedding);
+	}
+
+	return defaultModelEmptyTitle(config.model);
+};
 
 const buildPanelRows = (
 	node: SelectedInspectorNode,
@@ -256,6 +293,7 @@ const buildPanelRows = (
 	catalogs: ModelsCatalogMap,
 ): readonly InspectorPanelRow[] => {
 	const fetchedModels = fetchedModelsFromCatalogs(catalogs);
+	const defaultEmptyTitle = panelDefaultEmptyTitle(node.definition, config);
 
 	return panelUiSchema(node.definition).map((item) => {
 		const options = resolveInspectorPanelOptions(
@@ -282,6 +320,7 @@ const buildPanelRows = (
 			return {
 				field: item.field,
 				label: item.label ?? item.field,
+				...(item.group !== undefined ? { group: item.group } : {}),
 				config: 'text' as const,
 				value: toolPermissions,
 				kind: 'tool-permission-table' as const,
@@ -337,6 +376,7 @@ const buildPanelRows = (
 		return {
 			field: item.field,
 			label: item.label ?? item.field,
+			...(item.group !== undefined ? { group: item.group } : {}),
 			config: toInlineConfig(
 				item,
 				config,
@@ -344,7 +384,7 @@ const buildPanelRows = (
 				graph,
 				node.id,
 				fetchedModels,
-				defaultChatModelEmptyTitle(config.model),
+				defaultEmptyTitle,
 			),
 			value,
 			...(modelsPresentation !== undefined
@@ -373,6 +413,7 @@ const buildPanelRows = (
 	standalone: true,
 	imports: [
 		AsyncPipe,
+		NgTemplateOutlet,
 		LfInlineFieldComponent,
 		LfToolPermissionTableComponent,
 	],
@@ -408,61 +449,99 @@ const buildPanelRows = (
 					}
 				</div>
 
-				@if (panelRows$ | async; as rows) {
-					@if (rows.length > 0) {
+				<ng-template #panelRow let-row>
+					<div class="flex flex-col gap-1">
+						<span
+							class="text-[10px] font-medium text-zinc-600 dark:text-zinc-300"
+						>
+							{{ row.label }}
+						</span>
+						@if (
+							row.kind === 'tool-permission-table' &&
+							row.permissionRows !== undefined
+						) {
+							<lf-tool-permission-table
+								[rows]="row.permissionRows"
+								[disabled]="
+									row.disabled === true || isRunning()
+								"
+								(decisionChange)="
+									onToolPermissionChange(
+										$event.toolId,
+										$event.decision
+									)
+								"
+							/>
+						} @else {
+							<lf-inline-field
+								[config]="row.config"
+								[value]="row.value"
+								[disabled]="
+									row.disabled === true || isRunning()
+								"
+								[expandLabel]="row.label"
+								(valueChange)="onFieldChange(row.field, $event)"
+							/>
+						}
+						@if (row.fieldError !== undefined) {
+							<p
+								class="text-[10px] text-rose-600 dark:text-rose-400"
+							>
+								{{ row.fieldError }}
+							</p>
+						} @else if (row.emptyHint !== undefined) {
+							<p
+								class="text-[10px] text-zinc-500 dark:text-zinc-400"
+							>
+								{{ row.emptyHint }}
+							</p>
+						}
+					</div>
+				</ng-template>
+
+				@if (panelGroups$ | async; as groups) {
+					@if (groups.length === 1) {
 						<div class="flex flex-col gap-2">
-							@for (row of rows; track row.field) {
-								<div class="flex flex-col gap-1">
-									<span
-										class="text-[10px] font-medium text-zinc-600 dark:text-zinc-300"
+							@for (
+								row of groups[0]?.rows ?? [];
+								track row.field
+							) {
+								<ng-container
+									*ngTemplateOutlet="
+										panelRow;
+										context: { $implicit: row }
+									"
+								/>
+							}
+						</div>
+					} @else if (groups.length > 1) {
+						<div class="flex flex-col gap-1.5">
+							@for (group of groups; track group.key) {
+								<details
+									class="rounded-md border border-zinc-200 dark:border-zinc-800"
+									[open]="!group.collapsed"
+								>
+									<summary
+										class="cursor-pointer select-none px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
 									>
-										{{ row.label }}
-									</span>
-									@if (
-										row.kind === 'tool-permission-table' &&
-										row.permissionRows !== undefined
-									) {
-										<lf-tool-permission-table
-											[rows]="row.permissionRows"
-											[disabled]="
-												row.disabled === true ||
-												isRunning()
-											"
-											(decisionChange)="
-												onToolPermissionChange(
-													$event.toolId,
-													$event.decision
-												)
-											"
-										/>
-									} @else {
-										<lf-inline-field
-											[config]="row.config"
-											[value]="row.value"
-											[disabled]="
-												row.disabled === true ||
-												isRunning()
-											"
-											[expandLabel]="row.label"
-											(valueChange)="
-												onFieldChange(row.field, $event)
-											"
-										/>
-									}
-									@if (row.fieldError !== undefined) {
-										<p
-											class="text-[10px] text-rose-600 dark:text-rose-400"
-										>
-											{{ row.fieldError }}
-										</p>
-									} @else if (row.emptyHint !== undefined) {
-										<p
-											class="text-[10px] text-zinc-500 dark:text-zinc-400"
-										>
-											{{ row.emptyHint }}
-										</p>
-									}
-								</div>
+										{{ group.label }}
+									</summary>
+									<div
+										class="flex flex-col gap-2 px-2 pb-2 pt-1"
+									>
+										@for (
+											row of group.rows;
+											track row.field
+										) {
+											<ng-container
+												*ngTemplateOutlet="
+													panelRow;
+													context: { $implicit: row }
+												"
+											/>
+										}
+									</div>
+								</details>
 							}
 						</div>
 					}
@@ -588,14 +667,19 @@ export class LfInspectorPanelComponent {
 	 * Panel param rows from catalogs$ (+ selection / config / graph).
 	 * Async pipe waits until the first catalog snapshot; no null handling.
 	 */
-	readonly panelRows$ = combineLatest({
+	readonly panelGroups$ = combineLatest({
 		catalogs: this.modelsCatalogProjection.catalogs$,
 		node: this.selection.selectedNode$,
 		config: this.configProjection.config$,
 		graph: toObservable(this.activeGraph),
 	}).pipe(
 		map(({ catalogs, node, config, graph }) =>
-			node === null ? [] : buildPanelRows(node, config, graph, catalogs),
+			node === null
+				? []
+				: groupPanelRows(
+						node.id,
+						buildPanelRows(node, config, graph, catalogs),
+					),
 		),
 	);
 

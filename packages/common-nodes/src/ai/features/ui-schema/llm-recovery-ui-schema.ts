@@ -1,9 +1,17 @@
+import type { UISchemaGroup } from '@langflower/node-sdk/create-typed-ui-schema';
 import { DEFAULT_LLM_RECOVERY_POLICY } from '../llm-loop/llm-loop-types.js';
+
+const llmRecoveryGroup = {
+	label: 'Recovery',
+	collapsed: true,
+	order: 50,
+} as const satisfies UISchemaGroup;
 
 /** Shared Inspector fields for provider/tool recovery policy. */
 export const llmRecoveryUiSchema = [
 	{
 		field: 'streamIdleTimeoutMs',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Stream idle timeout (ms, 0 disables)',
 		default: 90000,
@@ -12,6 +20,7 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'toolTimeoutMs',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Hung-tool timeout (ms, bash/MCP/custom; 0 disables)',
 		default: 60000,
@@ -20,6 +29,7 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'subagentTimeoutMs',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Sub-Agent timeout (ms, 0 disables)',
 		default: DEFAULT_LLM_RECOVERY_POLICY.subagentTimeoutMs,
@@ -28,6 +38,7 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'maxTransientRetries',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Transient provider retries',
 		default: 2,
@@ -37,18 +48,21 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'autokickOnIdle',
+		group: llmRecoveryGroup,
 		type: 'boolean',
 		label: 'Autokick on idle and dead-loop',
 		default: DEFAULT_LLM_RECOVERY_POLICY.autokickOnIdle,
 	},
 	{
 		field: 'deadLoopEnabled',
+		group: llmRecoveryGroup,
 		type: 'boolean',
 		label: 'Detect repetition dead loops',
 		default: DEFAULT_LLM_RECOVERY_POLICY.deadLoopEnabled,
 	},
 	{
 		field: 'maxAutokickAttempts',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Max autokick reconnects (0 = unlimited)',
 		default: DEFAULT_LLM_RECOVERY_POLICY.maxAutokickAttempts,
@@ -58,6 +72,7 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'autokickBackoffMs',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Autokick backoff base (ms)',
 		default: DEFAULT_LLM_RECOVERY_POLICY.autokickBackoffMs,
@@ -66,6 +81,7 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'autokickMaxBackoffMs',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Autokick backoff clamp (ms)',
 		default: DEFAULT_LLM_RECOVERY_POLICY.autokickMaxBackoffMs,
@@ -74,12 +90,14 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'autokickUserMessage',
+		group: llmRecoveryGroup,
 		type: 'string',
 		label: 'Autokick kick message',
 		default: DEFAULT_LLM_RECOVERY_POLICY.autokickUserMessage,
 	},
 	{
 		field: 'autokickPenaltyFrequency',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Autokick frequency_penalty delta',
 		default: DEFAULT_LLM_RECOVERY_POLICY.autokickPenaltyDelta.frequency,
@@ -89,6 +107,7 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'autokickPenaltyPresence',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Autokick presence_penalty delta',
 		default: DEFAULT_LLM_RECOVERY_POLICY.autokickPenaltyDelta.presence,
@@ -98,6 +117,7 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'deadLoopMaxWindowTokens',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Dead-loop window (tokens)',
 		default: DEFAULT_LLM_RECOVERY_POLICY.deadLoop.maxWindowTokens,
@@ -107,6 +127,7 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'deadLoopConsecutiveThreshold',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Dead-loop consecutive identical deltas',
 		default: DEFAULT_LLM_RECOVERY_POLICY.deadLoop.consecutiveThreshold,
@@ -115,6 +136,7 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'deadLoopMinRepetitions',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Dead-loop cyclic repetitions',
 		default: DEFAULT_LLM_RECOVERY_POLICY.deadLoop.minRepetitions,
@@ -123,6 +145,7 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'deadLoopMinPatternTokens',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Dead-loop min pattern tokens',
 		default: DEFAULT_LLM_RECOVERY_POLICY.deadLoop.minPatternTokens,
@@ -131,6 +154,7 @@ export const llmRecoveryUiSchema = [
 	},
 	{
 		field: 'deadLoopStructuralRunCap',
+		group: llmRecoveryGroup,
 		type: 'number',
 		label: 'Dead-loop punctuation/digit run cap',
 		default: DEFAULT_LLM_RECOVERY_POLICY.deadLoop.structuralRunCap,

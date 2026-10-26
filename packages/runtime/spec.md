@@ -131,6 +131,12 @@ Input wire types are **not** read from `SubjectLike`; the editor stores port
 metadata on `addNode` (including `bypassPorts` base-port wire types for router
 channels).
 
+**Wire type union ([ADR-043](../../docs/adr/043-union-wire-types-connect-on-a-shared-member.md)):**
+`PortMeta.wireType` is a string or a list of strings. `addEdge` accepts an edge
+when the two sides share a member, or either side holds `any`. `dynamic` is
+scalar-only. Helpers: `wireTypeList`, `wireTypeIs`, `wireTypesCompatible`,
+`formatWireType` (`wire-type.ts`).
+
 **Input cases:**
 
 1. Single port — `inputs[portId].length === 1`, slot `0`

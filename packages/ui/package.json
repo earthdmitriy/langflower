@@ -17,7 +17,7 @@
 		"@angular/platform-browser-dynamic": "^22.0.0",
 		"@angular/router": "^22.0.0",
 		"@langflower/common-nodes": "0.1.0",
-		"@langflower/node-sdk": "0.1.0",
+		"@langflower/node-sdk": "0.2.0",
 		"@langflower/runtime": "0.1.0",
 		"@langflower/shared": "0.1.0",
 		"@langflower/websocket-bridge": "0.1.0",

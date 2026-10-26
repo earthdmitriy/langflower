@@ -5,6 +5,7 @@ import type {
 } from '@rx-evo/stateful-observable';
 import type { Observable } from 'rxjs';
 import type { GraphCluster } from './runtime-helpers.js';
+import type { WireTypeSpec } from './wire-type.js';
 
 export type RuntimeWireType = string & { __brand: 'RuntimeWireType' };
 
@@ -44,7 +45,7 @@ export type PortMeta = {
 	/** Port id (e.g. `"value"`, `"lines"`). */
 	readonly portId: string | symbol;
 	/** Wire type (e.g. `"string"`, `"dynamic"`, `"any"`). */
-	readonly wireType: string | symbol;
+	readonly wireType: WireTypeSpec | symbol;
 	/** Input port cardinality — `undefined` for outputs. */
 	readonly mode?: RuntimeInputPortMode;
 	/** Passthrough source input port id — `undefined` for non-passthrough outputs. */
@@ -235,6 +236,11 @@ export type RuntimeSeedPortValue = {
 	/** Multi-input slot index (`0` for single-slot ports). */
 	readonly slotIndex: number;
 	readonly value: unknown;
+	/**
+	 * Deliver the value without a `runner.port` frame. A recovered run seeds an
+	 * input whose value the work log already shows.
+	 */
+	readonly silent?: boolean;
 };
 
 /**

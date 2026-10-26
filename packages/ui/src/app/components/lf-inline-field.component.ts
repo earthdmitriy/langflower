@@ -301,16 +301,24 @@ function sameValue(a: unknown, b: unknown): boolean {
 			}
 			@case ('boolean') {
 				<label
-					class="flex items-center gap-1.5 text-[10px] text-zinc-600 dark:text-zinc-300"
+					class="inline-flex w-fit items-center gap-2 text-[10px] text-zinc-600 dark:text-zinc-300"
+					[class.cursor-pointer]="!disabled()"
+					[class.opacity-60]="disabled()"
 				>
 					<input
 						#control
 						type="checkbox"
+						role="switch"
+						class="peer sr-only"
 						[checked]="booleanValue()"
 						[disabled]="disabled()"
 						(change)="valueChange.emit(control.checked)"
 					/>
-					{{ booleanValue() ? 'true' : 'false' }}
+					<span
+						aria-hidden="true"
+						class="relative h-4 w-7 shrink-0 rounded-full bg-zinc-300 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-3 after:w-3 after:rounded-full after:bg-white after:transition-transform after:content-[''] peer-checked:bg-emerald-600 peer-checked:after:translate-x-3 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400 dark:bg-zinc-700 dark:peer-checked:bg-emerald-500"
+					></span>
+					{{ booleanValue() ? 'On' : 'Off' }}
 				</label>
 			}
 			@case ('select') {

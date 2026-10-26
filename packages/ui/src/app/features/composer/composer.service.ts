@@ -1,6 +1,6 @@
-import { computed, inject, Injectable } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import type { HitlInputConfig } from '@langflower/node-sdk';
+import type { HitlInputConfig, HitlUploadedFile } from '@langflower/node-sdk';
 import { STEER_CONTROL_PORT_ID } from '@langflower/node-sdk/llm';
 import type { NodeId, PortTelemetry, RunId } from '@langflower/runtime';
 import { isPortTelemetry, isPortValueTelemetry } from '@langflower/runtime';
@@ -16,7 +16,7 @@ import { chatEntryNodeIdsInGraph } from '../../services/chat-entry-clusters';
 import {
 	definitionForNode,
 	mergedPaletteFromSnapshots$,
-	nodeTypeByIdFromWorkflow,
+	nodeTypeByIdFromGraph,
 } from '../../services/execution-catalog';
 import type {
 	InputPortTelemetry,
@@ -40,8 +40,31 @@ import { createPendingAskUserAsks$ } from './execution-ask-user-fold';
 import { createPendingPermissionAsks$ } from './execution-permission-fold';
 import { composerAwaitingNodeIds } from './composer-awaiting-node-ids';
 import { navigationLocked as isNavigationLocked } from './composer-footer-mode';
-import { wrapSteerHitlPayload } from './hitl-action-payload';
+import {
+	isSteerControlTextarea,
+	resolveComposerActionPayload,
+	textareaAcceptsFiles,
+	resolveComposerEnterPayload,
+	wrapSteerHitlPayload,
+} from './hitl-action-payload';
 import { nodeInputString } from './node-input-string';
+import {
+	acceptUploadFiles,
+	appendAcceptedUploads,
+	postSessionUpload,
+	stageComposerUploads,
+} from '../../utils/session-upload';
+
+const isComposerUserTurn = (
+	payload: unknown,
+): payload is { readonly text: string; readonly files: readonly unknown[] } =>
+	typeof payload === 'object' &&
+	payload !== null &&
+	'text' in payload &&
+	typeof payload.text === 'string' &&
+	'files' in payload &&
+	Array.isArray(payload.files) &&
+	!('kind' in payload);
 
 /** Synthetic HITL port id for composer drafts while `ask_user` is pending. */
 export const ASK_USER_COMPOSER_PORT_ID = 'ask_user';
@@ -107,17 +130,13 @@ export class ComposerService {
 		map((snap) => paletteNodesByType(snap.nodes)),
 		shareReplay(1),
 	);
-	private readonly nodeTypeById$ = this.workflowSnapshot$.pipe(
-		map((snap) => nodeTypeByIdFromWorkflow(snap)),
-		startWith(new Map<string, string>()),
-		shareReplay(1),
-	);
 	private readonly paletteByType = toSignal(this.paletteByType$, {
 		initialValue: new Map<string, PaletteNodeDefinition>(),
 	});
-	private readonly nodeTypeById = toSignal(this.nodeTypeById$, {
-		initialValue: new Map<string, string>(),
-	});
+	/** Live graph, not the snapshot: nodes added after load arrive as deltas. */
+	private readonly nodeTypeById = computed(() =>
+		nodeTypeByIdFromGraph(this.execution.activeGraph()),
+	);
 
 	private readonly draftActions$ = new Subject<ComposerDraftsAction>();
 
@@ -139,6 +158,9 @@ export class ComposerService {
 	private readonly draftState = toSignal(this.draftState$, {
 		initialValue: initialComposerDraftsState,
 	});
+
+	readonly uploading = signal(false);
+	readonly uploadError = signal<string | null>(null);
 
 	readonly idleChatEntryNodeIds = computed(() => {
 		if (this.execution.isRunning() || this.draftState().chatStartPending) {
@@ -259,6 +281,86 @@ export class ComposerService {
 		}
 
 		return this.draftState().drafts.get(`${nodeId}:${portId}`) ?? '';
+	}
+
+	attachmentsFor(nodeId: string, portId: string): readonly File[] {
+		return this.draftState().attachments.get(`${nodeId}:${portId}`) ?? [];
+	}
+
+	/** Attach, paste, and drop for a textarea that takes files. */
+	showsComposerAttachments(entry: HitlControlProjection): boolean {
+		return textareaAcceptsFiles(entry);
+	}
+
+	addAttachments(
+		nodeId: string,
+		portId: string,
+		picked: readonly File[],
+	): void {
+		const accepted = acceptUploadFiles(picked);
+		if (accepted.length === 0) {
+			return;
+		}
+		const key = `${nodeId}:${portId}`;
+		this.draftActions$.next({
+			type: 'setAttachments',
+			key,
+			files: appendAcceptedUploads(
+				this.attachmentsFor(nodeId, portId),
+				accepted,
+			),
+		});
+	}
+
+	removeAttachment(nodeId: string, portId: string, index: number): void {
+		const next = this.attachmentsFor(nodeId, portId).filter(
+			(_, fileIndex) => fileIndex !== index,
+		);
+		this.draftActions$.next({
+			type: 'setAttachments',
+			key: `${nodeId}:${portId}`,
+			files: next,
+		});
+	}
+
+	/**
+	 * Textarea Send/Start/Enter. Chat Input, Chat Loop, and Steer upload
+	 * accepted files first. Empty text never uploads. Enter on an empty
+	 * Steer draft with no files resumes; selected files block that resume.
+	 */
+	submitTextarea(
+		entry: HitlControlProjection,
+		source: 'action' | 'enter',
+	): void {
+		if (entry.config.kind !== 'textarea' || this.uploading()) {
+			return;
+		}
+		const draft = this.composerText(entry.nodeId, entry.portId);
+		const pending = this.attachmentsFor(entry.nodeId, entry.portId);
+		if (source === 'enter' && isSteerControlTextarea(entry)) {
+			const entered = resolveComposerEnterPayload(entry, draft, {
+				pendingAttachmentCount: pending.length,
+			});
+			if (draft.trim().length === 0) {
+				if (entered.ok) {
+					this.submitHitl([
+						entry.nodeId,
+						entry.portId,
+						entered.payload,
+					]);
+				}
+				return;
+			}
+		}
+		const text = draft.trim();
+		if (text.length === 0) {
+			return;
+		}
+		if (!this.showsComposerAttachments(entry)) {
+			this.submitHitl([entry.nodeId, entry.portId, text]);
+			return;
+		}
+		void this.sendUserTurn(entry, text, pending);
 	}
 
 	setComposerText(nodeId: string, portId: string, value: string): void {
@@ -383,6 +485,13 @@ export class ComposerService {
 			portId,
 			payload,
 		});
+		if (isComposerUserTurn(payload)) {
+			this.draftActions$.next({
+				type: 'setAttachments',
+				key: `${nodeId}:${portId}`,
+				files: [],
+			});
+		}
 		this.hitlResolveLocal$.next(nodeId);
 		if (isChatEntry) {
 			this.draftActions$.next({ type: 'chatStartPending' });
@@ -405,15 +514,70 @@ export class ComposerService {
 		});
 	}
 
+	/** POST the pending files in order. Reports the first failure and sends nothing. */
+	private async stageAttachments(
+		pending: readonly File[],
+	): Promise<readonly HitlUploadedFile[] | undefined> {
+		this.uploading.set(true);
+		this.uploadError.set(null);
+		const staged = await stageComposerUploads(pending, (file) =>
+			postSessionUpload({
+				type: file.type,
+				name: file.name,
+				body: file,
+			}),
+		);
+		this.uploading.set(false);
+		if (!staged.ok) {
+			this.uploadError.set(staged.message);
+			return undefined;
+		}
+		return staged.files;
+	}
+
+	private async sendUserTurn(
+		entry: HitlControlProjection,
+		text: string,
+		pending: readonly File[],
+	): Promise<void> {
+		const files = await this.stageAttachments(pending);
+		if (files === undefined) {
+			return;
+		}
+		const resolved = resolveComposerActionPayload(entry, text, { files });
+		if (!resolved.ok) {
+			return;
+		}
+		this.submitHitl([entry.nodeId, entry.portId, resolved.payload]);
+	}
+
+	/**
+	 * `ask_user` reply. Attached files upload first and ride on the reply;
+	 * the agent gets them on a following `role: user` message, as for `read`.
+	 */
 	submitAskUserReply(ask: RunnerAskUserAskPayload, text: string): void {
 		const trimmed = text.trim();
-		if (trimmed.length === 0) {
+		if (trimmed.length === 0 || this.uploading()) {
+			return;
+		}
+		void this.sendAskUserReply(ask, trimmed);
+	}
+
+	private async sendAskUserReply(
+		ask: RunnerAskUserAskPayload,
+		text: string,
+	): Promise<void> {
+		const files = await this.stageAttachments(
+			this.attachmentsFor(ask.nodeId, ASK_USER_COMPOSER_PORT_ID),
+		);
+		if (files === undefined) {
 			return;
 		}
 		this.bridge.raw['runner.askUser.reply']?.next({
 			runId: ask.runId,
 			askId: ask.askId,
-			text: trimmed,
+			text,
+			...(files.length > 0 ? { files } : {}),
 		});
 		this.draftActions$.next({
 			type: 'deleteKey',

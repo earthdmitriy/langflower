@@ -1,10 +1,11 @@
-import type { ToolHandle } from '@langflower/node-sdk';
+import type { HitlUploadedFile, ToolHandle } from '@langflower/node-sdk';
 import {
 	isSteerControlContinue,
 	isSteerControlPause,
 	type LlmRecoveryNotice,
 	type LlmRecoveryRetryReason,
 	type SteerControlPayload,
+	type ToolLogFeedValue,
 } from '@langflower/node-sdk/llm';
 import { isBuiltinToolId } from '@langflower/tools/create-project-harness';
 import type { ToolHandlerContext } from '@langflower/tools/domain-tool-configs';
@@ -73,12 +74,26 @@ import { normalizeToolResult } from './operators/normalize-tool-result.js';
 export type SharedLlmLoopChunk =
 	| { readonly kind: 'reasoning'; readonly text: string }
 	| { readonly kind: 'draftResponse'; readonly text: string }
-	| { readonly kind: 'toolLog'; readonly text: string }
+	| {
+			readonly kind: 'toolLog';
+			readonly text: string;
+			/** Staged uploads for this completed call. Absent on request lines. */
+			readonly files?: readonly HitlUploadedFile[];
+	  }
 	| ({ readonly kind: 'recoveryNotice' } & LlmRecoveryNotice)
 	| {
 			readonly kind: 'historySync';
 			readonly messages: readonly ChatCompletionMessage[];
 	  };
+
+/** Port value for one toolLog chunk. Staged files ride beside the text line. */
+export const toolLogPortValue = (chunk: {
+	readonly text: string;
+	readonly files?: readonly HitlUploadedFile[];
+}): ToolLogFeedValue =>
+	chunk.files === undefined || chunk.files.length === 0
+		? chunk.text
+		: { text: chunk.text, files: chunk.files };
 
 type LlmCompletionDecision<Chunk> =
 	| { readonly kind: 'complete'; readonly chunks: readonly Chunk[] }
@@ -350,11 +365,16 @@ const autokickPackets = <Chunk>(
 						event.payload.kind === 'steer'
 							? event.payload.text
 							: undefined;
+					const files =
+						event.payload.kind === 'steer'
+							? (event.payload.files ?? [])
+							: [];
 					return of(
 						transition<Chunk>(
 							reduceLlmLoop(state, {
 								type: 'steer.received',
 								...(text !== undefined ? { text } : {}),
+								...(files.length > 0 ? { files } : {}),
 							}),
 						),
 					);
@@ -1095,19 +1115,47 @@ const invokeTool = <Chunk>(
 	return concat(
 		of(callLog),
 		invocation$.pipe(
-			map((result) =>
-				result.ok ? result.text : `Error: ${result.text}`,
+			map(
+				(
+					result,
+				): {
+					readonly text: string;
+					readonly files?: readonly HitlUploadedFile[];
+				} =>
+					result.ok
+						? {
+								text: result.text,
+								...(result.files !== undefined
+									? { files: result.files }
+									: {}),
+							}
+						: { text: `Error: ${result.text}` },
 			),
-			catchError((error) => {
-				abortTool();
-				return of(
-					error instanceof TimeoutError
-						? `Error: Tool ${call.name} timed out after ${toolTimeoutMs}ms.`
-						: `Error: ${classifyLlmFailure(error).message}`,
-				);
-			}),
+			catchError(
+				(
+					error,
+				): Observable<{
+					readonly text: string;
+					readonly files?: readonly HitlUploadedFile[];
+				}> => {
+					abortTool();
+					return of({
+						text:
+							error instanceof TimeoutError
+								? `Error: Tool ${call.name} timed out after ${toolTimeoutMs}ms.`
+								: `Error: ${classifyLlmFailure(error).message}`,
+					});
+				},
+			),
 			mergeMap((result) =>
-				toolResultPackets(state, call, result, options, []),
+				toolResultPackets(
+					state,
+					call,
+					result.text,
+					options,
+					[],
+					result.files,
+				),
 			),
 		),
 	);
@@ -1119,6 +1167,7 @@ const toolResultPackets = <Chunk>(
 	result: string,
 	options: RunLlmLoopOptions<Chunk>,
 	prefix: readonly LlmLoopPacket<Chunk>[],
+	files?: readonly HitlUploadedFile[],
 ): Observable<LlmLoopPacket<Chunk>> => {
 	const normalized = normalizeToolResult(
 		result,
@@ -1128,6 +1177,7 @@ const toolResultPackets = <Chunk>(
 		type: 'tool.completed',
 		call,
 		result: normalized,
+		...(files !== undefined ? { files } : {}),
 	});
 
 	return from([
@@ -1135,6 +1185,7 @@ const toolResultPackets = <Chunk>(
 		emit<Chunk>({
 			kind: 'toolLog',
 			text: `← ${call.name}: ${normalized}`,
+			...(files !== undefined ? { files } : {}),
 		}),
 		transition<Chunk>(next),
 	]);
@@ -1166,17 +1217,19 @@ const awaitSteer = <Chunk>(
 	return options.steerControl$.pipe(
 		filter(isSteerControlContinue),
 		take(1),
-		map((payload) =>
-			transition<Chunk>(
+		map((payload) => {
+			const files = payload.kind === 'steer' ? (payload.files ?? []) : [];
+			return transition<Chunk>(
 				reduceLlmLoop(state, {
 					type: 'steer.received',
 					...(payload.kind === 'steer' &&
 					payload.text.trim().length > 0
 						? { text: payload.text.trim() }
 						: {}),
+					...(files.length > 0 ? { files } : {}),
 				}),
-			),
-		),
+			);
+		}),
 		takeUntil(cancel$),
 	);
 };

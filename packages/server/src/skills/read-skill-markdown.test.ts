@@ -44,4 +44,30 @@ describe('readSkillMarkdown', () => {
 			'version-two',
 		);
 	});
+
+	it('falls back to .agents/skills and prefers .langflower', async () => {
+		const agentsDir = path.join(projectDir, '.agents', 'skills');
+		await fs.mkdir(path.join(agentsDir, 'coder'), { recursive: true });
+		await fs.mkdir(path.join(agentsDir, 'only-agents'), {
+			recursive: true,
+		});
+		await fs.writeFile(
+			path.join(agentsDir, 'coder', 'SKILL.md'),
+			'agents-coder',
+			'utf8',
+		);
+		await fs.writeFile(
+			path.join(agentsDir, 'only-agents', 'SKILL.md'),
+			'agents-only',
+			'utf8',
+		);
+		await writeSkill('coder', 'langflower-coder');
+
+		await expect(readSkillMarkdown(projectDir, 'coder')).resolves.toBe(
+			'langflower-coder',
+		);
+		await expect(
+			readSkillMarkdown(projectDir, 'only-agents'),
+		).resolves.toBe('agents-only');
+	});
 });

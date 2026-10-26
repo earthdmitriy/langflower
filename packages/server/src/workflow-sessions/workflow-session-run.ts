@@ -344,6 +344,7 @@ export const appendWorkflowSessionPoint = async (
 /**
  * Replace the session head with a point. The point itself is not rewritten.
  * Events that happened after that point drop off the head.
+ * Uploads stay on disk: a point stores ids only.
  */
 export const applyPointToSessionHead = async (
 	session: LangflowerSession,

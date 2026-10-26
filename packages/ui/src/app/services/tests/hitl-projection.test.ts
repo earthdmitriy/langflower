@@ -195,4 +195,75 @@ describe('hitl-projection', () => {
 			}),
 		).toBe('go');
 	});
+
+	it('reads user-turn text and drops byte fields', () => {
+		const def = definitionWith([
+			{
+				portId: 'message',
+				name: 'Message',
+				wireType: 'string',
+				hitl: {
+					kind: 'textarea',
+					title: 'Message',
+					submitLabel: 'Start',
+				},
+			},
+		]);
+		expect(
+			formatHitlUserText(def, 'message', {
+				text: '  what is this  ',
+				files: [
+					{
+						fileId: 'img-1',
+						name: 'photo.png',
+						mimeType: 'image/png',
+						size: 4,
+						data: 'base64-pixels',
+					},
+				],
+			}),
+		).toBe('what is this');
+	});
+
+	it('takes files only where the input accepts a user-turn, or for Steer', () => {
+		const def = definitionWith([
+			{
+				portId: 'legacy',
+				name: 'Legacy',
+				wireType: 'string',
+				hitl: { kind: 'textarea', title: 'Legacy' },
+			},
+			{
+				portId: 'reply',
+				name: 'Reply',
+				wireType: ['string', 'user-turn'],
+				hitl: { kind: 'textarea', title: 'Reply' },
+			},
+			{
+				portId: 'steerControl',
+				name: 'Steer',
+				wireType: 'any',
+				hitl: { kind: 'textarea', title: 'Steer' },
+			},
+			{
+				portId: 'untyped',
+				name: 'Untyped',
+				hitl: { kind: 'textarea', title: 'Untyped' },
+			},
+		]);
+
+		expect(
+			Object.fromEntries(
+				hitlControlsForNode('n1', def).map((control) => [
+					control.portId,
+					control.acceptsFiles,
+				]),
+			),
+		).toEqual({
+			legacy: false,
+			reply: true,
+			steerControl: true,
+			untyped: false,
+		});
+	});
 });

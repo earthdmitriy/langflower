@@ -975,7 +975,10 @@ export class RuntimeRunner implements RuntimeRunnerApi {
 					source$.pipe(
 						tap({
 							next: (value) => {
-								if (typeof seed.portId !== 'symbol') {
+								if (
+									typeof seed.portId !== 'symbol' &&
+									seed.silent !== true
+								) {
 									this.emitPortEvent(
 										runId,
 										'in',

@@ -1,0 +1,38 @@
+<!-- Cursor description (was agent-requested): Run Langflower build/typecheck/format/lint/clean via build/run.sh or build/tools/. Use when building, formatting, linting, typechecking, cleaning, or fixing build errors. -->
+
+# Langflower build scripts
+
+Use project build utilities — not raw `tsc` / `ng build`.
+
+## Invoke
+
+```bash
+bash build/run.sh <command>
+```
+
+| Command               | When                                                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `build-all`           | Full monorepo build                                                                                                     |
+| `build-package <key>` | Single package (`shared`, `server`, `ui`, `cli`)                                                                        |
+| `typecheck`           | Verify types without emit (full monorepo; **required on finish**)                                                       |
+| `clean`               | Remove `dist/`, `.angular/`                                                                                             |
+| `install`             | `npm install` with formatted errors                                                                                     |
+| `format`              | Prettier on changed files; `--all` for the tree; `--check` to verify                                                    |
+| `lint`                | ESLint; `--fix` to auto-fix                                                                                             |
+| `test`                | Vitest — unit, docs-boundaries, integration in order; or pass `--unit`, `--docs-boundaries`, `--integration`, `--watch` |
+| `verify`              | `build-all` + unit + docs-boundaries + integration (`--quick` = unit only; **not** DoD). Does **not** typecheck.        |
+
+Finishing work requires `npm run format`, full `typecheck`, and `test` / `verify`.
+Package-only typecheck and `verify --quick` are intermediate only.
+
+Or: `npm run typecheck`, `npm run format`, `npm run lint`, `npm run test`, `npm run verify`
+
+Agent shortcuts: `bash build/tools/<task>.sh` (e.g. `verify.sh`, `test.sh --integration`)
+
+Windows fallback: `node build/tools/agent-run.mjs <command>`
+
+## On failure
+
+Read Issues + Hint from script output. Retry with `BUILD_VERBOSE=1` if needed.
+
+Skill: `.cursor/skills/langflower-build/SKILL.md`

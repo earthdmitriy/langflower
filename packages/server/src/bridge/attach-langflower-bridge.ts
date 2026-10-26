@@ -7,13 +7,13 @@ import {
 import { Subscription } from 'rxjs';
 import { RunProgressAccumulator } from '../checkpoint/run-progress-accumulator.js';
 import type { ServerContext } from '../server-context.js';
-import { LangflowerSession } from '../session/langflower-session.js';
+import type { LangflowerSession } from '../session/langflower-session.js';
 import {
 	createWorkflowSessionHeadFlush,
 	isNonStreamingPortEvent,
 } from '../workflow-sessions/workflow-session-run.js';
 import { WorkflowSessionAutosave } from '../workflow-sessions/workflow-session-autosave.js';
-import { WorkflowSessionStore } from '../workflow-sessions/workflow-session-store.js';
+import type { WorkflowSessionStore } from '../workflow-sessions/workflow-session-store.js';
 import {
 	clearClientIndex,
 	indexClient,
@@ -45,6 +45,8 @@ export type AttachLangflowerBridgeOptions = {
 	readonly onRunSettled?: (status: TerminalExecutionProgressStatus) => void;
 	/** Initial effective `serverLogs` gate (defaults to enabled). */
 	readonly serverLogsEnabled?: boolean;
+	readonly session: LangflowerSession;
+	readonly workflowSessions: WorkflowSessionStore;
 };
 
 /**
@@ -61,11 +63,10 @@ export type AttachLangflowerBridgeOptions = {
 export const attachLangflowerBridge = (
 	bridge: LangflowerBridge,
 	context: ServerContext,
-	options: AttachLangflowerBridgeOptions = {},
+	options: AttachLangflowerBridgeOptions,
 ): (() => Promise<void>) => {
-	const session = new LangflowerSession();
+	const { session, workflowSessions } = options;
 	const progress = new RunProgressAccumulator();
-	const workflowSessions = new WorkflowSessionStore(context.projectDir);
 	const autosave = new WorkflowSessionAutosave(session, workflowSessions);
 	session.attachWorkflowSessionAutosave(autosave);
 	const headFlush = createWorkflowSessionHeadFlush(

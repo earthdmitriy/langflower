@@ -1,4 +1,9 @@
 import fs from 'node:fs/promises';
+import path from 'node:path';
+import {
+	isSessionUploadMime,
+	SESSION_UPLOAD_MAX_BYTES,
+} from '@langflower/node-sdk';
 import { formatNotFound, resolveProjectPath } from '../../path-sandbox.js';
 import { applyPostProcess } from '../apply-post-process.js';
 import { asNumber, asString } from '../args.js';
@@ -6,6 +11,44 @@ import { fenceOptions } from '../fence.js';
 import type { BuiltinTool, HandlerContext } from '../types.js';
 
 const MAX_READ_CHARS = 200_000;
+
+/**
+ * Chat Completions file-input ceiling. A declared size at
+ * {@link SESSION_UPLOAD_MAX_BYTES} is refused before the bytes are read.
+ */
+export const isUnderSessionUploadCeiling = (size: number): boolean =>
+	Number.isSafeInteger(size) && size >= 0 && size < SESSION_UPLOAD_MAX_BYTES;
+
+const MEDIA_MIME_BY_EXTENSION: Readonly<Record<string, string>> = {
+	'.png': 'image/png',
+	'.jpg': 'image/jpeg',
+	'.jpeg': 'image/jpeg',
+	'.gif': 'image/gif',
+	'.webp': 'image/webp',
+	'.wav': 'audio/wav',
+	'.mp3': 'audio/mpeg',
+	'.pdf': 'application/pdf',
+};
+
+const mediaMimeForPath = (userPath: string): string | undefined => {
+	const mimeType =
+		MEDIA_MIME_BY_EXTENSION[path.extname(userPath).toLowerCase()];
+	if (mimeType === undefined || !isSessionUploadMime(mimeType)) {
+		return undefined;
+	}
+	return mimeType;
+};
+
+const readErrorCode = (error: unknown): string =>
+	error !== null && typeof error === 'object' && 'code' in error
+		? String((error as { code: unknown }).code)
+		: '';
+
+const mediaSummary = (
+	userPath: string,
+	mimeType: string,
+	size: number,
+): string => `${userPath} (${mimeType}, ${size} bytes)`;
 
 const sliceLines = (
 	content: string,
@@ -45,6 +88,57 @@ const sliceLines = (
 	return truncated;
 };
 
+const readMedia = async (
+	ctx: HandlerContext,
+	userPath: string,
+	absolute: string,
+	mimeType: string,
+	args: Readonly<Record<string, unknown>>,
+): Promise<string> => {
+	let info: Awaited<ReturnType<typeof fs.stat>>;
+	try {
+		info = await fs.stat(absolute);
+	} catch (error) {
+		if (readErrorCode(error) === 'ENOENT') {
+			throw new Error(await formatNotFound(absolute, userPath));
+		}
+		throw error;
+	}
+
+	if (!info.isFile()) {
+		throw new Error(`read refuses "${userPath}": not a file.`);
+	}
+
+	if (!isUnderSessionUploadCeiling(info.size)) {
+		throw new Error(
+			`read refuses "${userPath}": file must be under ${SESSION_UPLOAD_MAX_BYTES} bytes.`,
+		);
+	}
+
+	if (ctx.stageSessionUpload === undefined) {
+		throw new Error(
+			`read cannot stage ${mimeType} for "${userPath}": no session upload hook is bound.`,
+		);
+	}
+
+	const bytes = await fs.readFile(absolute);
+	if (!isUnderSessionUploadCeiling(bytes.byteLength)) {
+		throw new Error(
+			`read refuses "${userPath}": file must be under ${SESSION_UPLOAD_MAX_BYTES} bytes.`,
+		);
+	}
+
+	const staged = await ctx.stageSessionUpload({
+		name: path.basename(userPath),
+		mimeType,
+		bytes,
+	});
+	return applyPostProcess(
+		args,
+		mediaSummary(userPath, staged.mimeType, staged.size),
+	);
+};
+
 const invoke = async (
 	ctx: HandlerContext,
 	args: Readonly<Record<string, unknown>>,
@@ -61,17 +155,17 @@ const invoke = async (
 		fenceOptions(ctx),
 	);
 
+	const mediaMime = mediaMimeForPath(userPath);
+	if (mediaMime !== undefined) {
+		return readMedia(ctx, userPath, absolute, mediaMime, args);
+	}
+
 	let content: string;
 
 	try {
 		content = await fs.readFile(absolute, 'utf8');
 	} catch (error) {
-		const code =
-			error !== null && typeof error === 'object' && 'code' in error
-				? String((error as { code: unknown }).code)
-				: '';
-
-		if (code === 'ENOENT') {
+		if (readErrorCode(error) === 'ENOENT') {
 			throw new Error(await formatNotFound(absolute, userPath));
 		}
 
@@ -87,7 +181,7 @@ export const readTool = {
 		toolId: 'read',
 		name: 'read',
 		description:
-			'Read a file under the project root. Optional startLine/endLine (1-based) or offset/limit (byte-ish line slices). Optional postProcess: source of (res: string) => string.',
+			'Read a file under the project root. Optional startLine/endLine (1-based) or offset/limit (byte-ish line slices). Optional postProcess: source of (res: string) => string. png, jpg, jpeg, gif, webp, wav, mp3, and pdf are staged as session uploads; the result is one line with the path, MIME, and size. Other files, including video, stay UTF-8 text.',
 		inputSchema: {
 			type: 'object',
 			properties: {

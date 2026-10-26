@@ -1,4 +1,5 @@
 import type { ToolHandle } from '../define-tool-registrations/tool-handle.js';
+import type { HitlUploadedFile } from './hitl-config.js';
 
 export const NODE_CAPABILITY_IDS = [
 	'chat',
@@ -13,6 +14,29 @@ export const NODE_CAPABILITY_IDS = [
 	'editorBus',
 	'authorize',
 ] as const;
+
+/** One skill in the catalog block (`path` is project-relative `SKILL.md`). */
+export type PromptSkillCatalogEntry = {
+	readonly id: string;
+	readonly name: string;
+	readonly description: string;
+	readonly path: string;
+};
+
+/**
+ * Session-start context a node asked for via its `include*` params. The server
+ * resolves the toggles; the prompt builder only formats what is present.
+ */
+export type PromptSessionContext = {
+	readonly readmeMarkdown: string;
+	readonly environment: {
+		readonly os: string;
+		readonly workDir: string;
+		readonly date: string;
+	} | null;
+	readonly harness: boolean;
+	readonly skillCatalog: readonly PromptSkillCatalogEntry[];
+};
 
 export type NodeCapabilityId = (typeof NODE_CAPABILITY_IDS)[number];
 
@@ -67,6 +91,8 @@ export type CapabilityFields = {
 	readonly promptContext: {
 		readonly skillMarkdown: string;
 		readonly agentsMarkdown: string;
+		/** Optional session-start context blocks; absent = none requested. */
+		readonly sessionContext?: PromptSessionContext;
 		readonly defaultChat?: {
 			readonly providerId: string;
 			readonly model: string;
@@ -102,10 +128,19 @@ type CapabilityChatArgs = {
 	readonly presence_penalty?: number;
 };
 
+type CapabilityChatUserTurn = {
+	readonly text: string;
+	readonly files: readonly HitlUploadedFile[];
+};
+
 type CapabilityChatMessage =
 	| {
-			readonly role: 'system' | 'user';
+			readonly role: 'system';
 			readonly content: string;
+	  }
+	| {
+			readonly role: 'user';
+			readonly content: string | CapabilityChatUserTurn;
 	  }
 	| {
 			readonly role: 'assistant';
